@@ -65,3 +65,24 @@ Currency versions use ISO 4217 identifiers. No new bank message or external audi
 export is introduced here. ISO schema provenance work in #17 neither approves nor
 blocks this internal synthetic operation. Real financial exchange requires its
 own completed mapping/profile gate. No source above certifies accounting software.
+
+## P05 — pgx transaction adapter
+
+[pgx v5.11.0 API documentation](https://pkg.go.dev/github.com/jackc/pgx/v5@v5.11.0#Conn.BeginTx),
+MIT licensed, reviewed BeginTx, Tx Commit/Rollback and PostgreSQL error handling.
+The caller must explicitly manage transaction completion; cancellation does not
+replace rollback cleanup. We pin the driver and module checksums, use explicit
+isolation and parameter binding, and retain SQL as accounting authority. Bounded
+whole-transaction retry and receipt resolution after uncertain commit are our
+protocol; the driver alone does not establish exactly-once business effects.
+The service accepts an owned connection/pool interface and never fetches secrets.
+
+## P06 — Reference version serialization
+
+PostgreSQL 17 [§13.3.5 Advisory Locks](https://www.postgresql.org/docs/17/explicit-locking.html#ADVISORY-LOCKS),
+reviewed transaction-scoped lock lifetime. Our controlled currency setup uses a
+per-code transaction advisory lock plus overlap checks; repeatable-read setup is
+rejected because its old snapshot can miss a committed version after waiting.
+Read-committed setup sees the subsequent statement snapshot; serializable setup
+must retry a serialization failure. Hash collisions only serialize extra codes.
+This is a setup concurrency choice, not a financial standard or a runtime grant.

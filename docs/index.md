@@ -34,7 +34,7 @@ background work. The two predecessor repos are reference material only.
 | How will builds reach GCP? | [GCP delivery contract](gcp-delivery.md) |
 | How do we start, review and finish tasks? | [Delivery workflow](delivery.md) |
 | What worked in Brainblast? | [Tooling assessment](research/brainblast.md) |
-| What has actually passed? | [Seed runbook](runbooks/seed.md) |
+| What has actually passed? | [PostgreSQL posting proof](runbooks/posting-proof.md) |
 | What was checked for the contract package? | [Ledger contract runbook](runbooks/ledger-contracts.md) |
 
 ## Synthetic test data
@@ -45,8 +45,8 @@ Use the [corpus and execution guide](../tests/corpus/README.md),
 
 ## Next action
 
-Review ADR 0005 and the posting boundary, then implement the synthetic PostgreSQL
-posting proof against its named acceptance matrix. JB-001 remains open for a real
+Review the [implemented posting proof](runbooks/posting-proof.md), then complete
+trusted user identity and controlled book/account setup before exposing a server. JB-001 remains open for a real
 LLC policy, opening-balance source and accountant cutover review. Development
 accrual/USD defaults do not resolve those live-use decisions.
 Entity/account counts, providers, GCP project, billing budget and region are

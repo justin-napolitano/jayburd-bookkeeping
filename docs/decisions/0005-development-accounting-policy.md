@@ -3,8 +3,8 @@
 ## Decision, owner and scope
 
 Owner requested the proposed accrual/USD posting sequence on 2026-10-11. Adopt
-`dev-accrual-usd-v1` as the concrete **synthetic development profile**, subject to
-this PR's review. It is not a real LLC's approved reporting policy or tax election.
+`dev-accrual-usd-v1` as the concrete **synthetic development profile**, reviewed and
+merged in #19. It is not a real LLC's approved reporting policy or tax election.
 US GAAP is the intended research target; do not label these books GAAP-compliant.
 ASC topic review and real-entity facts remain required before official use.
 

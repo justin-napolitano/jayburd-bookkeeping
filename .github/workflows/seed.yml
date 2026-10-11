@@ -29,7 +29,7 @@ jobs:
       - name: Validate context and tooling
         run: make check test build
       - name: Require Go formatting
-        run: test -z "$(gofmt -l cmd)"
+        run: test -z "$(gofmt -l cmd internal)"
       - name: Preserve existing migration SQL
         if: github.event_name == 'pull_request'
         env:
@@ -37,6 +37,8 @@ jobs:
         run: bash scripts/migrate.sh check "$BASE_COMMIT"
       - name: Prove isolated PostgreSQL migrations
         run: make migration-test
+      - name: Prove transactional ledger on disposable PostgreSQL
+        run: make ledger-test
       - name: Lint workflow definitions
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/seed.yml
       - name: Render reviewable issue proposals
