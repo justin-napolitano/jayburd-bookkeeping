@@ -35,6 +35,10 @@ Posted journals are balanced, atomic, replay-safe and immutable. Corrections
 are explicit. Outbox intent commits with its business mutation. Worker retries
 never authorize duplicate effects or bypass current entity permissions.
 No business rules duplicated across API and jobs. Money never uses float.
+Use the domain schemas and lowercase singular naming in
+`docs/decisions/0004-schema-ownership.md`; no application objects in `public`
+or a schema per LLC by default. Follow the scoped SQL/API contracts linked from
+`docs/contracts/database.md`; draft policy and test names are not implemented guarantees.
 Review database contracts before product DDL. Use golang-migrate SQL migrations;
 no ORM auto-migration or application-startup migration. Merged SQL is immutable.
 Run `make migration-test` for migration/tooling changes; never use a live DSN.

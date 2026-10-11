@@ -6,19 +6,34 @@ Design before product DDL. This is a proposed logical model and review standard,
 not an approved physical schema. JB-001 resolves accounting policy; JB-002 owns
 the first schema review. [Accounting invariants](accounting.md) remain authoritative.
 
+## Current review package
+
+| Contract | Purpose and status |
+| --- | --- |
+| [Schema ownership ADR](../decisions/0004-schema-ownership.md) | Owner-accepted namespace and naming direction; grants proposed |
+| [Accounting scenarios and policy](accounting-scenarios.md) | Worked examples and unresolved owner/accountant decisions |
+| [Money and multicurrency](multicurrency.md) | Proposed amounts, rate provenance and FX lifecycle |
+| [SQL contract](ledger-sql.md) | First-slice column dictionary, roles, transaction ordering and named acceptance tests |
+| [HTTP contract](api.md) | Operation semantics and draft OpenAPI 3.1.1 document |
+| [Additional source review](../research/contract-sources.md) | Exact source scope, interpretations and limitations |
+
+This index states the review requirements; the SQL contract owns the detailed
+first-slice model. No SQL migration or runtime endpoint implements these drafts.
+
 ## Logical relationships
 
 An entity owns separate books. A bank/provider account is a source of observations;
 a ledger account is an accounting classification. Never collapse those concepts.
-Journal lines reference ledger accounts in the same entity as their journal.
+Journal lines reference accounts in the same entity AND book as their journal.
 
 ```mermaid
 erDiagram
     ENTITY ||--o{ MEMBERSHIP : authorizes
     PRINCIPAL ||--o{ MEMBERSHIP : receives
-    ENTITY ||--o{ LEDGER_ACCOUNT : owns
-    ENTITY ||--o{ ACCOUNTING_PERIOD : closes
-    ENTITY ||--o{ JOURNAL : records
+    ENTITY ||--o{ BOOK : owns
+    BOOK ||--o{ LEDGER_ACCOUNT : classifies
+    BOOK ||--o{ ACCOUNTING_PERIOD : closes
+    BOOK ||--o{ JOURNAL : records
     JOURNAL ||--|{ JOURNAL_LINE : contains
     LEDGER_ACCOUNT ||--o{ JOURNAL_LINE : classifies
     ENTITY ||--o{ SOURCE_ACCOUNT : connects
@@ -76,5 +91,6 @@ successful migration is not acceptance evidence for accounting behavior.
 
 JB-002 is ready when reviewed column dictionaries, operation contracts, role
 matrix, invariants and named test cases cover the first slice. Blockers: accounting
-basis, initial currency, opening balances, timezone, permission model and precise
-posting enforcement mechanism. Then create product migrations and their tests.
+basis, functional currencies, opening balances, timezone, permission model and
+acceptance of the proposed posting enforcement mechanism. Then create product
+migrations and their tests for the approved slice.

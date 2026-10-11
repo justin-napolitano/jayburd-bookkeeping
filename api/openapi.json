@@ -1,0 +1,1247 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Jayburd Ledger Contract",
+    "version": "0.1.0-draft",
+    "description": "Review artifact only; no server exists. SQL/accounting contracts remain authoritative for semantic validation. Not a registered ISO financial-message definition.",
+    "contact": {
+      "name": "Jayburd contract review",
+      "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/2"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://bookkeeping.example.invalid",
+      "description": "Non-routable documentation placeholder; no deployed endpoint."
+    }
+  ],
+  "tags": [
+    {
+      "name": "Ledger",
+      "description": "Authorized bookkeeping operations within one entity/book."
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/v1/entities/{entity_id}/books/{book_id}/journals": {
+      "parameters": [
+        {
+          "name": "entity_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "book_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "postJournal",
+        "summary": "Post one balanced manual journal",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "post",
+        "responses": {
+          "201": {
+            "description": "Committed result.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "Financial responses are not cacheable."
+              },
+              "Idempotent-Replay": {
+                "schema": {
+                  "type": "boolean"
+                },
+                "description": "True when returning an existing successful receipt; false for first execution."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Journal"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostJournal"
+              },
+              "example": {
+                "expected_revision": "0",
+                "policy_id": "00000000-0000-4000-8000-000000000010",
+                "accounting_date": "2026-01-01",
+                "description": "Synthetic opening capital",
+                "lines": [
+                  {
+                    "account_id": "00000000-0000-4000-8000-000000000011",
+                    "side": "debit",
+                    "transaction_currency": "USD",
+                    "transaction_amount": "1000.00",
+                    "functional_amount": "1000.00",
+                    "valuation_basis": "identity"
+                  },
+                  {
+                    "account_id": "00000000-0000-4000-8000-000000000012",
+                    "side": "credit",
+                    "transaction_currency": "USD",
+                    "transaction_amount": "1000.00",
+                    "functional_amount": "1000.00",
+                    "valuation_basis": "identity"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/journals/{journal_id}": {
+      "parameters": [
+        {
+          "name": "entity_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "book_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "journal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getJournal",
+        "summary": "Read one immutable posted journal",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "responses": {
+          "200": {
+            "description": "Authorized snapshot result.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "Financial responses are not cacheable."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Journal"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/journals/{journal_id}/reversals": {
+      "parameters": [
+        {
+          "name": "entity_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "book_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "journal_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "reverseJournal",
+        "summary": "Post an exact linked reversal",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "post",
+        "responses": {
+          "201": {
+            "description": "Committed result.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "Financial responses are not cacheable."
+              },
+              "Idempotent-Replay": {
+                "schema": {
+                  "type": "boolean"
+                },
+                "description": "True when returning an existing successful receipt; false for first execution."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Journal"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReverseJournal"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/periods/{period_id}/close": {
+      "parameters": [
+        {
+          "name": "entity_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "book_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "period_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "closePeriod",
+        "summary": "Close a period against reviewed evidence",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "close",
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "Financial responses are not cacheable."
+              },
+              "Idempotent-Replay": {
+                "schema": {
+                  "type": "boolean"
+                },
+                "description": "True when returning an existing successful receipt; false for first execution."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedPeriod"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClosePeriod"
+              }
+            }
+          }
+        },
+        "description": "Draft dependency: close-evidence storage/review contract must be accepted before implementation. A caller assertion is insufficient."
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/trial-balance": {
+      "parameters": [
+        {
+          "name": "entity_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "book_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        {
+          "name": "through_date",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getTrialBalance",
+        "summary": "Read cumulative functional-currency account balances",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "responses": {
+          "200": {
+            "description": "Authorized snapshot result.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "Financial responses are not cacheable."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialBalance"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Provider/issuer/audience configuration pending; identity is never accepted from request JSON."
+      }
+    },
+    "schemas": {
+      "Amount": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
+        "description": "Unsigned finite decimal; positive for posted lines. Scale/range and policy checks are also required before numeric conversion."
+      },
+      "Revision": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]{0,18})$",
+        "description": "Unsigned revision within signed SQL bigint range; no JSON numeric precision loss."
+      },
+      "Line": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ]
+          },
+          "transaction_currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "description": "ISO 4217 code; validity and selected metadata version checked by accounting date."
+          },
+          "transaction_amount": {
+            "$ref": "#/components/schemas/PositiveAmount"
+          },
+          "functional_amount": {
+            "$ref": "#/components/schemas/PositiveAmount"
+          },
+          "valuation_basis": {
+            "type": "string",
+            "enum": [
+              "identity",
+              "spot"
+            ]
+          },
+          "rate_observation_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "account_id",
+          "side",
+          "transaction_currency",
+          "transaction_amount",
+          "functional_amount",
+          "valuation_basis"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "valuation_basis": {
+                  "const": "spot"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "rate_observation_id"
+              ],
+              "properties": {
+                "rate_observation_id": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "rate_observation_id"
+                ],
+                "properties": {
+                  "rate_observation_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "First slice accepts identity/spot only. Functional amount is a client assertion independently recomputed under the book policy."
+      },
+      "PostJournal": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accounting_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "lines": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/Line"
+            }
+          }
+        },
+        "required": [
+          "expected_revision",
+          "policy_id",
+          "accounting_date",
+          "description",
+          "lines"
+        ]
+      },
+      "ReverseJournal": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "accounting_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "expected_revision",
+          "accounting_date",
+          "reason"
+        ]
+      },
+      "ClosePeriod": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "close_evidence_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "close_evidence_id"
+        ]
+      },
+      "Journal": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "journal_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "functional_currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "description": "ISO 4217 code; validity and selected metadata version checked by accounting date."
+          },
+          "accounting_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "reversal"
+            ]
+          },
+          "posted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reverses_journal_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "lines": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/PostedLine"
+            }
+          },
+          "posted_by": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "functional_currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "entity_id",
+          "book_id",
+          "journal_id",
+          "period_id",
+          "policy_id",
+          "book_revision",
+          "functional_currency",
+          "accounting_date",
+          "description",
+          "kind",
+          "posted_at",
+          "reverses_journal_id",
+          "lines",
+          "posted_by",
+          "reason",
+          "functional_currency_version_id"
+        ]
+      },
+      "ClosedPeriod": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "const": "closed"
+          },
+          "book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "closed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "entity_id",
+          "book_id",
+          "period_id",
+          "state",
+          "book_revision",
+          "closed_at"
+        ]
+      },
+      "TrialBalanceRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "account_code": {
+            "type": "string"
+          },
+          "debit_balance": {
+            "$ref": "#/components/schemas/Amount"
+          },
+          "credit_balance": {
+            "$ref": "#/components/schemas/Amount"
+          }
+        },
+        "required": [
+          "account_id",
+          "account_code",
+          "debit_balance",
+          "credit_balance"
+        ]
+      },
+      "TrialBalance": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "through_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "snapshot_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "functional_currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "description": "ISO 4217 code; validity and selected metadata version checked by accounting date."
+          },
+          "total_debits": {
+            "$ref": "#/components/schemas/Amount"
+          },
+          "total_credits": {
+            "$ref": "#/components/schemas/Amount"
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrialBalanceRow"
+            }
+          }
+        },
+        "required": [
+          "entity_id",
+          "book_id",
+          "through_date",
+          "snapshot_revision",
+          "functional_currency",
+          "total_debits",
+          "total_credits",
+          "accounts"
+        ],
+        "description": "Cumulative posted balances through date inclusive. Each row has at most one nonzero side; total debits equals total credits. Reject a result exceeding supported amount bounds."
+      },
+      "Problem": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "detail": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "request_id"
+        ]
+      },
+      "PositiveAmount": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Amount"
+          },
+          {
+            "type": "string",
+            "pattern": "^(?!0(?:\\.0+)?$)"
+          }
+        ],
+        "description": "A strictly positive amount in the first manual-posting slice."
+      },
+      "PostedLine": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ]
+          },
+          "transaction_currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "description": "ISO 4217 code; validity and selected metadata version checked by accounting date."
+          },
+          "transaction_amount": {
+            "$ref": "#/components/schemas/PositiveAmount"
+          },
+          "functional_amount": {
+            "$ref": "#/components/schemas/PositiveAmount"
+          },
+          "valuation_basis": {
+            "type": "string",
+            "enum": [
+              "identity",
+              "spot"
+            ]
+          },
+          "rate_observation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "line_number": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "transaction_currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "account_id",
+          "side",
+          "transaction_currency",
+          "transaction_amount",
+          "functional_amount",
+          "valuation_basis",
+          "line_number",
+          "transaction_currency_version_id"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "valuation_basis": {
+                  "const": "spot"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "rate_observation_id"
+              ],
+              "properties": {
+                "rate_observation_id": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "rate_observation_id"
+                ],
+                "properties": {
+                  "rate_observation_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "Immutable line with resolved currency metadata version and original valuation provenance."
+      }
+    },
+    "responses": {
+      "Problem400": {
+        "description": "Malformed request or missing required header.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "headers": {
+          "Cache-Control": {
+            "schema": {
+              "type": "string",
+              "const": "no-store"
+            }
+          }
+        }
+      },
+      "Problem401": {
+        "description": "Missing or invalid authentication.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "headers": {
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string",
+              "const": "Bearer"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "type": "string",
+              "const": "no-store"
+            }
+          }
+        }
+      },
+      "Problem403": {
+        "description": "Accessible scope but insufficient operation permission.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "headers": {
+          "Cache-Control": {
+            "schema": {
+              "type": "string",
+              "const": "no-store"
+            }
+          }
+        }
+      },
+      "Problem404": {
+        "description": "Missing resource or inaccessible entity/book.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "headers": {
+          "Cache-Control": {
+            "schema": {
+              "type": "string",
+              "const": "no-store"
+            }
+          }
+        }
+      },
+      "Problem409": {
+        "description": "Revision, idempotency or lifecycle conflict.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "headers": {
+          "Cache-Control": {
+            "schema": {
+              "type": "string",
+              "const": "no-store"
+            }
+          }
+        }
+      },
+      "Problem413": {
+        "description": "Request exceeds the body limit.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "headers": {
+          "Cache-Control": {
+            "schema": {
+              "type": "string",
+              "const": "no-store"
+            }
+          }
+        }
+      },
+      "Problem422": {
+        "description": "Invalid accounting input, missing close evidence or unsupported policy.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "headers": {
+          "Cache-Control": {
+            "schema": {
+              "type": "string",
+              "const": "no-store"
+            }
+          }
+        }
+      },
+      "Problem503": {
+        "description": "Temporary failure; retry a mutation with the same key and body.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "type": "string",
+              "const": "no-store"
+            }
+          }
+        }
+      }
+    }
+  }
+}
