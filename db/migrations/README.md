@@ -16,7 +16,8 @@ make migration-test
 Docker is needed for creation/testing; offline file checks need Bash, Git and
 `shasum`. Pulls happen only in explicit Docker commands. The test uses an internal
 network, no published ports, tmpfs data and disposable trust authentication.
-No real password, inherited DSN, Infisical or GCP access is used. Only resources
+Explicit migration/test inputs are copied into a disposable volume so the daemon
+need not share host checkout paths. No real password, inherited DSN, Infisical or GCP access is used. Only resources
 created by that test are removed. Do not attach other containers to its network.
 
 Use one reviewed logical change per sequential pair. Rebase before numbering;
@@ -37,7 +38,7 @@ Dirty state requires inspection and an incident-specific repair decision, never
 an automatic `force`. Production migration execution and applied-checksum receipts
 remain JB-003/JB-005 work. No live-database wrapper is exposed by this seed.
 
-`make ledger-test` additionally proves a 1-to-2 upgrade with existing synthetic
+`make ledger-test` additionally proves a 1-to-current upgrade with existing synthetic
 state, posting/races and a streamed synthetic backup/restore. Product down files
 fail explicitly: financial history is repaired forward. Initial migrations need
 controlled role/schema creation privileges; runtime roles receive none of them.

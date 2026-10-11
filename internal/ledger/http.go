@@ -13,13 +13,14 @@ import (
 )
 
 // Authenticator must validate issuer, audience, expiry and subject before mapping
-// a principal. No production implementation or default impersonation is supplied.
+// a principal. The identity package supplies the managed provider adapter.
 type Authenticator interface {
 	Authenticate(context.Context, string) (string, error)
 }
 
 // Operations allows transport tests without treating mocks as accounting proof.
 type Operations interface {
+	Setup(context.Context, Command) (Result, error)
 	Post(context.Context, Command) (Result, error)
 	Reverse(context.Context, Command) (Result, error)
 	Journal(context.Context, Command) (Result, error)
@@ -30,6 +31,7 @@ type Operations interface {
 // identity and database adapters. There is no listener or public server command.
 func Handler(auth Authenticator, ops Operations) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /v1/setup", endpoint(auth, ops, "setup"))
 	base := "/v1/entities/{entity}/books/{book}"
 	mux.HandleFunc("POST "+base+"/journals", endpoint(auth, ops, "post"))
 	mux.HandleFunc("POST "+base+"/journals/{journal}/reversals", endpoint(auth, ops, "reverse"))
@@ -81,7 +83,7 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			return
 		}
 		c := Command{Actor: actor, Entity: r.PathValue("entity"), Book: r.PathValue("book"), Journal: r.PathValue("journal"), Request: id}
-		if op == "post" || op == "reverse" {
+		if op == "post" || op == "reverse" || op == "setup" {
 			keys := r.Header.Values("Idempotency-Key")
 			if len(keys) != 1 || keys[0] == "" {
 				fail(400, "invalid_request")
@@ -113,6 +115,8 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 		}
 		var result Result
 		switch op {
+		case "setup":
+			result, err = ops.Setup(r.Context(), c)
 		case "post":
 			result, err = ops.Post(r.Context(), c)
 		case "reverse":
@@ -130,7 +134,7 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			problem(w, id, f)
 			return
 		}
-		if op == "post" || op == "reverse" {
+		if op == "post" || op == "reverse" || op == "setup" {
 			w.Header().Set("Idempotent-Replay", map[bool]string{true: "true", false: "false"}[result.Replayed])
 		}
 		w.Header().Set("Content-Type", "application/json")
