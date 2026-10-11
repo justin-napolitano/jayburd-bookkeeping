@@ -152,7 +152,7 @@ support the identity/setup contract; live deployment evidence remains separate.
 
 The [GCP source register](gcp-sources.md) describes managed request billing,
 Cloud Tasks pricing and duplicate delivery, Cloud SQL connectivity and IAM
-authentication. Read its section-level review limits before implementing cloud
+authentication, Terraform mock tests, state bootstrap and GitHub federation. Read its section-level review limits before implementing cloud
 delivery; provider documentation and budget assumptions are not deployment proof.
 
 ## Agent maintenance rules

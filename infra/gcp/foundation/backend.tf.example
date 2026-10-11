@@ -1,0 +1,5 @@
+# Owner installs as backend.tf after creating the bucket with local bootstrap state.
+# Bucket/prefix are supplied with -backend-config by the owner, never via credentials.
+terraform {
+  backend "gcs" {}
+}
