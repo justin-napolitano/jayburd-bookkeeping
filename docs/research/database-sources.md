@@ -1,5 +1,9 @@
 # Database and bookkeeping source register
 
+For reading order, topic descriptions and the standards/multicurrency resources,
+see the [annotated bibliography](bibliography.md). This register retains the
+detailed S01–S22 evidence records.
+
 ## Scope and method
 
 Targeted public-web research, accessed 2026-10-11. Queries covered relational

@@ -56,6 +56,10 @@ Multicurrency is required scope; do not silently reduce the ledger to one curren
 
 ## Changes and evidence
 
+Start source review with `docs/research/bibliography.md`. Keep its annotated
+resource index and the linked canonical source records current when adding or
+using references; record review depth and access limits, not just URLs.
+
 Before material design decisions or implementation, follow
 `docs/research/decision-evidence.md`: cite reviewed source sections, distinguish
 facts from inference, compare alternatives and name acceptance evidence.
