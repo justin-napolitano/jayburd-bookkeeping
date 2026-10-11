@@ -2,8 +2,9 @@
 
 ## Status
 
-Cloud delivery remains planned; no project, billing, federation, infrastructure or
-deployment workflow exists. CI now checks the Go server, synthetic PostgreSQL
+Cloud delivery remains unapplied. The [foundation](gcp-foundation.md) now has
+Terraform configuration and credential-free mocked CI; project/billing metadata,
+live federation and application deployment remain unverified. CI now checks the Go server, synthetic PostgreSQL
 ledger and Next.js application. An API Dockerfile is available for local proof;
 it has not been published or deployed. See [application evidence](runbooks/first-app.md).
 Delivery work is tracked by [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).

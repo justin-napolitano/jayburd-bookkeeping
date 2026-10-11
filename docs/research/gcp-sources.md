@@ -26,5 +26,21 @@ exist. Neither choice replaces the atomic PostgreSQL ledger.
 The under-$50 target excludes bank-provider subscriptions and is not a guaranteed
 ceiling. A complete regional estimate remains required by #5, including Cloud SQL
 compute/storage/backups, identity, network, scheduler, logs, artifacts and restore
-resources. The Cloud SQL pricing page returned an error in this review; no new
-verified database price quotation is claimed here. Measure seven-day spend in #12.
+resources. The initial browser extraction of SQL pricing failed; the foundation follow-up
+review below retrieved official HTML and records the bounded rate check. Measure
+seven-day spend in #12.
+
+## Foundation implementation review — 2026-10-11
+
+- **G06 — HashiCorp, [Terraform provider mocking](https://developer.hashicorp.com/terraform/language/tests/mocking)**: reviewed Mock Providers and Generated Data. Mocks use provider schemas without resource API calls; passing mocks do not prove real IAM or provider behavior. Implemented six named foundation tests with Terraform 1.15.7/provider 8.6.0. Selected sections only.
+- **G07 — Google, [WIF for deployment pipelines](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines)**: reviewed GitHub attribute mapping/conditions and default audience. Numeric repository/owner IDs avoid name-reuse trust; mapped claims constrain federation. Our additional owner actor/event/workflow restrictions are a project decision. Actual token denial tests remain cloud evidence.
+- **G08 — HashiCorp, [GCS backend](https://developer.hashicorp.com/terraform/language/backend/gcs)**: reviewed bucket prerequisite, locking, versioning and authentication guidance. Bootstrap must create its bucket first; owner then migrates local state privately. Separate application bucket narrows deployer access. No remote state was read or initialized.
+- **G09 — Google, [Cloud Scheduler pricing](https://cloud.google.com/scheduler/pricing)**: reviewed Pricing overview/Free usage. Billing is per configured job, not per execution; first three jobs/account are free, then $0.10/job/31 days. Invocation compute is separate; account-wide usage remains unknown.
+
+The checked-in lock file records signed provider package hashes for macOS ARM64
+and Linux AMD64. Release identity was checked against the upstream Google provider
+v8.6.0 release. Private branch-protection API still returned HTTP 403; the repository
+environments API returned an empty list. The [foundation contract](../gcp-foundation.md)
+therefore does not grant GitHub apply access or assume an enforced reviewer gate.
+
+- **G10 — Google, [Cloud SQL pricing](https://cloud.google.com/sql/pricing?hl=en)**: reviewed Shared-core CPU/RAM and Iowa storage/backup tables in official HTML after the browser tool rejected its size. db-g1-small $0.035/hour; SSD $0.000232877/GiB-hour; used backups $0.000109589/GiB-hour. Shared-core types are excluded from the Cloud SQL SLA. The 730-hour example in the foundation contract is our calculation, not a full-stack quote or a billing-account-specific offer. No authenticated billing data was retrieved.
