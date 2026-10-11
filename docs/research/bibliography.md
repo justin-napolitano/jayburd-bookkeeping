@@ -135,6 +135,12 @@ the policy for a US GAAP book.
 
 ## Agent maintenance rules
 
+The [contract-design source notes](contract-sources.md) add C01 (PostgreSQL
+schemas/locking), C02 (OpenAPI 3.1.1), C03 (RFC 9457 HTTP problems) and C04
+(public AASB 121 currency guidance). Read them alongside the SQL/API contracts.
+C04 is a limited paragraph review of an Australian source incorporating IAS 21,
+not a substitute for pending US GAAP research.
+
 Use stable S/R identifiers when linking a source to an ADR or contract. Read the
 underlying section before relying on it, and update its canonical record with
 title, publisher, version, section/pages, access date, relevance and limitations.

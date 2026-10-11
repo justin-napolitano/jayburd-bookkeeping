@@ -4,8 +4,10 @@
 
 Target contract; no ledger implementation exists. JB-001 resolves accounting
 policy before JB-004 implements posting. Requirements below need named tests.
-Multicurrency is required; detailed FX measurement contracts remain under
-research. Apply the [standards contract](standards.md) to messages and practices.
+Multicurrency is required; review the proposed [money contract](multicurrency.md)
+and [accounting scenarios](accounting-scenarios.md). Policy and automated FX
+implementation remain gated. Apply the [standards contract](standards.md) to
+messages and practices.
 
 ## Durable posting boundary
 
