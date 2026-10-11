@@ -17,6 +17,9 @@ infrastructure, or approval to use these books as a system of record.
 4. Review [Infisical setup](docs/infisical.md).
 5. Resume from the [seed runbook](docs/runbooks/seed.md).
 
+For source material and reading priorities, use the
+[annotated bibliography](docs/research/bibliography.md).
+
 ## Local commands
 
 Requires Go 1.26 and Git. These commands need no cloud account or credentials.

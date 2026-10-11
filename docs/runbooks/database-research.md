@@ -1,0 +1,67 @@
+# Database research review
+
+<!-- stage-runbook: true -->
+
+## Status and boundary
+
+Research-only branch from main. No application, SQL migration, dependency or CI
+changes. Migration PR #14 was verified merged during this session; its tooling is separate
+from this documentation-only change. Public sources only;
+no financial data or credentials accessed.
+
+## Stage ledger
+
+| Stage | Result | Next action |
+| --- | --- | --- |
+| Discover and read source sections | 22 source entries with review depth/limits | Compare alternatives |
+| Critique proposed paradigms | Decision brief and unresolved choices recorded | Owner/schema review |
+| Establish evidence standard | Source-to-inference-to-test record specified | Apply to subsequent ADRs |
+| Rebase after PR #14 | Research commits rebased cleanly onto `2597222` | Preserve migration tooling |
+| Record owner ISO requirement | AGENTS and standards contract require applicability/version/mapping/evidence records | Review each integration definition before implementation |
+| Correct multicurrency scope | Removed single-currency proposal and blanket mixed-currency rejection | Complete sourced FX measurement contracts |
+| Add shared bibliography | Annotated S01–S22 navigation plus seven standards/accounting resources, reading order and access limits; linked from README, index and AGENTS | Use canonical records in subsequent reviews |
+
+## Current evidence
+
+Bibliography stage: the same `make check test build` command with the cache
+paths below passed again, including local document-link validation. Public
+IAS 21 overview and ISO 21926 introduction/scope were read; the FASB codification
+returned no readable body and is explicitly marked pending. No new accounting
+policy or implemented conformance follows from these resource entries.
+
+After the ISO policy and multicurrency scope edits, reran
+`GOCACHE=/private/tmp/jayburd-go-cache GOMODCACHE=/private/tmp/jayburd-go-modcache make check test build`:
+PASS (document links, migration-file checks, runbook structure, vet, existing
+race tests and tooling build). No application or conformance tests exist yet.
+
+Targeted crawl covered OpenStax, BCcampus, original relational/SSI/accounting
+papers, PostgreSQL 17 manuals, author pattern articles, provider documentation
+and tool alternatives. DDIA is explicitly publisher-preview-only. Old arXiv HTML
+was unavailable; PDF sections were readable. PDF title-page metadata was checked
+where extraction gave an inconsistent title. No source text archive created.
+
+`GOCACHE=/private/tmp/jayburd-go-cache GOMODCACHE=/private/tmp/jayburd-go-modcache make check test build`: PASS, including local document links,
+runbook structure, existing Go race tests, vet and tooling build. These checks
+validate the repository, not the literature's conclusions. DOI resolver returned
+403 for Codd; the university-hosted paper remained readable. No accounting
+correctness, concurrency benchmark or operational approval is claimed.
+
+## Remaining work
+
+ISO review covers official public FAQ/catalogue, currency overview and audit-data
+abstract; individual message schemas/profiles and full audit standard have not
+been reviewed. No ISO conformance claim is made. Detailed multicurrency,
+settlement, remeasurement and accounting-framework literature review continues.
+
+Resolve JB-001 accounting policy, then review JB-002 logical/physical/transaction
+contracts. Posting enforcement and isolation remain proposals pending evidence.
+
+## PR handoff
+
+Review source interpretation and the next design gate. Keep implementation paused
+until the relevant slice's contract and evidence plan are accepted.
+
+Remote evidence: [research CI](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38156223974)
+passed for `67c01a9` against the updated base, including its migration proof.
+GitHub reports #14 merged at 2026-10-11T16:26:26Z, commit `2597222`; the research
+notes were corrected accordingly. No implementation or schema approval inferred.

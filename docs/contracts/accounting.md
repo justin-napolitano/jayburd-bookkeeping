@@ -4,6 +4,8 @@
 
 Target contract; no ledger implementation exists. JB-001 resolves accounting
 policy before JB-004 implements posting. Requirements below need named tests.
+Multicurrency is required; detailed FX measurement contracts remain under
+research. Apply the [standards contract](standards.md) to messages and practices.
 
 ## Durable posting boundary
 
@@ -17,7 +19,7 @@ everything. Database grants must prevent alternate unchecked write paths.
 
 | Invariant | Required test/evidence |
 | --- | --- |
-| Debits equal credits under explicit currency rules | Reject unbalanced, empty, invalid-account and mixed-currency entries |
+| Debits equal credits in the book's functional currency; original currency amounts retain their units | Reject unbalanced, empty and invalid-account entries; accept supported FX entries with explicit valuation provenance; never balance by adding unlike currency units |
 | Exact finite amounts and explicit rounding | Decimal parsing, precision/scale bounds; no float, NaN or infinity |
 | Entity isolation, including references | Allowed, denied, mixed-entity, revoked and deleted-principal tests |
 | Atomicity | Inject failure after header/line/audit/outbox writes; no partial commit |
