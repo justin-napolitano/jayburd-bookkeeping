@@ -133,6 +133,12 @@ model and distinguish transaction, functional and presentation currencies.
 paragraphs and effective amendments remain pending; IFRS must not silently become
 the policy for a US GAAP book.
 
+## Testing resources
+
+The [synthetic accounting resource register](testing-sources.md) describes T01
+Beancount, T02 hledger, T03 ISO 20022 artifacts and T04 the MIT synthetic
+accounting generator, with pins, review depth, rights and observed limitations.
+
 ## Agent maintenance rules
 
 The [contract-design source notes](contract-sources.md) add C01 (PostgreSQL

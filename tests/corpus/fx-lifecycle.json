@@ -1,0 +1,330 @@
+{
+  "version": 1,
+  "id": "fx-lifecycle",
+  "policy": "Conditional illustrative accrual monetary FX policy from C04; 1.10 initial, 1.20 closing, 1.15 settlement USD/EUR; not approval of US GAAP policy.",
+  "sources": [
+    "JB-AC",
+    "T01",
+    "T02"
+  ],
+  "books": [
+    {
+      "id": "fx-full",
+      "entity": "fictional-fx",
+      "functional_currency": "USD",
+      "accounts": [
+        "Assets:Receivable",
+        "Assets:Bank",
+        "Income:Services",
+        "Income:FX",
+        "Expenses:FX"
+      ],
+      "entries": [
+        {
+          "id": "FX-01",
+          "scenario": "FX-01",
+          "date": "2026-01-01",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Assets:Receivable",
+              "side": "debit",
+              "currency": "EUR",
+              "amount": "100",
+              "functional_amount": "110"
+            },
+            {
+              "account": "Income:Services",
+              "side": "credit",
+              "currency": "EUR",
+              "amount": "100",
+              "functional_amount": "110"
+            }
+          ]
+        },
+        {
+          "id": "FX-02",
+          "scenario": "FX-02",
+          "date": "2026-01-31",
+          "kind": "remeasurement",
+          "lines": [
+            {
+              "account": "Assets:Receivable",
+              "side": "debit",
+              "currency": "EUR",
+              "amount": "0",
+              "functional_amount": "10"
+            },
+            {
+              "account": "Income:FX",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "10",
+              "functional_amount": "10"
+            }
+          ]
+        },
+        {
+          "id": "FX-03",
+          "scenario": "FX-03",
+          "date": "2026-02-01",
+          "kind": "settlement",
+          "lines": [
+            {
+              "account": "Assets:Bank",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "115",
+              "functional_amount": "115"
+            },
+            {
+              "account": "Expenses:FX",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "5",
+              "functional_amount": "5"
+            },
+            {
+              "account": "Assets:Receivable",
+              "side": "credit",
+              "currency": "EUR",
+              "amount": "100",
+              "functional_amount": "120"
+            }
+          ]
+        }
+      ],
+      "expected_balances": {
+        "Assets:Receivable": "0",
+        "Assets:Bank": "115",
+        "Income:Services": "-110",
+        "Income:FX": "-10",
+        "Expenses:FX": "5"
+      },
+      "expected_units": {
+        "Assets:Receivable": {
+          "EUR": "0"
+        },
+        "Assets:Bank": {
+          "USD": "115"
+        },
+        "Income:Services": {
+          "EUR": "-100"
+        },
+        "Income:FX": {
+          "USD": "-10"
+        },
+        "Expenses:FX": {
+          "USD": "5"
+        }
+      }
+    },
+    {
+      "id": "fx-partial",
+      "entity": "fictional-fx",
+      "functional_currency": "USD",
+      "accounts": [
+        "Assets:Receivable",
+        "Assets:Bank",
+        "Income:Services",
+        "Income:FX",
+        "Expenses:FX"
+      ],
+      "entries": [
+        {
+          "id": "FX-01",
+          "scenario": "FX-01",
+          "date": "2026-01-01",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Assets:Receivable",
+              "side": "debit",
+              "currency": "EUR",
+              "amount": "100",
+              "functional_amount": "110"
+            },
+            {
+              "account": "Income:Services",
+              "side": "credit",
+              "currency": "EUR",
+              "amount": "100",
+              "functional_amount": "110"
+            }
+          ]
+        },
+        {
+          "id": "FX-02",
+          "scenario": "FX-02",
+          "date": "2026-01-31",
+          "kind": "remeasurement",
+          "lines": [
+            {
+              "account": "Assets:Receivable",
+              "side": "debit",
+              "currency": "EUR",
+              "amount": "0",
+              "functional_amount": "10"
+            },
+            {
+              "account": "Income:FX",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "10",
+              "functional_amount": "10"
+            }
+          ]
+        },
+        {
+          "id": "FX-04",
+          "scenario": "FX-04",
+          "date": "2026-02-01",
+          "kind": "settlement",
+          "lines": [
+            {
+              "account": "Assets:Bank",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "57.50",
+              "functional_amount": "57.50"
+            },
+            {
+              "account": "Expenses:FX",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "2.50",
+              "functional_amount": "2.50"
+            },
+            {
+              "account": "Assets:Receivable",
+              "side": "credit",
+              "currency": "EUR",
+              "amount": "50",
+              "functional_amount": "60"
+            }
+          ]
+        }
+      ],
+      "expected_balances": {
+        "Assets:Receivable": "60",
+        "Assets:Bank": "57.50",
+        "Income:Services": "-110",
+        "Income:FX": "-10",
+        "Expenses:FX": "2.50"
+      },
+      "expected_units": {
+        "Assets:Receivable": {
+          "EUR": "50"
+        },
+        "Assets:Bank": {
+          "USD": "57.50"
+        },
+        "Income:Services": {
+          "EUR": "-100"
+        },
+        "Income:FX": {
+          "USD": "-10"
+        },
+        "Expenses:FX": {
+          "USD": "2.50"
+        }
+      }
+    },
+    {
+      "id": "fx-conversion",
+      "entity": "fictional-fx",
+      "functional_currency": "USD",
+      "accounts": [
+        "Assets:Bank",
+        "Assets:Euro",
+        "Expenses:Fees",
+        "Income:FX",
+        "Equity:Capital"
+      ],
+      "entries": [
+        {
+          "id": "FX-06x1",
+          "scenario": "FX-06",
+          "date": "2026-01-01",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Assets:Euro",
+              "side": "debit",
+              "currency": "EUR",
+              "amount": "100",
+              "functional_amount": "110"
+            },
+            {
+              "account": "Equity:Capital",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "110",
+              "functional_amount": "110"
+            }
+          ]
+        },
+        {
+          "id": "FX-06x2",
+          "scenario": "FX-06",
+          "date": "2026-01-02",
+          "kind": "settlement",
+          "lines": [
+            {
+              "account": "Assets:Bank",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "113",
+              "functional_amount": "113"
+            },
+            {
+              "account": "Expenses:Fees",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "2",
+              "functional_amount": "2"
+            },
+            {
+              "account": "Assets:Euro",
+              "side": "credit",
+              "currency": "EUR",
+              "amount": "100",
+              "functional_amount": "110"
+            },
+            {
+              "account": "Income:FX",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "5",
+              "functional_amount": "5"
+            }
+          ]
+        }
+      ],
+      "expected_balances": {
+        "Assets:Bank": "113",
+        "Assets:Euro": "0",
+        "Expenses:Fees": "2",
+        "Income:FX": "-5",
+        "Equity:Capital": "-110"
+      },
+      "expected_units": {
+        "Assets:Bank": {
+          "USD": "113"
+        },
+        "Assets:Euro": {
+          "EUR": "0"
+        },
+        "Expenses:Fees": {
+          "USD": "2"
+        },
+        "Income:FX": {
+          "USD": "-5"
+        },
+        "Equity:Capital": {
+          "USD": "-110"
+        }
+      }
+    }
+  ]
+}
