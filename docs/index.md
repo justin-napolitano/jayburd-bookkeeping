@@ -14,6 +14,9 @@ background work. The two predecessor repos are reference material only.
 | Why this stack and boundaries? | [Architecture](decisions/0001-architecture.md) |
 | How do we manage work and context? | [Knowledge and issue ownership](decisions/0002-project-memory.md) |
 | What must the ledger guarantee? | [Accounting contract](contracts/accounting.md) |
+| How do we design the database? | [Database contract](contracts/database.md) |
+| Do we need an ORM? | [SQL-first decision](decisions/0003-database-first.md) |
+| How do migrations run? | [Migration workflow](../db/migrations/README.md) |
 | What must retries and workers guarantee? | [Background work contract](contracts/background-work.md) |
 | How are secrets managed? | [Infisical setup](infisical.md) |
 | How will builds reach GCP? | [GCP delivery contract](gcp-delivery.md) |

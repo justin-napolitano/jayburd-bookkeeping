@@ -30,6 +30,11 @@ make packet ID=JB-001
 make issue-drafts
 ```
 
+Database work is SQL-first, using `golang-migrate`; no ORM or application schema
+is installed. Start with the [database contract](docs/contracts/database.md) and
+[migration commands](db/migrations/README.md). `make migration-test` separately
+requires Docker and tests a disposable PostgreSQL instance.
+
 The backlog is a one-time issue seed, not a mirror of GitHub status. After
 publication, GitHub Issues own execution state and native dependency links.
 Markdown in this repository owns design and evidence. No separate vault,
