@@ -18,13 +18,17 @@ func main() {
 	listen := flag.String("listen", "127.0.0.1:8080", "explicit listening address")
 	origin := flag.String("origin", "", "exact HTTPS frontend origin; loopback HTTP allowed for local development")
 	project := flag.String("project", "", "explicit Identity Platform project")
+	databaseMode := flag.String("database-mode", "url", "url or cloudsql IAM connector")
+	instance := flag.String("cloud-sql-instance", "", "explicit project:region:instance identifier")
 	flag.Parse()
-	c := server.Config{Mode: *mode, Listen: *listen, Origin: *origin, Project: *project}
+	c := server.Config{Mode: *mode, Listen: *listen, Origin: *origin, Project: *project, DatabaseMode: *databaseMode, CloudSQLInstance: *instance}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	var d server.Dependencies
 	if c.Mode == "managed" {
-		c.DatabaseURL = os.Getenv("JAYBURD_DATABASE_URL")
+		if c.DatabaseMode != "cloudsql" {
+			c.DatabaseURL = os.Getenv("JAYBURD_DATABASE_URL")
+		}
 		var err error
 		d, err = server.Managed(ctx, c)
 		if err != nil {
