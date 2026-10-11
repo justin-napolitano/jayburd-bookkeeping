@@ -34,6 +34,7 @@ background work. The two predecessor repos are reference material only.
 | How will builds reach GCP? | [GCP delivery contract](gcp-delivery.md) |
 | How do we start, review and finish tasks? | [Delivery workflow](delivery.md) |
 | What worked in Brainblast? | [Tooling assessment](research/brainblast.md) |
+| How are identities enrolled and books created? | [Identity/setup contract](contracts/identity-setup.md) and [delivery evidence](runbooks/identity-setup.md) |
 | What has actually passed? | [PostgreSQL posting proof](runbooks/posting-proof.md) |
 | What was checked for the contract package? | [Ledger contract runbook](runbooks/ledger-contracts.md) |
 
