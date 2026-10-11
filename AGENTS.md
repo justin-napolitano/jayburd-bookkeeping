@@ -32,7 +32,8 @@ No source-provider calls or cloud mutation from default local/CI commands.
 ## Architecture
 
 Go owns the backend; PostgreSQL owns durable ledger state. Next.js/TypeScript
-is the planned frontend. Do not introduce Python, Scala, an event store,
+owns the frontend. Follow `docs/runbooks/first-app.md` for its evidence and limits.
+Do not introduce Python, Scala, an event store,
 additional databases, or microservices without a reviewed decision.
 Posted journals are balanced, atomic, replay-safe and immutable. Corrections
 are explicit. Outbox intent commits with its business mutation. Worker retries
@@ -89,6 +90,10 @@ Preserve unrelated changes. Keep one marked stage runbook per delivery branch;
 update it with meaningful stages and include it in every implementation commit.
 Run `make check`, `make test`, and `make build` before handoff. Additional
 integration gates belong to each issue; tooling tests are not product tests.
+For browser or API-contract changes run `make web-check web-test web-build
+web-browser` after installing the locked dependencies and test browser. Generated
+OpenAPI types must match the reviewed contract; test-only auth adapters never
+belong in application routes. Money remains decimal strings through the UI.
 Before every commit run `bash scripts/check-stage-runbook.sh --staged`.
 Add concise purpose/boundary comments for new or changed functions and types.
 Acceptance criteria must name tests or explicit reviewed evidence.

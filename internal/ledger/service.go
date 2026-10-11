@@ -49,6 +49,11 @@ func (s *Service) ResolvePrincipal(ctx context.Context, issuer, subject string) 
 	return *id, nil
 }
 
+// Workspace returns only currently readable entity/book configuration.
+func (s *Service) Workspace(ctx context.Context, c Command) (Result, error) {
+	return s.execute(ctx, c, "workspace")
+}
+
 // Setup creates a new development entity/book bundle without accepting an actor
 // or permissions from its request body; SQL owns atomic setup and receipt replay.
 func (s *Service) Setup(ctx context.Context, c Command) (Result, error) {
@@ -138,7 +143,7 @@ func (s *Service) execute(parent context.Context, c Command, operation string) (
 	ctx, cancel := context.WithTimeout(parent, 4*time.Second)
 	defer cancel()
 	iso := pgx.Serializable
-	if operation == "journal" || operation == "balance" {
+	if operation == "journal" || operation == "balance" || operation == "workspace" {
 		iso = pgx.RepeatableRead
 	}
 	for attempt := 0; attempt < 3; attempt++ {
@@ -188,6 +193,9 @@ func (s *Service) attempt(ctx context.Context, c Command, op string, iso pgx.TxI
 	}
 	var r Result
 	switch op {
+	case "workspace":
+		r.Status = 200
+		err = tx.QueryRow(ctx, "select reporting.workspace($1)", c.Actor).Scan(&r.Body)
 	case "setup":
 		err = tx.QueryRow(ctx, "select * from ledger.setup_book($1,$2,$3,$4)", c.Actor, c.Key, c.Request, c.Body).Scan(&r.Status, &r.Body, &r.Replayed)
 	case "post":
