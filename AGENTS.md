@@ -35,6 +35,9 @@ Posted journals are balanced, atomic, replay-safe and immutable. Corrections
 are explicit. Outbox intent commits with its business mutation. Worker retries
 never authorize duplicate effects or bypass current entity permissions.
 No business rules duplicated across API and jobs. Money never uses float.
+Review database contracts before product DDL. Use golang-migrate SQL migrations;
+no ORM auto-migration or application-startup migration. Merged SQL is immutable.
+Run `make migration-test` for migration/tooling changes; never use a live DSN.
 
 ## Changes and evidence
 

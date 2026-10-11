@@ -21,6 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.5'
@@ -29,6 +30,13 @@ jobs:
         run: make check test build
       - name: Require Go formatting
         run: test -z "$(gofmt -l cmd)"
+      - name: Preserve existing migration SQL
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_COMMIT: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/migrate.sh check "$BASE_COMMIT"
+      - name: Prove isolated PostgreSQL migrations
+        run: make migration-test
       - name: Lint workflow definitions
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/seed.yml
       - name: Render reviewable issue proposals

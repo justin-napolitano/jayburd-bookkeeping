@@ -44,4 +44,5 @@ Go favors explicit operations and small executables. PostgreSQL provides durable
 transactions but cannot infer correct accounting. Concurrency remains bounded
 by database connections, provider limits and per-connection ownership. The
 monorepo shares review/build tooling, not an obligation to deploy everything
-on every change. Library choices and version pins are a JB-003 decision.
+on every change. Database tooling now follows [ADR 0003](0003-database-first.md); application
+library installation remains a JB-003 slice.
