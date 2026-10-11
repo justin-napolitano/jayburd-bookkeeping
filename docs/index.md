@@ -14,6 +14,7 @@ background work. The two predecessor repos are reference material only.
 | Why this stack and boundaries? | [Architecture](decisions/0001-architecture.md) |
 | What research supports the database direction? | [Research review](research/database-foundations.md) |
 | Which source sections were reviewed? | [Source register](research/database-sources.md) |
+| What should owners and agents read first? | [Annotated bibliography and reading guide](research/bibliography.md) |
 | What evidence must future decisions include? | [Decision evidence standard](research/decision-evidence.md) |
 | How do we manage work and context? | [Knowledge and issue ownership](decisions/0002-project-memory.md) |
 | What must the ledger guarantee? | [Accounting contract](contracts/accounting.md) |

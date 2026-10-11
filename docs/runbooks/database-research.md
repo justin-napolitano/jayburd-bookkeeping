@@ -19,8 +19,15 @@ no financial data or credentials accessed.
 | Rebase after PR #14 | Research commits rebased cleanly onto `2597222` | Preserve migration tooling |
 | Record owner ISO requirement | AGENTS and standards contract require applicability/version/mapping/evidence records | Review each integration definition before implementation |
 | Correct multicurrency scope | Removed single-currency proposal and blanket mixed-currency rejection | Complete sourced FX measurement contracts |
+| Add shared bibliography | Annotated S01–S22 navigation plus seven standards/accounting resources, reading order and access limits; linked from README, index and AGENTS | Use canonical records in subsequent reviews |
 
 ## Current evidence
+
+Bibliography stage: the same `make check test build` command with the cache
+paths below passed again, including local document-link validation. Public
+IAS 21 overview and ISO 21926 introduction/scope were read; the FASB codification
+returned no readable body and is explicitly marked pending. No new accounting
+policy or implemented conformance follows from these resource entries.
 
 After the ISO policy and multicurrency scope edits, reran
 `GOCACHE=/private/tmp/jayburd-go-cache GOMODCACHE=/private/tmp/jayburd-go-modcache make check test build`:
