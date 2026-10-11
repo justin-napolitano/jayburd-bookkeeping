@@ -1,0 +1,39 @@
+name: Delivery slice
+description: One bounded, reviewable outcome with evidence
+title: "[Work] "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome and scope
+      description: What changes, why, and what is excluded?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Decisions and contracts
+      description: Link the authoritative repository documents.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance and evidence
+      description: Map each criterion to a named test or reviewed evidence item.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and stop conditions
+      description: Set native blocked-by relationships. Missing or canceled dependencies block work.
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risk and handoff
+      description: Accounting, isolation, migrations, deployment impact, owner and next action.
+    validations:
+      required: true

@@ -1,0 +1,378 @@
+[
+  {
+    "id": "JB-001",
+    "title": "Define the first LLC bookkeeping workflow and accounting policy",
+    "phase": "M1: accounting proof",
+    "depends_on": [],
+    "story_points": 3,
+    "estimate_confidence": "medium",
+    "docs": [
+      "docs/product.md",
+      "docs/contracts/accounting.md"
+    ],
+    "outcome": "Record the policy needed to close one representative month before implementing accounting rules.",
+    "acceptance": [
+      "Owner selects representative entity workflow, initial currency, accounting basis, period timezone and opening-balance source.",
+      "Write fictional examples for income, expense, card purchase/payment, split, refund, transfer, owner contribution/draw and correction.",
+      "Record chart-of-accounts scope, precision/rounding, permissions, accountant export and cutover-review criteria.",
+      "Identify unsupported cases and decision owners explicitly; do not silently infer tax/accounting treatment."
+    ],
+    "validation": [
+      "Reviewed policy decision with scenario table and owner sign-off."
+    ],
+    "exclusions": [
+      "No real financial data, tax advice, live account connection or ledger implementation."
+    ]
+  },
+  {
+    "id": "JB-002",
+    "title": "Specify the entity, ledger and period-close database contract",
+    "phase": "M1: accounting proof",
+    "depends_on": [
+      "JB-001"
+    ],
+    "story_points": 5,
+    "estimate_confidence": "medium",
+    "docs": [
+      "docs/contracts/accounting.md",
+      "docs/decisions/0001-architecture.md"
+    ],
+    "outcome": "Design the schema and transaction boundaries for isolated, immutable, balanced books.",
+    "acceptance": [
+      "Define entity/account ownership, principals/memberships, journals/lines, source references, opening balances, reversals and periods.",
+      "Define least-privilege write boundary, composite entity references, exact money representation and finite-value validation.",
+      "Specify posting-versus-close locking, idempotency key scope and payload conflict behavior.",
+      "Map every accounting invariant to a named PostgreSQL test; record migration and restore approach."
+    ],
+    "validation": [
+      "Reviewed schema/transaction design and invariant-to-test matrix."
+    ],
+    "exclusions": [
+      "No production schema deployment or additional database engine."
+    ]
+  },
+  {
+    "id": "JB-003",
+    "title": "Establish the Go and PostgreSQL build and migration harness",
+    "phase": "M1: accounting proof",
+    "depends_on": [],
+    "story_points": 5,
+    "estimate_confidence": "medium",
+    "docs": [
+      "docs/decisions/0001-architecture.md",
+      "docs/delivery.md",
+      "docs/gcp-delivery.md"
+    ],
+    "outcome": "Make actual Go runtime components and disposable PostgreSQL integration tests reproducible locally and in CI.",
+    "acceptance": [
+      "Select and pin supported Go/PostgreSQL versions, database driver, SQL generation choice and migration tooling in a decision.",
+      "Provide one local/CI command using isolated synthetic PostgreSQL with cleanup and no inherited live DSN.",
+      "Add migration lock/checksum, fresh-install, replay, failure and schema compatibility tests.",
+      "Build a non-root health-only API container; distinguish liveness, readiness and absent accounting routes.",
+      "Extend CI with real integration tests, dependency review and image scanning; retain stable required checks."
+    ],
+    "validation": [
+      "Fresh/replay/failure migration tests against real disposable PostgreSQL.",
+      "Go race tests, vet, container build and health-only smoke proof."
+    ],
+    "exclusions": [
+      "No bank providers, remote infrastructure or pretend bookkeeping endpoints."
+    ]
+  },
+  {
+    "id": "JB-004",
+    "title": "Implement and prove atomic double-entry posting",
+    "phase": "M1: accounting proof",
+    "depends_on": [
+      "JB-002",
+      "JB-003"
+    ],
+    "story_points": 8,
+    "estimate_confidence": "medium",
+    "docs": [
+      "docs/contracts/accounting.md",
+      "docs/decisions/0001-architecture.md"
+    ],
+    "outcome": "Implement the shared Go posting operation and enforce the database write boundary.",
+    "acceptance": [
+      "Posting commits full journal, audit, idempotency receipt and outbox intent atomically.",
+      "Reject unbalanced, mixed-entity, unauthorized, revoked, deleted, closed-period and invalid-money input.",
+      "Identical retries return the same result; conflicting payloads reject; concurrent replay posts only once.",
+      "Posted edits/deletes fail; reversal/correction preserve history and source provenance.",
+      "Inject failures at every write stage and race posting with period close using actual PostgreSQL."
+    ],
+    "validation": [
+      "Named invariant suite from JB-002 including failure, concurrency and replay tests."
+    ],
+    "exclusions": [
+      "No public posting API or live-bookkeeping approval."
+    ]
+  },
+  {
+    "id": "JB-005",
+    "title": "Define GCP identities, Terraform ownership and build promotion",
+    "phase": "M2: secure development foundation",
+    "depends_on": [
+      "JB-003"
+    ],
+    "story_points": 5,
+    "estimate_confidence": "medium",
+    "docs": [
+      "docs/gcp-delivery.md",
+      "docs/contracts/background-work.md"
+    ],
+    "outcome": "Produce a reviewable platform plan and executable offline validation before creating resources.",
+    "acceptance": [
+      "Owner selects project, region, monthly budget, recovery objectives and acceptable dispatch latency.",
+      "Define bootstrap/WIF/state prerequisites, separated service identities and entity-authentication boundary.",
+      "Terraform exclusively owns configured infrastructure/revisions; workflows promote image digests with serialized migration/deployment.",
+      "Verify private-repo protection capabilities and document a real promotion boundary if reviewer gates are unavailable.",
+      "Plan Cloud SQL connectivity/connection budget, backups/PITR, restore, deletion protection, storage access and redacted observability."
+    ],
+    "validation": [
+      "Terraform fmt/validate and reviewed architecture/IAM/budget decision.",
+      "Workflow validation with no cloud mutation."
+    ],
+    "exclusions": [
+      "No apply, billing creation, credential retrieval or automatic production deploy."
+    ]
+  },
+  {
+    "id": "JB-006",
+    "title": "Implement user identity and entity-scoped authorization",
+    "phase": "M2: secure development foundation",
+    "depends_on": [
+      "JB-002",
+      "JB-003",
+      "JB-005"
+    ],
+    "story_points": 8,
+    "estimate_confidence": "low",
+    "docs": [
+      "docs/contracts/accounting.md",
+      "docs/gcp-delivery.md"
+    ],
+    "outcome": "Bind trusted user identity to entity permissions before exposing bookkeeping operations.",
+    "acceptance": [
+      "Choose managed end-user authentication/MFA and safe session/CSRF/origin handling.",
+      "Every finance read/write applies entity permissions; no caller-supplied actor ID is trusted.",
+      "Runtime DB identities cannot bypass the owned accounting write boundary or perform DDL.",
+      "Test allowed/denied/mixed-scope/revoked/deleted sessions and queued authority changes.",
+      "Errors and logs reveal no credentials, financial descriptions or cross-entity existence."
+    ],
+    "validation": [
+      "API authorization matrix and database privilege integration tests."
+    ],
+    "exclusions": [
+      "No public signup, real bank accounts or payments."
+    ]
+  },
+  {
+    "id": "JB-007",
+    "title": "Prove outbox dispatch and bounded Go worker completion",
+    "phase": "M2: secure development foundation",
+    "depends_on": [
+      "JB-004",
+      "JB-005"
+    ],
+    "story_points": 8,
+    "estimate_confidence": "medium",
+    "docs": [
+      "docs/contracts/background-work.md",
+      "docs/gcp-delivery.md"
+    ],
+    "outcome": "Separate committed dispatch intent, queue acknowledgement and durable business completion.",
+    "acceptance": [
+      "Publisher and handler share stable operation identity and short expiring/fenced claims.",
+      "No provider/queue network calls while a DB transaction is held.",
+      "Test publish-success/receipt-failure, duplicate/reordered delivery, overlap, expiry, stale commits and revocation.",
+      "Bound attempts/backoff; preserve failed operations for explicit retry after queue expiry.",
+      "Use synthetic transport in default CI; document task-vs-job completion and scheduled publisher latency."
+    ],
+    "validation": [
+      "Fault-injection PostgreSQL/transport contract suite with synthetic adapters."
+    ],
+    "exclusions": [
+      "No generic workflow engine, agent execution, Pub/Sub fan-out or live provider."
+    ]
+  },
+  {
+    "id": "JB-008",
+    "title": "Import statements into a review queue without corrupting posted books",
+    "phase": "M3: close a synthetic month",
+    "depends_on": [
+      "JB-004",
+      "JB-006",
+      "JB-007"
+    ],
+    "story_points": 8,
+    "estimate_confidence": "medium",
+    "docs": [
+      "docs/product.md",
+      "docs/contracts/accounting.md",
+      "docs/contracts/background-work.md"
+    ],
+    "outcome": "Deliver one explicit statement format with account selection, preview and safe repeated import.",
+    "acceptance": [
+      "Owner/entity/account binding is explicit; never match solely on last four digits.",
+      "Normalize signs/dates/money using format-specific fixtures; preserve source provenance.",
+      "Preview/import produces drafts; posted entries change only through explicit accounting operations.",
+      "Deduplicate repeated files/rows without merging legitimate identical purchases.",
+      "Validate bounded file size/type, protected storage, retention and redacted error behavior."
+    ],
+    "validation": [
+      "Synthetic import fixtures including duplicate, partial failure, malformed rows and cross-entity denial."
+    ],
+    "exclusions": [
+      "No mailbox ingestion, OCR, unsupported bank formats or automatic live posting."
+    ]
+  },
+  {
+    "id": "JB-009",
+    "title": "Build the bookkeeping UI and transaction review workflow",
+    "phase": "M3: close a synthetic month",
+    "depends_on": [
+      "JB-004",
+      "JB-006",
+      "JB-008"
+    ],
+    "story_points": 8,
+    "estimate_confidence": "medium",
+    "docs": [
+      "docs/product.md",
+      "docs/contracts/accounting.md"
+    ],
+    "outcome": "Provide entity selection, draft review and explicit posting through the authoritative API.",
+    "acceptance": [
+      "Create Next.js/TypeScript package with locked dependencies and generated/validated API contract.",
+      "Display entity, source, status, amount and validation errors; support splits and posting review.",
+      "No fake synced/posted claims; distinguish pending operations and confirmed commits.",
+      "Ensure keyboard access, loading/error/empty states and permission-safe server/client boundaries."
+    ],
+    "validation": [
+      "Playwright synthetic journeys for review, split, post, retry and denied entity switch."
+    ],
+    "exclusions": [
+      "No marketing demo metrics represented as live data."
+    ]
+  },
+  {
+    "id": "JB-010",
+    "title": "Reconcile and close one month with ledger-backed reports",
+    "phase": "M3: close a synthetic month",
+    "depends_on": [
+      "JB-004",
+      "JB-008",
+      "JB-009"
+    ],
+    "story_points": 8,
+    "estimate_confidence": "low",
+    "docs": [
+      "docs/product.md",
+      "docs/contracts/accounting.md"
+    ],
+    "outcome": "Prove the complete bookkeeping milestone against a fictional month and accountant-oriented export.",
+    "acceptance": [
+      "Match statements, identify outstanding/unmatched items and prevent duplicate card-payment expenses.",
+      "Trial balance, general ledger, P&L and balance sheet reconcile to posted journals.",
+      "Review adjustments, reconcile opening/closing balances, close period and prove correction workflow.",
+      "Export traceable reports and review the format with an accountant before official use."
+    ],
+    "validation": [
+      "Golden-month integration/E2E fixtures and reviewed export evidence."
+    ],
+    "exclusions": [
+      "No claim of accountant approval until recorded; no tax filing."
+    ]
+  },
+  {
+    "id": "JB-011",
+    "title": "Deploy an isolated synthetic development proof through GitHub Actions",
+    "phase": "M4: GCP proof",
+    "depends_on": [
+      "JB-005",
+      "JB-006",
+      "JB-007",
+      "JB-010",
+      "JB-013"
+    ],
+    "story_points": 8,
+    "estimate_confidence": "low",
+    "docs": [
+      "docs/gcp-delivery.md",
+      "docs/product.md"
+    ],
+    "outcome": "Exercise the actual cloud deployment and recovery path only after owner authorization and configuration.",
+    "acceptance": [
+      "Confirm project/billing/region and explicit apply authorization; bootstrap federation/state safely.",
+      "Publish tested images by digest, migrate via isolated identity and deploy private services/jobs.",
+      "Prove authorized access, queue recovery, redacted telemetry, connection limits and budget alerts.",
+      "Perform backup restoration and application rollback against synthetic data; retain revision/evidence receipts.",
+      "Keep production and real-source enablement closed."
+    ],
+    "validation": [
+      "Reviewed workflow run/revision receipts, access tests, synthetic fault drill and restore evidence."
+    ],
+    "exclusions": [
+      "No production or live bank data deployment."
+    ]
+  },
+  {
+    "id": "JB-012",
+    "title": "Validate one bank provider and plan official-bookkeeping cutover",
+    "phase": "M5: controlled live readiness",
+    "depends_on": [
+      "JB-010",
+      "JB-011"
+    ],
+    "story_points": 8,
+    "estimate_confidence": "low",
+    "docs": [
+      "docs/product.md",
+      "docs/contracts/accounting.md",
+      "docs/contracts/background-work.md"
+    ],
+    "outcome": "Choose provider coverage and establish evidence for an explicitly approved limited live pilot.",
+    "acceptance": [
+      "Confirm institution/account-type coverage, commercial terms and selected owner/audience/retention policy.",
+      "Prove signed webhooks, connection scope, pagination/checkpoints, pending/posted removals, corrections and reconnects in sandbox.",
+      "Review opening balances, reconciliation, source evidence, accountant export and recovery results.",
+      "Record explicit pilot/cutover decision, rollback/export path and stop conditions; proceed only within that approval."
+    ],
+    "validation": [
+      "Provider sandbox contract suite and named owner/accountant cutover review evidence."
+    ],
+    "exclusions": [
+      "No universal provider coverage, automatic production promotion or official-bookkeeping claim from sandbox results."
+    ]
+  },
+  {
+    "id": "JB-013",
+    "title": "Configure Infisical and prove scoped GCP delivery",
+    "phase": "M2: secure development foundation",
+    "depends_on": [
+      "JB-005"
+    ],
+    "story_points": 5,
+    "estimate_confidence": "medium",
+    "docs": [
+      "docs/infisical.md",
+      "docs/gcp-delivery.md"
+    ],
+    "outcome": "Establish Infisical project metadata and prove environment/component isolation with a synthetic canary before real secrets.",
+    "acceptance": [
+      "Record actual project ID, slug and cloud region; create dev/staging/prod folders and verify plan supports required access scope.",
+      "Configure dedicated GCP impersonation and scoped one-way sync; Terraform owns containers/IAM and Infisical owns values/versions.",
+      "Prove allowed access, wrong component/environment denial, rotation/revocation, stale sync detection and recovery.",
+      "Keep PR builds secret-free; add GitHub OIDC only for an identified need with exact immutable repository subject and short TTL.",
+      "Owner injects canary and future values separately; retain only redacted evidence, never values or tokens."
+    ],
+    "validation": [
+      "Reviewed project/role/sync metadata receipt.",
+      "Named synthetic isolation, rotation, revocation and failed-sync recovery checks with redacted results."
+    ],
+    "exclusions": [
+      "No real bank credentials, broad project roles, static service-account keys or production enablement."
+    ]
+  }
+]

@@ -1,0 +1,16 @@
+.local/
+bin/
+coverage.out
+.DS_Store
+.env
+.env.*
+*.secret*
+*.pem
+*.key
+*.tfstate*
+*.tfplan*
+.terraform/
+node_modules/
+.next/
+gh-creds-*.json
+local-imports/
