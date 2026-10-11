@@ -1,4 +1,4 @@
-.PHONY: check test build backlog packet issue-drafts migration-create migration-seal migration-check migration-test
+.PHONY: check test build backlog packet issue-drafts migration-create migration-seal migration-check migration-test ledger-test
 
 check:
 	go run ./cmd/project check
@@ -35,3 +35,6 @@ migration-check:
 
 migration-test:
 	bash scripts/migrate.sh test
+
+ledger-test:
+	bash scripts/test-ledger.sh

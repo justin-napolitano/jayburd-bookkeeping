@@ -2,8 +2,8 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Jayburd Ledger Contract",
-    "version": "0.1.0-draft",
-    "description": "Review artifact only; no server exists. SQL/accounting contracts remain authoritative for semantic validation. Not a registered ISO financial-message definition.",
+    "version": "0.2.0-review",
+    "description": "Implementation-review contract; no server exists. Manual posting/read/reversal uses dev-accrual-usd-v1. Close remains deferred. SQL/accounting contracts own semantic validation. Not a registered ISO financial message.",
     "contact": {
       "name": "Jayburd contract review",
       "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/2"
@@ -104,6 +104,9 @@
           },
           "503": {
             "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
           }
         },
         "parameters": [
@@ -126,33 +129,68 @@
               "schema": {
                 "$ref": "#/components/schemas/PostJournal"
               },
-              "example": {
-                "expected_revision": "0",
-                "policy_id": "00000000-0000-4000-8000-000000000010",
-                "accounting_date": "2026-01-01",
-                "description": "Synthetic opening capital",
-                "lines": [
-                  {
-                    "account_id": "00000000-0000-4000-8000-000000000011",
-                    "side": "debit",
-                    "transaction_currency": "USD",
-                    "transaction_amount": "1000.00",
-                    "functional_amount": "1000.00",
-                    "valuation_basis": "identity"
-                  },
-                  {
-                    "account_id": "00000000-0000-4000-8000-000000000012",
-                    "side": "credit",
-                    "transaction_currency": "USD",
-                    "transaction_amount": "1000.00",
-                    "functional_amount": "1000.00",
-                    "valuation_basis": "identity"
+              "examples": {
+                "opening": {
+                  "summary": "Original fictional opening; book revision zero",
+                  "value": {
+                    "expected_revision": "0",
+                    "policy_id": "00000000-0000-4000-8000-000000000010",
+                    "accounting_date": "2026-01-01",
+                    "description": "Synthetic opening capital",
+                    "lines": [
+                      {
+                        "account_id": "00000000-0000-4000-8000-000000000011",
+                        "side": "debit",
+                        "transaction_currency": "USD",
+                        "transaction_amount": "1000.00",
+                        "functional_amount": "1000.00",
+                        "valuation_basis": "identity"
+                      },
+                      {
+                        "account_id": "00000000-0000-4000-8000-000000000012",
+                        "side": "credit",
+                        "transaction_currency": "USD",
+                        "transaction_amount": "1000.00",
+                        "functional_amount": "1000.00",
+                        "valuation_basis": "identity"
+                      }
+                    ]
                   }
-                ]
+                },
+                "spot": {
+                  "summary": "Independent fictional setup, revision zero, stored same-day 1.10 USD/EUR quote",
+                  "value": {
+                    "expected_revision": "0",
+                    "policy_id": "00000000-0000-4000-8000-000000000010",
+                    "accounting_date": "2026-01-01",
+                    "description": "Synthetic EUR service receivable",
+                    "lines": [
+                      {
+                        "account_id": "00000000-0000-4000-8000-000000000013",
+                        "side": "debit",
+                        "transaction_currency": "EUR",
+                        "transaction_amount": "100.00",
+                        "functional_amount": "110.00",
+                        "valuation_basis": "spot",
+                        "rate_observation_id": "00000000-0000-4000-8000-000000000015"
+                      },
+                      {
+                        "account_id": "00000000-0000-4000-8000-000000000014",
+                        "side": "credit",
+                        "transaction_currency": "EUR",
+                        "transaction_amount": "100.00",
+                        "functional_amount": "110.00",
+                        "valuation_basis": "spot",
+                        "rate_observation_id": "00000000-0000-4000-8000-000000000015"
+                      }
+                    ]
+                  }
+                }
               }
             }
           }
-        }
+        },
+        "x-implementation-stage": "first-posting-proof"
       }
     },
     "/v1/entities/{entity_id}/books/{book_id}/journals/{journal_id}": {
@@ -235,8 +273,12 @@
           },
           "503": {
             "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
           }
-        }
+        },
+        "x-implementation-stage": "first-posting-proof"
       }
     },
     "/v1/entities/{entity_id}/books/{book_id}/journals/{journal_id}/reversals": {
@@ -325,6 +367,9 @@
           },
           "503": {
             "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
           }
         },
         "parameters": [
@@ -349,7 +394,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-stage": "first-posting-proof"
       }
     },
     "/v1/entities/{entity_id}/books/{book_id}/periods/{period_id}/close": {
@@ -438,6 +484,9 @@
           },
           "503": {
             "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
           }
         },
         "parameters": [
@@ -463,7 +512,8 @@
             }
           }
         },
-        "description": "Draft dependency: close-evidence storage/review contract must be accepted before implementation. A caller assertion is insufficient."
+        "description": "Future contract only. Do not mount this route in the first posting server; reviewed close-evidence storage and workflow are prerequisites.",
+        "x-implementation-stage": "deferred-close-evidence"
       }
     },
     "/v1/entities/{entity_id}/books/{book_id}/trial-balance": {
@@ -546,8 +596,12 @@
           },
           "503": {
             "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
           }
-        }
+        },
+        "x-implementation-stage": "first-posting-proof"
       }
     }
   },
@@ -563,12 +617,12 @@
       "Amount": {
         "type": "string",
         "pattern": "^(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
-        "description": "Unsigned finite decimal; positive for posted lines. Scale/range and policy checks are also required before numeric conversion."
+        "description": "Unsigned finite decimal string, up to 29 integer and 9 fractional digits. Validate lexical bounds before casts, then enforce currency minor-unit and functional posting scale by value; no silent rounding of supplied amounts."
       },
       "Revision": {
         "type": "string",
         "pattern": "^(0|[1-9][0-9]{0,18})$",
-        "description": "Unsigned revision within signed SQL bigint range; no JSON numeric precision loss."
+        "description": "Unsigned canonical decimal string, semantic maximum 9223372036854775807. Mutation at maximum fails before writes; no wraparound."
       },
       "Line": {
         "type": "object",
@@ -651,7 +705,7 @@
             }
           }
         ],
-        "description": "First slice accepts identity/spot only. Functional amount is a client assertion independently recomputed under the book policy."
+        "description": "First slice accepts identity/spot only. Functional amount is a client assertion independently recomputed under the book policy. The development spot policy uses synthetic same-UTC-date rates, transaction-to-USD direction, exact multiplication and half-even rounding. No automatic balancing adjustment."
       },
       "PostJournal": {
         "type": "object",
@@ -1082,7 +1136,7 @@
             }
           }
         ],
-        "description": "Immutable line with resolved currency metadata version and original valuation provenance."
+        "description": "Immutable line with resolved currency metadata version and original valuation provenance. The development spot policy uses synthetic same-UTC-date rates, transaction-to-USD direction, exact multiplication and half-even rounding. No automatic balancing adjustment."
       }
     },
     "responses": {
@@ -1241,7 +1295,27 @@
             }
           }
         }
+      },
+      "Problem500": {
+        "description": "Unexpected failure; generic redacted explanation and request ID only.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        },
+        "headers": {
+          "Cache-Control": {
+            "schema": {
+              "type": "string",
+              "const": "no-store"
+            }
+          }
+        }
       }
     }
-  }
+  },
+  "x-posting-contract": "docs/contracts/posting-boundary.md",
+  "x-development-policy": "dev-accrual-usd-v1"
 }

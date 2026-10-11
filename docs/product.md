@@ -17,7 +17,10 @@ Default workflow: import -> review -> post -> reconcile -> close -> export.
 Bank feed corrections cannot silently rewrite posted or closed books.
 Account ownership is per legal entity, not per provider login or account mask.
 
-## Scope decisions still open
+## Scope decisions still open for real use
+
+[ADR 0005](decisions/0005-development-accounting-policy.md) selects the synthetic
+accrual/USD development profile; it does not select real-entity policy.
 
 - Cash versus accrual basis and required adjusting-entry workflow.
 - Functional and transaction currencies, FX policy, reporting period/timezone,
@@ -28,8 +31,8 @@ Account ownership is per legal entity, not per provider login or account mask.
 - Recovery objectives, monthly cloud budget, and acceptable dispatch latency.
 
 Multicurrency is required from the ledger design onward, including conversion,
-settlement and period-end measurement contracts. Resolve the accounting policy
-in JB-001 before coding the ledger. An accounting basis choice does not remove
+settlement and period-end measurement contracts. Use ADR 0005 for the bounded development proof and resolve real-use policy
+in JB-001 before connecting live accounts. An accounting basis choice does not remove
 double-entry requirements. Apply the [standards contract](contracts/standards.md)
 to financial messages and practices.
 
