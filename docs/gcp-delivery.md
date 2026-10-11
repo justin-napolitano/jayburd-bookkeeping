@@ -50,7 +50,8 @@ JB-013 must pass before the synthetic deployment milestone.
 
 ## GitHub protection caveat
 
-Verify the account's actual private-repository environment/reviewer capabilities.
+Private branch protection returned HTTP 403 on 2026-10-11 (Pro upgrade required).
+Verify environment/reviewer capabilities separately before cloud releases.
 Do not assume `environment: production` creates an approval gate. If unavailable,
 choose a documented owner-controlled promotion boundary before live releases.
 

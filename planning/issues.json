@@ -1,1 +1,54 @@
-{}
+{
+  "JB-001": {
+    "number": 1,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/1"
+  },
+  "JB-002": {
+    "number": 2,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/2"
+  },
+  "JB-003": {
+    "number": 3,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/3"
+  },
+  "JB-004": {
+    "number": 4,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/4"
+  },
+  "JB-005": {
+    "number": 5,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/5"
+  },
+  "JB-006": {
+    "number": 6,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/6"
+  },
+  "JB-007": {
+    "number": 7,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/7"
+  },
+  "JB-008": {
+    "number": 8,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/8"
+  },
+  "JB-009": {
+    "number": 9,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/9"
+  },
+  "JB-010": {
+    "number": 10,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/10"
+  },
+  "JB-013": {
+    "number": 11,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/11"
+  },
+  "JB-011": {
+    "number": 12,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/12"
+  },
+  "JB-012": {
+    "number": 13,
+    "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/13"
+  }
+}

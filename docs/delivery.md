@@ -25,7 +25,10 @@ migration/rollback implications. Run `make check test build` plus issue-specific
 tests. A Go tooling build does not prove a ledger, migration or deployment.
 Before committing, stage the branch's updated runbook and run
 `bash scripts/check-stage-runbook.sh --staged`.
-Require the `Seed / validate` check initially. Replace/extend it with product
+Review the `Seed / validate` workflow result initially (job context `validate`).
+GitHub returned HTTP 403 for private branch protection on 2026-10-11: this
+account needs Pro to enforce it. Until upgraded, the owner must review passing
+checks before merge; this is a manual convention, not an enforced gate. Replace/extend it with product
 unit, PostgreSQL integration, UI, migration and infrastructure checks as those
 components appear. Validate branch protection capability before relying on it.
 
