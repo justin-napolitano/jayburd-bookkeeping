@@ -11,8 +11,12 @@ atomic audit/receipt/outbox records. Go supplies transaction and HTTP adapters.
 An identity adapter requires managed TOTP sign-in and checks revocation; controlled
 setup creates synthetic entity/book/account bundles atomically. See the
 [identity/setup evidence](docs/runbooks/identity-setup.md).
-There is no public server, live identity configuration, bank connection, frontend,
-cloud deployment or approval to use these books as a system of record.
+The first application adds a bounded Go server, managed sign-in/TOTP screens,
+book setup, split journal review/posting and trial balance. Default server mode
+exposes health only; the UI remains unconfigured until the owner supplies public
+identity configuration. See [application evidence](docs/runbooks/first-app.md).
+There is no live identity configuration, bank connection, cloud deployment or
+approval to use these books as a system of record.
 
 ## Start here
 
@@ -20,7 +24,7 @@ cloud deployment or approval to use these books as a system of record.
 2. Read the [architecture decision](docs/decisions/0001-architecture.md).
 3. Follow the [delivery workflow](docs/delivery.md).
 4. Review [Infisical setup](docs/infisical.md).
-5. Resume from the [posting proof and remaining gates](docs/runbooks/posting-proof.md).
+5. Resume from the [application proof and remaining gates](docs/runbooks/first-app.md).
 
 For source material and reading priorities, use the
 [annotated bibliography](docs/research/bibliography.md).
@@ -37,6 +41,16 @@ make backlog
 make packet ID=JB-001
 make issue-drafts
 ```
+
+For the browser package, use Node 24.18.0 and `npm --prefix web ci`, then
+`make web-check web-test web-build`. Install the pinned test browser with
+`cd web && npx --no-install playwright install chromium`, then run
+`make web-browser` from the repository root. Browser tests use synthetic adapters;
+they never connect to a managed identity project.
+
+`bin/api` starts loopback health-only mode. See the [server contract](docs/contracts/server.md)
+for explicit managed composition and the [browser contract](docs/contracts/browser-auth.md)
+for the separate provider configuration and recovery gates.
 
 Database work is SQL-first, using `golang-migrate` and pgx, without an ORM. Start with the [database contract](docs/contracts/database.md) and
 [migration commands](db/migrations/README.md). `make migration-test` separately
@@ -57,6 +71,8 @@ vector database, or autonomous agent scheduler is required.
 | `planning/backlog.json` | Reviewed initial issue proposals and stable IDs |
 | `planning/issues.json` | Published issue identities, never execution status |
 | `cmd/project/` | Credential-free validation, packets, and issue drafts |
+| `cmd/api/`, `internal/server/` | Bounded HTTP lifecycle and explicit managed composition |
+| `web/` | Next.js application, memory-only sign-in and synthetic browser proof |
 | `internal/identity/` | Managed authentication adapter; offline boundary tests |
 | `internal/ledger/` | Go transaction and HTTP adapters; unit/integration tests |
 | `db/migrations/` | Restricted SQL accounting authority and immutable migration history |

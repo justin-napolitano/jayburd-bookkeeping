@@ -35,6 +35,7 @@ background work. The two predecessor repos are reference material only.
 | How do we start, review and finish tasks? | [Delivery workflow](delivery.md) |
 | What worked in Brainblast? | [Tooling assessment](research/brainblast.md) |
 | How are identities enrolled and books created? | [Identity/setup contract](contracts/identity-setup.md) and [delivery evidence](runbooks/identity-setup.md) |
+| How does the first application run? | [Server contract](contracts/server.md), [browser sign-in](contracts/browser-auth.md), [first UI](contracts/first-ui.md) and [application evidence](runbooks/first-app.md) |
 | What has actually passed? | [PostgreSQL posting proof](runbooks/posting-proof.md) |
 | What was checked for the contract package? | [Ledger contract runbook](runbooks/ledger-contracts.md) |
 
@@ -46,8 +47,8 @@ Use the [corpus and execution guide](../tests/corpus/README.md),
 
 ## Next action
 
-Review the [implemented posting proof](runbooks/posting-proof.md), then complete
-trusted user identity and controlled book/account setup before exposing a server. JB-001 remains open for a real
+Review the [first application evidence](runbooks/first-app.md), then complete the
+managed identity and deployment gates before connecting live accounts. JB-001 remains open for a real
 LLC policy, opening-balance source and accountant cutover review. Development
 accrual/USD defaults do not resolve those live-use decisions.
 Entity/account counts, providers, GCP project, billing budget and region are

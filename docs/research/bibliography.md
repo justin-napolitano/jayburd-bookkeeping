@@ -150,6 +150,14 @@ support the identity/setup contract; live deployment evidence remains separate.
 
 ## Agent maintenance rules
 
+The first application adds three source registers: [server composition](server-sources.md)
+for bounded HTTP, workload identity and PostgreSQL pooling;
+[browser authentication](browser-auth-sources.md) for memory-only sign-in and
+TOTP enrollment/challenge; and [frontend behavior](frontend-sources.md) for
+Next.js, React and synthetic browser testing. The [integration source notes](app-integration-sources.md)
+record generated OpenAPI types, Node LTS and CI choices. Read their stated review
+depth and limits; offline tests do not verify live provider configuration.
+
 The [contract-design source notes](contract-sources.md) add C01 (PostgreSQL
 schemas/locking), C02 (OpenAPI 3.1.1), C03 (RFC 9457 HTTP problems) and C04
 (public AASB 121 currency guidance). Read them alongside the SQL/API contracts.
