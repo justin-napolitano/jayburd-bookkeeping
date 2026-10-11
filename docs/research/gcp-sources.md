@@ -44,3 +44,14 @@ environments API returned an empty list. The [foundation contract](../gcp-founda
 therefore does not grant GitHub apply access or assume an enforced reviewer gate.
 
 - **G10 — Google, [Cloud SQL pricing](https://cloud.google.com/sql/pricing?hl=en)**: reviewed Shared-core CPU/RAM and Iowa storage/backup tables in official HTML after the browser tool rejected its size. db-g1-small $0.035/hour; SSD $0.000232877/GiB-hour; used backups $0.000109589/GiB-hour. Shared-core types are excluded from the Cloud SQL SLA. The 730-hour example in the foundation contract is our calculation, not a full-stack quote or a billing-account-specific offer. No authenticated billing data was retrieved.
+
+## Cloud SQL implementation review — 2026-10-11
+
+- **G11 — Google, [Cloud SQL Go connector v1.25.3](https://github.com/GoogleCloudPlatform/cloud-sql-go-connector/tree/v1.25.3)**: reviewed README pgx/IAM sections and installed options.go token-source, lazy-refresh and public-IP options. Connector provides authenticated TLS; pgx's inner TLS can be disabled for the tunnel. Explicit API/login metadata token sources avoid the library's default ADC discovery. Library requires Go 1.26; the repository pins 1.26.9. Unit checks prove configured behavior, not live TLS/IAM acceptance.
+- **G12 — Google, [PostgreSQL users and roles](https://docs.cloud.google.com/sql/docs/postgres/users)**: reviewed superuser restrictions, default users, secure search path and IAM users/database roles. Cloud SQL does not expose PostgreSQL superuser; IAM users do not automatically receive database roles. Our precreated NOLOGIN roles and restricted migrator are a project design. Disposable PostgreSQL proves ordinary role semantics; actual administrator ADMIN-option compatibility remains cloud evidence.
+- **G13 — golang-migrate, [pgx v5 driver at v4.20.1](https://github.com/golang-migrate/migrate/blob/v4.20.1/database/pgx/v5/pgx.go)**: reviewed installed Config/WithInstance, advisory locking, version/dirty handling and Close. The library closes its supplied SQL handle and owns a reserved connection. We use a second connection for artifact-registration locking, register hashes before migration and reject altered registered files. Source io/fs embeds reviewed SQL; no arbitrary remote SQL or down/force operation is exposed.
+
+Required future evidence: real project API enablement, connector-only transport,
+IAM login and SQL privilege separation, shared-core reconnection latency, backup/PITR
+restore and observed costs. Terraform mocks and local non-superuser tests are not
+substitutes for these checks. No live credential/state/plan was retrieved.

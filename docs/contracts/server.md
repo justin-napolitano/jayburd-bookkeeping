@@ -27,7 +27,9 @@ This requires a separately provisioned GCP workload identity; no cloud resource
 or IAM permission is created. Provider verification/revocation and TOTP are the
 [identity contract](identity-setup.md), not health-probe assertions.
 
-The runtime pool is bounded to eight connections. Readiness checks database
+Legacy URL mode is bounded to eight connections. The [Cloud SQL mode](cloud-sql.md)
+uses a five-connection IAM pool and explicit nonsecret instance flags; it rejects
+ambient DSN presence. Readiness checks database
 reachability, runtime-role membership, unsafe inherited roles, table authority,
 DDL privileges, enrollment exclusion and migration4's discovery entrypoint.
 It does not call Identity Platform or prove live-bookkeeping approval. The

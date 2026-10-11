@@ -37,10 +37,14 @@ jobs:
         run: bash scripts/migrate.sh check "$BASE_COMMIT"
       - name: Prove isolated PostgreSQL migrations
         run: make migration-test
+      - name: Prove restricted cloud migration roles on disposable PostgreSQL
+        run: make cloud-sql-test
       - name: Prove transactional ledger on disposable PostgreSQL
         run: make ledger-test
       - name: Build and prove isolated health-only API container
         run: bash scripts/test-api-container.sh
+      - name: Build and verify inert non-root migration image
+        run: bash scripts/test-migrator-container.sh
       - name: Lint workflow definitions
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/*.yml
       - name: Check reachable dependency vulnerabilities
