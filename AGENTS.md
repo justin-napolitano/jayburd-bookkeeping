@@ -41,6 +41,12 @@ Run `make migration-test` for migration/tooling changes; never use a live DSN.
 
 ## Changes and evidence
 
+Before material design decisions or implementation, follow
+`docs/research/decision-evidence.md`: cite reviewed source sections, distinguish
+facts from inference, compare alternatives and name acceptance evidence.
+Start database work with `docs/research/database-foundations.md`. Research
+recommendations do not themselves approve a schema or accounting policy.
+
 Preserve unrelated changes. Keep one marked stage runbook per delivery branch;
 update it with meaningful stages and include it in every implementation commit.
 Run `make check`, `make test`, and `make build` before handoff. Additional
