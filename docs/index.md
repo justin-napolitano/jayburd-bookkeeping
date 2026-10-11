@@ -51,5 +51,8 @@ Review the [first application evidence](runbooks/first-app.md), then complete th
 managed identity and deployment gates before connecting live accounts. JB-001 remains open for a real
 LLC policy, opening-balance source and accountant cutover review. Development
 accrual/USD defaults do not resolve those live-use decisions.
-Entity/account counts, providers, GCP project, billing budget and region are
-unknown. `us-central1` is a provisional discussion default, not a deployed choice.
+Entity/account counts, providers and GCP project/billing/auth configuration remain
+unknown. The owner accepted an under-$50/month synthetic development target;
+`us-central1` remains provisional. See [GCP delivery](gcp-delivery.md),
+[epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25) and
+the [delivery evidence ledger](runbooks/gcp-delivery.md).

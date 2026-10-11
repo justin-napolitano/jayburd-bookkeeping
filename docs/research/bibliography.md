@@ -148,6 +148,13 @@ The [identity source notes](identity-sources.md) add I01–I05: managed ID-token
 verification, revocation, TOTP MFA the pinned Firebase Admin Go API and dependency maintenance evidence. These
 support the identity/setup contract; live deployment evidence remains separate.
 
+## Cloud delivery resources
+
+The [GCP source register](gcp-sources.md) describes managed request billing,
+Cloud Tasks pricing and duplicate delivery, Cloud SQL connectivity and IAM
+authentication. Read its section-level review limits before implementing cloud
+delivery; provider documentation and budget assumptions are not deployment proof.
+
 ## Agent maintenance rules
 
 The first application adds three source registers: [server composition](server-sources.md)
