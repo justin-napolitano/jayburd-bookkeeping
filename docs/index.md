@@ -20,6 +20,11 @@ background work. The two predecessor repos are reference material only.
 | What must the ledger guarantee? | [Accounting contract](contracts/accounting.md) |
 | Which ISO standards must messages and practices follow? | [Standards applicability contract](contracts/standards.md) |
 | How do we design the database? | [Database contract](contracts/database.md) |
+| Which schema owns each responsibility? | [Schema ownership ADR](decisions/0004-schema-ownership.md) |
+| What examples and policy decisions drive posting? | [Accounting scenarios](contracts/accounting-scenarios.md) |
+| How are money and FX represented? | [Multicurrency contract](contracts/multicurrency.md) |
+| What are the proposed columns, roles and transactions? | [First ledger SQL contract](contracts/ledger-sql.md) |
+| What does the proposed HTTP interface accept? | [API contract](contracts/api.md) |
 | Do we need an ORM? | [SQL-first decision](decisions/0003-database-first.md) |
 | How do migrations run? | [Migration workflow](../db/migrations/README.md) |
 | What must retries and workers guarantee? | [Background work contract](contracts/background-work.md) |
@@ -28,6 +33,7 @@ background work. The two predecessor repos are reference material only.
 | How do we start, review and finish tasks? | [Delivery workflow](delivery.md) |
 | What worked in Brainblast? | [Tooling assessment](research/brainblast.md) |
 | What has actually passed? | [Seed runbook](runbooks/seed.md) |
+| What was checked for the contract package? | [Ledger contract runbook](runbooks/ledger-contracts.md) |
 
 ## Next action
 
