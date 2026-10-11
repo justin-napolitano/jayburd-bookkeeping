@@ -5,7 +5,8 @@
 ## Status and boundary
 
 Research-only branch from main. No application, SQL migration, dependency or CI
-changes. Migration PR #14 remains separate and unmerged. Public sources only;
+changes. Migration PR #14 was verified merged during this session; its tooling is separate
+from this documentation-only change. Public sources only;
 no financial data or credentials accessed.
 
 ## Stage ledger
@@ -39,3 +40,8 @@ contracts. Posting enforcement and isolation remain proposals pending evidence.
 
 Review source interpretation and the next design gate. Keep implementation paused
 until the relevant slice's contract and evidence plan are accepted.
+
+Remote evidence: [research CI](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38156223974)
+passed for `67c01a9` against the updated base, including its migration proof.
+GitHub reports #14 merged at 2026-10-11T16:26:26Z, commit `2597222`; the research
+notes were corrected accordingly. No implementation or schema approval inferred.

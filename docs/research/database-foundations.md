@@ -79,5 +79,7 @@ DuckDB require a concrete workload before reconsideration. Full currency convers
 consolidation/eliminations, legal retention and multi-book accounting need their own
 policy/source review rather than being inferred from this foundational pass.
 
-The existing [migration draft PR #14](https://github.com/justin-napolitano/jayburd-bookkeeping/pull/14)
-remains unmerged. Read this review before advancing its proposed schema decisions.
+The existing [migration tooling PR #14](https://github.com/justin-napolitano/jayburd-bookkeeping/pull/14)
+was verified merged on 2026-10-11 during this research session. That delivers
+tooling, not an approved ledger schema. Read this review before advancing product
+schema decisions.
