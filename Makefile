@@ -52,3 +52,7 @@ migration-test:
 
 ledger-test:
 	bash scripts/test-ledger.sh
+
+.PHONY: infra-test
+infra-test:
+	bash scripts/test-infra.sh

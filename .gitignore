@@ -14,3 +14,9 @@ node_modules/
 .next/
 gh-creds-*.json
 local-imports/
+# Owner-only backend configuration and project metadata never enter source control.
+infra/gcp/foundation/backend.tf
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
