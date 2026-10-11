@@ -1,7 +1,9 @@
 # SQL migration workflow
 
-No product migration is approved yet. SQL fixtures live in `tests/migrations/`
-and are never deployed. First review [database contracts](../../docs/contracts/database.md).
+The first ledger migrations implement the reviewed synthetic posting profile.
+See [posting proof](../../docs/runbooks/posting-proof.md); no live deployment is
+approved. Harness fixtures in `tests/migrations/` are never deployed. Read the
+[database contracts](../../docs/contracts/database.md) before changing SQL.
 
 ```sh
 make migration-create NAME=initial_ledger
@@ -34,3 +36,8 @@ to another fresh database. It does not reverse product migrations automatically.
 Dirty state requires inspection and an incident-specific repair decision, never
 an automatic `force`. Production migration execution and applied-checksum receipts
 remain JB-003/JB-005 work. No live-database wrapper is exposed by this seed.
+
+`make ledger-test` additionally proves a 1-to-2 upgrade with existing synthetic
+state, posting/races and a streamed synthetic backup/restore. Product down files
+fail explicitly: financial history is repaired forward. Initial migrations need
+controlled role/schema creation privileges; runtime roles receive none of them.
