@@ -39,6 +39,21 @@ Review database contracts before product DDL. Use golang-migrate SQL migrations;
 no ORM auto-migration or application-startup migration. Merged SQL is immutable.
 Run `make migration-test` for migration/tooling changes; never use a live DSN.
 
+## Standards requirement
+
+Owner direction: use applicable ISO standards for every financial message,
+data contract and practice. Before designing or changing one, follow
+`docs/contracts/standards.md`: record applicability, authoritative source,
+edition/message version, usage profile, mapping and named validation evidence.
+Use ISO 20022 definitions for covered financial exchanges and ISO 4217 currency
+identifiers. Review applicable audit-data standards for exports and semantics.
+Internal APIs/events also require an applicability assessment; do not invent
+an ISO designation or force an unrelated message onto a business operation.
+Document gaps and deviations with rationale and a reviewed decision before
+implementation. ISO does not replace the selected accounting framework or
+jurisdictional requirements. Never claim conformance from naming or XSD alone.
+Multicurrency is required scope; do not silently reduce the ledger to one currency.
+
 ## Changes and evidence
 
 Before material design decisions or implementation, follow

@@ -16,8 +16,16 @@ no financial data or credentials accessed.
 | Discover and read source sections | 22 source entries with review depth/limits | Compare alternatives |
 | Critique proposed paradigms | Decision brief and unresolved choices recorded | Owner/schema review |
 | Establish evidence standard | Source-to-inference-to-test record specified | Apply to subsequent ADRs |
+| Rebase after PR #14 | Research commits rebased cleanly onto `2597222` | Preserve migration tooling |
+| Record owner ISO requirement | AGENTS and standards contract require applicability/version/mapping/evidence records | Review each integration definition before implementation |
+| Correct multicurrency scope | Removed single-currency proposal and blanket mixed-currency rejection | Complete sourced FX measurement contracts |
 
 ## Current evidence
+
+After the ISO policy and multicurrency scope edits, reran
+`GOCACHE=/private/tmp/jayburd-go-cache GOMODCACHE=/private/tmp/jayburd-go-modcache make check test build`:
+PASS (document links, migration-file checks, runbook structure, vet, existing
+race tests and tooling build). No application or conformance tests exist yet.
 
 Targeted crawl covered OpenStax, BCcampus, original relational/SSI/accounting
 papers, PostgreSQL 17 manuals, author pattern articles, provider documentation
@@ -32,6 +40,11 @@ validate the repository, not the literature's conclusions. DOI resolver returned
 correctness, concurrency benchmark or operational approval is claimed.
 
 ## Remaining work
+
+ISO review covers official public FAQ/catalogue, currency overview and audit-data
+abstract; individual message schemas/profiles and full audit standard have not
+been reviewed. No ISO conformance claim is made. Detailed multicurrency,
+settlement, remeasurement and accounting-framework literature review continues.
 
 Resolve JB-001 accounting policy, then review JB-002 logical/physical/transaction
 contracts. Posting enforcement and isolation remain proposals pending evidence.

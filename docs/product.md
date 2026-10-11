@@ -20,19 +20,23 @@ Account ownership is per legal entity, not per provider login or account mask.
 ## Scope decisions still open
 
 - Cash versus accrual basis and required adjusting-entry workflow.
-- First currency, reporting period/timezone, rounding policy and precision.
+- Functional and transaction currencies, FX policy, reporting period/timezone,
+  rounding policy and precision.
 - LLC/account counts, providers and accountant export format.
 - Whether initial invoicing and bills are manual entries or dedicated workflows.
 - Retention/deletion policy, access roles, initial opening balances and cutover.
 - Recovery objectives, monthly cloud budget, and acceptable dispatch latency.
 
-Begin with a proposed single-currency scope; approve it in JB-001 before coding
-the ledger. An accounting basis choice does not remove double-entry requirements.
+Multicurrency is required from the ledger design onward, including conversion,
+settlement and period-end measurement contracts. Resolve the accounting policy
+in JB-001 before coding the ledger. An accounting basis choice does not remove
+double-entry requirements. Apply the [standards contract](contracts/standards.md)
+to financial messages and practices.
 
 ## Deferred
 
 Payroll calculation, tax filing, inventory costing, brokerage tax lots,
-automated FX accounting, public SaaS signup, payments/money movement and
+public SaaS signup, payments/money movement and
 complex consolidated financial statements. Basic intercompany transfers still
 need explicit entity-specific entries and reconciliation; dashboard aggregation
 must not present itself as statutory consolidation.
