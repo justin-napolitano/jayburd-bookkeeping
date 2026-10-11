@@ -8,7 +8,10 @@ backend, PostgreSQL ledger, Next.js interface, and GCP delivery.
 The first synthetic PostgreSQL posting slice is implemented: balanced manual
 journals, spot conversion, exact reversals, scoped reads and trial balance, with
 atomic audit/receipt/outbox records. Go supplies transaction and HTTP adapters.
-There is no public server, production identity verifier, bank connection, frontend,
+An identity adapter requires managed TOTP sign-in and checks revocation; controlled
+setup creates synthetic entity/book/account bundles atomically. See the
+[identity/setup evidence](docs/runbooks/identity-setup.md).
+There is no public server, live identity configuration, bank connection, frontend,
 cloud deployment or approval to use these books as a system of record.
 
 ## Start here
@@ -24,7 +27,7 @@ For source material and reading priorities, use the
 
 ## Local commands
 
-Requires Go 1.26 and Git. These commands need no cloud account or credentials.
+Requires Go 1.26.9 and Git. These commands need no cloud account or credentials.
 
 ```sh
 make check
@@ -54,6 +57,7 @@ vector database, or autonomous agent scheduler is required.
 | `planning/backlog.json` | Reviewed initial issue proposals and stable IDs |
 | `planning/issues.json` | Published issue identities, never execution status |
 | `cmd/project/` | Credential-free validation, packets, and issue drafts |
+| `internal/identity/` | Managed authentication adapter; offline boundary tests |
 | `internal/ledger/` | Go transaction and HTTP adapters; unit/integration tests |
 | `db/migrations/` | Restricted SQL accounting authority and immutable migration history |
 | `tests/corpus/` | Original synthetic fixtures and independent expected balances |

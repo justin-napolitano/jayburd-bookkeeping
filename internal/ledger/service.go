@@ -23,6 +23,38 @@ type Beginner interface {
 // Service owns transaction orchestration; the caller owns the connection lifecycle.
 type Service struct{ DB Beginner }
 
+// ResolvePrincipal reads only the identity mapping; every operation reauthorizes
+// under its own transaction locks. Unknown and disabled identities resolve empty.
+func (s *Service) ResolvePrincipal(ctx context.Context, issuer, subject string) (string, error) {
+	tx, err := s.DB.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted, AccessMode: pgx.ReadOnly})
+	if err != nil {
+		return "", &Failure{503, "temporarily_unavailable"}
+	}
+	defer func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		_ = tx.Rollback(cleanup)
+	}()
+	var id *string
+	err = tx.QueryRow(ctx, "select ledger.resolve_principal($1,$2)", issuer, subject).Scan(&id)
+	if err != nil {
+		return "", failure(err)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return "", failure(err)
+	}
+	if id == nil {
+		return "", nil
+	}
+	return *id, nil
+}
+
+// Setup creates a new development entity/book bundle without accepting an actor
+// or permissions from its request body; SQL owns atomic setup and receipt replay.
+func (s *Service) Setup(ctx context.Context, c Command) (Result, error) {
+	return s.execute(ctx, c, "setup")
+}
+
 // Command carries trusted identity separately from unchanged user JSON text.
 type Command struct {
 	Actor, Entity, Book, Journal, Key, Request string
@@ -156,6 +188,8 @@ func (s *Service) attempt(ctx context.Context, c Command, op string, iso pgx.TxI
 	}
 	var r Result
 	switch op {
+	case "setup":
+		err = tx.QueryRow(ctx, "select * from ledger.setup_book($1,$2,$3,$4)", c.Actor, c.Key, c.Request, c.Body).Scan(&r.Status, &r.Body, &r.Replayed)
 	case "post":
 		err = tx.QueryRow(ctx, "select * from ledger.post_journal($1,$2,$3,$4,$5,$6)", c.Actor, c.Entity, c.Book, c.Key, c.Request, c.Body).Scan(&r.Status, &r.Body, &r.Replayed)
 	case "reverse":

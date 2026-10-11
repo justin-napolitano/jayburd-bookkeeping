@@ -7,8 +7,10 @@ MIGRATE_IMAGE='migrate/migrate:v4.20.1@sha256:76cc2074cb6642631f34a898ced71e6aea
 proof_id="jayburd-ledger-$(date +%s)-$$"
 network_created=0
 container_created=0
+volume_created=0
 cleanup() {
  if [[ "$container_created" == 1 ]]; then docker rm -fv "$proof_id" >/dev/null; fi
+ if [[ "$volume_created" == 1 ]]; then docker volume rm "$proof_id" >/dev/null; fi
  if [[ "$network_created" == 1 ]]; then docker network rm "$proof_id" >/dev/null; fi
 }
 trap cleanup EXIT
@@ -18,9 +20,13 @@ docker pull "$POSTGRES_IMAGE" >/dev/null
 docker pull "$MIGRATE_IMAGE" >/dev/null
 docker network create --internal "$proof_id" >/dev/null
 network_created=1
+docker volume create "$proof_id" >/dev/null
+volume_created=1
 docker run -d --name "$proof_id" --network "$proof_id" --network-alias database \
- --tmpfs /var/lib/postgresql/data --env POSTGRES_HOST_AUTH_METHOD=trust "$POSTGRES_IMAGE" >/dev/null
+ --mount "type=volume,source=$proof_id,target=/proof" --tmpfs /var/lib/postgresql/data --env POSTGRES_HOST_AUTH_METHOD=trust "$POSTGRES_IMAGE" >/dev/null
 container_created=1
+# Copy explicit synthetic inputs; the daemon need not share the checkout path.
+docker cp db/migrations "$proof_id:/proof/migrations"
 ready=0
 for ((i=0;i<60;i++)); do
  if docker exec "$proof_id" pg_isready -U postgres >/dev/null 2>&1; then ready=1; break; fi
@@ -28,20 +34,20 @@ for ((i=0;i<60;i++)); do
 done
 [[ "$ready" == 1 ]] || exit 1
 docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE DATABASE ledger_template' >/dev/null
-docker run --rm --network "$proof_id" --mount "type=bind,source=$PWD/db/migrations,target=/migrations,readonly" \
- "$MIGRATE_IMAGE" -path /migrations -database 'postgres://postgres@database:5432/ledger_template?sslmode=disable' up
+docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" \
+ "$MIGRATE_IMAGE" -path /proof/migrations -database 'postgres://postgres@database:5432/ledger_template?sslmode=disable' up
 # Prove a forward upgrade preserves existing synthetic rows between versions.
 docker exec "$proof_id" createdb -U postgres ledger_upgrade
 run_upgrade() {
- docker run --rm --network "$proof_id" --mount "type=bind,source=$PWD/db/migrations,target=/migrations,readonly" \
-  "$MIGRATE_IMAGE" -path /migrations -database 'postgres://postgres@database:5432/ledger_upgrade?sslmode=disable' "$@"
+ docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" \
+  "$MIGRATE_IMAGE" -path /proof/migrations -database 'postgres://postgres@database:5432/ledger_upgrade?sslmode=disable' "$@"
 }
 run_upgrade up 1
 docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -d ledger_upgrade -c "INSERT INTO ledger.entity(entity_id,name,kind) VALUES('00000000-0000-4000-8000-000000000099','Synthetic upgrade sentinel','legal')" >/dev/null
 run_upgrade up
 [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d ledger_upgrade -c 'SELECT count(*) FROM ledger.entity')" == 1 ]]
 echo 'PASS: forward migration retained synthetic state'
-docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE ROLE synthetic_runtime LOGIN IN ROLE bookkeeping_api' >/dev/null
+docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE ROLE synthetic_runtime LOGIN IN ROLE bookkeeping_api; CREATE ROLE synthetic_identity_operator LOGIN IN ROLE bookkeeping_identity_operator' >/dev/null
 mkdir -p .local
 case "$(docker exec "$proof_id" uname -m)" in
  aarch64) proof_arch=arm64 ;;
@@ -50,11 +56,14 @@ case "$(docker exec "$proof_id" uname -m)" in
 esac
 # Static test executable runs on the internal network; no published database port.
 CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/ledger.test ./internal/ledger
+docker cp .local/ledger.test "$proof_id:/proof/ledger.test"
+docker cp tests/corpus "$proof_id:/proof/corpus"
+docker exec "$proof_id" mkdir -p /proof/work/tests
+docker exec "$proof_id" ln -s /proof/corpus /proof/work/tests/corpus
 run_proof() {
- docker run --rm --network "$proof_id" --workdir /work \
-  --mount "type=bind,source=$PWD/.local/ledger.test,target=/ledger.test,readonly" \
-  --mount "type=bind,source=$PWD/tests/corpus,target=/work/tests/corpus,readonly" \
-  --entrypoint /ledger.test "$POSTGRES_IMAGE" -ledger-port=5432 "$@"
+ docker run --rm --network "$proof_id" --workdir /proof/work \
+  --mount "type=volume,source=$proof_id,target=/proof,readonly" \
+  --entrypoint /proof/ledger.test "$POSTGRES_IMAGE" -ledger-port=5432 "$@"
 }
 run_proof -test.v -test.timeout=120s
 # Stream only this invocation's synthetic proof database into a fresh restore.

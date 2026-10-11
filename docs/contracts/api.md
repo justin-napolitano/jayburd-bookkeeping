@@ -4,7 +4,9 @@
 
 OpenAPI 3.1.1 implementation-review contract: [machine-readable definition](../../api/openapi.json).
 An in-process HTTP adapter exists with an injected identity interface; no
-production verifier, listener or public server is provided. The specification describes the first posting/read/reversal/
+deployed verifier, listener or public server is provided. A managed identity adapter
+and atomic `POST /v1/setup` are specified by the
+[identity/setup contract](identity-setup.md). The specification describes the first posting/read/reversal/
 close/report interface; transport validation is not accounting approval. Every
 operation also follows [SQL invariants](ledger-sql.md) and [money semantics](multicurrency.md).
 The [posting boundary](posting-boundary.md) specifies the first executable slice.
@@ -13,9 +15,10 @@ its documented route must not be mounted by the first server.
 
 ## Operations and permissions
 
-All routes start `/v1/entities/{entity_id}/books/{book_id}`. Authentication is
-bearer-token transport; issuer, audience, identity provider and token lifecycle
-remain deployment decisions. No actor ID is accepted from request JSON.
+Ledger routes start `/v1/entities/{entity_id}/books/{book_id}`; the separate
+`POST /v1/setup` route creates a new scope. Authentication is
+bearer-token transport; issuer/audience binding, MFA and revocation follow the identity/setup contract;
+the actual GCP project remains a deployment decision. No actor ID is accepted from request JSON.
 
 | Method and suffix | Permission | Result |
 | --- | --- | --- |
@@ -41,7 +44,8 @@ The selected request limit is 1 MiB and 1,000 journal lines; these are engineeri
 bounds for the first implementation. Unknown account/currency/rate references,
 invalid dates and overflow fail before any durable journal writes.
 
-Mutation requests require `Idempotency-Key` and `expected_revision`. The SQL
+Ledger mutation requests require `Idempotency-Key` and `expected_revision`.
+Setup requires the key but creates its initial revision in SQL. The SQL
 contract defines scope/canonicalization/actor binding. The expected revision is
 optimistic concurrency, not authorization. Successful retries return original
 status and body with `Idempotent-Replay: true`, even if the period later closes,
@@ -86,7 +90,7 @@ close/revocation and revision conflicts. SQL test names remain in the SQL contra
 Keep changes backward-compatible within `/v1`; new required request fields or
 semantic reinterpretations require an explicit version/migration decision.
 
-Entity/book/account setup, draft approvals, journal lists/pagination, statement
+Further entity/book/account management, draft approvals, journal lists/pagination, statement
 import, reconciliation, settlement, revaluation and exports are separate next
 slices. Their durable obligations are recorded in the SQL contract; they have no
 invented placeholder HTTP endpoints here. First implementable slice is manual

@@ -13,7 +13,9 @@ branch/worktree. Never treat a missing or canceled predecessor as completed.
 GitHub owns task state and discussion. Repository docs own design and evidence.
 Generated packets, issue drafts, and dashboards are disposable views.
 The synthetic posting proof is implemented; see `docs/runbooks/posting-proof.md`
-for exact evidence and limits. Do not equate a passing build, closed issue or
+for exact evidence and limits. Identity and controlled setup follow
+`docs/contracts/identity-setup.md` and `docs/runbooks/identity-setup.md`; never
+substitute an auth emulator, email or caller actor ID for verified identity. Do not equate a passing build, closed issue or
 successful deployment with live bookkeeping approval.
 No external Brainblast vault is required to build or resume this project.
 

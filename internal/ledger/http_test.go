@@ -32,6 +32,9 @@ func (s *operationsStub) Post(_ context.Context, c Command) (Result, error) {
 	return s.result, s.err
 }
 
+// Setup records the new-entity setup transport independently of SQL behavior.
+func (s *operationsStub) Setup(ctx context.Context, c Command) (Result, error) { return s.Post(ctx, c) }
+
 // Reverse shares the recording boundary for route-selection tests.
 func (s *operationsStub) Reverse(ctx context.Context, c Command) (Result, error) {
 	return s.Post(ctx, c)
