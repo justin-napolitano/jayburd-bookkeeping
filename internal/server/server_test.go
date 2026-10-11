@@ -94,7 +94,18 @@ func TestServerBoundary(t *testing.T) {
 
 // TestManagedConfiguration prevents credential-file, emulator and inherited PG loading.
 func TestManagedConfiguration(t *testing.T) {
-	for _, name := range []string{"FIREBASE_AUTH_EMULATOR_HOST", "GOOGLE_APPLICATION_CREDENTIALS", "GCE_METADATA_HOST", "PGSERVICEFILE", "PGPASSWORD", "PGSSLSNI", "PGSSLNEGOTIATION", "PGCHANNELBINDING", "PGREQUIREAUTH"} {
+	// This set contains environment variable names only, never their values.
+	for name := range map[string]struct{}{
+		"FIREBASE_AUTH_EMULATOR_HOST":    {},
+		"GOOGLE_APPLICATION_CREDENTIALS": {},
+		"GCE_METADATA_HOST":              {},
+		"PGSERVICEFILE":                  {},
+		"PGPASSWORD":                     {},
+		"PGSSLSNI":                       {},
+		"PGSSLNEGOTIATION":               {},
+		"PGCHANNELBINDING":               {},
+		"PGREQUIREAUTH":                  {},
+	} {
 		if !forbiddenEnvironment(func(k string) bool { return k == name }) {
 			t.Fatal("unsafe override permitted")
 		}
