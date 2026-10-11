@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Jayburd Ledger Contract",
-    "version": "0.2.0-review",
+    "version": "0.3.0-review",
     "description": "Implementation-review contract; no server exists. Manual posting/read/reversal uses dev-accrual-usd-v1. Close remains deferred. SQL/accounting contracts own semantic validation. Not a registered ISO financial message.",
     "contact": {
       "name": "Jayburd contract review",
@@ -603,6 +603,93 @@
         },
         "x-implementation-stage": "first-posting-proof"
       }
+    },
+    "/v1/setup": {
+      "post": {
+        "operationId": "setupBook",
+        "summary": "Create a new synthetic development entity, book and accounts atomically",
+        "description": "Requires an explicitly enrolled principal and TOTP-completed managed ID token. No existing entity modification, principal enrollment or live policy approval. Idempotency scope is principal + setup; same key and body replay original IDs under current authorization. See identity-setup.md.",
+        "tags": [
+          "Ledger"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Committed result.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                },
+                "description": "Financial responses are not cacheable."
+              },
+              "Idempotent-Replay": {
+                "schema": {
+                  "type": "boolean"
+                },
+                "description": "True when returning an existing successful receipt; false for first execution."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -688,7 +775,8 @@
                   "type": "string",
                   "format": "uuid"
                 }
-              }
+              },
+              "additionalProperties": true
             },
             "else": {
               "not": {
@@ -700,7 +788,8 @@
                     "type": "string",
                     "format": "uuid"
                   }
-                }
+                },
+                "additionalProperties": true
               }
             }
           }
@@ -1137,6 +1226,159 @@
           }
         ],
         "description": "Immutable line with resolved currency metadata version and original valuation provenance. The development spot policy uses synthetic same-UTC-date rates, transaction-to-USD direction, exact multiplication and half-even rounding. No automatic balancing adjustment."
+      },
+      "SetupAccount": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "name",
+          "category",
+          "normal_side",
+          "monetary"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "asset",
+              "liability",
+              "equity",
+              "revenue",
+              "expense"
+            ]
+          },
+          "normal_side": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ]
+          },
+          "monetary": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SetupRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entity_name",
+          "entity_kind",
+          "book_name",
+          "starts_on",
+          "ends_before",
+          "functional_currency_version_id",
+          "accounts"
+        ],
+        "properties": {
+          "entity_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "entity_kind": {
+            "type": "string",
+            "enum": [
+              "legal",
+              "personal"
+            ]
+          },
+          "book_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "starts_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "ends_before": {
+            "type": "string",
+            "format": "date"
+          },
+          "functional_currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accounts": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/SetupAccount"
+            }
+          }
+        }
+      },
+      "SetupResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entity_id",
+          "book_id",
+          "policy_id",
+          "period_id",
+          "book_revision",
+          "accounts"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "period_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_revision": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          },
+          "accounts": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "account_id",
+                "code"
+              ],
+              "properties": {
+                "account_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                }
+              }
+            }
+          }
+        }
       }
     },
     "responses": {

@@ -7,10 +7,12 @@ POSTGRES_IMAGE='postgres:17.11-alpine3.24@sha256:b0f9560a2de083e2cc7382e75f808c7
 test_id="jayburd-migrations-$(date +%s)-$$"
 network_created=0
 container_created=0
+volume_created=0
 
 # Remove only resources successfully created by this invocation, including on failure.
 cleanup() {
   if [[ "$container_created" == 1 ]]; then docker rm -f -v "$test_id" >/dev/null; fi
+  if [[ "$volume_created" == 1 ]]; then docker volume rm "$test_id" >/dev/null; fi
   if [[ "$network_created" == 1 ]]; then docker network rm "$test_id" >/dev/null; fi
 }
 trap cleanup EXIT
@@ -19,10 +21,16 @@ docker pull "$POSTGRES_IMAGE" >/dev/null
 docker pull "$MIGRATE_IMAGE" >/dev/null
 docker network create --internal "$test_id" >/dev/null
 network_created=1
+docker volume create "$test_id" >/dev/null
+volume_created=1
 docker run -d --name "$test_id" --network "$test_id" --network-alias database \
-  --tmpfs /var/lib/postgresql/data --env POSTGRES_HOST_AUTH_METHOD=trust \
+  --mount "type=volume,source=$test_id,target=/proof" --tmpfs /var/lib/postgresql/data --env POSTGRES_HOST_AUTH_METHOD=trust \
   "$POSTGRES_IMAGE" >/dev/null
 container_created=1
+# Only migration artifacts are copied, never the whole checkout or credentials.
+docker exec "$test_id" mkdir -p /proof/db /proof/tests
+docker cp db/migrations "$test_id:/proof/db/migrations"
+docker cp tests/migrations "$test_id:/proof/tests/migrations"
 ready=0
 for ((attempt=0; attempt<60; attempt++)); do
   if docker exec "$test_id" pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1; then ready=1; break; fi
@@ -36,8 +44,8 @@ run_migrate() {
   local folder=$1 database=$2
   shift 2
   docker run --rm --network "$test_id" \
-    --mount "type=bind,source=$PWD/$folder,target=/migrations,readonly" \
-    "$MIGRATE_IMAGE" -path /migrations -database \
+    --mount "type=volume,source=$test_id,target=/proof,readonly" \
+    "$MIGRATE_IMAGE" -path "/proof/$folder" -database \
     "postgres://postgres@database:5432/$database?sslmode=disable&connect_timeout=5&x-statement-timeout=10000" \
     -lock-timeout 3 "$@"
 }
