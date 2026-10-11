@@ -2,21 +2,25 @@
 
 ## Decision and scope
 
-Proposed JB-002 physical/transaction specification, not executable DDL. Accepted
-namespace direction is [ADR 0004](../decisions/0004-schema-ownership.md).
-The first slice supports approved book/account setup, manual identity/spot journal
-posting, exact reversal, authorized reads and period close. Position accounting,
+JB-002 physical/transaction specification, not executable DDL. The first manual
+posting target is finalized for implementation review in [posting boundary](posting-boundary.md)
+and [ADR 0005](../decisions/0005-development-accounting-policy.md); their narrowed
+scope and decisions supersede earlier proposals below. Broader close/FX workflows
+remain gated. Accepted namespace direction is [ADR 0004](../decisions/0004-schema-ownership.md).
+The first proof uses controlled synthetic book/account setup and supports manual
+identity/spot journal posting, exact reversal and authorized reads. Period close
+remains a later workflow; closed-state rejection is required immediately. Position accounting,
 provider import and reconciliation are logical contracts below, not complete
 physical schemas. [Money rules](multicurrency.md) and [scenarios](accounting-scenarios.md)
 are prerequisites. An API cannot bypass these requirements.
 
-Prefer a narrow database function boundary over granting API roles table DML.
+Select a narrow database function boundary over granting API roles table DML.
 Go validates transport/identity and orchestrates one transaction; owned database
 functions enforce durable invariants. Alternatives: Go with deferred triggers
 requires broader write privileges and a proven complete mutation protocol; raw
 row CHECKs cannot enforce full-journal balance. Evidence: S07/S08/S11/S12 in the
-[source register](../research/database-sources.md). This is a proposed choice,
-requiring privilege and concurrency tests before acceptance.
+[source register](../research/database-sources.md). The selected design still requires privilege and concurrency tests before
+claiming implemented enforcement.
 
 ## Model and scope keys
 
@@ -57,7 +61,7 @@ These aliases describe a contract, not existing SQL types.
 | `ledger.journal_line` / one side/amount/account | scope plus `journal_id uuid`, `line_number integer`, `account_id uuid`, `side text`, `transaction_currency_version_id uuid`, `transaction_amount money`, `functional_amount money`, `valuation_basis text`, `rate_observation_id uuid?` | PK scope/journal/line_number; FK same-book journal/account; line_number 1–1000; side debit/credit; positive amounts in first slice; basis identity/spot or carrying/functional_adjustment reserved for future operations; cross-field money checks per contract |
 | `reference.currency` / one currency definition version | `currency_version_id uuid`, `alphabetic_code text`, `numeric_code text?`, `minor_unit smallint?`, `valid_from date`, `valid_to date?`, `source_release text` | Code `[A-Z]{3}`, numeric code three digits if assigned; unique code/valid_from; disjoint validity intervals; no assumed minor unit when absent; referenced versions immutable |
 | `reference.rate_observation` / one immutable sourced quote | `rate_observation_id uuid`, `base_currency_version_id uuid`, `quote_currency_version_id uuid`, `quote_per_base rate`, `effective_at instant`, `observed_at instant`, `source text`, `source_reference text`, `purpose text`, `policy_code text`, `supersedes_id uuid?` | Currency/self FKs; positive finite rate; purpose spot/closing/valuation; provenance retained; ingestion identity unique source/source_reference; conflicting redelivery is reviewed, never overwritten |
-| `integration.operation_receipt` / one successful command | scope plus `operation text`, `idempotency_key text`, `principal_id uuid`, `request_hash bytea`, `canonical_version smallint`, `result jsonb`, `http_status smallint`, `created_at instant` | PK scope/operation/key; key 1–128 safe ASCII; hash exactly 32 bytes; result schema versioned and minimal; retain for book lifetime pending retention policy; no unsafe TTL that enables a duplicate financial effect |
+| `integration.operation_receipt` / one successful command | scope plus `operation text`, `idempotency_key text`, `principal_id uuid`, `request_hash bytea`, `normalized_request jsonb`, `canonical_version smallint`, `result jsonb`, `http_status smallint`, `created_at instant` | PK scope/operation/key; key 1–128 safe ASCII; hash exactly 32 bytes; full normalized request equality is authoritative per posting boundary; result schema versioned; retain for book lifetime pending retention policy; no unsafe TTL that enables a duplicate financial effect |
 | `audit.action` / one committed actor action | scope plus `action_id uuid`, `principal_id uuid`, `operation text`, `target_id uuid`, `book_revision bigint`, `request_id uuid`, `recorded_at instant`, `reason text?` | Append-only; no raw financial payloads/tokens in diagnostics; target checked by operation; external audit durability requires separate design |
 | `integration.outbox_message` / durable committed notification intent | scope plus `message_id uuid`, `event_type text`, `event_version integer`, `target_id uuid`, `book_revision bigint`, `created_at instant` | Append-only financial intent with identifiers only; event type journal.posted/period.closed; future dispatch state is separate; creation alone does not implement delivery |
 
@@ -96,10 +100,10 @@ its own reviewed role policy; scoped read functions and composite keys are requi
 
 ## Transaction and lock protocol
 
-Proposed all mutations use SERIALIZABLE. Lock in this order: principal FOR SHARE;
-relevant membership FOR SHARE; book FOR UPDATE; existing receipt; period; affected
-accounts in UUID order; original journal if needed. Revocation updates the same
-principal/membership rows; book setup, account edits, posting and closing all take
+All mutations use SERIALIZABLE. Lock in this order: principal FOR SHARE;
+entity FOR SHARE; relevant membership FOR SHARE; book FOR UPDATE; existing receipt; period; affected
+accounts in UUID order; original journal if needed. Revocation/archive updates the same
+principal/entity/membership rows; book setup, account edits, posting and closing all take
 the same book lock. Every change affecting posting/report interpretation or close
 evidence (including configuration, reconciliation and valuation revisions) also
 increments book revision; approval evidence records the revision it reviewed.
@@ -119,7 +123,7 @@ Timeout/disconnect after commit is resolved by the receipt, not a guessed failur
 1. Validate trusted actor, size/shape, decimal inputs and required idempotency key.
 2. Begin transaction and take authorization/book locks. Reject disabled scope.
 3. Resolve receipt before mutable period/account checks. Same actor, command and
-   canonical hash returns original status/body; different payload/actor conflicts.
+   normalized request returns original status/body; different payload/actor conflicts.
    Recheck current permissions even on replay; do not leak old results after revocation.
 4. For new work, validate expected book revision, one open period containing the
    accounting date, effective approved policy, account activity and currency/rate
@@ -128,12 +132,11 @@ Timeout/disconnect after commit is resolved by the receipt, not a guessed failur
 5. Increment book revision once; insert journal/lines, audit action, receipt and
    outbox intent. All succeed or all roll back. Return 201 only after COMMIT.
 
-Payload comparison hashes a versioned canonical JSON representation: sort object
-keys, preserve line order, normalize plain decimal strings without floating point
-(remove insignificant fractional zeros), retain string content, include operation,
-path scope and expected revision. Reject duplicate JSON keys and unknown fields.
-Identity is bound separately to the receipt. Failed validation leaves no receipt;
-reuse after a known rollback is safe. A successful key never becomes reusable.
+Payload normalization and receipt equality follow [canonical replay version 1](posting-boundary.md#canonical-replay-version-1).
+SQL owns normalization, stored normalized-request comparison and diagnostic hash;
+Go supplies original body text, never a trusted hash. Reject duplicate/unknown
+JSON keys before jsonb conversion. Failed validation leaves no receipt; successful
+keys never become reusable.
 
 ### Reverse journal
 
@@ -163,8 +166,8 @@ Annual closing/retained-earnings rules and reopening are separate pending contra
 ### Read/report
 
 Authorize each request; use one repeatable-read transaction for a
-multi-query response, so its lines/totals share one snapshot. Read principal/membership
-with FOR SHARE under the same revocation ordering. This requires a READ WRITE
+multi-query response, so its lines/totals share one snapshot. Read principal/entity/membership
+and book with FOR SHARE under the posting boundary's revocation ordering. This requires a READ WRITE
 transaction even though the operation performs no business writes; PostgreSQL
 READ ONLY does not permit these row locks. Apply the bounded retry policy. Journal reads return complete immutable data;
 trial balance derives functional totals from posted lines, filters by book/date
@@ -214,6 +217,7 @@ and outbox intent together, and replay cannot duplicate restored financial effec
 | `TestGoldenMonth`, `TestFXLifecycle` | Scenario arithmetic and reconciliations agree; no unsupported automated FX claim |
 | `TestSchemaCompatibility`, `TestLedgerRestoreReplay` | Forward migration compatibility and restored idempotency/history proven |
 
-All are requirements, not executed tests. Approval of policy, trusted identity,
-precision and first-slice enforcement precedes product DDL. Close, settlement,
+All are requirements, not executed tests. ADR 0005 and the posting boundary select the synthetic development policy,
+precision and enforcement target. A synthetic actor adapter does not approve a
+production identity provider or real-LLC setup. Close, settlement,
 reconciliation and full FX automation have additional explicitly stated gates.

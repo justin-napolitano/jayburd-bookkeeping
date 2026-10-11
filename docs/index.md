@@ -22,6 +22,8 @@ background work. The two predecessor repos are reference material only.
 | How do we design the database? | [Database contract](contracts/database.md) |
 | Which schema owns each responsibility? | [Schema ownership ADR](decisions/0004-schema-ownership.md) |
 | What examples and policy decisions drive posting? | [Accounting scenarios](contracts/accounting-scenarios.md) |
+| What policy drives the first development book? | [Development policy ADR](decisions/0005-development-accounting-policy.md) |
+| What exactly must the posting implementation do? | [Posting boundary and acceptance matrix](contracts/posting-boundary.md) |
 | How are money and FX represented? | [Multicurrency contract](contracts/multicurrency.md) |
 | What are the proposed columns, roles and transactions? | [First ledger SQL contract](contracts/ledger-sql.md) |
 | What does the proposed HTTP interface accept? | [API contract](contracts/api.md) |
@@ -43,7 +45,9 @@ Use the [corpus and execution guide](../tests/corpus/README.md),
 
 ## Next action
 
-Resolve JB-001: choose the first representative LLC workflow, accounting basis,
-functional currencies and FX policy, opening-balance source, and accountant review criteria.
+Review ADR 0005 and the posting boundary, then implement the synthetic PostgreSQL
+posting proof against its named acceptance matrix. JB-001 remains open for a real
+LLC policy, opening-balance source and accountant cutover review. Development
+accrual/USD defaults do not resolve those live-use decisions.
 Entity/account counts, providers, GCP project, billing budget and region are
 unknown. `us-central1` is a provisional discussion default, not a deployed choice.
