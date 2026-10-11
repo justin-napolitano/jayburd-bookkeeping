@@ -2,8 +2,10 @@
 
 ## Status
 
-Planned; no project, billing, federation, infrastructure, application image or
-deployment workflow exists. The seed CI validates project tooling and docs only.
+Cloud delivery remains planned; no project, billing, federation, infrastructure or
+deployment workflow exists. CI now checks the Go server, synthetic PostgreSQL
+ledger and Next.js application. An API Dockerfile is available for local proof;
+it has not been published or deployed. See [application evidence](runbooks/first-app.md).
 Implement JB-003/JB-005/JB-011 before any cloud proof. Region and budget need owner
 selection. Do not add a workflow that reports a placeholder deployment as success.
 

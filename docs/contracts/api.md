@@ -3,8 +3,9 @@
 ## Status and authority
 
 OpenAPI 3.1.1 implementation-review contract: [machine-readable definition](../../api/openapi.json).
-An in-process HTTP adapter exists with an injected identity interface; no
-deployed verifier, listener or public server is provided. A managed identity adapter
+An HTTP adapter and [bounded server composition](server.md) are implemented;
+default health-only mode mounts no bookkeeping routes. No deployed verifier or
+public service is provided. A managed identity adapter
 and atomic `POST /v1/setup` are specified by the
 [identity/setup contract](identity-setup.md). The specification describes the first posting/read/reversal/
 close/report interface; transport validation is not accounting approval. Every
@@ -16,7 +17,9 @@ its documented route must not be mounted by the first server.
 ## Operations and permissions
 
 Ledger routes start `/v1/entities/{entity_id}/books/{book_id}`; the separate
-`POST /v1/setup` route creates a new scope. Authentication is
+`POST /v1/setup` route creates a new scope. `GET /v1/workspace` returns bounded,
+currently readable configuration under the [workspace contract](server.md#workspace-contract).
+Authentication is
 bearer-token transport; issuer/audience binding, MFA and revocation follow the identity/setup contract;
 the actual GCP project remains a deployment decision. No actor ID is accepted from request JSON.
 

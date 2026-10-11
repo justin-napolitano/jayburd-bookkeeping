@@ -1,4 +1,4 @@
-.PHONY: check test build backlog packet issue-drafts migration-create migration-seal migration-check migration-test ledger-test
+.PHONY: check test build backlog packet issue-drafts migration-create migration-seal migration-check migration-test ledger-test web-check web-test web-build web-browser
 
 check:
 	go run ./cmd/project check
@@ -14,6 +14,20 @@ test:
 build:
 	go build -trimpath -o bin/project ./cmd/project
 	go build -trimpath -o bin/corpus ./cmd/corpus
+	go build -trimpath -o bin/api ./cmd/api
+
+web-check:
+	npm --prefix web run api:check
+	npm --prefix web run check
+
+web-test:
+	npm --prefix web test
+
+web-build:
+	npm --prefix web run build
+
+web-browser:
+	npm --prefix web run test:browser
 
 backlog:
 	go run ./cmd/project backlog

@@ -16,7 +16,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -39,6 +39,8 @@ jobs:
         run: make migration-test
       - name: Prove transactional ledger on disposable PostgreSQL
         run: make ledger-test
+      - name: Build and prove isolated health-only API container
+        run: bash scripts/test-api-container.sh
       - name: Lint workflow definitions
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/seed.yml
       - name: Check reachable dependency vulnerabilities
@@ -52,3 +54,32 @@ jobs:
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.18.0'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install locked browser dependencies
+        run: npm --prefix web ci
+      - name: Check generated API and browser types
+        run: make web-check
+      - name: Test synthetic sign-in and bookkeeping behavior
+        run: make web-test
+      - name: Build the unconfigured application
+        run: make web-build
+      - name: Install Chromium for synthetic browser proof
+        working-directory: web
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Exercise synthetic browser journeys
+        run: make web-browser
+      - name: Check browser dependency vulnerabilities
+        run: npm --prefix web audit --audit-level=high

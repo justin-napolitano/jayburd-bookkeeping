@@ -6,11 +6,11 @@ import (
 	"net/url"
 )
 
-// BrowserBoundary permits one exact HTTPS origin without granting cookie authority
+// BrowserBoundary permits one exact HTTPS origin (or explicitly configured loopback HTTP origin) without granting cookie authority
 // or CORS. The same-origin frontend/proxy must forward the bearer header explicitly.
 func BrowserBoundary(origin string, next http.Handler) (http.Handler, error) {
 	u, err := url.Parse(origin)
-	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.Opaque != "" || next == nil {
+	if err != nil || (u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"))) || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.Opaque != "" || next == nil {
 		return nil, errors.New("invalid browser boundary")
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

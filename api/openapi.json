@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Jayburd Ledger Contract",
-    "version": "0.3.0-review",
+    "version": "0.4.0-review",
     "description": "Implementation-review contract; no server exists. Manual posting/read/reversal uses dev-accrual-usd-v1. Close remains deferred. SQL/accounting contracts own semantic validation. Not a registered ISO financial message.",
     "contact": {
       "name": "Jayburd contract review",
@@ -107,6 +107,16 @@
           },
           "500": {
             "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -276,6 +286,16 @@
           },
           "500": {
             "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-implementation-stage": "first-posting-proof"
@@ -370,6 +390,16 @@
           },
           "500": {
             "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -487,6 +517,16 @@
           },
           "500": {
             "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "parameters": [
@@ -599,6 +639,16 @@
           },
           "500": {
             "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         },
         "x-implementation-stage": "first-posting-proof"
@@ -687,6 +737,77 @@
           },
           "500": {
             "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspace": {
+      "get": {
+        "operationId": "getWorkspace",
+        "summary": "List currently readable books and setup currency references",
+        "description": "Requires an enrolled active principal. Only active entity/book scopes with read permission are included. Current permission checks serialize with local revocation; no inferred grants. Limits: 100 entities, 200 books total, 200 accounts per book, 100 policies and 240 periods per book, 1000 currencies and 1 MiB response. Exceeding bounds fails with 413 instead of partial data. Internal UI discovery; not an ISO 20022 financial exchange.",
+        "tags": [
+          "Ledger"
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "200": {
+            "description": "Current authorized workspace snapshot; no partial truncation.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workspace"
+                }
+              }
+            }
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
           }
         }
       }
@@ -1377,6 +1498,291 @@
                 }
               }
             }
+          }
+        }
+      },
+      "WorkspaceCurrency": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "currency_version_id",
+          "alphabetic_code",
+          "minor_unit",
+          "valid_from",
+          "valid_to"
+        ],
+        "properties": {
+          "currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alphabetic_code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "minor_unit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 9
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "WorkspacePolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "policy_id",
+          "functional_currency",
+          "functional_currency_version_id",
+          "effective_from",
+          "effective_to"
+        ],
+        "properties": {
+          "policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "functional_currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "functional_currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date"
+          },
+          "effective_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "WorkspacePeriod": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "period_id",
+          "starts_on",
+          "ends_before",
+          "state"
+        ],
+        "properties": {
+          "period_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "starts_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "ends_before": {
+            "type": "string",
+            "format": "date"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ]
+          }
+        }
+      },
+      "WorkspaceAccount": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "account_id",
+          "code",
+          "name",
+          "category",
+          "normal_side",
+          "monetary",
+          "active_from",
+          "active_to"
+        ],
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "asset",
+              "liability",
+              "equity",
+              "revenue",
+              "expense"
+            ]
+          },
+          "normal_side": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ]
+          },
+          "monetary": {
+            "type": "boolean"
+          },
+          "active_from": {
+            "type": "string",
+            "format": "date"
+          },
+          "active_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        }
+      },
+      "WorkspaceBook": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "book_id",
+          "name",
+          "book_revision",
+          "policies",
+          "periods",
+          "accounts"
+        ],
+        "properties": {
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "policies": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/WorkspacePolicy"
+            }
+          },
+          "periods": {
+            "type": "array",
+            "maxItems": 240,
+            "items": {
+              "$ref": "#/components/schemas/WorkspacePeriod"
+            }
+          },
+          "accounts": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceAccount"
+            }
+          }
+        }
+      },
+      "WorkspaceEntity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entity_id",
+          "name",
+          "kind",
+          "permissions",
+          "books"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "legal",
+              "personal"
+            ]
+          },
+          "permissions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "prepare",
+                "post",
+                "close"
+              ]
+            }
+          },
+          "books": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceBook"
+            }
+          }
+        }
+      },
+      "Workspace": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entities",
+          "currencies",
+          "development_policy"
+        ],
+        "properties": {
+          "entities": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceEntity"
+            }
+          },
+          "currencies": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceCurrency"
+            }
+          },
+          "development_policy": {
+            "type": "string",
+            "const": "dev-accrual-usd-v1"
           }
         }
       }

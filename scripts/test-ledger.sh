@@ -71,3 +71,10 @@ docker exec "$proof_id" createdb -U postgres ledger_restored
 docker exec "$proof_id" pg_dump -U postgres -Fc ledger_restore | \
  docker exec -i "$proof_id" pg_restore -U postgres -d ledger_restored
 run_proof -test.v -test.run=TestLedgerRestoreReplay -ledger-restored
+# Prove managed composition rejects privileged runtime roles on the same isolated DB.
+CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/server.test ./internal/server
+docker cp .local/server.test "$proof_id:/proof/server.test"
+docker run --rm --network "$proof_id" --workdir /proof/work \
+ --mount "type=volume,source=$proof_id,target=/proof,readonly" \
+ --entrypoint /proof/server.test "$POSTGRES_IMAGE" \
+ -server-proof -test.run=TestRuntimeReadiness -test.v -test.timeout=60s

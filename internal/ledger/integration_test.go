@@ -985,7 +985,7 @@ func TestReceiptActorAndArchive(t *testing.T) {
 // TestSchemaCompatibility verifies constraints on controlled setup and version state.
 func TestSchemaCompatibility(t *testing.T) {
 	c, _, _ := fixtureDB(t, "schema")
-	if scalar(t, c, "SELECT version::text||':'||dirty::text FROM public.schema_migrations") != "3:false" {
+	if scalar(t, c, "SELECT version::text||':'||dirty::text FROM public.schema_migrations") != "4:false" {
 		t.Fatal("migration state")
 	}
 	for _, q := range []string{
