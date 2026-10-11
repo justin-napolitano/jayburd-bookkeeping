@@ -19,9 +19,10 @@ network_created=1
 docker run -d --name "$proof" --network "$proof" --network-alias database \
  --tmpfs /var/lib/postgresql/data --env POSTGRES_HOST_AUTH_METHOD=trust "$image" >/dev/null
 container_created=1
+# TCP waits for the final server; the entrypoint temporary initialization server is socket-only.
 ready=0
 for ((i=0;i<60;i++)); do
- if docker exec "$proof" pg_isready -U postgres >/dev/null 2>&1; then ready=1;break;fi
+ if docker exec "$proof" pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1; then ready=1;break;fi
  sleep 1
 done
 [[ "$ready" == 1 ]] || exit 1

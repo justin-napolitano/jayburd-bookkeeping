@@ -20,6 +20,8 @@ if (
   );
 }
 const config: NextConfig = {
+  // Package the traced production server independently of the development toolchain.
+  output: "standalone",
   poweredByHeader: false,
   async rewrites() {
     return [{ source: "/v1/:path*", destination: `${api.origin}/v1/:path*` }];

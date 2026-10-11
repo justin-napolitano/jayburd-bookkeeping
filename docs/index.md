@@ -32,6 +32,7 @@ background work. The two predecessor repos are reference material only.
 | What must retries and workers guarantee? | [Background work contract](contracts/background-work.md) |
 | How are secrets managed? | [Infisical setup](infisical.md) |
 | How will builds reach GCP? | [GCP delivery contract](gcp-delivery.md) |
+| How are application images packaged and published? | [Image delivery contract](contracts/image-delivery.md) |
 | How does Cloud SQL connect and migrate safely? | [Cloud SQL contract](contracts/cloud-sql.md) |
 | How is the GCP foundation validated and bootstrapped? | [Foundation operations](gcp-foundation.md) |
 | How do we start, review and finish tasks? | [Delivery workflow](delivery.md) |
