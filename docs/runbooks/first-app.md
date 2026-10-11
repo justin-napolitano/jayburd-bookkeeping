@@ -5,8 +5,8 @@
 ## Status and boundary
 
 Implemented for review under #3/#6/#9, following the owner's parallel-agent request.
-Branch `feat/first-bookkeeping-app` depends on open PR #21 (`e4e33e7`); it is not
-based on an assumed merge. No live credentials, financial data or cloud mutation.
+PR #22 targets `main` after confirmed merge of #21 (`aaebd92`), which retains
+the `e4e33e7` baseline. No live credentials, financial data or cloud mutation.
 Manual development bookkeeping is the scope; import/reconciliation remain open.
 
 ## Stage ledger
@@ -45,6 +45,11 @@ uncertain-denied retries, user-facing recovery keys and RFC9457 admission errors
 Clean-copy `check` now generates Next route types before TypeScript; it passes
 without `.next` output or a previous build.
 
+GitGuardian incident38110406 flagged adjacent environment-variable names in
+`TestManagedConfiguration`, not credential values. The fixture now uses an explicit
+set of names with empty values; all presence-denial assertions remain. No detector
+or path exclusion was added. Hosted rescanning is pending the fixture correction.
+
 PASS: `scripts/test-api-container.sh --local-build` builds the static executable
 with the pinned host toolchain, proves non-root/read-only/internal-network runtime,
 health200/readiness503/absent-ledger404 and graceful stop. PARTIAL: canonical
@@ -66,4 +71,4 @@ Unknown-commit keys/bodies live only in browser memory; logout/tab loss requires
 operator verification before re-entry. This blocks live-use readiness. Multiple
 TOTP factors need operator recovery. No imports, persisted drafts, journal list,
 reversal UI or cloud deployment is supplied by this slice.
-Do not auto-merge PR #21 or the application PR. Next action: review hosted CI.
+Do not auto-merge the application PR. Next action: review hosted CI and rescan.
