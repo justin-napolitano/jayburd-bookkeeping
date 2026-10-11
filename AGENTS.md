@@ -33,6 +33,11 @@ No source-provider calls or cloud mutation from default local/CI commands.
 
 Go owns the backend; PostgreSQL owns durable ledger state. Next.js/TypeScript
 owns the frontend. Follow `docs/runbooks/first-app.md` for its evidence and limits.
+Interactive setup/post recovery follows `docs/contracts/command-recovery.md`:
+persist reviewed work before execution and require explicit terminal acknowledgement.
+Do not store financial requests or tokens in browser persistence. Run
+`make app-integration` for changes crossing this browser/API/SQL boundary;
+`docs/runbooks/command-recovery.md` records its synthetic identity limitation.
 Do not introduce Python, Scala, an event store,
 additional databases, or microservices without a reviewed decision.
 Posted journals are balanced, atomic, replay-safe and immutable. Corrections

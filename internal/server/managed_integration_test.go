@@ -50,6 +50,9 @@ func TestRuntimeReadiness(t *testing.T) {
 		{"schema_ddl", "GRANT CREATE ON SCHEMA reporting TO synthetic_server", "REVOKE CREATE ON SCHEMA reporting FROM synthetic_server"},
 		{"owner_role", "GRANT bookkeeping_owner TO synthetic_server", "REVOKE bookkeeping_owner FROM synthetic_server"},
 		{"identity_operator", "GRANT bookkeeping_identity_operator TO synthetic_server", "REVOKE bookkeeping_identity_operator FROM synthetic_server"},
+		{"missing_recovery_register", "REVOKE EXECUTE ON FUNCTION ledger.register_command(uuid,text,uuid,text) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.register_command(uuid,text,uuid,text) TO bookkeeping_api"},
+		{"missing_recovery_pending", "REVOKE EXECUTE ON FUNCTION ledger.pending_command(uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.pending_command(uuid) TO bookkeeping_api"},
+		{"missing_recovery_transition", "REVOKE EXECUTE ON FUNCTION ledger.transition_command(uuid,uuid,uuid,text,text) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.transition_command(uuid,uuid,uuid,text,text) TO bookkeeping_api"},
 		{"missing_workspace", "REVOKE EXECUTE ON FUNCTION reporting.workspace(uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION reporting.workspace(uuid) TO bookkeeping_api"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

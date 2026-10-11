@@ -6,41 +6,50 @@ Implement #9's manual slice: authorized entity/book selection, controlled setup,
 manual split journals, explicit review and posting, and trial balances. The browser
 uses generated OpenAPI types and same-origin bearer requests; tokens and financial
 state remain in memory. [Source review](../research/frontend-sources.md) records
-framework decisions. Statement import, persisted drafts, journal browsing,
+framework decisions. Statement import, general persisted drafts, journal browsing,
 reversal UI and bank synchronization remain later work.
 
-## Request and session boundary
+## Durable commands and session boundary
 
-Review freezes one idempotency key and exact request body. Only confirmation sends
-it. Timeout, transport failure or server uncertainty retain both for unchanged
-retry; editing and scope switching are locked. Only confirmed success or a
-definitive rejection permits new work. Request keys are visible for recovery.
-A denied retry after an uncertain result does not establish that nothing committed.
+The [command recovery contract](command-recovery.md) owns prepare, execute, cancel
+and acknowledgement semantics. Load pending commands before enabling new work.
+Review registers one immutable command; only explicit confirmation executes it.
+Committed or cancelled outcomes remain visible until explicit acknowledgement.
+New work is blocked while discovery fails or any command remains unacknowledged.
 
-Session changes clear all financial views. Tokens, drafts and retry bodies are
-never persisted. Signing out or closing the tab can therefore lose retry material;
-the UI warns users to verify the earlier request with an authorized operator before
-entering it again. This recovery limitation blocks live-use readiness. The browser
-cannot override denied membership or substitute a fake successful posting.
+Uncertain registration retains the same key/body for retry. Uncertain execution,
+cancellation or acknowledgement discovers server state; it never automatically
+executes, cancels or acknowledges. A prepared command recovered after sign-in
+still requires confirmation. A commit winning a cancellation race displays its
+committed result. Another tab's acknowledgement may release the server-owned gate.
+Current authorization applies to every discovery and transition; inaccessible
+pending work blocks new work until authorized operator restoration.
+
+Session changes clear browser financial views. Tokens and request bodies are never
+persisted in browser storage. Server discovery recovers registered work after
+session/tab loss; unregistered form edits are not durable. The application does not
+substitute a fake success or silently create a new request after uncertainty.
 
 The server-only `BOOKKEEPING_API_ORIGIN` chooses a trusted HTTPS backend or explicit
-loopback HTTP endpoint. The browser never supplies that target. An unavailable
-backend produces a visible failure. Financial responses use no-store; cookies
-provide no authority. Authentication follows [browser auth](browser-auth.md).
+loopback HTTP endpoint. Browser input cannot choose that target. Authentication
+follows [browser auth](browser-auth.md); cookies provide no authority.
 
 ## Accounting and standards
 
 Amounts and revisions remain strings. No browser sums, currency conversions or
 rounding determine posting acceptance. Setup explicitly uses the reviewed
-accrual/UTC/USD development policy, selecting installed currency metadata. Manual
-spot journals preserve original currency and require an operator-reviewed rate ID.
-The UI is an internal application interface, not an ISO 20022 financial message;
-ISO 4217 currency semantics follow the existing API and standards contracts.
+accrual/UTC/USD development policy with installed currency metadata. Manual spot
+journals preserve original currency and require a reviewed rate ID. These internal
+operations are not ISO 20022 financial messages; ISO 4217 semantics follow the API
+and standards contracts.
 
 ## Acceptance
 
-Playwright component journeys cover setup review, split/review/post, identical
-unknown-outcome retry, and denied entity switching. Unit tests cover safe transport
-errors and session invalidation. TypeScript, generated-contract drift and production
-build gates complement the database suite; none proves live provider/deployment
-behavior. Observed results belong to [the branch runbook](../runbooks/first-app.md).
+Named Playwright journeys cover setup registration/confirmation/acknowledgement,
+split review, identical uncertain registration retry, lost execute/ack responses,
+prepared recovery after remount, commit/cancel race presentation and denied scope.
+A separate real PostgreSQL→Go→Next→browser harness verifies durable response-loss
+recovery. Unit tests cover safe transport and session invalidation. TypeScript,
+generated-contract drift and production builds complement database proofs; live
+Firebase/GCP and live-use policy remain separate gates. Results belong to the
+[command recovery runbook](../runbooks/command-recovery.md).

@@ -65,37 +65,118 @@ const workspace = {
   ],
   development_policy: "dev-accrual-usd-v1",
 };
-// Browser tests intercept every financial route with fixed synthetic responses.
-test("split review posts only after confirmation and retries the exact uncertain request", async ({
-  mount,
-  page,
-}) => {
-  let posts: { key: string | undefined; body: string | null }[] = [];
+
+import type { Page } from "playwright-core";
+import type { DurableCommand, RegisterCommand } from "../src/bookkeeping/types";
+// This stateful synthetic server models only the command transport contract, never accounting rules.
+async function mockCommands(page: Page, empty = false) {
+  const state: {
+    command: DurableCommand | null;
+    registrations: { key: string | undefined; body: string | null }[];
+    executions: number;
+    registrationFailures: number;
+    executeLost: boolean;
+    ackLost: boolean;
+    cancelRace: boolean;
+    workspace: typeof workspace;
+  } = {
+    command: null,
+    registrations: [],
+    executions: 0,
+    registrationFailures: 0,
+    executeLost: false,
+    ackLost: false,
+    cancelRace: false,
+    workspace: empty ? { ...workspace, entities: [] } : workspace,
+  };
   await page.route("**/v1/**", async (route) => {
-    const req = route.request();
-    if (req.url().endsWith("/workspace"))
-      return route.fulfill({ json: workspace });
-    posts.push({ key: req.headers()["idempotency-key"], body: req.postData() });
-    if (posts.length === 2)
-      return route.fulfill({ status: 404, json: { code: "not_found" } });
-    if (posts.length === 1)
-      return route.fulfill({
-        status: 503,
-        json: { code: "temporarily_unavailable" },
+    const req = route.request(),
+      url = new URL(req.url()),
+      path = url.pathname;
+    if (path === "/v1/workspace")
+      return route.fulfill({ json: state.workspace });
+    if (path === "/v1/commands/pending")
+      return route.fulfill({ json: { command: state.command } });
+    if (path === "/v1/commands") {
+      state.registrations.push({
+        key: req.headers()["idempotency-key"],
+        body: req.postData(),
       });
+      if (state.registrationFailures-- > 0)
+        return route.fulfill({
+          status: 503,
+          json: { code: "temporarily_unavailable" },
+        });
+      const input = req.postDataJSON() as RegisterCommand;
+      state.command = {
+        ...input,
+        command_id: "command1",
+        state: "prepared",
+        result: null,
+        acknowledged: false,
+        created_at: "2026-10-11T00:00:00Z",
+      };
+      return route.fulfill({ status: 201, json: state.command });
+    }
+    if (
+      path.endsWith("/execute") ||
+      (path.endsWith("/cancel") && state.cancelRace)
+    ) {
+      state.executions++;
+      state.command = {
+        ...state.command!,
+        state: "committed",
+        result:
+          state.command!.operation === "post"
+            ? ({ journal_id: "journal1", book_revision: "1" } as never)
+            : ({ entity_id: "entity1", book_id: "book1" } as never),
+      };
+      if (state.executeLost) {
+        state.executeLost = false;
+        return route.fulfill({
+          status: 503,
+          json: { code: "temporarily_unavailable" },
+        });
+      }
+      return route.fulfill({ json: state.command });
+    }
+    if (path.endsWith("/cancel")) {
+      state.command = { ...state.command!, state: "cancelled" };
+      return route.fulfill({ json: state.command });
+    }
+    if (path.endsWith("/acknowledge")) {
+      const result = { ...state.command!, acknowledged: true };
+      state.command = null;
+      if (state.ackLost) {
+        state.ackLost = false;
+        return route.fulfill({
+          status: 503,
+          json: { code: "temporarily_unavailable" },
+        });
+      }
+      return route.fulfill({ json: result });
+    }
+    if (path.includes("/e2/"))
+      return route.fulfill({ status: 404, json: { code: "not_found" } });
     return route.fulfill({
-      status: 201,
       json: {
-        journal_id: "j1",
-        book_revision: "1",
-        accounting_date: "2026-01-01",
-        description: "Synthetic split",
+        through_date: "2026-01-01",
+        snapshot_revision: "0",
+        functional_currency: "USD",
+        total_debits: "123.45",
+        total_credits: "123.45",
+        accounts: [],
       },
     });
   });
-  await mount(<Harness />);
+  return state;
+}
+// Use accessible controls and exact decimal strings to prepare a split journal.
+async function fillJournal(page: Page) {
   await page.getByLabel("Entity and book").selectOption("e1/b1");
-  await page.getByRole("combobox", {name:"Policy", exact:true}).selectOption("p1");
+  await page
+    .getByRole("combobox", { name: "Policy", exact: true })
+    .selectOption("p1");
   await page.getByLabel("Description", { exact: true }).fill("Synthetic split");
   await page.getByRole("button", { name: "Add split line" }).click();
   for (let i = 1; i <= 3; i++) {
@@ -112,39 +193,69 @@ test("split review posts only after confirmation and retries the exact uncertain
   await page
     .getByRole("button", { name: "Review journal", exact: true })
     .click();
-  expect(posts).toHaveLength(0);
-  await page.getByRole("button", { name: "Post journal", exact: true }).click();
-  await expect(
-    page.getByText("Unconfirmed outcome — keep this page open"),
-  ).toBeVisible();
-  await expect(page.getByLabel("Description", { exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "Retry unchanged request" }).click();
-  await expect(page.getByRole("alert")).toContainText(
-    "previous request may have committed",
-  );
-  await expect(page.getByLabel("Entity and book")).toBeDisabled();
-  await expect(page.getByLabel("Description", { exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "Retry unchanged request" }).click();
-  await expect(page.getByText("Posting confirmed")).toBeVisible();
-  expect(posts).toHaveLength(3);
-  expect(posts[1]).toEqual(posts[2]);
-  expect(posts[0]).toEqual(posts[1]);
-  expect(JSON.parse(posts[0].body!).lines).toHaveLength(3);
-});
-test("setup requires review and produces confirmed creation only after server response", async ({
+}
+test("split review retains registration identity and discovers lost execution and acknowledgement", async ({
   mount,
   page,
 }) => {
-  let setups = 0;
-  await page.route("**/v1/**", (route) =>
-    route.request().url().endsWith("/workspace")
-      ? route.fulfill({ json: { ...workspace, entities: [] } })
-      : (setups++,
-        route.fulfill({
-          status: 201,
-          json: { entity_id: "new", book_id: "new" },
-        })),
-  );
+  const server = await mockCommands(page);
+  server.registrationFailures = 1;
+  server.executeLost = true;
+  server.ackLost = true;
+  await mount(<Harness />);
+  await fillJournal(page);
+  await page.getByRole("button", { name: "Retry registration" }).click();
+  await expect(
+    page.getByText("Saved for review.", { exact: false }),
+  ).toBeVisible();
+  expect(server.registrations).toHaveLength(2);
+  expect(server.registrations[0]).toEqual(server.registrations[1]);
+  expect(server.executions).toBe(0);
+  expect(JSON.parse(server.registrations[0].body!).body.lines).toHaveLength(3);
+  await page.getByRole("button", { name: "Post journal", exact: true }).click();
+  await expect(
+    page.getByText("Posting confirmed", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Entity and book")).toBeDisabled();
+  expect(server.executions).toBe(1);
+  await page.getByRole("button", { name: "Acknowledge result" }).click();
+  await expect(
+    page.getByText("No unacknowledged command.", { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Entity and book")).toBeEnabled();
+  expect(server.executions).toBe(1);
+});
+test("remount recovers prepared work and a commit winning cancellation stays committed", async ({
+  mount,
+  page,
+}) => {
+  const server = await mockCommands(page);
+  server.cancelRace = true;
+  const component = await mount(<Harness />);
+  await fillJournal(page);
+  await expect(
+    page.getByText("Saved for review.", { exact: false }),
+  ).toBeVisible();
+  await component.unmount();
+  await mount(<Harness />);
+  await expect(
+    page.getByText("Saved for review.", { exact: false }),
+  ).toBeVisible();
+  expect(server.executions).toBe(0);
+  expect(server.registrations).toHaveLength(1);
+  await page.getByRole("button", { name: "Cancel saved command" }).click();
+  await expect(
+    page.getByText("Posting confirmed", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Cancellation confirmed.", { exact: false }),
+  ).toHaveCount(0);
+});
+test("setup registers review then executes and explicitly acknowledges", async ({
+  mount,
+  page,
+}) => {
+  const server = await mockCommands(page, true);
   await mount(<Harness />);
   await page.getByText("Create an entity and book", { exact: true }).click();
   await page.getByLabel("Entity name", { exact: true }).fill("Fictional LLC");
@@ -161,31 +272,24 @@ test("setup requires review and produces confirmed creation only after server re
       .fill(i === 1 ? "Cash" : "Capital");
   }
   await page.getByRole("button", { name: "Review book setup" }).click();
-  expect(setups).toBe(0);
+  await expect(
+    page.getByRole("button", { name: "Create book", exact: true }),
+  ).toBeVisible();
+  expect(server.executions).toBe(0);
   await page.getByRole("button", { name: "Create book", exact: true }).click();
-  await expect(page.getByText(/Book creation confirmed/)).toBeVisible();
-  expect(setups).toBe(1);
+  await expect(
+    page.getByText("Book creation confirmed", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Acknowledge result" }).click();
+  await expect(
+    page.getByText("No unacknowledged command.", { exact: false }),
+  ).toBeVisible();
 });
-test("denied entity switch clears the previous report and does not show stale financial values", async ({
+test("denied entity switch clears previous financial values", async ({
   mount,
   page,
 }) => {
-  await page.route("**/v1/**", (route) => {
-    const url = route.request().url();
-    if (url.endsWith("/workspace")) return route.fulfill({ json: workspace });
-    if (url.includes("/e2/"))
-      return route.fulfill({ status: 404, json: { code: "not_found" } });
-    return route.fulfill({
-      json: {
-        through_date: "2026-01-01",
-        snapshot_revision: "0",
-        functional_currency: "USD",
-        total_debits: "123.45",
-        total_credits: "123.45",
-        accounts: [],
-      },
-    });
-  });
+  await mockCommands(page);
   await mount(<Harness />);
   await page.getByLabel("Entity and book").selectOption("e1/b1");
   await page.getByRole("button", { name: "Load trial balance" }).click();
@@ -195,4 +299,50 @@ test("denied entity switch clears the previous report and does not show stale fi
   await page.getByRole("button", { name: "Load trial balance" }).click();
   await expect(page.getByLabel("Entity and book")).toHaveValue("");
   await expect(page.getByText("123.45", { exact: true })).toHaveCount(0);
+});
+
+test("denied recovery blocks new work and clears a previously visible command", async ({
+  mount,
+  page,
+}) => {
+  await mockCommands(page);
+  await mount(<Harness />);
+  await fillJournal(page);
+  await expect(
+    page.getByText("Synthetic split", { exact: true }),
+  ).toBeVisible();
+  await page.route("**/v1/commands/pending", (route) =>
+    route.fulfill({ status: 404, json: { code: "not_found" } }),
+  );
+  await page.getByRole("button", { name: "Check saved command" }).click();
+  await expect(page.getByRole("alert")).toContainText("access was denied");
+  await expect(page.getByText("Synthetic split", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByLabel("Entity and book")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Review journal", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("successful acknowledgement followed by failed discovery keeps new work locked", async ({
+  mount,
+  page,
+}) => {
+  await mockCommands(page);
+  await mount(<Harness />);
+  await fillJournal(page);
+  await page.getByRole("button", { name: "Post journal", exact: true }).click();
+  await expect(
+    page.getByText("Posting confirmed", { exact: true }),
+  ).toBeVisible();
+  await page.route("**/v1/commands/pending", (route) =>
+    route.fulfill({ status: 503, json: { code: "temporarily_unavailable" } }),
+  );
+  await page.getByRole("button", { name: "Acknowledge result" }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByLabel("Entity and book")).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Review journal", exact: true }),
+  ).toBeDisabled();
 });
