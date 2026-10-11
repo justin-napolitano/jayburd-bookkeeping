@@ -16,6 +16,7 @@ proof. No cloud, credentials, real accounts or provider authentication calls.
 | SQL/API agent | Migration5 and durable command transitions | PASS real PostgreSQL lifecycle, concurrency, revoked scopes and rollback |
 | UI agent | Register/recover/execute/acknowledge workflow | PASS type/build, 36 unit tests and six mocked browser journeys; stale-session completions ignored, denied recovery clears views |
 | Integration agent | Real Next rewrite, Go service and disposable PostgreSQL | PASS dropped post-commit response, remount recovery, exact database counts |
+| CI portability | Use portable `grep -qi` for owned readiness headers | Hosted run38174592229 failed because `rg` was unavailable; replacement hosted verification pending |
 
 ## Current evidence
 
@@ -36,6 +37,8 @@ Observed with Go1.26.9, Node24.18.0, locked web dependencies and Chromium:
   journal, receipt and outbox message, two acknowledged committed commands and
   two execute audit records. Missing bearer and foreign origin are rejected.
 - PASS OpenAPI lint (existing license warning only) and actionlint.
+- PASS after the CI portability fix: `bash -n scripts/test-app-integration.sh`
+  and `make check test build` with Go1.26.9. Full hosted integration rerun pending.
 
 The integration harness uses a test-only identity and rendered bookkeeping
 component; the production Next rewrite and Go/SQL boundaries are real. It does
@@ -46,7 +49,10 @@ no database port is exposed. All disposable resources are cleaned up.
 ## Remaining work
 
 Final real integration rerun passed against the hardened UI; ready for PR review.
-Hosted CI remains pending.
+Hosted [run38174592229](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38174592229)
+failed before browser execution: Ubuntu lacked `rg` for the readiness header
+check. Both header checks now use `grep -qi`; hosted verification of this fix
+remains pending.
 Future delivery needs reviewed GCP synthetic deployment
 and managed identity configuration; this change does not authorize either.
 
