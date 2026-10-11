@@ -28,9 +28,10 @@ type Operations interface {
 }
 
 // Handler exposes only the reviewed operations; callers explicitly supply verified
-// identity and database adapters. There is no listener or public server command.
+// identity and database adapters. Server composition owns listener policy.
 func Handler(auth Authenticator, ops Operations) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v1/workspace", endpoint(auth, ops, "workspace"))
 	mux.HandleFunc("POST /v1/setup", endpoint(auth, ops, "setup"))
 	base := "/v1/entities/{entity}/books/{book}"
 	mux.HandleFunc("POST "+base+"/journals", endpoint(auth, ops, "post"))
@@ -115,6 +116,19 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 		}
 		var result Result
 		switch op {
+		case "workspace":
+			if r.URL.RawQuery != "" || r.ContentLength > 0 || len(r.TransferEncoding) > 0 {
+				fail(400, "invalid_request")
+				return
+			}
+			workspace, ok := ops.(interface {
+				Workspace(context.Context, Command) (Result, error)
+			})
+			if !ok {
+				fail(503, "temporarily_unavailable")
+				return
+			}
+			result, err = workspace.Workspace(r.Context(), c)
 		case "setup":
 			result, err = ops.Setup(r.Context(), c)
 		case "post":
