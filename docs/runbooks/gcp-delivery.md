@@ -3,9 +3,10 @@
 
 ## Status and boundary
 
-Foundation implementation slice under [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
+Cloud SQL implementation slice (#26) under [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
 GitHub owns current task state; this ledger records decisions and observed review
-results. Terraform foundation and synthetic validation are implemented. No infrastructure
+results. Terraform foundation/database configuration, explicit IAM connector and
+restricted migration runner are implemented. No infrastructure
 has been applied and no cloud authentication, deployment or live-bookkeeping
 approval is established.
 
@@ -18,6 +19,8 @@ approval is established.
 | Record architecture | Updated GCP contract, index and annotated sources; scoped early proof separately from full month-close | Review documentation PR |
 | Implement foundation | Two state buckets, nine identities, image repository, disabled build WIF and budget alerts; no runtime resources | Review IAM and owner bootstrap |
 | Mocked provider proof | Terraform validate and six tests pass; invalid project/number/billing/region denied | Review PR and hosted CI |
+| Cloud SQL configuration | Three new mocked tests pass for PostgreSQL settings, transport, recovery and inputs | Live provider verification remains open |
+| Restricted migration | Non-superuser administrator/bootstrap and restricted migrator/replay pass; API DDL/table denial, durable checksum drift, contention and dirty failure pass | Review PR; execute named cloud gates after owner setup |
 
 ## Current evidence
 
@@ -30,22 +33,23 @@ approval is established.
 
 ## Remaining work
 
-Review and merge the foundation slice, then complete the linked delivery slices;
+Foundation PR #29 is merged. Review this database slice, then complete linked delivery slices;
 all named cloud checks remain unexecuted.
 Project, billing, auth metadata and apply authorization block provisioning.
 PRs #23/#24 were open at review; final cloud acceptance requires their merged
 capabilities. Open historical issues are not closed or declared complete here.
-Default CI remains credential-free; application/database behavior is unchanged.
+Default CI remains credential-free; cloud behavior remains unverified until explicit provisioning.
 
 ## PR handoff
 
-Review foundation Terraform, synthetic tests, credential-free workflow and IAM
-contract against #5.
-No SQL/API or runtime changes; no data migration needed. Foundation is unapplied;
+Review Cloud SQL Terraform, connector and restricted migration boundary against
+#26. Bootstrap adds operational metadata outside immutable product migrations.
+Public APIs and merged migration SQL are unchanged. Runtime transport selection
+and a new migration executable are added. Infrastructure is unapplied;
 owner privately reviews plan/state and completes bootstrap. Pool budgets, recovery
 objectives and spending allocations are proposals requiring acceptance, not measured
 results. #5 remains partially open.
-Next unit: #26 database implementation after foundation review, with #7 local outbox work independently
+Next unit: #27 authenticated application/image promotion after database review, with #7 local outbox work independently
 schedulable after its existing prerequisites are evidenced. Final proof requires
 1,000 postings, exact balances, delivery receipts/faults, denial tests, isolated
 restore, compatible rollback and seven-day measured spend. See each issue for
@@ -61,3 +65,14 @@ named acceptance checks. Full-month #10 remains a live-pilot prerequisite.
 - Sandbox provider handshake/registry DNS and Go checksum fetch failures resolved through approved reruns. No cloud credentials, state or plans were retrieved.
 - Hosted CI remains pending PR creation; staged runbook gate is required before this commit.
 - PARTIAL: `gcp-identity-boundary` proves configured trust and grants offline; live token allow/deny tests remain unexecuted. `gcp-cost-review` has an allocation envelope, not a verified regional quote. `gcp-promotion-review` confirms no branch protection/environments; build/app promotion implementation belongs to #27.
+
+## Cloud SQL evidence — current branch
+
+- PASS: Terraform application format/validate and three mocked tests; existing six foundation tests pass through `make infra-test`.
+- PASS: `make cloud-sql-test` uses an internal Docker network, non-superuser administrator with ADMIN on test login roles, unchanged product migrations and a runtime with no table/DDL authority. `TestRestrictedMigration`, `TestMigrationContention`, `TestMigrationDirtyFailure` and checksum cases pass.
+- PASS: `make migration-test ledger-test` including transactional failure/dirty state, posting/replay, multicurrency, restoration and readiness. Additional readiness denial cases for deployment DDL/table access and cloud administrator membership pass.
+- PASS: final `make check test build cloud-sql-test ledger-test` using pinned Go 1.26.9; actionlint and govulncheck pass (no reachable vulnerabilities).
+- PASS: `scripts/test-migrator-container.sh --local-build` verifies embedded SQL offline as non-root/read-only and rejects down; `scripts/test-api-container.sh --local-build` proves inert routes and graceful shutdown.
+- PARTIAL: canonical local Docker source build failed on the Docker VM outbound proxy CA during module download. TLS verification remains enabled. Explicit host-build fallback proves runtime only; hosted CI still requires canonical source builds for both images.
+- Boundary: the first bootstrap fixture lacked ADMIN on IAM-style login roles; PostgreSQL rejected ALTER ROLE. Explicit platform-admin fixture grants resolved this, and required owner authority is documented. Real Cloud SQL bootstrap privilege compatibility remains unverified.
+- No GCP apply, token retrieval, live restore or financial data access. #26 remains partially open for those named cloud evidence gates.

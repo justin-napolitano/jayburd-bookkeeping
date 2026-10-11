@@ -2,6 +2,7 @@
 
 check:
 	go run ./cmd/project check
+	go run ./cmd/migrate -action=verify
 	bash scripts/migrate.sh check
 	bash scripts/check-stage-runbook.sh --validate
 	go vet ./...
@@ -15,6 +16,7 @@ build:
 	go build -trimpath -o bin/project ./cmd/project
 	go build -trimpath -o bin/corpus ./cmd/corpus
 	go build -trimpath -o bin/api ./cmd/api
+	go build -trimpath -o bin/migrate ./cmd/migrate
 
 web-check:
 	npm --prefix web run api:check
@@ -56,3 +58,7 @@ ledger-test:
 .PHONY: infra-test
 infra-test:
 	bash scripts/test-infra.sh
+
+.PHONY: cloud-sql-test
+cloud-sql-test:
+	bash scripts/test-cloud-sql.sh
