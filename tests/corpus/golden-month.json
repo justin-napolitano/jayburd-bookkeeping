@@ -1,0 +1,455 @@
+{
+  "version": 1,
+  "id": "golden-month",
+  "policy": "Synthetic USD accrual examples AC-01\u2013AC-10; no tax assumptions; expected results hand-reviewed.",
+  "sources": [
+    "JB-AC",
+    "T01",
+    "T02"
+  ],
+  "books": [
+    {
+      "id": "a-usd",
+      "entity": "fictional-a",
+      "functional_currency": "USD",
+      "accounts": [
+        "Assets:Checking",
+        "Assets:Savings",
+        "Equity:Capital",
+        "Income:Services",
+        "Expenses:Supplies",
+        "Expenses:General",
+        "Expenses:CategoryA",
+        "Expenses:CategoryB",
+        "Liabilities:Card",
+        "Liabilities:Payable",
+        "Equity:Distributions"
+      ],
+      "entries": [
+        {
+          "id": "AC-01",
+          "scenario": "AC-01",
+          "date": "2026-01-01",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Assets:Checking",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "1000",
+              "functional_amount": "1000"
+            },
+            {
+              "account": "Equity:Capital",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "1000",
+              "functional_amount": "1000"
+            }
+          ]
+        },
+        {
+          "id": "AC-02",
+          "scenario": "AC-02",
+          "date": "2026-01-02",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Assets:Checking",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "200",
+              "functional_amount": "200"
+            },
+            {
+              "account": "Income:Services",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "200",
+              "functional_amount": "200"
+            }
+          ]
+        },
+        {
+          "id": "AC-03",
+          "scenario": "AC-03",
+          "date": "2026-01-03",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Expenses:Supplies",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "30",
+              "functional_amount": "30"
+            },
+            {
+              "account": "Assets:Checking",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "30",
+              "functional_amount": "30"
+            }
+          ]
+        },
+        {
+          "id": "AC-04x1",
+          "scenario": "AC-04",
+          "date": "2026-01-04",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Expenses:General",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "40",
+              "functional_amount": "40"
+            },
+            {
+              "account": "Liabilities:Card",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "40",
+              "functional_amount": "40"
+            }
+          ]
+        },
+        {
+          "id": "AC-04x2",
+          "scenario": "AC-04",
+          "date": "2026-01-04",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Liabilities:Card",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "40",
+              "functional_amount": "40"
+            },
+            {
+              "account": "Assets:Checking",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "40",
+              "functional_amount": "40"
+            }
+          ]
+        },
+        {
+          "id": "AC-05",
+          "scenario": "AC-05",
+          "date": "2026-01-05",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Expenses:CategoryA",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "20",
+              "functional_amount": "20"
+            },
+            {
+              "account": "Expenses:CategoryB",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "10",
+              "functional_amount": "10"
+            },
+            {
+              "account": "Assets:Checking",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "30",
+              "functional_amount": "30"
+            }
+          ]
+        },
+        {
+          "id": "AC-06",
+          "scenario": "AC-06",
+          "date": "2026-01-06",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Assets:Checking",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "30",
+              "functional_amount": "30"
+            },
+            {
+              "account": "Expenses:Supplies",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "30",
+              "functional_amount": "30"
+            }
+          ]
+        },
+        {
+          "id": "AC-07",
+          "scenario": "AC-07",
+          "date": "2026-01-07",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Assets:Savings",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "100",
+              "functional_amount": "100"
+            },
+            {
+              "account": "Assets:Checking",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "100",
+              "functional_amount": "100"
+            }
+          ]
+        },
+        {
+          "id": "AC-08x1",
+          "scenario": "AC-08",
+          "date": "2026-01-08",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Assets:Checking",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "100",
+              "functional_amount": "100"
+            },
+            {
+              "account": "Equity:Capital",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "100",
+              "functional_amount": "100"
+            }
+          ]
+        },
+        {
+          "id": "AC-08x2",
+          "scenario": "AC-08",
+          "date": "2026-01-08",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Equity:Distributions",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "25",
+              "functional_amount": "25"
+            },
+            {
+              "account": "Assets:Checking",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "25",
+              "functional_amount": "25"
+            }
+          ]
+        },
+        {
+          "id": "AC-09x1",
+          "scenario": "AC-09",
+          "date": "2026-01-09",
+          "kind": "reversal",
+          "lines": [
+            {
+              "account": "Expenses:CategoryA",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "20",
+              "functional_amount": "20"
+            },
+            {
+              "account": "Expenses:CategoryB",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "10",
+              "functional_amount": "10"
+            },
+            {
+              "account": "Assets:Checking",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "30",
+              "functional_amount": "30"
+            }
+          ],
+          "reverses": "AC-05"
+        },
+        {
+          "id": "AC-09x2",
+          "scenario": "AC-09",
+          "date": "2026-01-09",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Expenses:CategoryA",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "15",
+              "functional_amount": "15"
+            },
+            {
+              "account": "Expenses:CategoryB",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "15",
+              "functional_amount": "15"
+            },
+            {
+              "account": "Assets:Checking",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "30",
+              "functional_amount": "30"
+            }
+          ]
+        },
+        {
+          "id": "AC-10x1",
+          "scenario": "AC-10",
+          "date": "2026-01-10",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Expenses:General",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "60",
+              "functional_amount": "60"
+            },
+            {
+              "account": "Liabilities:Payable",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "60",
+              "functional_amount": "60"
+            }
+          ]
+        },
+        {
+          "id": "AC-10x2",
+          "scenario": "AC-10",
+          "date": "2026-01-11",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Liabilities:Payable",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "60",
+              "functional_amount": "60"
+            },
+            {
+              "account": "Assets:Checking",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "60",
+              "functional_amount": "60"
+            }
+          ]
+        }
+      ],
+      "expected_balances": {
+        "Assets:Checking": "1045",
+        "Assets:Savings": "100",
+        "Equity:Capital": "-1100",
+        "Income:Services": "-200",
+        "Expenses:Supplies": "0",
+        "Expenses:General": "100",
+        "Expenses:CategoryA": "15",
+        "Expenses:CategoryB": "15",
+        "Liabilities:Card": "0",
+        "Liabilities:Payable": "0",
+        "Equity:Distributions": "25"
+      },
+      "expected_units": {
+        "Assets:Checking": {
+          "USD": "1045"
+        },
+        "Assets:Savings": {
+          "USD": "100"
+        },
+        "Equity:Capital": {
+          "USD": "-1100"
+        },
+        "Income:Services": {
+          "USD": "-200"
+        },
+        "Expenses:Supplies": {
+          "USD": "0"
+        },
+        "Expenses:General": {
+          "USD": "100"
+        },
+        "Expenses:CategoryA": {
+          "USD": "15"
+        },
+        "Expenses:CategoryB": {
+          "USD": "15"
+        },
+        "Liabilities:Card": {
+          "USD": "0"
+        },
+        "Liabilities:Payable": {
+          "USD": "0"
+        },
+        "Equity:Distributions": {
+          "USD": "25"
+        }
+      }
+    },
+    {
+      "id": "b-usd",
+      "entity": "fictional-b",
+      "functional_currency": "USD",
+      "accounts": [
+        "Assets:Checking",
+        "Equity:Capital"
+      ],
+      "entries": [
+        {
+          "id": "AC-01",
+          "scenario": "AC-01",
+          "date": "2026-01-01",
+          "kind": "manual",
+          "lines": [
+            {
+              "account": "Assets:Checking",
+              "side": "debit",
+              "currency": "USD",
+              "amount": "70",
+              "functional_amount": "70"
+            },
+            {
+              "account": "Equity:Capital",
+              "side": "credit",
+              "currency": "USD",
+              "amount": "70",
+              "functional_amount": "70"
+            }
+          ]
+        }
+      ],
+      "expected_balances": {
+        "Assets:Checking": "70",
+        "Equity:Capital": "-70"
+      },
+      "expected_units": {
+        "Assets:Checking": {
+          "USD": "70"
+        },
+        "Equity:Capital": {
+          "USD": "-70"
+        }
+      }
+    }
+  ]
+}
