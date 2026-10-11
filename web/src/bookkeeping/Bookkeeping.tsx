@@ -17,6 +17,7 @@ import type {
 } from "./types";
 import { useCommands } from "./commands";
 import { CommandPanel } from "./CommandPanel";
+import { currencyAt, formatAmount } from "./amount";
 // UI account drafts carry strings unchanged to the authoritative setup transaction.
 type AccountDraft = {
   code: string;
@@ -163,6 +164,7 @@ export function Bookkeeping({
         <BookView
           key={`${scope}/${recovery.command?.command_id ?? "none"}/${recovery.command?.state ?? "none"}`}
           {...selected}
+          currencies={workspace?.currencies ?? []}
           api={api}
           locked={locked}
           prepare={recovery.prepare}
@@ -374,6 +376,7 @@ function Setup({
 function BookView({
   entity,
   book,
+  currencies,
   api,
   denied,
   locked,
@@ -381,6 +384,7 @@ function BookView({
 }: {
   entity: Entity;
   book: Book;
+  currencies: Workspace["currencies"];
   api: API;
   denied: () => void;
   locked: boolean;
@@ -393,6 +397,10 @@ function BookView({
     [report, setReport] = useState<TrialBalance | null>(null),
     [reportError, setReportError] = useState(""),
     [reportBusy, setReportBusy] = useState(false);
+  const reportMinorUnit = report
+    ? currencyAt(currencies, report.functional_currency, report.through_date)
+        ?.minor_unit
+    : undefined;
   const reportEpoch = useRef(0);
   useEffect(
     () => () => {
@@ -648,16 +656,20 @@ function BookView({
                   {report.accounts.map((a) => (
                     <tr key={a.account_id}>
                       <th scope="row">{a.account_code}</th>
-                      <td>{a.debit_balance}</td>
-                      <td>{a.credit_balance}</td>
+                      <td>{formatAmount(a.debit_balance, reportMinorUnit)}</td>
+                      <td>{formatAmount(a.credit_balance, reportMinorUnit)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr>
                     <th>Total</th>
-                    <td>{report.total_debits}</td>
-                    <td>{report.total_credits}</td>
+                    <td>
+                      {formatAmount(report.total_debits, reportMinorUnit)}
+                    </td>
+                    <td>
+                      {formatAmount(report.total_credits, reportMinorUnit)}
+                    </td>
                   </tr>
                 </tfoot>
               </table>
