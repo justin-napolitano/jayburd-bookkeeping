@@ -60,7 +60,7 @@ bridge_pid=$!
 ready=0
 for ((i=0;i<60;i++)); do
  if ! kill -0 "$bridge_pid" 2>/dev/null; then break; fi
- if curl --fail --silent --max-time 5 -D "$proof_dir/api.headers" http://127.0.0.1:39081/readyz >/dev/null && rg -qi "^x-jayburd-proof: $proof_id" "$proof_dir/api.headers"; then ready=1; break; fi
+ if curl --fail --silent --max-time 5 -D "$proof_dir/api.headers" http://127.0.0.1:39081/readyz >/dev/null && grep -qi "^x-jayburd-proof: $proof_id" "$proof_dir/api.headers"; then ready=1; break; fi
  sleep 1
 done
 [[ "$ready" == 1 ]] || { cat "$proof_dir/bridge.log"; docker logs "$proof_id-api"; exit 1; }
@@ -72,7 +72,7 @@ ready=0
 for ((i=0;i<60;i++)); do
  if ! kill -0 "$next_pid" 2>/dev/null; then break; fi
  status=$(curl --silent --max-time 5 -D "$proof_dir/next.headers" -o /dev/null -w '%{http_code}' http://127.0.0.1:39082/v1/workspace || true)
- if [[ "$status" == 401 ]] && rg -qi "^x-jayburd-proof: $proof_id" "$proof_dir/next.headers"; then ready=1; break; fi
+ if [[ "$status" == 401 ]] && grep -qi "^x-jayburd-proof: $proof_id" "$proof_dir/next.headers"; then ready=1; break; fi
  sleep 1
 done
 [[ "$ready" == 1 ]] || { cat "$proof_dir/next.log"; exit 1; }
