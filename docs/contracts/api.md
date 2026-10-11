@@ -19,6 +19,12 @@ its documented route must not be mounted by the first server.
 Ledger routes start `/v1/entities/{entity_id}/books/{book_id}`; the separate
 `POST /v1/setup` route creates a new scope. `GET /v1/workspace` returns bounded,
 currently readable configuration under the [workspace contract](server.md#workspace-contract).
+The UI uses the [durable command contract](command-recovery.md): register with
+`POST /v1/commands`, discover via `GET /v1/commands/pending`, and explicitly
+execute, cancel or acknowledge via `POST /v1/commands/{command_id}/{action}`.
+These transitions use the command ID and empty object body; only registration
+requires an `Idempotency-Key`. Current read/post authority applies on recovery.
+Legacy direct endpoints below retain their independent replay obligations.
 Authentication is
 bearer-token transport; issuer/audience binding, MFA and revocation follow the identity/setup contract;
 the actual GCP project remains a deployment decision. No actor ID is accepted from request JSON.
@@ -73,7 +79,7 @@ base before publishing `/v1` and keep each problem type stable thereafter.
 | 401 | unauthenticated: missing/invalid bearer token; WWW-Authenticate: Bearer |
 | 403 | permission_denied: known accessible scope, insufficient operation permission |
 | 404 | not_found: absent resource or inaccessible entity/book; indistinguishable |
-| 409 | revision_conflict, idempotency_conflict, period_closed, already_reversed, close_evidence_stale |
+| 409 | revision_conflict, idempotency_conflict, pending_command, invalid_command_state, period_closed, already_reversed, close_evidence_stale |
 | 413 | request_too_large: body limit exceeded |
 | 422 | invalid_journal, invalid_amount, unsupported_policy, result_out_of_range, close_evidence_required |
 | 500 | internal_error: unexpected failure, generic detail and request ID only |

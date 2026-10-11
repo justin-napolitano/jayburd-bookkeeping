@@ -14,22 +14,10 @@ function Application() {
       {auth.phase === "signed-in" ? (
         <>
           <p role="note">
-            Keep this page open while a posting outcome is unknown. Signing out
-            clears pending requests; verify the earlier request key with an
-            authorized operator before entering it again.
+            Saved commands are recovered after sign-in. Review and acknowledge
+            the previous result before preparing new work.
           </p>
-          <button
-            onClick={() => {
-              if (
-                window.confirm(
-                  "Sign out and clear this session? If a posting outcome is unknown, save its request key and verify whether it committed before entering it again.",
-                )
-              )
-                void auth.signOut();
-            }}
-          >
-            Sign out
-          </button>
+          <button onClick={() => void auth.signOut()}>Sign out</button>
           <Bookkeeping
             key={auth.sessionKey}
             getToken={auth.getToken}
@@ -40,10 +28,8 @@ function Application() {
         <LoginPanel />
       )}
       <footer>
-        If your session ended during an unconfirmed request, verify that request
-        with an authorized operator before re-entering it. Development
-        bookkeeping · No bank connection · Live-use accounting policy approval
-        remains required.
+        Development bookkeeping · No bank connection · Live-use accounting
+        policy approval remains required.
       </footer>
     </main>
   );

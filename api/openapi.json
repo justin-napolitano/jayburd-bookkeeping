@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Jayburd Ledger Contract",
-    "version": "0.4.0-review",
+    "version": "0.5.0-review",
     "description": "Implementation-review contract; no server exists. Manual posting/read/reversal uses dev-accrual-usd-v1. Close remains deferred. SQL/accounting contracts own semantic validation. Not a registered ISO financial message.",
     "contact": {
       "name": "Jayburd contract review",
@@ -805,6 +805,433 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/commands": {
+      "post": {
+        "operationId": "registerCommand",
+        "summary": "Store an immutable reviewed command without executing it",
+        "description": "Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. One unacknowledged command per principal. Same registration key and content replay; changed content or other pending work conflicts.",
+        "tags": [
+          "Ledger"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Durably prepared command; no financial mutation yet.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurableCommand"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/commands/pending": {
+      "get": {
+        "operationId": "getPendingCommand",
+        "summary": "Recover the current unacknowledged command",
+        "description": "Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. No query/body. Null means no visible pending command in this snapshot, not proof about requests still in transit. Inaccessible scope fails closed.",
+        "tags": [
+          "Ledger"
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Current command or null; discovery never executes or acknowledges.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingCommand"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/commands/{command_id}/execute": {
+      "post": {
+        "operationId": "executeCommand",
+        "summary": "Execute the stored immutable command or replay its result",
+        "description": "Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. Uses stored command identity and immutable body; repeating this transition cannot authorize a different operation.",
+        "tags": [
+          "Ledger"
+        ],
+        "parameters": [
+          {
+            "name": "command_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "maxProperties": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Current durable command state; inspect state before claiming an outcome.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurableCommand"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/commands/{command_id}/cancel": {
+      "post": {
+        "operationId": "cancelCommand",
+        "summary": "Cancel a prepared command without financial effects",
+        "description": "Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. Uses stored command identity and immutable body; repeating this transition cannot authorize a different operation.",
+        "tags": [
+          "Ledger"
+        ],
+        "parameters": [
+          {
+            "name": "command_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "maxProperties": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Current durable command state; inspect state before claiming an outcome.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurableCommand"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/commands/{command_id}/acknowledge": {
+      "post": {
+        "operationId": "acknowledgeCommand",
+        "summary": "Acknowledge a terminal command after reviewing its outcome",
+        "description": "Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. Uses stored command identity and immutable body; repeating this transition cannot authorize a different operation.",
+        "tags": [
+          "Ledger"
+        ],
+        "parameters": [
+          {
+            "name": "command_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "maxProperties": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "414": {
+            "description": "URI exceeds the bounded server transport limit.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Current durable command state; inspect state before claiming an outcome.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurableCommand"
                 }
               }
             }
@@ -1783,6 +2210,161 @@
           "development_policy": {
             "type": "string",
             "const": "dev-accrual-usd-v1"
+          }
+        }
+      },
+      "RegisterCommand": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation",
+              "entity_id",
+              "book_id",
+              "body"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "const": "setup"
+              },
+              "entity_id": {
+                "type": "null"
+              },
+              "book_id": {
+                "type": "null"
+              },
+              "body": {
+                "$ref": "#/components/schemas/SetupRequest"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation",
+              "entity_id",
+              "book_id",
+              "body"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "const": "post"
+              },
+              "entity_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "book_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "body": {
+                "$ref": "#/components/schemas/PostJournal"
+              }
+            }
+          }
+        ]
+      },
+      "DurableCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "command_id",
+          "operation",
+          "entity_id",
+          "book_id",
+          "state",
+          "body",
+          "result",
+          "created_at",
+          "acknowledged"
+        ],
+        "properties": {
+          "command_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "setup",
+              "post"
+            ]
+          },
+          "entity_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "prepared",
+              "committed",
+              "cancelled"
+            ]
+          },
+          "body": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SetupRequest"
+              },
+              {
+                "$ref": "#/components/schemas/PostJournal"
+              }
+            ]
+          },
+          "result": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SetupResult"
+              },
+              {
+                "$ref": "#/components/schemas/Journal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acknowledged": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PendingCommand": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "command"
+        ],
+        "properties": {
+          "command": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DurableCommand"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       }

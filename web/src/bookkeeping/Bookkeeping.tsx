@@ -8,7 +8,15 @@ import {
   type FormEvent,
 } from "react";
 import { APIError, createAPI, type API } from "./api";
-import type { Book, Entity, Journal, TrialBalance, Workspace } from "./types";
+import type {
+  Book,
+  Entity,
+  TrialBalance,
+  Workspace,
+  RegisterCommand,
+} from "./types";
+import { useCommands } from "./commands";
+import { CommandPanel } from "./CommandPanel";
 // UI account drafts carry strings unchanged to the authoritative setup transaction.
 type AccountDraft = {
   code: string;
@@ -26,7 +34,6 @@ type LineDraft = {
   valuation_basis: string;
   rate_observation_id: string;
 };
-type Pending = { key: string; body: string };
 const today = () => new Date().toISOString().slice(0, 10);
 const blankAccount = (): AccountDraft => ({
   code: "",
@@ -60,7 +67,8 @@ export function Bookkeeping({
     [scope, setScope] = useState(""),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false);
-  const [locked, setLocked] = useState(false);
+  const recovery = useCommands(api);
+  const locked = recovery.locked;
   const epoch = useRef(0);
   const load = useCallback(async () => {
     const n = ++epoch.current;
@@ -94,11 +102,21 @@ export function Bookkeeping({
       epoch.current++;
     };
   }, [load]);
-  const selected = workspace?.entities
+  useEffect(() => {
+    if (recovery.command?.state === "committed") void load();
+  }, [recovery.command?.command_id, recovery.command?.state, load]);
+  useEffect(() => {
+    if (recovery.accessDenied) {
+      setWorkspace(null);
+      setScope("");
+    }
+  }, [recovery.accessDenied]);
+  const selected = (recovery.accessDenied ? null : workspace)?.entities
     .flatMap((entity) => entity.books.map((book) => ({ entity, book })))
     .find((x) => `${x.entity.entity_id}/${x.book.book_id}` === scope);
   return (
     <>
+      <CommandPanel recovery={recovery} workspace={workspace} />
       <section aria-labelledby="workspace-title">
         <div className="heading">
           <h2 id="workspace-title">Workspace</h2>
@@ -108,7 +126,7 @@ export function Bookkeeping({
         </div>
         {loading && <p role="status">Loading authorized books…</p>}
         {error && <p role="alert">{error}</p>}
-        {workspace && (
+        {workspace && !recovery.accessDenied && (
           <>
             <label>
               Entity and book
@@ -143,150 +161,62 @@ export function Bookkeeping({
       </section>
       {selected && (
         <BookView
-          key={scope}
+          key={`${scope}/${recovery.command?.command_id ?? "none"}/${recovery.command?.state ?? "none"}`}
           {...selected}
           api={api}
-          refresh={load}
           locked={locked}
-          lock={setLocked}
+          prepare={recovery.prepare}
           denied={() => {
             setScope("");
             void load();
           }}
         />
       )}
-      {workspace && (
+      {workspace && !recovery.accessDenied && (
         <Setup
-          api={api}
           workspace={workspace}
-          refresh={load}
           locked={locked}
-          lock={setLocked}
+          prepare={recovery.prepare}
         />
       )}
     </>
   );
 }
-// Snapshot/body/key are frozen at review; uncertain outcomes retain the identical request.
-function useMutation(
-  api: API,
-  path: string,
-  committed: (result: Journal | Record<string, unknown>) => void,
-  lock: (value: boolean) => void,
-) {
-  const [pending, setPending] = useState<Pending | null>(null),
-    [busy, setBusy] = useState(false),
-    [uncertain, setUncertain] = useState(false),
-    [error, setError] = useState("");
-  const active = useRef(true);
-  useEffect(() => {
-    active.current = true;
-    return () => {
-      active.current = false;
-    };
-  }, []);
-  useEffect(() => {
-    lock(!!pending);
-    const prevent = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-    };
-    if (pending) window.addEventListener("beforeunload", prevent);
-    return () => {
-      window.removeEventListener("beforeunload", prevent);
-    };
-  }, [pending, lock]);
-  const review = (body: unknown) => {
-    setPending({ key: crypto.randomUUID(), body: JSON.stringify(body) });
-    setError("");
-    setUncertain(false);
-  };
-  const send = async () => {
-    if (!pending || busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      const result = await api<Journal>(path, pending.body, pending.key);
-      if (active.current) {
-        setPending(null);
-        setUncertain(false);
-        committed(result);
-      }
-    } catch (e) {
-      if (active.current) {
-        const unknown = uncertain || !(e instanceof APIError) || e.uncertain;
-        setUncertain(unknown);
-        setError(
-          uncertain
-            ? "The previous request may have committed. Keep its request key and verify the result with an authorized operator before entering it again."
-            : e instanceof Error
-              ? e.message
-              : "Request failed.",
-        );
-        if (!unknown) setPending(null);
-      }
-    } finally {
-      if (active.current) setBusy(false);
-    }
-  };
-  return {
-    pending,
-    busy,
-    uncertain,
-    error,
-    review,
-    send,
-    cancel: () => {
-      if (!uncertain && !busy) setPending(null);
-    },
-  };
-}
 // Setup creates a new scope only; balances and authorization are never user-supplied.
 function Setup({
-  api,
   workspace,
-  refresh,
   locked,
-  lock,
+  prepare,
 }: {
-  api: API;
   workspace: Workspace;
-  refresh: () => Promise<void>;
   locked: boolean;
-  lock: (value: boolean) => void;
+  prepare: (value: RegisterCommand) => void;
 }) {
   const [accounts, setAccounts] = useState<AccountDraft[]>([
-      blankAccount(),
-      {
-        ...blankAccount(),
-        category: "equity",
-        normal_side: "credit",
-        monetary: false,
-      },
-    ]),
-    [success, setSuccess] = useState("");
-  const m = useMutation(
-    api,
-    "/v1/setup",
-    () => {
-      setSuccess(
-        "Book creation confirmed. Refreshing the workspace; choose the new book when it appears above.",
-      );
-      void refresh();
+    blankAccount(),
+    {
+      ...blankAccount(),
+      category: "equity",
+      normal_side: "credit",
+      monetary: false,
     },
-    lock,
-  );
+  ]);
   const review = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSuccess("");
     const f = new FormData(e.currentTarget);
-    m.review({
-      entity_name: f.get("entity_name"),
-      entity_kind: f.get("entity_kind"),
-      book_name: f.get("book_name"),
-      starts_on: f.get("starts_on"),
-      ends_before: f.get("ends_before"),
-      functional_currency_version_id: f.get("currency"),
-      accounts,
+    prepare({
+      operation: "setup",
+      entity_id: null,
+      book_id: null,
+      body: {
+        entity_name: f.get("entity_name"),
+        entity_kind: f.get("entity_kind"),
+        book_name: f.get("book_name"),
+        starts_on: f.get("starts_on"),
+        ends_before: f.get("ends_before"),
+        functional_currency_version_id: f.get("currency"),
+        accounts,
+      } as Extract<RegisterCommand, { operation: "setup" }>["body"],
     });
   };
   return (
@@ -299,7 +229,7 @@ function Setup({
           dates and your chart of accounts deliberately.
         </p>
         <form onSubmit={review}>
-          <fieldset disabled={locked || !!m.pending || m.busy}>
+          <fieldset disabled={locked}>
             <div className="grid">
               <label>
                 Entity name
@@ -436,8 +366,6 @@ function Setup({
             <button>Review book setup</button>
           </fieldset>
         </form>
-        <MutationReview mutation={m} label="Create book" />
-        {success && <p role="status">{success}</p>}
       </details>
     </section>
   );
@@ -447,24 +375,21 @@ function BookView({
   entity,
   book,
   api,
-  refresh,
   denied,
   locked,
-  lock,
+  prepare,
 }: {
   entity: Entity;
   book: Book;
   api: API;
-  refresh: () => Promise<void>;
   denied: () => void;
   locked: boolean;
-  lock: (value: boolean) => void;
+  prepare: (value: RegisterCommand) => void;
 }) {
   const [lines, setLines] = useState<LineDraft[]>([
       blankLine(),
       { ...blankLine(), side: "credit" },
     ]),
-    [journal, setJournal] = useState<Journal | null>(null),
     [report, setReport] = useState<TrialBalance | null>(null),
     [reportError, setReportError] = useState(""),
     [reportBusy, setReportBusy] = useState(false);
@@ -476,34 +401,26 @@ function BookView({
     [],
   );
   const base = `/v1/entities/${entity.entity_id}/books/${book.book_id}`;
-  const m = useMutation(
-    api,
-    `${base}/journals`,
-    (r) => {
-      reportEpoch.current++;
-      setReportBusy(false);
-      setJournal(r as Journal);
-      setReport(null);
-      void refresh();
-    },
-    lock,
-  );
   const review = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     reportEpoch.current++;
     setReportBusy(false);
-    setJournal(null);
     const f = new FormData(e.currentTarget);
-    m.review({
-      expected_revision: book.book_revision,
-      policy_id: f.get("policy"),
-      accounting_date: f.get("date"),
-      description: f.get("description"),
-      lines: lines.map(({ rate_observation_id, ...line }) =>
-        line.valuation_basis === "spot"
-          ? { ...line, rate_observation_id }
-          : line,
-      ),
+    prepare({
+      operation: "post",
+      entity_id: entity.entity_id,
+      book_id: book.book_id,
+      body: {
+        expected_revision: book.book_revision,
+        policy_id: f.get("policy"),
+        accounting_date: f.get("date"),
+        description: f.get("description"),
+        lines: lines.map(({ rate_observation_id, ...line }) =>
+          line.valuation_basis === "spot"
+            ? { ...line, rate_observation_id }
+            : line,
+        ),
+      } as Extract<RegisterCommand, { operation: "post" }>["body"],
     });
   };
   const trial = async (e: FormEvent<HTMLFormElement>) => {
@@ -549,7 +466,7 @@ function BookView({
         ) : (
           <>
             <form onSubmit={review}>
-              <fieldset disabled={locked || !!m.pending || m.busy}>
+              <fieldset disabled={locked}>
                 <div className="grid">
                   <label>
                     Accounting date
@@ -697,23 +614,7 @@ function BookView({
                 <button>Review journal</button>
               </fieldset>
             </form>
-            <MutationReview mutation={m} label="Post journal" book={book} />
           </>
-        )}
-        {journal && (
-          <div role="status">
-            <h3>Posting confirmed</h3>
-            <p>
-              Journal {journal.journal_id} · revision {journal.book_revision}
-            </p>
-            <p>
-              {journal.accounting_date} · {journal.description}
-            </p>
-            <p>
-              This committed journal is immutable. Corrections require a linked
-              reversal through the API; reversal UI is a later slice.
-            </p>
-          </div>
         )}
       </section>
       <section>
@@ -764,126 +665,6 @@ function BookView({
           </>
         )}
       </section>
-    </>
-  );
-}
-// Review presents exact accounting facts, with the serialized request available for recovery.
-function MutationReview({
-  mutation: m,
-  label,
-  book,
-}: {
-  mutation: ReturnType<typeof useMutation>;
-  label: string;
-  book?: Book;
-}) {
-  const draft = m.pending ? JSON.parse(m.pending.body) : null;
-  return (
-    <>
-      {m.error && <p role="alert">{m.error}</p>}
-      {m.pending && (
-        <div className="review">
-          <h3>
-            {m.uncertain
-              ? "Unconfirmed outcome — keep this page open"
-              : "Review before committing"}
-          </h3>
-          <p>
-            {m.uncertain
-              ? "Retry uses the original key and exact body. Editing is locked until the outcome is resolved."
-              : "Review the exact values below. The database applies accounting rules when you confirm."}
-          </p>
-          <p>
-            Request key: <code>{m.pending.key}</code>
-          </p>
-          {draft.lines ? (
-            <>
-              <p>
-                <strong>{draft.description}</strong> · Accounting date{" "}
-                {draft.accounting_date}
-              </p>
-              <div className="table-scroll">
-                <table>
-                  <caption>Journal lines to post</caption>
-                  <thead>
-                    <tr>
-                      <th>Account</th>
-                      <th>Side</th>
-                      <th>Original amount</th>
-                      <th>Functional amount</th>
-                      <th>Valuation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {draft.lines.map((line: LineDraft, i: number) => (
-                      <tr key={i}>
-                        <th scope="row">
-                          {book?.accounts.find(
-                            (a) => a.account_id === line.account_id,
-                          )?.name ?? line.account_id}
-                        </th>
-                        <td>{line.side}</td>
-                        <td>
-                          {line.transaction_amount} {line.transaction_currency}
-                        </td>
-                        <td>
-                          {line.functional_amount}{" "}
-                          {
-                            book?.policies.find(
-                              (p) => p.policy_id === draft.policy_id,
-                            )?.functional_currency
-                          }
-                        </td>
-                        <td>
-                          {line.valuation_basis}
-                          {line.rate_observation_id && (
-                            <small> · {line.rate_observation_id}</small>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          ) : (
-            <>
-              <p>
-                <strong>{draft.entity_name}</strong> ({draft.entity_kind}) /{" "}
-                {draft.book_name}
-              </p>
-              <p>
-                Open period: {draft.starts_on} through the day before{" "}
-                {draft.ends_before}. Functional currency: USD.
-              </p>
-              <ul>
-                {draft.accounts.map((a: AccountDraft, i: number) => (
-                  <li key={i}>
-                    {a.code} · {a.name} · {a.category} · normal {a.normal_side}{" "}
-                    · {a.monetary ? "monetary" : "non-monetary"}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-          <details>
-            <summary>Exact request for review or recovery</summary>
-            <pre>{JSON.stringify(draft, null, 2)}</pre>
-          </details>
-          <button disabled={m.busy} onClick={() => void m.send()}>
-            {m.busy
-              ? "Waiting for commit…"
-              : m.uncertain
-                ? "Retry unchanged request"
-                : label}
-          </button>
-          {!m.uncertain && (
-            <button disabled={m.busy} onClick={m.cancel}>
-              Edit before posting
-            </button>
-          )}
-        </div>
-      )}
     </>
   );
 }

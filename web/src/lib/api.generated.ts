@@ -152,6 +152,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Store an immutable reviewed command without executing it
+         * @description Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. One unacknowledged command per principal. Same registration key and content replay; changed content or other pending work conflicts.
+         */
+        post: operations["registerCommand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/commands/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recover the current unacknowledged command
+         * @description Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. No query/body. Null means no visible pending command in this snapshot, not proof about requests still in transit. Inaccessible scope fails closed.
+         */
+        get: operations["getPendingCommand"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/commands/{command_id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute the stored immutable command or replay its result
+         * @description Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. Uses stored command identity and immutable body; repeating this transition cannot authorize a different operation.
+         */
+        post: operations["executeCommand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/commands/{command_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a prepared command without financial effects
+         * @description Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. Uses stored command identity and immutable body; repeating this transition cannot authorize a different operation.
+         */
+        post: operations["cancelCommand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/commands/{command_id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acknowledge a terminal command after reviewing its outcome
+         * @description Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. Uses stored command identity and immutable body; repeating this transition cannot authorize a different operation.
+         */
+        post: operations["acknowledgeCommand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -399,6 +499,41 @@ export interface components {
             currencies: components["schemas"]["WorkspaceCurrency"][];
             /** @constant */
             development_policy: "dev-accrual-usd-v1";
+        };
+        RegisterCommand: {
+            /** @constant */
+            operation: "setup";
+            entity_id: null;
+            book_id: null;
+            body: components["schemas"]["SetupRequest"];
+        } | {
+            /** @constant */
+            operation: "post";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            body: components["schemas"]["PostJournal"];
+        };
+        DurableCommand: {
+            /** Format: uuid */
+            command_id: string;
+            /** @enum {string} */
+            operation: "setup" | "post";
+            /** Format: uuid */
+            entity_id: string | null;
+            /** Format: uuid */
+            book_id: string | null;
+            /** @enum {string} */
+            state: "prepared" | "committed" | "cancelled";
+            body: components["schemas"]["SetupRequest"] | components["schemas"]["PostJournal"];
+            result: components["schemas"]["SetupResult"] | components["schemas"]["Journal"] | null;
+            /** Format: date-time */
+            created_at: string;
+            acknowledged: boolean;
+        };
+        PendingCommand: {
+            command: components["schemas"]["DurableCommand"] | null;
         };
     };
     responses: {
@@ -827,6 +962,225 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    registerCommand: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterCommand"];
+            };
+        };
+        responses: {
+            /** @description Durably prepared command; no financial mutation yet. */
+            201: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurableCommand"];
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            413: components["responses"]["Problem413"];
+            /** @description URI exceeds the bounded server transport limit. */
+            414: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    getPendingCommand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current command or null; discovery never executes or acknowledges. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingCommand"];
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            413: components["responses"]["Problem413"];
+            /** @description URI exceeds the bounded server transport limit. */
+            414: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    executeCommand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                command_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Current durable command state; inspect state before claiming an outcome. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurableCommand"];
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            413: components["responses"]["Problem413"];
+            /** @description URI exceeds the bounded server transport limit. */
+            414: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    cancelCommand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                command_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Current durable command state; inspect state before claiming an outcome. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurableCommand"];
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            413: components["responses"]["Problem413"];
+            /** @description URI exceeds the bounded server transport limit. */
+            414: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    acknowledgeCommand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                command_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Current durable command state; inspect state before claiming an outcome. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurableCommand"];
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            413: components["responses"]["Problem413"];
+            /** @description URI exceeds the bounded server transport limit. */
+            414: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Problem422"];
             500: components["responses"]["Problem500"];
             503: components["responses"]["Problem503"];
         };
