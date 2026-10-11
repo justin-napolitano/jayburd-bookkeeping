@@ -31,6 +31,13 @@ is the selected currency's minor unit, bounded by storage precision, with half-e
 rounding. ADR 0005 selects this for the synthetic profile; real-entity exceptions still
 require explicit policy.
 
+UI display uses versioned currency minor-unit metadata and decimal-string
+padding/trimming only. USD `125.5` displays as `125.50`; nonzero digits beyond the
+minor unit stay visible instead of being rounded away. Missing or ambiguous
+metadata preserves the original string. Display does not change saved requests,
+ledger amounts or valuation. `amount.test.ts` covers zero/two/three decimal
+currencies, storage-scale zeros and large values beyond JavaScript safe integers.
+
 ## Line semantics
 
 `transaction_amount` is the original currency magnitude; `functional_amount` is
