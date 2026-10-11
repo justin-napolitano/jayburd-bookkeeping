@@ -64,6 +64,12 @@ Start source review with `docs/research/bibliography.md`. Keep its annotated
 resource index and the linked canonical source records current when adding or
 using references; record review depth and access limits, not just URLs.
 
+For synthetic accounting checks, follow `tests/corpus/README.md` and its source
+register. Keep fixed expected results independent of generators and posting code.
+External engines are optional test tools; default CI must not download or invoke
+them. Never treat generator self-validation or XSD acceptance as ledger or ISO
+conformance. Preserve original units alongside functional-currency assertions.
+
 Before material design decisions or implementation, follow
 `docs/research/decision-evidence.md`: cite reviewed source sections, distinguish
 facts from inference, compare alternatives and name acceptance evidence.

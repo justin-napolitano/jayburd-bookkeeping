@@ -35,6 +35,12 @@ background work. The two predecessor repos are reference material only.
 | What has actually passed? | [Seed runbook](runbooks/seed.md) |
 | What was checked for the contract package? | [Ledger contract runbook](runbooks/ledger-contracts.md) |
 
+## Synthetic test data
+
+Use the [corpus and execution guide](../tests/corpus/README.md),
+[annotated test sources](research/testing-sources.md), and
+[corpus evidence runbook](runbooks/synthetic-corpus.md).
+
 ## Next action
 
 Resolve JB-001: choose the first representative LLC workflow, accounting basis,
