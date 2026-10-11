@@ -6,16 +6,20 @@ probe_image='golang:1.26.9-alpine@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0
 proof_id="jayburd-api-proof-$$-$(date +%s)"
 proof_image="$proof_id:local"
 proof_dir=""
+owned_image=1
 cleanup() {
  docker rm -f "$proof_id" >/dev/null 2>&1 || true
  docker network rm "$proof_id" >/dev/null 2>&1 || true
- docker image rm "$proof_image" >/dev/null 2>&1 || true
+ if [[ "$owned_image" == 1 ]]; then docker image rm "$proof_image" >/dev/null 2>&1 || true; fi
  if [[ -n "$proof_dir" ]]; then rm -rf "$proof_dir"; fi
 }
 trap cleanup EXIT INT TERM
 # No credentials, environment forwarding, bind mounts or published ports.
 case "${1:-}" in
  "") docker build --file Dockerfile.api --tag "$proof_image" . ;;
+ --image)
+  [[ $# == 2 && "$2" == sha256:* ]] || exit 1
+  proof_image="$2"; owned_image=0 ;;
  --local-build)
   # Explicit fallback for a Docker VM lacking its outbound proxy CA. Never disable TLS.
   proof_dir="$(mktemp -d "${TMPDIR:-/tmp}/jayburd-api-proof.XXXXXX")"
@@ -35,8 +39,9 @@ DOCKERFILE
   docker build --file "$proof_dir/Dockerfile" --tag "$proof_image" "$proof_dir"
   echo 'PARTIAL: explicit host build proves runtime only; canonical source-builder remains a CI gate'
   ;;
- *) echo 'Usage: scripts/test-api-container.sh [--local-build]' >&2; exit 1 ;;
+ *) echo 'Usage: scripts/test-api-container.sh [--local-build | --image sha256:ID]' >&2; exit 1 ;;
 esac
+[[ "$(docker image inspect --format '{{.Config.User}}' "$proof_image")" == '65532:65532' ]]
 docker network create --internal "$proof_id" >/dev/null
 docker run -d --name "$proof_id" --network "$proof_id" --network-alias api \
  --read-only --user 65532:65532 --cap-drop ALL --security-opt no-new-privileges \

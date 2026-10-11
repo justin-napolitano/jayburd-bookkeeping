@@ -55,3 +55,15 @@ Required future evidence: real project API enablement, connector-only transport,
 IAM login and SQL privilege separation, shared-core reconnection latency, backup/PITR
 restore and observed costs. Terraform mocks and local non-superuser tests are not
 substitutes for these checks. No live credential/state/plan was retrieved.
+
+## G14 — Next.js standalone output
+
+Vercel, [output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output), documentation identifies 16.4.0; accessed 2026-10-11. Reviewed “Automatically Copying Traced Files” and caveats: standalone emits a minimal server and traced dependencies; static assets require separate copying, PORT/HOSTNAME configure listening. Inference: a read-only non-root image can package the existing app without development dependencies. Container proof remains required; this source does not solve runtime browser identity configuration.
+
+## G15 — Build metadata, scanning and publication
+
+Docker, [buildx build metadata](https://docs.docker.com/reference/cli/docker/buildx/build/#metadata-file) and [attestations](https://docs.docker.com/build/ci/github-actions/attestations/), accessed 2026-10-11. Reviewed metadata-file, BUILDX_METADATA_PROVENANCE and exporter limitations. Local load can retain a separate provenance record but not attached attestations. Aqua, [Trivy action](https://github.com/aquasecurity/trivy-action/tree/ed142fd0673e97e23eac54620cfb913e5ce36c25), v0.36.0, reviewed setup/version, image inputs, severity/exit-code and CycloneDX output; scanner pinned v0.75.0. Inference: test/scan a local image before pushing unchanged, retain unsigned metadata/SBOM and explicitly defer attested promotion. Scan findings depend on the fetched vulnerability database; a clean scan is not a security certification.
+
+## G16 — Build identity and private service invocation
+
+Google, [auth action](https://github.com/google-github-actions/auth/tree/7c6bc770dae815cd3e89ee6cdf493a5fab2cc093), v3, reviewed WIF, token lifetime and create_credentials_file/export_environment_variables inputs; and [Cloud Run service authentication](https://docs.cloud.google.com/run/docs/authenticating/service-to-service), reviewed audience and X-Serverless-Authorization sections, accessed 2026-10-11. Auth can deliver a token without generating an ADC file; Cloud Run can validate a service token separately from application Authorization. Inference: authenticate the builder after image checks; a future frontend bridge must supply its own service identity without replacing the user token. No real federation/token exchange was executed. Proposed ingress still needs implementation and denial tests.

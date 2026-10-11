@@ -3,12 +3,23 @@
 
 ## Status and boundary
 
-Cloud SQL implementation slice (#26) under [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
+Image-delivery implementation slice (#27) under [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
 GitHub owns current task state; this ledger records decisions and observed review
 results. Terraform foundation/database configuration, explicit IAM connector and
 restricted migration runner are implemented. No infrastructure
 has been applied and no cloud authentication, deployment or live-bookkeeping
 approval is established.
+
+## Image-delivery evidence — current branch
+
+- PR #30 merge verified at `567eabe`; #5 is closed in GitHub. #6/#11/#26 and PRs #23/#24 remain open; closure is not inferred from configuration merges.
+- Added standalone frontend packaging, exact-image runtime checks, owner-only main workflow, pre-publication scan/SBOM and candidate digest receipts.
+- PASS: receipt tests reject changed configuration digests, missing provenance, wrong repository and ambiguous published identities.
+- PASS: `make check test build`, browser type checks/33 unit tests/production build and three Chromium journeys; actionlint; canonical standalone frontend container with static asset and unavailable-route checks. API/migrator host-build runtime checks pass; their canonical builders remain hosted CI gates.
+- Fixed the merged #30 CI readiness race: socket readiness saw PostgreSQL’s temporary initialization server. Cloud SQL and ledger proofs now wait for TCP, matching the migration harness. `make cloud-sql-test migration-test ledger-test` passes after the fix.
+- The first frontend proof caught a self-proxy loop (default API port matched frontend port); the unconfigured image now targets unused loopback port 1. Node SIGTERM exit 143 is accepted; forced-kill exit 137 remains failure.
+- No workflow dispatched, identity enabled, registry push or cloud mutation. Trivy publication scans and real federation remain unexecuted until explicit owner setup/dispatch.
+- Next: private service-token bridge/runtime browser configuration, then Terraform rollout. Current frontend is deliberately unconfigured; all receipts are candidate-only.
 
 ## Stage ledger
 
@@ -33,7 +44,7 @@ approval is established.
 
 ## Remaining work
 
-Foundation PR #29 is merged. Review this database slice, then complete linked delivery slices;
+Foundation #29 and database #30 are merged. Review image delivery, then complete the ingress/rollout slices;
 all named cloud checks remain unexecuted.
 Project, billing, auth metadata and apply authorization block provisioning.
 PRs #23/#24 were open at review; final cloud acceptance requires their merged
@@ -42,20 +53,15 @@ Default CI remains credential-free; cloud behavior remains unverified until expl
 
 ## PR handoff
 
-Review Cloud SQL Terraform, connector and restricted migration boundary against
-#26. Bootstrap adds operational metadata outside immutable product migrations.
-Public APIs and merged migration SQL are unchanged. Runtime transport selection
-and a new migration executable are added. Infrastructure is unapplied;
-owner privately reviews plan/state and completes bootstrap. Pool budgets, recovery
-objectives and spending allocations are proposals requiring acceptance, not measured
-results. #5 remains partially open.
-Next unit: #27 authenticated application/image promotion after database review, with #7 local outbox work independently
-schedulable after its existing prerequisites are evidenced. Final proof requires
-1,000 postings, exact balances, delivery receipts/faults, denial tests, isolated
-restore, compatible rollback and seven-day measured spend. See each issue for
-named acceptance checks. Full-month #10 remains a live-pilot prerequisite.
+Review the [image contract](../contracts/image-delivery.md), build workflow and
+standalone packaging against #27. Public APIs and merged migration SQL are unchanged.
+Frontend remains unconfigured, receipts do not authorize deployment, and builder
+WIF remains owner-disabled by default. Next: runtime browser configuration and
+private service-token forwarding, then serialized Terraform migration/rollout.
+#5 is closed in GitHub; real cloud gates remain unverified. Final #12 acceptance
+still requires identity/secrets, recovery, 1,000 postings and measured spend.
 
-## Foundation evidence — current branch
+## Foundation evidence — prior slice
 
 - PASS: Terraform 1.15.7 `validate` and `test -filter=tests/foundation.tftest.hcl`, six mocked runs; Google provider 8.6.0 schema validation caught and resolved an unsupported budget notification block before handoff.
 - PASS: provider lock records signed darwin_arm64/linux_amd64 packages.
@@ -66,7 +72,7 @@ named acceptance checks. Full-month #10 remains a live-pilot prerequisite.
 - Hosted CI remains pending PR creation; staged runbook gate is required before this commit.
 - PARTIAL: `gcp-identity-boundary` proves configured trust and grants offline; live token allow/deny tests remain unexecuted. `gcp-cost-review` has an allocation envelope, not a verified regional quote. `gcp-promotion-review` confirms no branch protection/environments; build/app promotion implementation belongs to #27.
 
-## Cloud SQL evidence — current branch
+## Cloud SQL evidence — prior slice
 
 - PASS: Terraform application format/validate and three mocked tests; existing six foundation tests pass through `make infra-test`.
 - PASS: `make cloud-sql-test` uses an internal Docker network, non-superuser administrator with ADMIN on test login roles, unchanged product migrations and a runtime with no table/DDL authority. `TestRestrictedMigration`, `TestMigrationContention`, `TestMigrationDirtyFailure` and checksum cases pass.
