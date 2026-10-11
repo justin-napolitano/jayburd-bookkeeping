@@ -139,6 +139,10 @@ The [synthetic accounting resource register](testing-sources.md) describes T01
 Beancount, T02 hledger, T03 ISO 20022 artifacts and T04 the MIT synthetic
 accounting generator, with pins, review depth, rights and observed limitations.
 
+The [posting policy source notes](posting-sources.md) add P01 accrual mechanics
+and the US GAAP authority gap, P02 numeric rounding, P03 restricted functions and
+P04 strict JSON/replay handling. Read these before the first posting implementation.
+
 ## Agent maintenance rules
 
 The [contract-design source notes](contract-sources.md) add C01 (PostgreSQL

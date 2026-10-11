@@ -2,11 +2,13 @@
 
 ## Status and authority
 
-Draft OpenAPI 3.1.1: [machine-readable definition](../../api/openapi.json).
+OpenAPI 3.1.1 implementation-review contract: [machine-readable definition](../../api/openapi.json).
 No server exists. The specification describes the first posting/read/reversal/
 close/report interface; transport validation is not accounting approval. Every
 operation also follows [SQL invariants](ledger-sql.md) and [money semantics](multicurrency.md).
-Close additionally depends on reviewed close-evidence storage/workflows.
+The [posting boundary](posting-boundary.md) specifies the first executable slice.
+Close is explicitly deferred pending reviewed close-evidence storage/workflows;
+its documented route must not be mounted by the first server.
 
 ## Operations and permissions
 
@@ -34,8 +36,8 @@ must select its exact definition/profile under the [standards contract](standard
 Amounts are decimal strings, revisions are unsigned decimal strings within the
 SQL bigint range, and IDs are UUID strings. Business dates have no timezone;
 operational timestamps use RFC 3339 UTC. Reject unknown/duplicate JSON fields.
-The proposed request limit is 1 MiB and 1,000 journal lines; these are engineering
-bounds to review before implementation. Unknown account/currency/rate references,
+The selected request limit is 1 MiB and 1,000 journal lines; these are engineering
+bounds for the first implementation. Unknown account/currency/rate references,
 invalid dates and overflow fail before any durable journal writes.
 
 Mutation requests require `Idempotency-Key` and `expected_revision`. The SQL
@@ -65,7 +67,8 @@ base before publishing `/v1` and keep each problem type stable thereafter.
 | 404 | not_found: absent resource or inaccessible entity/book; indistinguishable |
 | 409 | revision_conflict, idempotency_conflict, period_closed, already_reversed, close_evidence_stale |
 | 413 | request_too_large: body limit exceeded |
-| 422 | invalid_journal, invalid_amount, invalid_currency, invalid_rate, unsupported_policy, close_evidence_required |
+| 422 | invalid_journal, invalid_amount, unsupported_policy, result_out_of_range, close_evidence_required |
+| 500 | internal_error: unexpected failure, generic detail and request ID only |
 | 503 | temporarily_unavailable: exhausted retry/deadline, Retry-After; replay same key |
 
 All financial responses use `Cache-Control: no-store`. Journal responses preserve
@@ -86,4 +89,6 @@ Entity/book/account setup, draft approvals, journal lists/pagination, statement
 import, reconciliation, settlement, revaluation and exports are separate next
 slices. Their durable obligations are recorded in the SQL contract; they have no
 invented placeholder HTTP endpoints here. First implementable slice is manual
-identity/spot posting and reads after policy/grant approval, then exact reversal.
+identity/spot posting and reads under ADR 0005 and the posting boundary, then exact reversal.
+An internal synthetic identity adapter may exercise SQL tests, but cannot stand
+in for a production bearer-token verifier.
