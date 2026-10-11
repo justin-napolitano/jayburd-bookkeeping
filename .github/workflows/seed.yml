@@ -42,7 +42,7 @@ jobs:
       - name: Build and prove isolated health-only API container
         run: bash scripts/test-api-container.sh
       - name: Lint workflow definitions
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/seed.yml
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/*.yml
       - name: Check reachable dependency vulnerabilities
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
       - name: Render reviewable issue proposals
