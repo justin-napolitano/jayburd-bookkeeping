@@ -198,3 +198,25 @@ func assertTransportProblem(t *testing.T, w *httptest.ResponseRecorder, code str
 		t.Fatal("invalid transport problem contract")
 	}
 }
+
+// TestCloudSQLSelection forbids ambiguous transports and cross-project targets before startup.
+func TestCloudSQLSelection(t *testing.T) {
+	c := Config{Mode: "managed", Listen: "127.0.0.1:8080", Origin: "https://synthetic.invalid", Project: "synthetic-project", DatabaseMode: "cloudsql", CloudSQLInstance: "synthetic-project:us-central1:jayburd-dev"}
+	if c.Validate() != nil {
+		t.Fatal("valid cloud configuration rejected")
+	}
+	c.DatabaseURL = "synthetic"
+	if c.Validate() == nil {
+		t.Fatal("mixed transports accepted")
+	}
+	c.DatabaseURL = ""
+	c.Project = "different-project"
+	if c.Validate() == nil {
+		t.Fatal("cross-project target accepted")
+	}
+	c.Project = "synthetic-project"
+	t.Setenv("JAYBURD_DATABASE_URL", "")
+	if _, err := Managed(context.Background(), c); err == nil {
+		t.Fatal("ambient DSN presence accepted")
+	}
+}

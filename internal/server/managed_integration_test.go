@@ -47,6 +47,9 @@ func TestRuntimeReadiness(t *testing.T) {
 	for _, tc := range []struct{ name, grant, revoke string }{
 		{"table_read", "GRANT SELECT ON ledger.principal TO synthetic_server", "REVOKE SELECT ON ledger.principal FROM synthetic_server"},
 		{"enrollment", "GRANT EXECUTE ON FUNCTION ledger.enroll_principal(text,text) TO synthetic_server", "REVOKE EXECUTE ON FUNCTION ledger.enroll_principal(text,text) FROM synthetic_server"},
+		{"deployment_ddl", "CREATE SCHEMA deployment; GRANT CREATE ON SCHEMA deployment TO synthetic_server", "DROP SCHEMA deployment"},
+		{"deployment_read", "CREATE SCHEMA deployment; CREATE TABLE deployment.migration_artifact(id int); GRANT USAGE ON SCHEMA deployment TO synthetic_server; GRANT SELECT ON deployment.migration_artifact TO synthetic_server", "DROP SCHEMA deployment CASCADE"},
+		{"cloud_admin", "CREATE ROLE cloudsqlsuperuser; GRANT cloudsqlsuperuser TO synthetic_server", "REVOKE cloudsqlsuperuser FROM synthetic_server; DROP ROLE cloudsqlsuperuser"},
 		{"schema_ddl", "GRANT CREATE ON SCHEMA reporting TO synthetic_server", "REVOKE CREATE ON SCHEMA reporting FROM synthetic_server"},
 		{"owner_role", "GRANT bookkeeping_owner TO synthetic_server", "REVOKE bookkeeping_owner FROM synthetic_server"},
 		{"identity_operator", "GRANT bookkeeping_identity_operator TO synthetic_server", "REVOKE bookkeeping_identity_operator FROM synthetic_server"},

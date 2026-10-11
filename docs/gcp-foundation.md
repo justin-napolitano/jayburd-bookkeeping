@@ -52,8 +52,8 @@ without identifying the lock owner. Default tests cannot exercise these cloud pa
 ## Capacity, costs and acceptance inputs
 
 Initial proposed DB pool budget for #26: API 5 per instance, publisher 2, consumer 2;
-maxima 2/1/1 give 14 connections. Allow a second revision of each (28), one migrator
-and 5 administrative connections: 34 total. Verify the actual server connection limit
+maxima 2/1/1 give 14 connections. Allow a second revision of each (28), two migrator
+and 5 administrative connections: 35 total (migration lock plus execution). Verify the actual server connection limit
 and load behavior; frontend has no SQL pool. This is a proposal for #26, not an
 implemented pool setting or permission to exhaust the server.
 

@@ -1,0 +1,4 @@
+# Owner installs before first application apply, using the pre-existing application-state bucket.
+terraform {
+  backend "gcs" {}
+}
