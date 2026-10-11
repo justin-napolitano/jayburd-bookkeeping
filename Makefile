@@ -13,6 +13,7 @@ test:
 
 build:
 	go build -trimpath -o bin/project ./cmd/project
+	go build -trimpath -o bin/corpus ./cmd/corpus
 
 backlog:
 	go run ./cmd/project backlog
