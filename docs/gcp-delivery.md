@@ -9,6 +9,8 @@ The [Cloud SQL slice](contracts/cloud-sql.md) adds unapplied database Terraform,
 IAM connector configuration and restricted migration proofs. CI now checks the Go server, synthetic PostgreSQL
 ledger and Next.js application. An API Dockerfile is available for local proof;
 it has not been published or deployed. See [application evidence](runbooks/first-app.md).
+The [image-delivery slice](contracts/image-delivery.md) adds owner-triggered candidate
+publication; its frontend remains unconfigured and rollout is not implemented.
 Delivery work is tracked by [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
 The owner accepted the synthetic architecture below; project/billing/auth metadata
 and apply authorization remain provisioning gates. Do not report placeholder deployment success.

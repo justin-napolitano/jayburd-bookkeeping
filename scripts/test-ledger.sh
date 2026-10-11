@@ -29,7 +29,7 @@ container_created=1
 docker cp db/migrations "$proof_id:/proof/migrations"
 ready=0
 for ((i=0;i<60;i++)); do
- if docker exec "$proof_id" pg_isready -U postgres >/dev/null 2>&1; then ready=1; break; fi
+ if docker exec "$proof_id" pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1; then ready=1; break; fi
  sleep 1
 done
 [[ "$ready" == 1 ]] || exit 1

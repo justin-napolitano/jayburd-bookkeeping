@@ -13,6 +13,9 @@ trap cleanup EXIT
 trap 'exit 130' INT TERM
 case "${1:-}" in
  "") docker build -f Dockerfile.migrate -t "$tag" . ;;
+ --image)
+  [[ $# == 2 && "$2" == sha256:* ]] || exit 1
+  tag="$2" ;;
  --local-build)
   # Explicit runtime-only fallback when the Docker VM lacks its outbound proxy CA.
   proof_dir="$(mktemp -d "${TMPDIR:-/tmp}/jayburd-migrate-proof.XXXXXX")"
@@ -31,9 +34,9 @@ DOCKERFILE
   docker build -f "$proof_dir/Dockerfile" -t "$tag" "$proof_dir"
   echo 'PARTIAL: host build proves runtime only; canonical source-builder remains a CI gate'
   ;;
- *) echo 'Usage: scripts/test-migrator-container.sh [--local-build]' >&2; exit 1 ;;
+ *) echo 'Usage: scripts/test-migrator-container.sh [--local-build | --image sha256:ID]' >&2; exit 1 ;;
 esac
-built=1
+if [[ "${1:-}" != --image ]]; then built=1; fi
 [[ "$(docker image inspect --format '{{.Config.User}}' "$tag")" == '65532:65532' ]]
 docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges "$tag"
 if docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges "$tag" -action=down; then
