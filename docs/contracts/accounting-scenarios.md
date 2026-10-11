@@ -78,4 +78,7 @@ OCI/elimination rules and contracts; aggregation must not be labelled consolidat
 First implementation target: ADR 0005 and the posting boundary narrow the
 synthetic slice without closing the broader JB-001 policy work. Review
 AC-01–AC-10 and FX-01–FX-06, then implement named tests from the SQL contract.
-No scenario above is currently an executed product test.
+AC-01–10 now run through the synthetic PostgreSQL posting implementation and
+fixed original-unit/balance checks. FX-01 is exercised as manual spot posting;
+full FX position/reconciliation/close workflows remain future work. See the
+[posting proof](../runbooks/posting-proof.md).

@@ -7,7 +7,8 @@ read with the [SQL dictionary](ledger-sql.md) and
 [development policy](../decisions/0005-development-accounting-policy.md).
 It resolves the earlier enforcement alternatives: restricted database functions
 own accounting invariants; Go owns trusted identity, HTTP and whole-transaction
-retry. No production implementation exists. Evidence/alternatives are in
+retry. A synthetic implementation and named test evidence now exist in the
+[posting proof](../runbooks/posting-proof.md); this is not a production release. Evidence/alternatives are in
 [posting source notes](../research/posting-sources.md).
 
 Deliver manual identity/spot posting, journal retrieval, exact reversal and a
@@ -19,7 +20,7 @@ resolve their real-entity, close-evidence or export requirements.
 
 ## SQL call contract
 
-These signatures are specifications, not a migration. All names are schema
+These signatures are implemented in migration 000002. All names are schema
 qualified; routines run as `bookkeeping_owner` with the SQL contract's trusted
 search path and explicit grants. No overloads or defaulted identity arguments.
 
@@ -148,7 +149,7 @@ failures in this slice map to invalid_journal; malformed amount to invalid_amoun
 Go never exposes raw database errors. Unexpected failures return generic 500;
 serialization/deadlock exhaustion or uncertain commit returns retryable 503.
 
-## Required PostgreSQL acceptance (not yet executed)
+## PostgreSQL acceptance matrix
 
 | Named test / evidence | Required observation |
 | --- | --- |
@@ -166,5 +167,4 @@ serialization/deadlock exhaustion or uncertain commit returns retryable 503.
 
 Use deterministic goroutine/database barriers and capture ordered outcomes. Fake
 SQL or fixture arithmetic alone cannot satisfy this matrix. Migration tests use
-only disposable PostgreSQL with synthetic seed identities; no live DSN. Record
-actual evidence before declaring the posting PR ready.
+only disposable PostgreSQL with synthetic seed identities; no live DSN. Current executed evidence and remaining gates live in the posting proof runbook.

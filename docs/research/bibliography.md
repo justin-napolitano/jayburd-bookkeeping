@@ -141,7 +141,8 @@ accounting generator, with pins, review depth, rights and observed limitations.
 
 The [posting policy source notes](posting-sources.md) add P01 accrual mechanics
 and the US GAAP authority gap, P02 numeric rounding, P03 restricted functions and
-P04 strict JSON/replay handling. Read these before the first posting implementation.
+P04 strict JSON/replay handling, P05 pinned pgx transactions and P06 reference
+version serialization. Read these before the first posting implementation.
 
 ## Agent maintenance rules
 

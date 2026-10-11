@@ -12,8 +12,9 @@ branch/worktree. Never treat a missing or canceled predecessor as completed.
 
 GitHub owns task state and discussion. Repository docs own design and evidence.
 Generated packets, issue drafts, and dashboards are disposable views.
-No application behavior exists at seed stage. Do not equate a passing tooling
-build, closed issue, or successful deployment with validated accounting.
+The synthetic posting proof is implemented; see `docs/runbooks/posting-proof.md`
+for exact evidence and limits. Do not equate a passing build, closed issue or
+successful deployment with live bookkeeping approval.
 No external Brainblast vault is required to build or resume this project.
 
 ## Data and secrets
@@ -45,7 +46,9 @@ receipt equality; Go owns transport, trusted identity and transaction retries.
 Development policy is not live-LLC approval. Do not mount the deferred close route.
 Review database contracts before product DDL. Use golang-migrate SQL migrations;
 no ORM auto-migration or application-startup migration. Merged SQL is immutable.
-Run `make migration-test` for migration/tooling changes; never use a live DSN.
+Run `make migration-test` for migration/tooling changes and `make ledger-test`
+for accounting/transaction changes; both use disposable synthetic databases,
+never a live DSN.
 
 ## Standards requirement
 

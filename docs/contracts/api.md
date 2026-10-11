@@ -3,7 +3,8 @@
 ## Status and authority
 
 OpenAPI 3.1.1 implementation-review contract: [machine-readable definition](../../api/openapi.json).
-No server exists. The specification describes the first posting/read/reversal/
+An in-process HTTP adapter exists with an injected identity interface; no
+production verifier, listener or public server is provided. The specification describes the first posting/read/reversal/
 close/report interface; transport validation is not accounting approval. Every
 operation also follows [SQL invariants](ledger-sql.md) and [money semantics](multicurrency.md).
 The [posting boundary](posting-boundary.md) specifies the first executable slice.

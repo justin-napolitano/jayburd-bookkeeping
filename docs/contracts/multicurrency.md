@@ -85,7 +85,9 @@ silently alter a user line or manufacture a balancing amount for arbitrary error
 `TestMoneyInputBounds` covers zero/2/3-decimal policies, half-way rounding, overflow,
 scale, nonfinite input and identity rules. `TestFXLifecycle` covers FX-01–FX-06,
 rate direction/staleness, period changes and reruns. `TestSettlementAllocationRace`
-covers concurrent partial settlements and final residuals. None exists yet.
+covers concurrent partial settlements and final residuals. Manual bounds/spot tests now execute against PostgreSQL; full FX lifecycle
+and settlement allocation tests remain future work. See the
+[posting proof](../runbooks/posting-proof.md).
 
 Before automated settlement/revaluation, specify position/allocation physical
 columns, operation permissions, valuation batches and reversal semantics. For the first manual posting implementation, use only ADR 0005

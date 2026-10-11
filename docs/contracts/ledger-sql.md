@@ -2,7 +2,8 @@
 
 ## Decision and scope
 
-JB-002 physical/transaction specification, not executable DDL. The first manual
+JB-002 physical/transaction specification. Migrations 000001/000002 now implement
+the synthetic manual posting subset; see [evidence](../runbooks/posting-proof.md). The first manual
 posting target is finalized for implementation review in [posting boundary](posting-boundary.md)
 and [ADR 0005](../decisions/0005-development-accounting-policy.md); their narrowed
 scope and decisions supersede earlier proposals below. Broader close/FX workflows
@@ -46,7 +47,8 @@ All columns below are NOT NULL with no default unless marked `?` (nullable) or
 `timestamptz`; `money` means the proposed validated `numeric(38,9)` domain;
 `rate` means validated `numeric(38,18)`. Codes are `text` with explicit checks;
 no float types. Exact request inputs must be checked before typmod coercion.
-These aliases describe a contract, not existing SQL types.
+The first migrations implement amount/rate domains; input text is validated
+before typmod coercion. Tables for future adjacent workflows remain contracts.
 
 | Table / row grain | Columns beyond the scope key | Keys, checks and lifecycle |
 | --- | --- | --- |
@@ -217,7 +219,8 @@ and outbox intent together, and replay cannot duplicate restored financial effec
 | `TestGoldenMonth`, `TestFXLifecycle` | Scenario arithmetic and reconciliations agree; no unsupported automated FX claim |
 | `TestSchemaCompatibility`, `TestLedgerRestoreReplay` | Forward migration compatibility and restored idempotency/history proven |
 
-All are requirements, not executed tests. ADR 0005 and the posting boundary select the synthetic development policy,
+Execution status is recorded in the posting proof runbook; full FX lifecycle
+and live recovery/cutover remain future gates. ADR 0005 and the posting boundary select the synthetic development policy,
 precision and enforcement target. A synthetic actor adapter does not approve a
 production identity provider or real-LLC setup. Close, settlement,
 reconciliation and full FX automation have additional explicitly stated gates.
