@@ -2,7 +2,9 @@
 
 ## Status and source boundary
 
-Proposed representation and operation requirements for JB-002. ISO 4217 identifies
+Representation and operation requirements for JB-002. The selected synthetic
+development profile is [ADR 0005](../decisions/0005-development-accounting-policy.md),
+with exact rounding and replay details in [posting boundary](posting-boundary.md). ISO 4217 identifies
 currencies; it does not select the accounting framework. See
 [contract sources](../research/contract-sources.md) C04 and bibliography R03/R06/R07.
 The FX examples are conditional accounting illustrations; US GAAP paragraph-level
@@ -14,10 +16,10 @@ Keep transaction currency, book functional currency and presentation currency
 separate. Functional currency belongs to an approved book policy revision. Changing
 it requires a dedicated transition contract; never reinterpret historical journals.
 
-Proposed amounts: finite `numeric(38,9)`, maximum 29 integer digits; rates:
+Selected storage bounds for the first posting slice: finite `numeric(38,9)`, maximum 29 integer digits; rates:
 finite positive `numeric(38,18)`, maximum 20 integer digits. Validate lexical scale
 and range BEFORE casting to these types, since PostgreSQL can round on coercion.
-These bounds are engineering proposals, not currency-standard requirements.
+These bounds are engineering choices, not currency-standard requirements.
 HTTP money/rates are unsigned plain-decimal strings, no exponent or grouping.
 Reject negative values, NaN, infinity and excess precision. Side conveys sign.
 
@@ -26,7 +28,8 @@ validity interval and source release. Non-currency assets need a separate future
 unit contract. Currency validity and posting precision are distinct policies;
 never assume all currencies use two decimals. Proposed functional posting scale
 is the selected currency's minor unit, bounded by storage precision, with half-even
-rounding. Currency exceptions require explicit policy; rounding is not yet approved.
+rounding. ADR 0005 selects this for the synthetic profile; real-entity exceptions still
+require explicit policy.
 
 ## Line semantics
 
@@ -85,7 +88,6 @@ rate direction/staleness, period changes and reruns. `TestSettlementAllocationRa
 covers concurrent partial settlements and final residuals. None exists yet.
 
 Before automated settlement/revaluation, specify position/allocation physical
-columns, operation permissions, valuation batches and reversal semantics. Before
-any posting implementation, approve scale/rounding and rate selection for its
-supported policy. This deliberate boundary prevents generic journal creation from
+columns, operation permissions, valuation batches and reversal semantics. For the first manual posting implementation, use only ADR 0005
+and its same-day synthetic rate policy; live rate-provider policy remains open. This deliberate boundary prevents generic journal creation from
 pretending to implement receivable subledgers or the full currency lifecycle.

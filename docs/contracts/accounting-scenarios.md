@@ -3,7 +3,8 @@
 ## Status and assumptions
 
 Draft for JB-001/JB-002. Synthetic examples are proposed acceptance oracles, not
-approved policies for actual LLCs. Basis remains unselected. Examples involving
+approved policies for actual LLCs. The development accrual/USD profile is selected in
+[ADR 0005](../decisions/0005-development-accounting-policy.md); real-entity policy remains open. Examples involving
 receivables use an illustrative accrual book with USD functional currency;
 January/February 2026 dates and UTC accounting timezone are fixture assumptions.
 Entity A and Entity B have separate books even under one owner. No tax is inferred.
@@ -56,13 +57,13 @@ A balanced trial balance alone does not prove completeness or proper classificat
 
 | Question | Draft position | Acceptance owner / blocking scope |
 | --- | --- | --- |
-| Reporting framework and accounting basis | US GAAP accrual suggested; not selected | Owner/accountant, JB-001; recognition/FX rules |
-| Functional currency and accounting timezone per book | Explicit, effective-dated approved policy; fixtures use USD/UTC | Owner/accountant; book activation |
-| Rounding and precision | See money contract; half-even suggested, explicit residual lines | Owner/accountant; money DDL/posting |
+| Reporting framework and accounting basis | Development accrual selected; US GAAP research target, not conformance | Owner/accountant, JB-001; recognition/FX rules |
+| Functional currency and accounting timezone per book | Explicit, effective-dated approved policy; development profile selects USD/UTC | Owner/accountant; book activation |
+| Rounding and precision | See money contract; development half-even selected; no automatic residual lines | Owner/accountant; money DDL/posting |
 | Opening source and cutover | Reviewed complete opening trial balance, evidence and reconciliation | Owner/accountant; opening/live use |
 | Permissions | Reader, preparer, poster, closer; trusted service actor distinct | Owner/schema reviewer; runtime grants |
 | Close/reopen and errors in prior periods | Locked periods; correction in approved open period; no reopen endpoint in first slice | Owner/accountant; close policy |
-| Rate source, dates, staleness, exceptions | Versioned policy and immutable observations | Owner/accountant; automated FX |
+| Rate source, dates, staleness, exceptions | Same-day synthetic spot profile selected; live provider policy pending | Owner/accountant; automated FX |
 
 ## Coverage and sequencing
 
@@ -74,6 +75,7 @@ implemented. Unsupported automated treatments return a typed error or review sta
 Presentation-currency translation and consolidation require separate statements,
 OCI/elimination rules and contracts; aggregation must not be labelled consolidation.
 
-First implementation gate: approve JB-001 for the selected slice, review
+First implementation target: ADR 0005 and the posting boundary narrow the
+synthetic slice without closing the broader JB-001 policy work. Review
 AC-01–AC-10 and FX-01–FX-06, then implement named tests from the SQL contract.
 No scenario above is currently an executed product test.
