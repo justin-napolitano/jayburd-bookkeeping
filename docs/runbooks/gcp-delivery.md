@@ -19,6 +19,8 @@ approval is established.
 - Fixed the merged #30 CI readiness race: socket readiness saw PostgreSQL’s temporary initialization server. Cloud SQL and ledger proofs now wait for TCP, matching the migration harness. `make cloud-sql-test migration-test ledger-test` passes after the fix.
 - The first frontend proof caught a self-proxy loop (default API port matched frontend port); the unconfigured image now targets unused loopback port 1. Node SIGTERM exit 143 is accepted; forced-kill exit 137 remains failure.
 - No workflow dispatched, identity enabled, registry push or cloud mutation. Trivy publication scans and real federation remain unexecuted until explicit owner setup/dispatch.
+- PR #31 merged at `cda91ff`; its hosted foundation/frontend/validate checks all passed, including canonical Go images and the PostgreSQL readiness fix. The receipt compatibility fix follows in a separate PR. A local Trivy 0.75.0 image scan could not download its vulnerability database because the Docker VM lacked the outbound proxy CA; no scan result is claimed and TLS verification remains enabled.
+- Local Buildx metadata proof exposed a Docker store difference: containerd reports the manifest/index ID and omits the configuration digest. Receipt validation now accepts either recorded content ID, rejects unrelated IDs, and never labels an index as a configuration digest. Named receipt tests cover both stores.
 - Next: private service-token bridge/runtime browser configuration, then Terraform rollout. Current frontend is deliberately unconfigured; all receipts are candidate-only.
 
 ## Stage ledger
