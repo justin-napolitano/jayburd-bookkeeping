@@ -48,3 +48,20 @@ Our inference: explicit send, provider-hosted links, and a fresh login after
 verification avoid custom mail/URL handling. The 60-second UI resend interval is
 our choice, not a documented provider quota. Live sender, inbox delivery and
 expired-link behavior are unproven and require owner review.
+
+## BA04 — Separate static rehearsal build
+
+Reviewed 2026-10-12: [Vite build options](https://vite.dev/config/build-options)
+(output directory, source maps) and [shared options](https://vite.dev/config/shared-options)
+(root, public directory, environment directory and Oxc JSX configuration).
+These configure a separate browser bundle; they do not provide authentication or
+network isolation. The implementation pins the existing Vite 8.3.4 toolchain as
+a direct dev dependency and disables public-file copying, environment-file loading
+and source maps. Our Node server restricts serving independently. BA01–BA03 remain
+the provider authority. Synthetic browser interception cannot prove real mail,
+revocation or API-key restrictions; the owner performs that separate rehearsal.
+
+BA04 operator setup also reviewed Google's [Identity Platform REST guide](https://docs.cloud.google.com/identity-platform/docs/use-rest-api),
+“Before you begin”: Providers → Application setup details exposes the application's
+`apiKey`. Only the owner copies that browser identifier into the rehearsal; no
+Admin token/credential retrieval commands or REST login examples are executed.

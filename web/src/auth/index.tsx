@@ -3,18 +3,28 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { AuthController } from './controller';
 import { createBrowserAuth } from './firebase';
-import { parsePublicAuthConfig } from './config';
+import { parsePublicAuthConfig, type PublicAuthConfig } from './config';
 
 const AuthContext = createContext<AuthController | null>(null);
 /** Production composition only; synthetic adapters are injected directly into controller tests. */
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children, config: suppliedConfig }: { children: ReactNode; config?: PublicAuthConfig }) {
   const [controller, setController] = useState(() => new AuthController(null));
   useEffect(() => {
+    // A changed or invalid supplied configuration must not retain the previous controller.
+    setController(new AuthController(null));
     const abort = new AbortController();
     let next: AuthController | undefined;
     // Configuration is fetched once per mount; late responses cannot recreate a signed-out session.
     void (async () => {
       try {
+        // The separate local rehearsal supplies public identifiers; production fetches runtime configuration.
+        if (suppliedConfig !== undefined) {
+          const config = parsePublicAuthConfig(suppliedConfig);
+          if (!config) return;
+          next = new AuthController(createBrowserAuth(config));
+          setController(next);
+          return;
+        }
         const response = await fetch('/api/auth-config', {cache: 'no-store', credentials: 'omit', redirect: 'error',
           signal: AbortSignal.any([abort.signal, AbortSignal.timeout(5000)])});
         if (!response.ok) return;
@@ -25,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch { /* Configuration failures keep sign-in unavailable without exposing raw errors. */ }
     })();
     return () => { abort.abort(); if (next) void next.signOut(); };
-  }, []);
+  }, [suppliedConfig]);
   return <AuthContext.Provider value={controller}>{children}</AuthContext.Provider>;
 }
 /** Expose session boundaries without exposing Firebase users or token snapshots. */

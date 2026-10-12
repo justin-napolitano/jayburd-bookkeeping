@@ -70,3 +70,8 @@ Alternative custom email handlers/mail infrastructure add action-code handling
 and delivery responsibilities without benefit to this slice, so are deferred.
 Real inbox delivery, link expiry/reuse, sender configuration and TOTP enrollment
 require owner evidence; synthetic tests do not establish them.
+
+The [local identity rehearsal](identity-rehearsal.md) reuses this component through
+validated public configuration without mounting the financial application. It is
+an explicit operator tool, not an application route or a substitute for Go/SQL
+identity acceptance. Its browser-only success screen never grants ledger access.
