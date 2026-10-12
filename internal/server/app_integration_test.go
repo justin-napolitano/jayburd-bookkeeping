@@ -25,6 +25,7 @@ import (
 var appProofMarker = flag.String("app-proof-marker", "", "public per-invocation synthetic readiness marker")
 
 var appProof = flag.Bool("app-proof", false, "run only the disposable browser integration fixture")
+var appProofDemo = flag.Bool("app-proof-demo", false, "seed fictional review books in the disposable fixture")
 
 // appProofAuth exists only in the integration-tagged test executable, never cmd/api.
 type appProofAuth struct{}
@@ -66,6 +67,11 @@ func TestAppIntegrationServer(t *testing.T) {
 	defer pool.Close()
 	if err = runtimeReady(setupCtx, pool); err != nil {
 		t.Fatal("synthetic runtime permissions rejected")
+	}
+	if *appProofDemo {
+		if err := seedDemo(ctx, admin, pool); err != nil {
+			t.Fatal("synthetic demo seed rejected", err)
+		}
 	}
 	app, err := New(Config{Mode: "managed", Listen: "0.0.0.0:8080", Origin: "http://localhost:39083", Project: "synthetic-browser-proof", DatabaseURL: "synthetic-injected-test-pool"}, Dependencies{Auth: appProofAuth{}, Operations: &ledger.Service{DB: pool}, Ready: func(ctx context.Context) error { return runtimeReady(ctx, pool) }})
 	if err != nil {
