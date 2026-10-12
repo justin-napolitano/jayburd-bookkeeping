@@ -9,6 +9,10 @@ deployment grants and identity lookup role are new unapplied #27 additions. No a
 value or service-account key is created. Development foundation was applied on
 2026-10-12; [bootstrap evidence](../../../docs/runbooks/gcp-delivery.md) records scope and limits.
 
+Identity Toolkit activation now belongs only to the separate
+[identity root](../identity/README.md). Its state uses the owner-only foundation
+bucket with prefix `identity`; never grant application deployment identities access.
+
 Pinned tools: Terraform 1.15.7 and Google provider 8.6.0; checksums cover Linux AMD64
 and macOS ARM64. `make infra-test` copies only allowlisted source/lock/test files to
 a temporary directory, clears ambient environment/configuration, disables backend
