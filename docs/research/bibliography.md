@@ -160,6 +160,8 @@ delivery; provider documentation and budget assumptions are not deployment proof
 G24 reviews Cloud SQL IAM database-role assignment and pinned provider behavior
 for a possible administrator bootstrap path; it does not establish role compatibility
 or authorize elevated application logins.
+G25 covers the pinned owner-operated IAM proxy, private socket boundary and
+outbound connector requirement; read it before diagnosing bootstrap connectivity.
 
 ## Agent maintenance rules
 
