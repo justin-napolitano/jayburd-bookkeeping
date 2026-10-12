@@ -61,3 +61,5 @@ and its billing link/foundation are established; see the delivery evidence ledge
 `us-central1` remains provisional. See [GCP delivery](gcp-delivery.md),
 [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25) and
 the [delivery evidence ledger](runbooks/gcp-delivery.md).
+
+- [Cloud Run rollout contract](contracts/cloud-run-rollout.md) and [release review instructions](../deploy/README.md).

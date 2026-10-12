@@ -11,7 +11,7 @@ IAM connector configuration and restricted migration proofs. CI now checks the G
 ledger and Next.js application. An API Dockerfile is available for local proof;
 it has not been published or deployed. See [application evidence](runbooks/first-app.md).
 The [image-delivery slice](contracts/image-delivery.md) adds owner-triggered candidate
-publication; its frontend remains unconfigured and rollout is not implemented.
+publication; runtime identity configuration is implemented. The [rollout slice](contracts/cloud-run-rollout.md) adds reviewed digest promotion and separate runtime/migration state, without provisioning approval.
 Delivery work is tracked by [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
 The owner authorized foundation provisioning. Application auth configuration and
 application/database apply scope remain separate provisioning gates. Do not report placeholder deployment success.
