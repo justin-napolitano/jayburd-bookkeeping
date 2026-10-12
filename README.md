@@ -15,6 +15,9 @@ The first application adds a bounded Go server, managed sign-in/TOTP screens,
 book setup, split journal review/posting and trial balance. Default server mode
 exposes health only; the UI remains unconfigured until the owner supplies public
 identity configuration. See [application evidence](docs/runbooks/first-app.md).
+Reviewed setup and posting requests now survive a lost response or browser restart:
+prepare, execute, recover the saved result, then explicitly acknowledge it.
+See [command recovery evidence](docs/runbooks/command-recovery.md).
 There is no live identity configuration, bank connection, cloud deployment or
 approval to use these books as a system of record.
 
@@ -24,7 +27,7 @@ approval to use these books as a system of record.
 2. Read the [architecture decision](docs/decisions/0001-architecture.md).
 3. Follow the [delivery workflow](docs/delivery.md).
 4. Review [Infisical setup](docs/infisical.md).
-5. Resume from the [application proof and remaining gates](docs/runbooks/first-app.md).
+5. Resume from the [recovery proof and remaining gates](docs/runbooks/command-recovery.md).
 
 For source material and reading priorities, use the
 [annotated bibliography](docs/research/bibliography.md).
@@ -57,6 +60,10 @@ Database work is SQL-first, using `golang-migrate` and pgx, without an ORM. Star
 requires Docker and tests disposable PostgreSQL migrations. `make ledger-test`
 runs the synthetic accounting, permission, concurrency and recovery proof on an
 internal Docker network with no published database ports.
+`make app-integration` requires those tools plus the installed browser and tests
+the real Next rewrite, Go HTTP service and PostgreSQL together. It drops a response
+after commit and proves recovery without a duplicate journal. Identity is synthetic;
+this does not test the managed sign-in provider. Ports 39081–39083 must be free.
 
 The backlog is a one-time issue seed, not a mirror of GitHub status. After
 publication, GitHub Issues own execution state and native dependency links.

@@ -153,4 +153,13 @@ describe("API client boundary", () => {
       expect(rejectSession).not.toHaveBeenCalled();
     },
   );
+  it("sends command transitions without inventing an idempotency header", async () => {
+    const { fetch, api } = fixture();
+    fetch.mockResolvedValue(new Response("{}", { status: 200 }));
+    await api("/v1/commands/synthetic-command/execute", "{}");
+    expect(fetch.mock.calls[0][1]?.headers).not.toHaveProperty(
+      "Idempotency-Key",
+    );
+    expect(fetch.mock.calls[0][1]?.body).toBe("{}");
+  });
 });
