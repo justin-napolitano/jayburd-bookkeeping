@@ -87,3 +87,19 @@ resource "google_project_iam_member" "sql_login" {
   role     = "roles/cloudsql.instanceUser"
   member   = "serviceAccount:jayburd-dev-${each.key}@${var.project_id}.iam.gserviceaccount.com"
 }
+
+# Explicit operator-only elevation; no runtime membership is changed by this resource.
+resource "google_sql_user" "bootstrap_operator" {
+  count          = var.bootstrap_operator_email == null ? 0 : 1
+  project        = var.project_id
+  instance       = google_sql_database_instance.ledger.name
+  name           = var.bootstrap_operator_email
+  type           = "CLOUD_IAM_USER"
+  database_roles = ["cloudsqlsuperuser"]
+}
+resource "google_project_iam_member" "bootstrap_operator" {
+  for_each = var.bootstrap_operator_email == null ? toset([]) : toset(["roles/cloudsql.client", "roles/cloudsql.instanceUser"])
+  project  = var.project_id
+  role     = each.value
+  member   = "user:${var.bootstrap_operator_email}"
+}

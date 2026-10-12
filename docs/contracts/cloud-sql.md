@@ -51,6 +51,28 @@ bookkeeping_owner, and gives migrator access to deployment. API has no DDL/table
 or enrollment grant. Connection limits are 20 API and 2 migrator across revisions.
 Actual Cloud SQL administrator compatibility remains a live gate.
 
+An explicit `bootstrap_operator_email` application-root input may provision one
+human IAM SQL operator with `cloudsqlsuperuser` membership and Cloud SQL
+client/login IAM bindings; default null creates none. API/migrator resources
+remain unchanged. This operator is a development administration identity, never
+a runtime identity. The owner authorized evaluating this G24 path after #42.
+Membership does not prove CREATEROLE, ownership or authority to alter other IAM
+logins; verify those before bootstrap. Password administration is the alternative,
+with owner-only credential injection if required.
+
+For this owner-operated check only, the pinned Cloud SQL Auth Proxy v2.26.0 may
+consume existing ADC internally with automatic IAM authentication. Use a private
+Unix-socket directory (0700), not a network listener; psql ignores startup files
+and never prompts for a password. Do not expose tokens, credential files or raw
+provider errors. The application connector remains metadata-only. Stop the proxy
+after the check. Failed checks must not leave an unnecessary administrator: remove
+the optional operator through Terraform after confirming it owns no objects.
+After successful bootstrap, role/schema ownership must be transferred or retained
+explicitly before removing the login; never silently abandon a privileged user.
+`database_roles` is write-only: zero drift is not proof of SQL membership. Verify
+SQL privileges separately, and retain the explicit input on later applies while
+the operator is needed. See [IAM bootstrap evidence](../runbooks/iam-bootstrap.md).
+
 `cmd/migrate` defaults to offline `-action=verify`. Explicit `-action=up -instance=...`
 uses IAM transport and golang-migrate 4.20.1; no down/force/target command exists.
 It rejects invalid artifacts before network access and unsafe migrator privileges,
