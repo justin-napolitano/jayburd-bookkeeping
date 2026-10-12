@@ -3,6 +3,25 @@
 No enabled release manifest is committed. This implementation does not authorize
 or execute a cloud apply. Follow the [rollout contract](../docs/contracts/cloud-run-rollout.md).
 
+## Migration-only bootstrap release
+
+To gather #26 evidence before full application promotion, follow the
+[migration-only contract](../docs/contracts/migration-release.md). Use the same
+`deploy/dev-release.json` path and exact-hash `deploy-dev.yml` dispatch. Set
+`operation` to `migrate`; omit `firebaseApiKey` and `previousDeployment`, and keep
+only bootstrap/compatibility evidence. All three same-build image receipts remain
+required; only the migrator image executes. Foundation #5 must be closed and #44
+merged and ancestral to both the workflow and build commits.
+
+Owner reviews the exact digest, source, bootstrap and compatibility evidence
+before dispatch. This operation applies only the migration root, validates a
+successful immutable execution, emits a migration receipt and exits. No runtime
+root, frontend configuration or service smoke runs. It does not close #26 or
+approve a later promote/rollback. Provider readback failure requires investigation
+because SQL may already have committed. Never force dirty state or down-migrate.
+
+## Full application promotion and rollback
+
 Before dispatch: merge recovery #23 and synthetic tooling #24; evidence and close
 identity #6, secrets #11 and database #26. Owner applies reviewed foundation changes
 with deployment federation enabled, provisions the database and runs reviewed SQL

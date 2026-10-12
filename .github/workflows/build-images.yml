@@ -60,6 +60,7 @@ jobs:
             *) exit 1 ;;
           esac
       - name: Block high and critical image vulnerabilities
+        id: image_scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: v0.75.0
@@ -72,6 +73,14 @@ jobs:
           format: json
           output: receipts/vulnerabilities.json
           cache: false
+      - name: Retain failed vulnerability report for diagnosis
+        if: failure() && steps.image_scan.outcome == 'failure'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rejected-scan-${{ matrix.component }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: receipts/vulnerabilities.json
+          retention-days: 7
+          if-no-files-found: warn
       - name: Record dependency inventory
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
