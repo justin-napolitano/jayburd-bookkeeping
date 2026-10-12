@@ -11,7 +11,7 @@ exchange remain unverified. See the [evidence ledger](runbooks/gcp-delivery.md).
 [Bootstrap instructions](../infra/gcp/foundation/README.md) own the exact commands.
 The [delivery contract](gcp-delivery.md) owns the selected architecture.
 
-## Identity and state boundary
+## Applied bootstrap identity and state boundary
 
 | Identity | Granted in this slice | Later owner |
 | --- | --- | --- |
@@ -23,7 +23,10 @@ The [delivery contract](gcp-delivery.md) owns the selected architecture.
 | Publisher, consumer | Separate accounts only | #7 owns task enqueue/handling and SQL receipt rights |
 | Scheduler, task-invoker | Separate accounts only | #7 scopes invoke/token permissions to the specific handlers |
 
-Foundation state has no application-deployer grant. Both buckets enforce uniform
+The table records the initial applied bootstrap. New, unapplied #27 source moves
+deployer state access to a third runtime bucket and adds separately disabled
+deployment federation; the [rollout contract](contracts/cloud-run-rollout.md) owns
+its permissions and promotion gate. Foundation state has no application-deployer grant. Both buckets enforce uniform
 access, public-access prevention, versioning and Terraform deletion guards. These grants
 do not erase inherited owner/org permissions; verify effective IAM before apply.
 Infisical impersonation/secret containers and values stay in #11; this foundation

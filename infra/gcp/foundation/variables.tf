@@ -36,3 +36,9 @@ variable "enable_github_build_identity" {
   type        = bool
   default     = false
 }
+
+variable "enable_github_deploy_identity" {
+  description = "Owner opt-in after reviewing runtime rollout authority; separate from build federation."
+  type        = bool
+  default     = false
+}
