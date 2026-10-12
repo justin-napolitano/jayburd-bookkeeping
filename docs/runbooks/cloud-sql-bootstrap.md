@@ -40,6 +40,8 @@ source; no real financial data, credential retrieval or plan/state inspection.
 
 Follow-up: [IAM operator implementation and connectivity evidence](iam-bootstrap.md)
 records the next attempt and its local transport blocker.
+The subsequent [Cloud Shell bootstrap](cloud-shell-bootstrap.md) succeeded;
+follow that record for current role state and operator retention.
 
 1. Establish the administrative SQL bootstrap path. The current Terraform root
    provisions only API/migrator logins; neither is an administrator. G24 in the
