@@ -7,8 +7,10 @@ Terraform runtime rollout implementation slice (#27) under [epic #25](https://gi
 GitHub owns current task state; this ledger records decisions and observed review
 results. Terraform foundation/database configuration, explicit IAM connector and
 restricted migration runner are implemented. Foundation infrastructure is now applied;
-application/database deployment, live build-token exchange and live-bookkeeping
-approval remain unestablished.
+Cloud SQL provisioning is now applied; SQL bootstrap/migration, application
+deployment, live build-token exchange and live-bookkeeping approval remain
+unestablished. Current results and next gates are in the
+[Cloud SQL provisioning runbook](cloud-sql-bootstrap.md).
 
 ## Runtime rollout slice — current branch
 

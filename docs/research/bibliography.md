@@ -157,6 +157,9 @@ authentication, Terraform mock tests, state bootstrap, GitHub federation, the pi
 migration role design, standalone packaging, image provenance limits and private
 service invocation, runtime identity configuration, and explicit quota-project settings for user ADC bootstrap. Read its section-level review limits before implementing cloud
 delivery; provider documentation and budget assumptions are not deployment proof.
+G24 reviews Cloud SQL IAM database-role assignment and pinned provider behavior
+for a possible administrator bootstrap path; it does not establish role compatibility
+or authorize elevated application logins.
 
 ## Agent maintenance rules
 
