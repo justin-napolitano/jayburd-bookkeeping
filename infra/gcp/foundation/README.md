@@ -2,9 +2,10 @@
 
 ## Implemented boundary
 
-Issue #5 provisions only foundation APIs, nine separated identities, two private
-versioned state buckets, immutable image storage, disabled GitHub build federation
-and project-scoped USD 50 budget alerts. No application, database, queue, secret
+Foundation source defines APIs, nine separated identities, three private
+versioned state buckets, immutable image storage, independently disabled build and
+deployment federation and project-scoped USD 50 budget alerts. The runtime bucket,
+deployment grants and identity lookup role are new unapplied #27 additions. No application, database, queue, secret
 value or service-account key is created. Development foundation was applied on
 2026-10-12; [bootstrap evidence](../../../docs/runbooks/gcp-delivery.md) records scope and limits.
 
@@ -40,9 +41,11 @@ budget management; do not give these to a runtime or builder account.
    with the actual newly created foundation bucket name. Verify migration privately;
    retain a secure recovery copy according to owner retention policy. Never commit
    or send local state/backups to agents. Never use the application bucket here.
-4. Future foundation changes remain owner-operated. #26/#27 configure a separate
-   application root and its bucket. GitHub builder cannot read either state bucket;
-   deployer has object access only to application state and no federation yet.
+4. Future foundation changes remain owner-operated. Preserve existing explicit
+   build enablement when updating this project. Application state belongs to the
+   owner-operated database root; runtime bucket holds separate runtime/migration
+   prefixes. The new source moves deployer object access from application to runtime
+   state. Review that grant replacement; do not move existing database state.
 
 ## Promotion gate
 
@@ -53,7 +56,7 @@ commit-to-digest receipt, no secret access. Federation independently restricts n
 repository/owner/actor IDs, main ref and exact workflow identity/event.
 
 The merged build-images workflow is now available; the development provider was
-explicitly enabled during owner-authorized bootstrap. No GitHub deployment identity can
-apply Terraform. Deployment automation is #27 and must establish an actual promotion
-boundary first. Current private main protection returned HTTP 403 and no environments
+explicitly enabled during owner-authorized bootstrap. Deployment federation remains disabled until the owner reviews and applies
+`enable_github_deploy_identity=true`. Read the [rollout contract](../../../docs/contracts/cloud-run-rollout.md)
+and release manifest gate before enabling its privileged release identity. Current private main protection returned HTTP 403 and no environments
 exist; do not describe manual review conventions as enforced branch protection.

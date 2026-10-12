@@ -185,3 +185,5 @@ Apply the [decision evidence standard](decision-evidence.md) and
 records in the same change as a source-dependent decision. Unresolved FX policy,
 message-profile selection and export mappings remain research work; this guide
 does not declare them complete.
+
+Runtime rollout, job ordering, IAM ingress and revocation permission references are annotated as G19–G23 in the [GCP source register](gcp-sources.md).

@@ -62,3 +62,8 @@ infra-test:
 .PHONY: cloud-sql-test
 cloud-sql-test:
 	bash scripts/test-cloud-sql.sh
+
+.PHONY: release-test
+release-test:
+	node --test scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs
+	bash scripts/test-deploy-dev.sh
