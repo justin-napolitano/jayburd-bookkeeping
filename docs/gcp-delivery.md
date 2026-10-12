@@ -2,9 +2,10 @@
 
 ## Status
 
-Cloud delivery remains unapplied. The [foundation](gcp-foundation.md) now has
-Terraform configuration and credential-free mocked CI; project/billing metadata,
-live federation and application deployment remain unverified.
+The [foundation](gcp-foundation.md) was applied on 2026-10-12 to
+`jayburd-bookkeeping-dev` (project number `9088794002`), with billing linked,
+remote Terraform state and build federation configured. Live OIDC exchange and
+application/database deployment remain unverified.
 The [Cloud SQL slice](contracts/cloud-sql.md) adds unapplied database Terraform,
 IAM connector configuration and restricted migration proofs. CI now checks the Go server, synthetic PostgreSQL
 ledger and Next.js application. An API Dockerfile is available for local proof;
@@ -12,8 +13,8 @@ it has not been published or deployed. See [application evidence](runbooks/first
 The [image-delivery slice](contracts/image-delivery.md) adds owner-triggered candidate
 publication; its frontend remains unconfigured and rollout is not implemented.
 Delivery work is tracked by [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
-The owner accepted the synthetic architecture below; project/billing/auth metadata
-and apply authorization remain provisioning gates. Do not report placeholder deployment success.
+The owner authorized foundation provisioning. Application auth configuration and
+application/database apply scope remain separate provisioning gates. Do not report placeholder deployment success.
 
 ## Accepted synthetic deployment — 2026-10-11
 

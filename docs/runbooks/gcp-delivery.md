@@ -3,14 +3,39 @@
 
 ## Status and boundary
 
-Image-delivery implementation slice (#27) under [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
+Owner-authorized development foundation bootstrap under [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
 GitHub owns current task state; this ledger records decisions and observed review
 results. Terraform foundation/database configuration, explicit IAM connector and
-restricted migration runner are implemented. No infrastructure
-has been applied and no cloud authentication, deployment or live-bookkeeping
-approval is established.
+restricted migration runner are implemented. Foundation infrastructure is now applied;
+application/database deployment, live build-token exchange and live-bookkeeping
+approval remain unestablished.
 
-## Image-delivery evidence — current branch
+## Foundation bootstrap — 2026-10-12
+
+Decision: owner explicitly authorized creating/linking the development project,
+then bootstrapping Terraform and GitHub build identity. Existing merged source
+`ea48cef` was used unchanged; no application/database provisioning or image
+workflow dispatch was performed.
+
+- Project `jayburd-bookkeeping-dev`, number `9088794002`, billing link verified.
+- PASS: Terraform 1.15.7/provider 8.6.0 init/validate and foundation apply. Nine component service accounts, immutable image repository and active repository/owner/actor/main/workflow-dispatch restricted provider were read back through GCP APIs.
+- PASS: monthly USD 50 budget, project filter and 50/80/100% thresholds read back. These are notifications, not a spending cap; delivery of notifications remains untested.
+- PASS: foundation state migrated to `gs://jayburd-bookkeeping-dev-jayburd-dev-foundation-state`, prefix `foundation`. Application state has its separate bucket. State/plan contents were not retrieved or displayed.
+- PASS: GitHub variables `GCP_PROJECT_ID` and `GCP_PROJECT_NUMBER` set and read back. Shared CLI account initially selected `JNA31A_AIT`; switched to existing `justin-napolitano` login and verified immutable repo/owner IDs before configuring.
+- Initial applies were partial: Budget API rejected user ADC without an explicit quota project. `USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT=jayburd-bookkeeping-dev` resolved it; source G17 records the documented setting.
+- A separate gcloud Storage metadata probe failed certificate validation in the local Python trust chain. TLS verification was preserved; Terraform GCS backend migration succeeded.
+- PASS: remote-backend `terraform plan -detailed-exitcode` returned 0 (no changes); contents remained private. Actual GitHub token exchange, negative trust tests and image publication are not claimed.
+
+Private operational directory: `/private/tmp/jayburd-dev-bootstrap/.local/bootstrap/foundation`.
+Owner-only output logs and local recovery files remain under its parent; do not
+open, stage, or upload them. Future operators can initialize the same merged
+foundation source against the above bucket/prefix after owner authentication.
+Use project/number/billing inputs and `enable_github_build_identity=true` explicitly
+with the quota-project environment settings above; the repository default remains
+disabled for new installations. Next: application auth/ingress, Infisical and
+Terraform-owned rollout; cloud database and application are still unapplied.
+
+## Image-delivery evidence — prior slice
 
 - PR #30 merge verified at `567eabe`; #5 is closed in GitHub. #6/#11/#26 and PRs #23/#24 remain open; closure is not inferred from configuration merges.
 - Added standalone frontend packaging, exact-image runtime checks, owner-only main workflow, pre-publication scan/SBOM and candidate digest receipts.
@@ -37,6 +62,9 @@ approval is established.
 
 ## Current evidence
 
+Current bootstrap results are recorded above; the following items preserve prior
+planning evidence. Local `make check test build` also passed for this documentation update.
+
 - PASS: issue creation/edit commands returned expected URLs; native sub-issue and dependency mutations succeeded.
 - PASS: GitHub API read-back confirmed epic children 5/7/11/12/26/27; #26 blocked by #5; #27 blocked by #5/#6/#11/#26; #12 blocked by #5/#6/#7/#11/#26/#27. #13 retains #10/#12.
 - PASS: `PATH=/private/tmp/jayburd-toolchain-1.26.9/go/bin:$PATH GOCACHE=/private/tmp/jayburd-go-cache make check test build` (Go vet/race tests, documentation links, migration-file checks and binaries). Initial sandbox cache-write denial resolved by an approved rerun; no cloud credentials used.
@@ -46,22 +74,21 @@ approval is established.
 
 ## Remaining work
 
-Foundation #29 and database #30 are merged. Review image delivery, then complete the ingress/rollout slices;
-all named cloud checks remain unexecuted.
-Project, billing, auth metadata and apply authorization block provisioning.
-PRs #23/#24 were open at review; final cloud acceptance requires their merged
-capabilities. Open historical issues are not closed or declared complete here.
-Default CI remains credential-free; cloud behavior remains unverified until explicit provisioning.
+No GitHub token exchange or image publication has been executed.
+
+Next: runtime browser configuration and private service-token forwarding, then
+serialized Terraform migration/rollout. Identity and Infisical acceptance remain
+open. PRs #23/#24 were open at the last feature review; recheck before final cloud
+acceptance. Final #12 proof still requires recovery, 1,000 postings and measured
+spend. Default CI remains credential-free. No live-bookkeeping approval follows
+from foundation provisioning.
 
 ## PR handoff
 
-Review the [image contract](../contracts/image-delivery.md), build workflow and
-standalone packaging against #27. Public APIs and merged migration SQL are unchanged.
-Frontend remains unconfigured, receipts do not authorize deployment, and builder
-WIF remains owner-disabled by default. Next: runtime browser configuration and
-private service-token forwarding, then serialized Terraform migration/rollout.
-#5 is closed in GitHub; real cloud gates remain unverified. Final #12 acceptance
-still requires identity/secrets, recovery, 1,000 postings and measured spend.
+Foundation bootstrap is complete and remote-state verification reports no drift.
+Review this operational record and explicit quota-project instructions. Future
+foundation changes use the same private GCS backend. No Terraform source,
+application code, SQL, credentials, plan or state artifacts are included.
 
 ## Foundation evidence — prior slice
 

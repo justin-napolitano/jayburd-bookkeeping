@@ -5,7 +5,8 @@
 Issue #5 provisions only foundation APIs, nine separated identities, two private
 versioned state buckets, immutable image storage, disabled GitHub build federation
 and project-scoped USD 50 budget alerts. No application, database, queue, secret
-value or service-account key is created. No resource has been applied.
+value or service-account key is created. Development foundation was applied on
+2026-10-12; [bootstrap evidence](../../../docs/runbooks/gcp-delivery.md) records scope and limits.
 
 Pinned tools: Terraform 1.15.7 and Google provider 8.6.0; checksums cover Linux AMD64
 and macOS ARM64. `make infra-test` copies only allowlisted source/lock/test files to
@@ -27,7 +28,10 @@ budget management; do not give these to a runtime or builder account.
    billing_account_id; leave enable_github_build_identity false. Never include values
    for application secrets. Owner reviews Terraform plans privately; agents do not
    retrieve plan/state artifacts.
-2. Run from this directory: `terraform init`, then owner-reviewed
+2. For user ADC, set `USER_PROJECT_OVERRIDE=true` and
+   `GOOGLE_BILLING_PROJECT` to the selected project for Terraform commands. The
+   budget API requires an explicit quota project; this does not change credentials.
+   Run from this directory: `terraform init`, then owner-reviewed
    `terraform plan -var-file=owner.tfvars` and `terraform apply -var-file=owner.tfvars`.
    The first execution deliberately uses local state; keep it private and protected.
 3. After successful creation, install the GCS backend using
@@ -48,7 +52,8 @@ main only, exact audience, isolated tests/build/scan before authentication, immu
 commit-to-digest receipt, no secret access. Federation independently restricts numeric
 repository/owner/actor IDs, main ref and exact workflow identity/event.
 
-There is no build-images workflow in this slice. No GitHub deployment identity can
+The merged build-images workflow is now available; the development provider was
+explicitly enabled during owner-authorized bootstrap. No GitHub deployment identity can
 apply Terraform. Deployment automation is #27 and must establish an actual promotion
 boundary first. Current private main protection returned HTTP 403 and no environments
 exist; do not describe manual review conventions as enforced branch protection.
