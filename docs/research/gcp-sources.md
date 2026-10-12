@@ -130,3 +130,15 @@ metadata-only connector. A failed TCP 3307 check is evidence of local reachabili
 failure, not proof of a particular firewall rule. Resume on a permitted network or
 review a GCP runner; do not weaken Cloud SQL transport policy. Provider example
 commands that print access tokens are not adopted.
+
+## G26 — Cloud Shell command access — 2026-10-12
+
+Google, [Launch Cloud Shell](https://docs.cloud.google.com/shell/docs/launching-cloud-shell),
+console launch and local CLI connection sections; installed `gcloud cloud-shell ssh`
+help and SDK `command_lib/cloud_shell/util.py`, SSH argument/setup code. Reviewed
+these sections, not the entire SDK. Google documents remote command/file access;
+the CLI's `--authorize-session` explicitly transfers authorization and was omitted.
+The installed custom key-path flag was incorrectly declared boolean; default SDK
+SSH handling worked without reading or overwriting keys. Existing Cloud Shell
+authorization sufficed for the pinned proxy's IAM login. This is observed owner
+administration, not a new runtime authentication path or migration identity.
