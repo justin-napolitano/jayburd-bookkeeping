@@ -154,7 +154,7 @@ The [GCP source register](gcp-sources.md) describes managed request billing,
 Cloud Tasks pricing and duplicate delivery, Cloud SQL connectivity and IAM
 authentication, Terraform mock tests, state bootstrap, GitHub federation, the pinned Cloud SQL connector and restricted
 migration role design, standalone packaging, image provenance limits and private
-service invocation, and explicit quota-project settings for user ADC bootstrap. Read its section-level review limits before implementing cloud
+service invocation, runtime identity configuration, and explicit quota-project settings for user ADC bootstrap. Read its section-level review limits before implementing cloud
 delivery; provider documentation and budget assumptions are not deployment proof.
 
 ## Agent maintenance rules

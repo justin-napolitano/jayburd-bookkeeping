@@ -38,7 +38,7 @@ TLS termination, network access and abuse rate limits remain deployment gates.
 
 ## HTTP lifecycle
 
-The bearer-only frontend uses a same-origin `/v1/` rewrite. Configure one exact
+The bearer-only frontend uses the [same-origin `/v1/` bridge](private-api-bridge.md). Configure one exact
 HTTPS origin; explicit `http://localhost` or `http://127.0.0.1` origins support local
 development. Origin changes grant no CORS or cookie authority. No query token,
 public signup, actor header or close endpoint exists.

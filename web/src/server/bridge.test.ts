@@ -1,0 +1,113 @@
+// @vitest-environment node
+import {afterEach, describe, expect, it, vi} from 'vitest';
+import {createBridge} from './bridge';
+const env = {BOOKKEEPING_API_MODE:'cloud-run', BOOKKEEPING_API_ORIGIN:'https://api-synthetic.run.app', BOOKKEEPING_PUBLIC_ORIGIN:'https://books.example.invalid'};
+const bearer = 'Bearer synthetic.user.signature';
+/** Synthetic requests exercise the transport boundary without executing real provider calls. */
+function request(path='/v1/workspace', headers: Record<string,string>={}, body?:string) {
+  return new Request('https://books.example.invalid'+path, {method:body === undefined ? 'GET':'POST',
+    headers:{Authorization:bearer, Origin:env.BOOKKEEPING_PUBLIC_ORIGIN, ...headers}, body});
+}
+/** The fake metadata response is intentionally not a valid signed identity credential. */
+function metadata() { return new Response('synthetic.service.signature', {headers:{'Metadata-Flavor':'Google'}}); }
+/** Model one metadata fetch followed by an owned JSON API response. */
+function transport(response=Response.json({amount:'12.30'})) { return vi.fn<typeof fetch>().mockResolvedValueOnce(metadata()).mockResolvedValueOnce(response); }
+afterEach(() => vi.useRealTimers());
+describe('private API bridge', () => {
+ it('keeps user/service identities separate and forwards only exact replay bytes and allowed headers', async () => {
+  const fetcher=transport(); const handler=createBridge(fetcher,()=>env);
+  const body='{"amount":"12.30","request":"unchanged"}';
+  const result=await handler(request('/v1/setup', {'Content-Type':'application/json','Idempotency-Key':'synthetic-key','Cookie':'private-cookie','X-Serverless-Authorization':'Bearer injected','X-Actor-ID':'injected','Forwarded':'host=evil.invalid'},body));
+  expect(result.status).toBe(200); expect(await result.text()).toBe('{"amount":"12.30"}');
+  const metadataURL=new URL(String(fetcher.mock.calls[0][0]));
+  expect(metadataURL.hostname).toBe('metadata.google.internal');
+  expect(metadataURL.searchParams.get('audience')).toBe(env.BOOKKEEPING_API_ORIGIN);
+  const [url,init]=fetcher.mock.calls[1]; const headers=new Headers(init?.headers);
+  expect(url).toBe(env.BOOKKEEPING_API_ORIGIN+'/v1/setup');
+  expect(headers.get('Authorization')).toBe(bearer);
+  expect(headers.get('X-Serverless-Authorization')).toBe('Bearer synthetic.service.signature');
+  expect(headers.get('Idempotency-Key')).toBe('synthetic-key');
+  for (const name of ['cookie','x-actor-id','forwarded']) expect(headers.has(name)).toBe(false);
+  expect(new TextDecoder().decode(init?.body as Uint8Array)).toBe(body);
+  expect(init).toMatchObject({cache:'no-store',redirect:'manual'});
+  expect(result.headers.get('Cache-Control')).toBe('no-store');
+ });
+ it.each([
+  ['/v1/workspace',{Authorization:''},401],
+  ['/v1/workspace',{Authorization:bearer+', Bearer another'},401],
+  ['/v1/workspace',{Origin:'https://evil.invalid'},403],
+  ['/v1/workspace',{'Sec-Fetch-Site':'cross-site'},403],
+  ['/v1/workspace?access_token=synthetic',{},404],
+  ['/v1/admin',{},404],
+  ['/v1/entities/00000000-0000-4000-8000-000000000001/books/00000000-0000-4000-8000-000000000002/periods/00000000-0000-4000-8000-000000000003/close',{},404],
+ ] as const)('rejects %s before any metadata or backend access',async(path,headers,status)=>{
+  const fetcher=vi.fn<typeof fetch>();
+  expect((await createBridge(fetcher,()=>env)(request(path,headers))).status).toBe(status);
+  expect(fetcher).not.toHaveBeenCalled();
+ });
+ it.each([
+  {}, {...env,BOOKKEEPING_API_ORIGIN:'https://evil.invalid'}, {...env,BOOKKEEPING_API_ORIGIN:env.BOOKKEEPING_PUBLIC_ORIGIN},
+  {...env,BOOKKEEPING_API_ORIGIN:'https://api-synthetic.run.app/path'}, {...env,GOOGLE_APPLICATION_CREDENTIALS:''},
+  {...env,GCE_METADATA_HOST:'override'}, {...env,BOOKKEEPING_API_MODE:'loopback',K_SERVICE:'cloud-service'},
+ ])('fails closed for missing or ambiguous configuration',async(config)=>{
+  const fetcher=vi.fn<typeof fetch>();
+  expect((await createBridge(fetcher,()=>config)(request())).status).toBe(503);
+  expect(fetcher).not.toHaveBeenCalled();
+ });
+ it('permits explicit local transport without fetching metadata',async()=>{
+  const fetcher=vi.fn<typeof fetch>().mockResolvedValue(Response.json({entities:[]}));
+  const config={BOOKKEEPING_API_MODE:'loopback',BOOKKEEPING_API_ORIGIN:'http://127.0.0.1:8080',BOOKKEEPING_PUBLIC_ORIGIN:'http://localhost:3000'};
+  expect((await createBridge(fetcher,()=>config)(request('/v1/workspace',{Origin:config.BOOKKEEPING_PUBLIC_ORIGIN}))).status).toBe(200);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(new Headers(fetcher.mock.calls[0][1]?.headers).has('X-Serverless-Authorization')).toBe(false);
+ });
+ it.each([401,403,404,409,429])('preserves %s denial semantics without provider body or cookies',async(status)=>{
+  const fetcher=transport(new Response('private provider detail',{status,headers:{'Set-Cookie':'private','Authorization':'private'}}));
+  const result=await createBridge(fetcher,()=>env)(request());
+  expect(result.status).toBe(status); expect(await result.text()).not.toContain('private');
+  expect(result.headers.has('Set-Cookie')).toBe(false); expect(result.headers.has('Authorization')).toBe(false);
+ });
+ it.each([new Response('private',{status:302,headers:{Location:'https://evil.invalid'}}),new Response('not JSON',{headers:{'Content-Type':'text/html'}}),new Response('{broken',{headers:{'Content-Type':'application/json'}})])('rejects redirects or invalid upstream framing',async(response)=>{
+  const fetcher=transport(response);
+  expect((await createBridge(fetcher,()=>env)(request())).status).toBe(502);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+ });
+ it('bounds bodies in both directions and never forwards an oversized write',async()=>{
+  const fetcher=vi.fn<typeof fetch>();
+  const oversized=request('/v1/setup',{'Content-Type':'application/json','Idempotency-Key':'synthetic'},'x'.repeat((1<<20)+1));
+  expect((await createBridge(fetcher,()=>env)(oversized)).status).toBe(413); expect(fetcher).not.toHaveBeenCalled();
+  const response=new Response('x'.repeat((1<<20)+1),{headers:{'Content-Type':'application/json'}});
+  expect((await createBridge(transport(response),()=>env)(request())).status).toBe(502);
+ });
+ it.each([new Response('private',{status:500}),new Response('synthetic.service.signature'),new Response('malformed',{headers:{'Metadata-Flavor':'Google'}})])('does not contact the API after a metadata failure',async(response)=>{
+  const fetcher=vi.fn<typeof fetch>().mockResolvedValue(response);
+  const result=await createBridge(fetcher,()=>env)(request());
+  expect(result.status).toBe(502); expect(await result.text()).not.toContain('private'); expect(fetcher).toHaveBeenCalledTimes(1);
+ });
+ it('does not retry or fabricate confirmation after a lost posting response',async()=>{
+  const fetcher=vi.fn<typeof fetch>().mockResolvedValueOnce(metadata()).mockRejectedValueOnce(new Error('private token detail'));
+  const result=await createBridge(fetcher,()=>env)(request('/v1/setup',{'Content-Type':'application/json','Idempotency-Key':'same-key'},'{}'));
+  expect(result.status).toBe(502); expect(await result.text()).not.toContain('private'); expect(fetcher).toHaveBeenCalledTimes(2);
+ });
+ it('bounds concurrent work and releases admission after failures',async()=>{
+  const pending:Array<(response:Response)=>void>=[];
+  const fetcher=vi.fn<typeof fetch>().mockImplementation(()=>new Promise(resolve=>pending.push(resolve)));
+  const handler=createBridge(fetcher,()=>env);
+  const calls=Array.from({length:32},()=>handler(request()));
+  expect((await handler(request())).status).toBe(503); expect(fetcher).toHaveBeenCalledTimes(32);
+  for(const resolve of pending) resolve(new Response('',{status:503}));
+  await Promise.all(calls);
+  fetcher.mockResolvedValue(new Response('',{status:503}));
+  expect((await handler(request())).status).toBe(502);
+ });
+ it('cancels a stalled request body when the caller disconnects',async()=>{
+  let cancelled=false;
+  const abort=new AbortController();
+  const body=new ReadableStream<Uint8Array>({cancel(){cancelled=true;}});
+  const req=new Request('https://books.example.invalid/v1/setup',{method:'POST',headers:{Authorization:bearer,'Content-Type':'application/json','Idempotency-Key':'synthetic'},body,signal:abort.signal,duplex:'half'} as RequestInit);
+  const fetcher=vi.fn<typeof fetch>();
+  const call=createBridge(fetcher,()=>env)(req);
+  abort.abort();
+  expect((await call).status).toBe(504); expect(cancelled).toBe(true); expect(fetcher).not.toHaveBeenCalled();
+ });
+});

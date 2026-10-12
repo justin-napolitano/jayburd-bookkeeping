@@ -22,10 +22,12 @@ journey proves UI behavior against its mock contract, not real posting/identity.
 
 `npm run dev` binds loopback. Without public identity settings the page explicitly
 shows sign-in unavailable. See [browser authentication](../docs/contracts/browser-auth.md)
-for operator-owned setup. The Next server rewrites `/v1` to the server-only
-`BOOKKEEPING_API_ORIGIN`, default `http://127.0.0.1:8080`. An operator must choose
-and trust the upstream; browser requests cannot select one. Public Firebase
-settings are build-time metadata, never Admin credentials or database secrets.
+for operator-owned setup. The [private API bridge](../docs/contracts/private-api-bridge.md)
+requires explicit `BOOKKEEPING_API_MODE`, `BOOKKEEPING_API_ORIGIN` and
+`BOOKKEEPING_PUBLIC_ORIGIN`. Local mode uses `loopback` with distinct HTTP loopback
+origins; Cloud Run uses `cloud-run` and separate service/user bearer headers.
+Public Firebase identifiers are read at runtime through `/api/auth-config`;
+they are never Admin credentials or database secrets. Missing settings fail closed.
 
 The production build does not require credentials. No application auth bypass,
 provider emulator, server-side cookie authority or fictional financial data is
