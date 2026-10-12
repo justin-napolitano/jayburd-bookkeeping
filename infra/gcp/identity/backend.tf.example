@@ -1,0 +1,4 @@
+# Owner-only foundation bucket, separate prefix identity. Never runtime/application state.
+terraform {
+  backend "gcs" {}
+}

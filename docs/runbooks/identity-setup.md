@@ -4,14 +4,18 @@
 
 ## Status and boundary
 
-Implemented offline contribution to #6: managed identity adapter, restricted
-principal enrollment and atomic synthetic entity/book/account setup. Broader
-#2/#3/#5 deployment gates remain open. No real identities, secrets or cloud changes.
+Branch `issue/6-managed-identity` adds the owner-operated development Identity
+Platform root. Applied to `jayburd-bookkeeping-dev` on 2026-10-12; subsequent
+Terraform plan returned zero (no configuration drift).
+Existing managed adapter, browser flow and restricted SQL enrollment are merged;
+live login/enrollment/revocation remain unproven. No real bookkeeping approval.
 
 ## Stage ledger
 
 | Stage | Evidence/result | Next action |
 | --- | --- | --- |
+| Provider configuration | I03/I06 reviewed; 19 mocked infrastructure tests pass across five roots | PR review |
+| Authorized dev apply | API enablement and identity config apply exit 0; subsequent plan exit 0 | Owner account/enrollment proof |
 | Source/contract review | I01–I05; identity/setup contract | Review PR |
 | Identity/API | `TestIdentityBoundary`, `TestBrowserBoundary` pass | Live provider/session proof |
 | SQL/setup | `TestControlledSetup`, `TestSetupHTTP` pass under actual runtime/operator roles | Review grants |
@@ -20,6 +24,22 @@ principal enrollment and atomic synthetic entity/book/account setup. Broader
 | Dependencies | Go 1.26.9, Firebase 4.22.0 and patched transitive pins; scan passes | CI vulnerability gate |
 
 ## Current evidence
+
+PASS on 2026-10-12: `make infra-test` (19 mocked runs), `make check test build`
+(including Go race tests), identity-only apply exit 0, post-apply
+`plan -detailed-exitcode` exit 0. Read-only service listing confirms
+`identitytoolkit.googleapis.com` is enabled. No users, credentials, provider
+payloads, state or plans were inspected. All cloud command output went to ignored
+private logs. State uses the existing foundation bucket with prefix `identity`;
+application deployment identities receive no new grants.
+
+Configured invited email/password, disabled anonymous/phone/public signup,
+operator-managed deletion and TOTP enrollment with one adjacent interval.
+Configuration convergence does not prove actual user sign-in or MFA claims.
+Backend init initially failed in the sandbox and passed with network permission.
+Default Go auto-download failed; checks passed with the existing pinned compiler.
+Provider validation rejected documented `deletion_policy`; lifecycle
+`prevent_destroy` remains. Historical evidence below is retained separately.
 
 PASS on 2026-10-11:
 
@@ -54,17 +74,30 @@ final checks; the workflow now runs the same vulnerability scan.
 
 ## Remaining work
 
-PR/CI review. Live project, workload identity/IAM, trusted non-emulator SDK client
-composition, MFA enrollment/recovery, UI sessions, quotas, public server/container
-and GCP/Infisical deployment remain release gates. Provider revocation is checked
+PR/CI review, owner account creation/verified email, browser
+configuration, MFA enrollment/recovery, SQL principal enrollment and GCP/Infisical
+deployment remain release gates. Provider revocation is checked
 before an operation, not atomically with SQL commit; local disabling is locked.
 Setup adds one development book per new entity; existing-entity administration,
 additional books/accounts/periods and real-LLC policy are later work.
 
+Owner next action: open [development Identity Platform users](https://console.cloud.google.com/customer-identity/users?project=jayburd-bookkeeping-dev)
+and create the intended invited account privately. Do not share its password,
+verification links or authenticator codes with agents. Email verification must be
+established before our browser permits TOTP enrollment; the current application
+does not send verification mail. Review and complete that operator flow before
+claiming the account is ready. Provider creation does not enroll a SQL principal.
+
+Then supply public browser configuration through the reviewed release inputs,
+complete TOTP enrollment in the deployed browser, sign out and sign in again,
+and enroll the verified issuer/subject using the restricted SQL operator path.
+These steps depend on the remaining database and application deployment gates;
+the hosted bookkeeping application is not available from this identity apply.
+
 ## PR handoff
 
-Review [identity/setup contract](../contracts/identity-setup.md), enrollment grants,
-atomic setup/replay and migration 000003. Keep #6 open for its remaining gates.
-Merged 000001/000002 SQL is unchanged; down migration deliberately fails to protect
-history. Next delivery: trusted server composition and login/MFA flow, then the
-first bookkeeping UI. Run `bash scripts/check-stage-runbook.sh --staged` before commit.
+Review [identity/setup contract](../contracts/identity-setup.md), provider settings
+and state isolation. Keep #6 open for its remaining gates. This delivery changes
+no SQL or application routes. See the
+[identity root](../../infra/gcp/identity/README.md) for state isolation and setup.
+Run `bash scripts/check-stage-runbook.sh --staged` before commit.

@@ -144,9 +144,10 @@ and the US GAAP authority gap, P02 numeric rounding, P03 restricted functions an
 P04 strict JSON/replay handling, P05 pinned pgx transactions and P06 reference
 version serialization. Read these before the first posting implementation.
 
-The [identity source notes](identity-sources.md) add I01–I05: managed ID-token
+The [identity source notes](identity-sources.md) add I01–I06: managed ID-token
 verification, revocation, TOTP MFA the pinned Firebase Admin Go API and dependency maintenance evidence. These
-support the identity/setup contract; live deployment evidence remains separate.
+support the identity/setup contract and isolated provider configuration/state;
+live deployment evidence remains separate.
 
 ## Cloud delivery resources
 

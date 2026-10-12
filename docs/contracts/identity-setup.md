@@ -7,7 +7,9 @@ and Firebase Admin Go SDK for managed end-user authentication. The SDK verifies
 ID tokens with revocation checking on every request. Require TOTP MFA; bind exact
 issuer and subject to an explicitly enrolled ledger principal, never email,
 request actor IDs, tenant claims or custom permission claims. No automatic signup.
-This is an offline development slice; #2/#3/#5 deployment gates remain open.
+Application tests remain synthetic. Provider configuration is owned by the
+[isolated identity root](../../infra/gcp/identity/README.md); actual setup and
+remaining live proof belong in the [runbook](../runbooks/identity-setup.md).
 
 Sources and alternatives are recorded in [identity sources](../research/identity-sources.md).
 Self-managed passwords would add recovery and credential-storage responsibility;
