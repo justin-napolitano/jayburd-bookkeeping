@@ -44,11 +44,20 @@ reviewed retention policy; current cleanup only deletes old untagged images.
 
 ## Frontend boundary and next slice
 
+Failed HIGH/CRITICAL scans retain only `receipts/vulnerabilities.json` in a
+separate `rejected-scan-*` artifact for seven days. This vulnerability-only report
+is diagnostic evidence, never a candidate receipt or release authorization. Later
+authentication/publication steps stay skipped after scan failure. Missing reports
+(for example scanner download failure) warn without changing the failed outcome.
+
 The non-root/read-only standalone image includes traced runtime files and static
 assets. The [runtime identity/private API bridge](private-api-bridge.md) now reads
 operator-supplied public identifiers at request time and separates the frontend
 service token from the user's bearer. An unconfigured image remains unavailable.
 No identity identifiers or backend destination are baked into its build.
+Runtime excludes npm/Yarn and requires patched OpenSSL packages; the builder
+retains npm for locked installation. APK patch resolution may advance, so release
+authority binds the final tested/scanned digest. See [source G28](../research/gcp-sources.md#g28--node-runtime-image-contents--2026-10-12).
 
 The next deployment slice must wire runtime settings and the API Invoker grant,
 then prove real IAM/MFA behavior. Candidate receipts remain non-deployable until

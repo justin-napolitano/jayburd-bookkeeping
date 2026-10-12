@@ -142,3 +142,31 @@ The installed custom key-path flag was incorrectly declared boolean; default SDK
 SSH handling worked without reading or overwriting keys. Existing Cloud Shell
 authorization sufficed for the pinned proxy's IAM login. This is observed owner
 administration, not a new runtime authentication path or migration identity.
+
+## G27 — Immutable job execution receipt — 2026-10-12
+
+Google, [Cloud Run v1 Execution](https://docs.cloud.google.com/run/docs/reference/rest/v1/namespaces.executions),
+resource and ExecutionStatus; [ExecutionSpec](https://docs.cloud.google.com/run/docs/reference/rest/v1/ExecutionSpec),
+task count and template; installed `gcloud run jobs execute` help, `--wait`.
+Reviewed selected schema/flag sections. Execution captures immutable configuration;
+Completed True and succeeded/failed/cancelled/running/retried counts describe its
+result. Waiting without exact configuration readback would not bind evidence to
+our approved image and identity. We therefore validate selected execution fields
+before emitting a bounded receipt or changing services. Actual provider field
+serialization remains a live gate; synthetic fixtures prove rejection logic only.
+
+## G28 — Node runtime image contents — 2026-10-12
+
+Node Docker maintainers, [Best Practices](https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md),
+“CMD” and “Smaller images without npm/yarn” sections. Reviewed these sections,
+not the whole repository. They describe direct Node execution and retaining build
+tools only in the builder. Our standalone runtime starts `node server.js`;
+removing npm/Yarn avoids unnecessary runtime dependencies. Alternative: upgrade
+bundled npm, retaining unused code and an unfixed scan finding.
+Private Trivy 0.75.0 evidence located all Node findings under npm; no application
+package was waived. OpenSSL fixed-version bounds come from the scan's Alpine
+package findings. Repaired-image scan and isolated runtime proof passed. Alpine's
+package-manager web documentation was unavailable; actual build/scan evidence
+verifies the update, not a claim of full advisory review. The base stays
+digest-pinned; APK resolution can advance patched packages, so only the final
+tested/scanned image digest is eligible for release.

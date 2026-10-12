@@ -75,7 +75,7 @@ cloud-sql-test:
 
 .PHONY: release-test
 release-test:
-	node --test scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs
+	node --test scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs scripts/migration-receipt.test.mjs
 	bash scripts/test-deploy-dev.sh
 
 .PHONY: identity-rehearsal identity-rehearsal-test
