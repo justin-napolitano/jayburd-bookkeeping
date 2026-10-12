@@ -24,15 +24,21 @@ Host/origin/method denial and CSP. Initial validation caught test imports/React
 prop typings, corrected before final checks. Registry sandbox stall resolved
 through approved install; no credentials were inspected. Vite reports an expected
 Next.js `use client` directive warning in the entirely client-side static bundle.
-Identity Platform configuration is applied. User reports account creation only.
+Identity Platform configuration is applied. On 2026-10-12 the owner reported
+successful authenticator setup after correcting the setup-key entry. This is
+owner-reported evidence; no credentials, provider payloads or authenticator screen
+were inspected. Separate fresh password/TOTP sign-in, logout, expired/reused link
+and revoked/deleted identity checks have not been individually confirmed.
+PR #41's foundation, validate, frontend, application-integration and secret checks
+all passed on commit `bd5ccde`; this documentation update records the new evidence.
 Owner review server started at `http://127.0.0.1:39091`; root returned 200 and
 `/v1/entities` returned 404. This is transport evidence, not a user login.
 
 ## Remaining work
 
-Owner supplies public web API key in the local screen,
-then uses their own password/email/authenticator. Record only PASS/PARTIAL/BLOCKED
-for mail delivery, verified email, TOTP enrollment, fresh challenge and logout.
+PARTIAL: owner reports authenticator setup succeeded. Record separate redacted
+outcomes for mail delivery, verified email, fresh challenge and logout; do not
+infer the entire acceptance matrix from the successful setup report.
 Cloud database/Go revocation and hosted access remain separate gates.
 
 ## PR handoff
