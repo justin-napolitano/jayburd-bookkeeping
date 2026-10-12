@@ -14,6 +14,14 @@ test('exact successful migration emits only bounded evidence',()=>{
  const r=migrationReceipt(m,e,name);assert.equal(r.status,'migration-execution-passed');
  assert.equal(r.execution,name);assert.equal(JSON.stringify(r).includes('must-not-be-copied'),false);
 });
+test('accepts the observed decimal-string timeout without coercing other values',()=>{
+ const {m,name,e}=fixture();e.spec.template.spec.timeoutSeconds='660';
+ assert.equal(migrationReceipt(m,e,name).execution,name);
+ for(const value of ['0660','660s','660.0',' 660',true,null,{},[],661]) {
+  e.spec.template.spec.timeoutSeconds=value;
+  assert.throws(()=>migrationReceipt(m,e,name));
+ }
+});
 test('rejects foreign execution, wrong image/identity, unsafe arguments and unbounded task settings',()=>{
  const changes=[e=>e.metadata.name+='other',e=>e.spec.taskCount=2,e=>e.spec.template.spec.serviceAccountName='administrator',e=>e.spec.template.spec.maxRetries=1,e=>e.spec.template.spec.timeoutSeconds=900,
  e=>e.spec.template.spec.containers[0].image='wrong',e=>e.spec.template.spec.containers[0].command=['sh'],e=>e.spec.template.spec.containers[0].args[0]='-action=down',e=>e.spec.template.spec.containers.push({}),e=>delete e.spec.template.spec.maxRetries];
