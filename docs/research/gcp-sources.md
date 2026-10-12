@@ -170,3 +170,18 @@ package-manager web documentation was unavailable; actual build/scan evidence
 verifies the update, not a claim of full advisory review. The base stays
 digest-pinned; APK resolution can advance patched packages, so only the final
 tested/scanned image digest is eligible for release.
+
+## G29 — Execution field serialization — 2026-10-12
+
+Google, [TaskSpec](https://docs.cloud.google.com/run/docs/reference/rest/v1/TaskSpec),
+JSON representation and timeoutSeconds (string/int64), maxRetries (integer);
+[resource keys](https://docs.cloud.google.com/sdk/gcloud/reference/topic/resource-keys),
+array paths; [projections](https://docs.cloud.google.com/sdk/gcloud/reference/topic/projections),
+subset selection. Reviewed these sections and installed SDK execution describe/
+wrapper code, not the whole CLI. Actual allowlisted readback proves explicit `[]`
+preserves containers and conditions whereas the original nested paths omitted them.
+Accept only the exact bounded timeout string or number. Alternative broad numeric
+coercion or whole-resource export would weaken validation/data minimization.
+Synthetic regression checks cover the selected command paths and representation;
+corrected validator also passed against the already completed real execution.
+No migration replay was needed to repair evidence; the hosted run remains failed.
