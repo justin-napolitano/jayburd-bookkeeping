@@ -164,6 +164,8 @@ G25 covers the pinned owner-operated IAM proxy, private socket boundary and
 outbound connector requirement; read it before diagnosing bootstrap connectivity.
 G26 records Cloud Shell command access and its owner-administration boundary,
 including observed CLI behavior and the distinction from runtime authentication.
+G27 describes immutable job execution metadata and completion counts used to bind
+migration evidence to the approved image and workload identity.
 
 ## Agent maintenance rules
 
@@ -200,3 +202,6 @@ message-profile selection and export mappings remain research work; this guide
 does not declare them complete.
 
 Runtime rollout, job ordering, IAM ingress and revocation permission references are annotated as G19–G23 in the [GCP source register](gcp-sources.md).
+
+G28 in the [GCP source register](gcp-sources.md#g28--node-runtime-image-contents--2026-10-12)
+reviews Node maintainers' guidance on excluding build package managers from runtime.

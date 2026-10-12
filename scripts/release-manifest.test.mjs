@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {validateManifest,validateBuild,validateRollback} from './release-manifest.mjs';
+import {validateManifest,validateBuild,validateRollback,requiredGates} from './release-manifest.mjs';
 const now=Date.parse('2026-10-12T00:00:00Z');
 // Independent synthetic release/build evidence; no real identities or provider clients.
 function fixture() {
@@ -37,4 +37,19 @@ test('rollback needs a successful prior deployment and exact prior images',()=>{
  const receipt={status:'transport-smoke-passed',project:m.project,images:m.images};validateRollback(m,prior,receipt);
  assert.throws(()=>validateRollback(m,{...prior,conclusion:'failure'},receipt));
  assert.throws(()=>validateRollback(m,prior,{...receipt,images:{...m.images,api:'other'}}));
+});
+test('migration-only release omits runtime configuration but still requires complete owner build',()=>{
+ const {m,run,receipts}=fixture();m.operation='migrate';delete m.firebaseApiKey;delete m.previousDeployment;
+ delete m.evidence.identity;delete m.evidence.secrets;
+ assert.deepEqual(validate(m),m);validateBuild(m,run,receipts);
+ assert.throws(()=>validateBuild(m,run,receipts.slice(1)));
+ assert.throws(()=>validate({...m,firebaseApiKey:'unexpected-runtime-setting'}));
+ assert.throws(()=>validate({...m,previousDeployment:null}));
+ for(const operation of ['promote','rollback']) assert.throws(()=>validate({...m,operation}));
+ assert.throws(()=>validate({...m,evidence:{compatibility:m.evidence.compatibility}}));
+});
+test('migration prerequisites cannot relax full application closure gates',()=>{
+ assert.deepEqual(requiredGates('migrate'),{issues:[5],prs:[44]});
+ for(const operation of ['promote','rollback']) assert.deepEqual(requiredGates(operation),{issues:[6,11,26],prs:[23,24]});
+ assert.throws(()=>requiredGates('force'));
 });

@@ -20,6 +20,9 @@ case "${1:-}" in
  *) echo 'Usage: scripts/test-web-container.sh [--image sha256:ID]' >&2; exit 1 ;;
 esac
 [[ "$(docker image inspect --format '{{.Config.User}}' "$proof_image")" == '65532:65532' ]]
+# Runtime serves the built application directly; vulnerable installation tooling must be absent.
+docker run --rm --network none --read-only --entrypoint sh "$proof_image" -c \
+ 'test ! -e /usr/local/lib/node_modules/npm && ! command -v npm && ! command -v npx && ! command -v yarn'
 docker network create --internal "$proof_id" >/dev/null
 docker run -d --name "$proof_id" --network "$proof_id" --network-alias web \
  --read-only --cap-drop ALL --security-opt no-new-privileges \

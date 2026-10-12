@@ -57,7 +57,12 @@ cannot approve release. Successful owner/main build metadata and all three
 same-run/attempt receipts must match the manifest. Recheck #23/#24 merged and verify their merge commits are ancestors of the release; require
 #6/#11/#26 closed; owner evidence links supplement, not replace, these checks.
 
-Forward order: migration-root plan/apply, execute-and-wait, runtime-root plan/apply,
+Exception for gathering database evidence: [migration-only release](migration-release.md)
+uses `operation: migrate`, foundation #5 and ancestral bootstrap #44 instead of
+full application closure gates. The same hash/owner/build/expiry rules apply;
+it exits after verified migration execution and cannot apply runtime services.
+
+Forward order: migration-root plan/apply, execute-and-wait with exact execution readback, runtime-root plan/apply,
 anonymous transport probes, minimal receipt. One GitHub concurrency group and
 GCS locking serialize workflow deployments; the SQL advisory lock protects other
 migration runners. Do not run owner applies concurrently. A migration failure
