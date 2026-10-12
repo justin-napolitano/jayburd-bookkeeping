@@ -31,6 +31,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24.18.0'
@@ -47,6 +48,8 @@ jobs:
           JS
           for pr in 23 24; do
             test "$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr" --jq .merged)" = true
+            merged_commit=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr" --jq .merge_commit_sha)
+            git merge-base --is-ancestor "$merged_commit" "$GITHUB_SHA"
           done
           for issue in 6 11 26; do
             test "$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue" --jq .state)" = closed

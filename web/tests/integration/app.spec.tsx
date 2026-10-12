@@ -13,7 +13,7 @@ test("real setup and lost committed journal recover after remount with exactly o
     (
       await page.request.get(workspaceURL, {
         headers: {
-          Authorization: "Bearer synthetic-browser-proof",
+          Authorization: "Bearer synthetic.browser.proof",
           Origin: "https://foreign.example.invalid",
         },
       })
@@ -111,7 +111,7 @@ test("real setup and lost committed journal recover after remount with exactly o
   await page
     .getByRole("button", { name: "Load trial balance", exact: true })
     .click();
-  await expect(page.locator("tfoot td")).toHaveText(["125.5", "125.5"]);
+  await expect(page.locator("tfoot td")).toHaveText(["125.50", "125.50"]);
   await expect(
     page.locator("tbody tr").filter({ hasText: "1000" }),
   ).toContainText("125.5");

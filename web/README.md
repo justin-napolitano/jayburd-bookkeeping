@@ -20,6 +20,12 @@ journey proves UI behavior against its mock contract, not real posting/identity.
 
 ## Run
 
+For review now, run `make demo` from the repository root and open
+http://localhost:39083. This separate loopback bundle uses fictional identity,
+validated generated fixtures and disposable real PostgreSQL. It is excluded from
+Next application routes. Ctrl+C stops it; starting it again resets all demo data.
+See [demo evidence](../docs/runbooks/synthetic-demo.md).
+
 `npm run dev` binds loopback. Without public identity settings the page explicitly
 shows sign-in unavailable. See [browser authentication](../docs/contracts/browser-auth.md)
 for operator-owned setup. The [private API bridge](../docs/contracts/private-api-bridge.md)
