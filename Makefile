@@ -77,3 +77,12 @@ cloud-sql-test:
 release-test:
 	node --test scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs
 	bash scripts/test-deploy-dev.sh
+
+.PHONY: identity-rehearsal identity-rehearsal-test
+identity-rehearsal:
+	npm --prefix web run rehearsal:build
+	node scripts/identity-rehearsal-server.mjs
+
+identity-rehearsal-test:
+	node --test scripts/identity-rehearsal-server.test.mjs
+	npm --prefix web run rehearsal:test

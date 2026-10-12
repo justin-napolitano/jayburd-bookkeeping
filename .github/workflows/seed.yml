@@ -86,6 +86,8 @@ jobs:
         run: npx --no-install playwright install --with-deps chromium
       - name: Exercise synthetic browser journeys
         run: make web-browser
+      - name: Prove isolated identity rehearsal with intercepted synthetic responses
+        run: make identity-rehearsal-test
       - name: Test image receipt integrity
         run: node --test scripts/image-receipt.test.mjs
       - name: Prove standalone frontend image
