@@ -2,10 +2,11 @@
 
 ## Decision
 
-The #5 foundation is owner-applied Terraform; PR CI runs synthetic provider tests.
-GitHub has no apply permission. Build federation starts disabled until #27's
-owner-triggered, main-only image workflow is reviewed. This is a working
-configuration with mocked evidence, not a deployed platform.
+The development foundation was applied with owner authorization on 2026-10-12.
+Terraform state was migrated to its private GCS backend. Build federation is
+enabled for the merged owner-triggered, main-only image workflow; GitHub still has
+no Terraform apply permission. Application/database deployment and live OIDC
+exchange remain unverified. See the [evidence ledger](runbooks/gcp-delivery.md).
 
 [Bootstrap instructions](../infra/gcp/foundation/README.md) own the exact commands.
 The [delivery contract](gcp-delivery.md) owns the selected architecture.
@@ -15,7 +16,7 @@ The [delivery contract](gcp-delivery.md) owns the selected architecture.
 | Identity | Granted in this slice | Later owner |
 | --- | --- | --- |
 | Owner bootstrap | Existing separately supplied administrative authority; not minted here | Owner applies foundation and privately reviews state/plans |
-| Builder | Writer on only the development image repository; narrowly scoped WIF impersonation, initially disabled | #27 builds/scans/promotes digests; no state, runtime impersonation or secrets |
+| Builder | Writer on only the development image repository; narrowly scoped WIF impersonation, enabled for development | #27 builds/scans/promotes digests; no state, runtime impersonation or secrets |
 | Deployer | Object admin on only application-state bucket; no WIF or cloud deployment rights | #27 adds minimum resource roles and a reviewed promotion gate |
 | Migrator | Account only | #26 owns DDL role and bounded migration invocation |
 | API, frontend | Separate accounts only | #26/#27 own database/connectivity and ingress privileges |
@@ -81,5 +82,6 @@ networking, leaving $3 contingency. These are allocation limits, not verified SK
 estimates. Require a regional calculator estimate before apply; do not assume free
 allowances are unused across this billing account. Bank subscriptions are excluded.
 Observed seven-day spend, synthetic restore timing, backlog latency and the 1,000-post
-proof belong to #12. Missing project/billing/auth metadata and owner acceptance of
-recovery objectives keep #5 partially open even after configuration checks pass.
+proof belong to #12. Project and billing metadata are now established and #5 is closed in GitHub.
+Application auth, actual trust-denial tests, cost measurements and recovery
+acceptance remain separate cloud evidence gates.
