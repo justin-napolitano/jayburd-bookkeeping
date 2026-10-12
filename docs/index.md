@@ -35,6 +35,7 @@ background work. The two predecessor repos are reference material only.
 | How does the frontend authenticate to the private API? | [Runtime identity and private bridge](contracts/private-api-bridge.md) |
 | How are application images packaged and published? | [Image delivery contract](contracts/image-delivery.md) |
 | How does Cloud SQL connect and migrate safely? | [Cloud SQL contract](contracts/cloud-sql.md) |
+| Is the development database provisioned? | [Cloud SQL provisioning evidence and next gates](runbooks/cloud-sql-bootstrap.md) |
 | How is the GCP foundation validated and bootstrapped? | [Foundation operations](gcp-foundation.md) |
 | How do we start, review and finish tasks? | [Delivery workflow](delivery.md) |
 | What worked in Brainblast? | [Tooling assessment](research/brainblast.md) |

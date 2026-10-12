@@ -84,3 +84,31 @@ Vercel, [Environment Variables](https://nextjs.org/docs/app/guides/environment-v
 - **G22 — Google Cloud IAM, Firebase Authentication permissions**, [roles and permissions](https://docs.cloud.google.com/iam/docs/roles-permissions/firebaseauth). Reviewed user-get and viewer/admin lists. Custom API role selects only `firebaseauth.users.get` for revocation lookup instead of broad user administration; actual SDK acceptance is a cloud gate.
 
 - **G23 — Deployment token lifetime and transport**, [pinned auth action access-token inputs](https://github.com/google-github-actions/auth/blob/7c6bc770dae815cd3e89ee6cdf493a5fab2cc093/README.md), [Terraform 1.15.7 GCS backend source](https://github.com/hashicorp/terraform/blob/v1.15.7/internal/backend/remote-state/gcs/backend.go), [gcloud access-token authentication](https://docs.cloud.google.com/sdk/docs/authenticate#use_an_access_token). Reviewed token lifetime/outputs, backend environment defaults and CLI environment transport. A one-hour masked service-account access token covers the bounded job without relying on a short-lived GitHub subject token to refresh credentials after migrations. No credential file or token command is used. Actual exchange remains a live gate.
+
+## G24 — IAM administrator bootstrap research — 2026-10-12
+
+Google, [Add and manage IAM users](https://docs.cloud.google.com/sql/docs/postgres/add-manage-iam-users),
+“Assign database roles while adding an IAM account” and role assignment/revocation;
+[PostgreSQL users](https://docs.cloud.google.com/sql/docs/postgres/users), default
+users and superuser restrictions; HashiCorp/Google,
+[sql_user at provider 8.6.0](https://github.com/hashicorp/terraform-provider-google/blob/v8.6.0/website/docs/r/sql_user.html.markdown),
+`database_roles` and IAM type arguments. Reviewed selected sections only.
+
+Google documents assigning `cloudsqlsuperuser` to a separate IAM user, including
+a Terraform example. IAM users otherwise receive no application privileges by
+default. The pinned provider documents `database_roles` as write-only and replacing
+existing memberships. Default `postgres` has explicit CREATEROLE/CREATEDB attributes;
+membership alone does not establish every authority our bootstrap needs.
+
+Proposal: evaluate a separate owner IAM operator instead of introducing a database
+password. Do not apply that role to API or migrator. Alternative: owner-injected
+administrator credentials, with additional secret-handling work. Neither approach
+is implemented by this provisioning slice. Acceptance requires installed provider
+schema checks, administrator ownership/role-authority probes and actual bootstrap
+success followed by restricted-login denial checks. #26 owns the decision and
+live compatibility evidence; source examples alone do not close that gate.
+
+G10 pricing was rechecked on 2026-10-12 through indexed official regional tables;
+the full page exceeded the browser response limit. This is a bounded price check,
+not a new full-page review. The [provisioning estimate](../runbooks/cloud-sql-bootstrap.md#provisioning-estimate)
+records assumptions separately from actual spend.
