@@ -45,17 +45,15 @@ reviewed retention policy; current cleanup only deletes old untagged images.
 ## Frontend boundary and next slice
 
 The non-root/read-only standalone image includes traced runtime files and static
-assets. It intentionally has no build-time Firebase identifiers and shows unavailable
-sign-in. Next public variables and rewrite destinations are baked into builds;
-setting Cloud Run environment variables later does not repair that image.
+assets. The [runtime identity/private API bridge](private-api-bridge.md) now reads
+operator-supplied public identifiers at request time and separates the frontend
+service token from the user's bearer. An unconfigured image remains unavailable.
+No identity identifiers or backend destination are baked into its build.
 
-Before deployment, implement and test runtime public identity configuration and
-an explicit backend-for-frontend path: preserve the end-user Authorization token
-and add a server-obtained service token in X-Serverless-Authorization for the
-private Cloud Run API. A plain rewrite cannot do this. This is a proposed design
-for the next slice, not an implemented authentication guarantee. Alternatives are
-a public API with reviewed end-user ingress or environment-specific frontend builds;
-those introduce different exposure or build-promotion tradeoffs.
+The next deployment slice must wire runtime settings and the API Invoker grant,
+then prove real IAM/MFA behavior. Candidate receipts remain non-deployable until
+migration/rollout and cloud acceptance are reviewed; a passing bridge test does
+not approve publication or establish real authentication.
 
 No financial message or SQL contract changes; existing ISO assessments remain
 applicable. Acceptance: receipt integrity tests and isolated runtime proofs run
