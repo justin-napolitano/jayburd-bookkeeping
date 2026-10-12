@@ -117,3 +117,5 @@ jobs:
         run: npx --no-install playwright install --with-deps chromium
       - name: Prove browser recovery through real API and PostgreSQL
         run: make app-integration
+      - name: Prove generated demo balances and cent display
+        run: make demo-test

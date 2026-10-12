@@ -64,7 +64,18 @@ Two seed-42 smoke runs produced 35 byte-identical CSVs: 8 clients, 115 journals,
 293 lines. Although its own validation passed, our exact-decimal audit found
 15 journals with ±0.01 EUR residuals. Adopt it for import, volume and rejection
 tests; do not bless those journals or auto-plug differences. The bounded sample
-is not a scale benchmark. No generated dataset is committed.
+is not a scale benchmark. A four-journal balanced review subset is now embedded
+in the integration-only demo seeder; its [provenance and MIT notice](../../internal/server/testdata/demo/README.md)
+record unchanged EUR amounts, synthetic date/rate mappings and fixed cent oracles.
+The remaining dataset is not bundled. The 15 invalid journals remain rejected.
+
+## Local review transport
+
+[Vite shared options, envDir](https://vite.dev/config/shared-options.html#envdir)
+was reviewed for the separate loopback demo. `envDir: false` disables environment
+file loading; an allowlisted process environment and fixed proxy target keep this
+review bundle independent of managed identity configuration. This uses the locked
+Vite dependency already supplied by the browser test toolchain, not a Next route.
 
 ## Pins and integrity
 

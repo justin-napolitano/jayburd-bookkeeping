@@ -34,6 +34,14 @@ For source material and reading priorities, use the
 
 ## Local commands
 
+For an interactive review with fictional generated data, run `make demo` and open
+[the synthetic demo](http://localhost:39083). It seeds two fictional LLCs into
+disposable PostgreSQL and serves the real bookkeeping components and Go API.
+Stop with Ctrl+C; restart `make demo` to reset. See the
+[demo runbook](docs/runbooks/synthetic-demo.md) for prerequisites and data limits.
+Use **Watch a few transactions** for step-by-step request/commit/replay evidence,
+or **Run thousands** for 1,000/5,000/10,000 real postings with a final balance check.
+
 Requires Go 1.26.9 and Git. These commands need no cloud account or credentials.
 
 ```sh
