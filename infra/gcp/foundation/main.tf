@@ -7,7 +7,7 @@ locals {
   identities    = toset(["builder", "deployer", "migrator", "api", "frontend", "publisher", "consumer", "scheduler", "task-invoker"])
   foundation_apis = toset([
     "artifactregistry.googleapis.com", "cloudbilling.googleapis.com", "cloudresourcemanager.googleapis.com",
-    "billingbudgets.googleapis.com", "iam.googleapis.com", "run.googleapis.com", "identitytoolkit.googleapis.com",
+    "billingbudgets.googleapis.com", "iam.googleapis.com", "run.googleapis.com",
     "iamcredentials.googleapis.com", "sts.googleapis.com",
     "serviceusage.googleapis.com", "storage.googleapis.com"
   ])

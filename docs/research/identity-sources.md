@@ -46,3 +46,23 @@ metadata and local govulncheck v1.1.4 results. The initial scan found reachable
 Go 1.26.5 and x/net v0.55.0 vulnerabilities; select patched 1.26.9/x/net v0.60.0
 and refresh affected transitive pins. These are software maintenance decisions,
 not an accounting-standard change. Final scan outcome belongs in the runbook.
+
+## I06 — HashiCorp Google provider Identity Platform config
+
+[Provider 8.6.0 resource reference](https://raw.githubusercontent.com/hashicorp/terraform-provider-google/v8.6.0/website/docs/r/identity_platform_config.html.markdown).
+Reviewed 2026-10-12: lifecycle, sign-in, client permissions, MFA, monitoring,
+computed fields and import sections. The resource includes computed password-hash
+signing material and client configuration in state. Our inference: isolate state
+from application delivery identities, expose no outputs and keep plans/logs private.
+Mocked configuration tests establish intended settings; they do not prove login.
+Observed discrepancy: the pinned reference lists `deletion_policy`, but validation
+with the locked provider rejects it. The implementation uses Terraform lifecycle
+`prevent_destroy`; installed-schema validation takes precedence over that example.
+
+I03 rechecked 2026-10-12: project enablement, enrollment patterns and web sign-in
+sections. Google documents TOTP configuration and first-factor sessions used for
+enrollment. Our choice is ENABLED with one adjacent interval, while Jayburd denies
+bookkeeping without a completed TOTP claim. No claim that provider enablement alone
+makes MFA mandatory for every project API. See the
+[implementation decision](../../infra/gcp/identity/README.md) and live evidence
+in the identity runbook. No credential examples from the guide were executed.
