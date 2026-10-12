@@ -4,13 +4,14 @@ import { initializeAuth, inMemoryPersistence, signInWithEmailAndPassword, signOu
   type Auth, type MultiFactorError, type MultiFactorResolver, type TotpSecret } from 'firebase/auth';
 import type { AuthAdapter, LoginResult } from './controller';
 
-/** The three identifiers are public browser configuration, never server credentials. */
-export interface PublicAuthConfig { apiKey?: string; authDomain?: string; projectId?: string }
+import type { PublicAuthConfig } from './config';
 /** Initialize only the memory persistence adapter, avoiding default browser storage. */
-export function createBrowserAuth(config: PublicAuthConfig): AuthAdapter | null {
+export function createBrowserAuth(config: Partial<PublicAuthConfig>): AuthAdapter | null {
   if (!config.apiKey || !config.authDomain || !config.projectId) return null;
   const name = 'jayburd-browser';
-  const app = getApps().find((candidate) => candidate.name === name) ?? initializeApp(config, name);
+  const existing = getApps().find((candidate) => candidate.name === name);
+  if (existing && (existing.options.apiKey !== config.apiKey || existing.options.projectId !== config.projectId || existing.options.authDomain !== config.authDomain)) throw new Error('Configuration changed.');
+  const app = existing ?? initializeApp(config, name);
   return new FirebaseAdapter(initializeAuth(app, { persistence: inMemoryPersistence }));
 }
 /** Firebase owns authentication; this adapter only orchestrates managed TOTP flows. */

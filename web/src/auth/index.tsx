@@ -3,22 +3,28 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { AuthController } from './controller';
 import { createBrowserAuth } from './firebase';
+import { parsePublicAuthConfig } from './config';
 
 const AuthContext = createContext<AuthController | null>(null);
 /** Production composition only; synthetic adapters are injected directly into controller tests. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [controller, setController] = useState(() => new AuthController(null));
   useEffect(() => {
-    let next: AuthController;
-    try {
-      next = new AuthController(createBrowserAuth({
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      }));
-    } catch { next = new AuthController(null); }
-    setController(next);
-    return () => { void next.signOut(); };
+    const abort = new AbortController();
+    let next: AuthController | undefined;
+    // Configuration is fetched once per mount; late responses cannot recreate a signed-out session.
+    void (async () => {
+      try {
+        const response = await fetch('/api/auth-config', {cache: 'no-store', credentials: 'omit', redirect: 'error',
+          signal: AbortSignal.any([abort.signal, AbortSignal.timeout(5000)])});
+        if (!response.ok) return;
+        const config = parsePublicAuthConfig(await response.json());
+        if (abort.signal.aborted || !config) return;
+        next = new AuthController(createBrowserAuth(config));
+        setController(next);
+      } catch { /* Configuration failures keep sign-in unavailable without exposing raw errors. */ }
+    })();
+    return () => { abort.abort(); if (next) void next.signOut(); };
   }, []);
   return <AuthContext.Provider value={controller}>{children}</AuthContext.Provider>;
 }

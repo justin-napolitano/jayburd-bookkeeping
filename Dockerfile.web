@@ -1,7 +1,7 @@
 # Build from allowlisted application sources; no identity settings or credentials enter this image.
 FROM node:24.18.0-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS build
 WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1 BOOKKEEPING_API_ORIGIN=http://127.0.0.1:1
+ENV NEXT_TELEMETRY_DISABLED=1
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/next.config.ts web/next-env.d.ts web/tsconfig.json ./

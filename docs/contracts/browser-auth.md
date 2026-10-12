@@ -6,9 +6,10 @@ Implementation contract for the first app, 2026-10-11. Use modular Firebase Web 
 with memory-only persistence and operator-provisioned, verified email/password
 accounts. Source review and alternatives: [browser sources](../research/browser-auth-sources.md).
 No signup, anonymous mode, emulator, demo authentication, cookies or persistent token
-storage. Public build identifiers are `NEXT_PUBLIC_FIREBASE_API_KEY`,
-`NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`; missing
-configuration shows an unavailable sign-in view and does not initialize the SDK.
+storage. Public runtime identifiers are `JAYBURD_FIREBASE_API_KEY`,
+`JAYBURD_FIREBASE_AUTH_DOMAIN`, `JAYBURD_FIREBASE_PROJECT_ID`, delivered through
+`/api/auth-config`; missing/invalid configuration leaves sign-in unavailable and
+does not initialize the SDK. See the [runtime/bridge contract](private-api-bridge.md).
 These public identifiers are not server credentials.
 
 ## Session flow
