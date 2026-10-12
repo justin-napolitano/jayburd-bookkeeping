@@ -33,7 +33,7 @@ node --input-type=module - "$scratch" <<'JS'
 import {writeFileSync} from 'node:fs';
 const root=process.argv[2], image='us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/migrate@sha256:'+'a'.repeat(64);
 writeFileSync(root+'/release/approved.json',JSON.stringify({project:'jayburd-synthetic-test',operation:'promote',images:{migrate:image}}));
-writeFileSync(root+'/execution.json',JSON.stringify({metadata:{name:'jayburd-dev-migrate-abc12'},spec:{taskCount:1,template:{spec:{serviceAccountName:'jayburd-dev-migrator@jayburd-synthetic-test.iam.gserviceaccount.com',maxRetries:0,timeoutSeconds:660,containers:[{image,args:['-action=up','-instance=jayburd-synthetic-test:us-central1:jayburd-dev']}]}}},status:{conditions:[{type:'Completed',status:'True'}],succeededCount:1,completionTime:'2026-10-12T00:00:00Z'}}));
+writeFileSync(root+'/execution.json',JSON.stringify({metadata:{name:'jayburd-dev-migrate-abc12'},spec:{taskCount:1,template:{spec:{serviceAccountName:'jayburd-dev-migrator@jayburd-synthetic-test.iam.gserviceaccount.com',maxRetries:0,timeoutSeconds:'660',containers:[{image,args:['-action=up','-instance=jayburd-synthetic-test:us-central1:jayburd-dev']}]}}},status:{conditions:[{type:'Completed',status:'True'}],succeededCount:1,completionTime:'2026-10-12T00:00:00Z'}}));
 JS
 cd "$scratch"
 bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null
@@ -41,6 +41,10 @@ node --input-type=module - "$TEST_LOG" <<'JS'
 import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
 const calls=readFileSync(process.argv[2],'utf8').trim().split('\n');assert.equal(calls.length,10);
 assert.match(calls[2],/migration apply/);assert.match(calls[3],/jobs execute.*--wait/);assert.match(calls[4],/jobs executions describe/);assert.match(calls[5],/runtime init/);
+// The real CLI omits repeated fields without []; lock the allowlisted readback contract to prevent recurrence.
+for (const field of ['containers[].image','containers[].command','containers[].args','conditions[].type','conditions[].status']) assert.ok(calls[4].includes(field));
+assert.ok(!calls[4].includes('.env') && !calls[4].includes('.message'));
+for (const call of calls.slice(8)) assert.ok(call.includes('containers[].image'));
 assert.ok(calls.every(line=>!line.includes('destroy')&&!line.includes('-target')));
 JS
 for FAIL_STEP in 'migration plan' 'migration apply' job readback; do

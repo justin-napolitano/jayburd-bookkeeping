@@ -1,7 +1,7 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 
-// Accept only the immutable execution we invoked, with the exact reviewed image and bounded migrator identity.
+// Accept only the invoked immutable execution; Cloud Run encodes its int64 timeout as a decimal string.
 export function migrationReceipt(m, execution, name) {
   const task=execution?.spec?.template?.spec;
   const status=execution?.status;
@@ -9,7 +9,7 @@ export function migrationReceipt(m, execution, name) {
   if (!['migrate','promote'].includes(m.operation) || typeof name!=='string' || !/^jayburd-dev-migrate-[a-z0-9]{1,20}$/.test(name) ||
       execution?.metadata?.name!==name || execution?.spec?.taskCount!==1 ||
       task?.serviceAccountName!==`jayburd-dev-migrator@${m.project}.iam.gserviceaccount.com` ||
-      task?.maxRetries!==0 || task?.timeoutSeconds!==660 || !Array.isArray(task?.containers) || task.containers.length!==1 ||
+      task?.maxRetries!==0 || ![660,'660'].includes(task?.timeoutSeconds) || !Array.isArray(task?.containers) || task.containers.length!==1 ||
       task.containers[0].image!==m.images.migrate || (task.containers[0].command?.length??0)!==0 || JSON.stringify(task.containers[0].args)!==JSON.stringify(expectedArgs) ||
       status?.succeededCount!==1 || ['failedCount','cancelledCount','runningCount','retriedCount'].some(k=>(status?.[k]??0)!==0) ||
       !Array.isArray(status?.conditions) || status.conditions.filter(c=>c.type==='Completed').length!==1 ||

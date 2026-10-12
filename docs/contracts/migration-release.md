@@ -36,6 +36,12 @@ execution identity, approved build/image and completion time. No environment, lo
 or state is uploaded. A missing/mismatched receipt blocks acceptance even if SQL
 may already have committed; investigate before rerunning. Never force or down.
 
+Use explicit `[]` projections for container and condition array fields. TaskSpec
+serializes its int64 timeout as a decimal string; accept exactly `"660"` or numeric
+`660`, with no general coercion. Source G29 and the first real execution exposed
+this distinction; [recovery evidence](../runbooks/migration-execution.md) records
+read-only verification after a successful job and failed hosted receipt parsing.
+
 Sources G19 and G27 establish job execution and immutable metadata; synthetic
 release/orchestration tests prove rejection/order only. Actual job and SQL version,
 checksums and replay remain live #26 evidence. Operator ownership cleanup remains

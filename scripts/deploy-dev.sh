@@ -33,8 +33,9 @@ if [[ "$operation" == promote || "$operation" == migrate ]]; then
   fi
   execution=$(cat "$release_dir/execution-name.txt")
   [[ "$execution" =~ ^jayburd-dev-migrate-[a-z0-9]{1,20}$ ]] || { echo 'BLOCKED: unexpected execution identity' >&2; exit 1; }
+  # Explicit [] projections retain array fields without exporting container environments or condition messages.
   if ! gcloud run jobs executions describe "$execution" --project "$project" --region us-central1 \
-    --format='json(metadata.name,spec.taskCount,spec.template.spec.containers.image,spec.template.spec.containers.command,spec.template.spec.containers.args,spec.template.spec.serviceAccountName,spec.template.spec.maxRetries,spec.template.spec.timeoutSeconds,status.conditions.type,status.conditions.status,status.succeededCount,status.failedCount,status.cancelledCount,status.runningCount,status.retriedCount,status.completionTime)' \
+    --format='json(metadata.name,spec.taskCount,spec.template.spec.containers[].image,spec.template.spec.containers[].command,spec.template.spec.containers[].args,spec.template.spec.serviceAccountName,spec.template.spec.maxRetries,spec.template.spec.timeoutSeconds,status.conditions[].type,status.conditions[].status,status.succeededCount,status.failedCount,status.cancelledCount,status.runningCount,status.retriedCount,status.completionTime)' \
     > "$release_dir/migration-execution.json" 2> "$release_dir/provider-private.log"; then
     echo 'BLOCKED: execution readback failed' >&2; exit 1
   fi
@@ -50,7 +51,7 @@ apply_root runtime
 # Read only selected image/revision/traffic metadata; never export environment or state.
 for component in api web; do
   if ! gcloud run services describe "jayburd-dev-$component" --project "$project" --region us-central1 \
-    --format='json(status.latestReadyRevisionName,status.traffic,spec.template.spec.containers.image)' > "$release_dir/$component-revision.json" 2> "$release_dir/provider-private.log"; then
+    --format='json(status.latestReadyRevisionName,status.traffic,spec.template.spec.containers[].image)' > "$release_dir/$component-revision.json" 2> "$release_dir/provider-private.log"; then
     echo 'BLOCKED: revision readback failed' >&2; exit 1
   fi
 done
