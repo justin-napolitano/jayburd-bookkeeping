@@ -163,9 +163,16 @@ async function mockCommands(page: Page, empty = false) {
         through_date: "2026-01-01",
         snapshot_revision: "0",
         functional_currency: "USD",
-        total_debits: "123.45",
-        total_credits: "123.45",
-        accounts: [],
+        total_debits: "123.450000000",
+        total_credits: "123.450000000",
+        accounts: [
+          {
+            account_id: "a1",
+            account_code: "1000",
+            debit_balance: "123.450000000",
+            credit_balance: "0.000000000",
+          },
+        ],
       },
     });
   });
@@ -294,6 +301,12 @@ test("denied entity switch clears previous financial values", async ({
   await page.getByLabel("Entity and book").selectOption("e1/b1");
   await page.getByRole("button", { name: "Load trial balance" }).click();
   await expect(page.getByRole("table")).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "123.45", exact: true }),
+  ).toHaveCount(3);
+  await expect(
+    page.getByRole("cell", { name: "0.00", exact: true }),
+  ).toHaveCount(1);
   await page.getByLabel("Entity and book").selectOption("e2/b2");
   await expect(page.getByRole("table")).toHaveCount(0);
   await page.getByRole("button", { name: "Load trial balance" }).click();

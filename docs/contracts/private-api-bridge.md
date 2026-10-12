@@ -53,8 +53,10 @@ when Cloud Run's K_SERVICE is present. Missing mode is unavailable, never fallba
 
 ## Bounds and responses
 
-Only workspace, setup, journal posting/read/reversal and dated trial balance are
-forwarded. Close/admin/unknown routes, extra queries and foreign browser origins
+Only workspace, setup, journal posting/read/reversal, dated trial balance and
+reviewed durable-command registration/pending/execute/cancel/acknowledge routes are
+forwarded. Registration requires an idempotency key; command transitions use their
+durable command ID as specified by the existing recovery contract. Close/admin/unknown routes, extra queries and foreign browser origins
 are rejected before metadata access. Limits: 32 requests per frontend process,
 1 MiB request/response, 16 KiB bearer/metadata token, 4 KiB path/query, 12-second
 combined deadline and 3-second metadata deadline. Caller disconnect cancels work.

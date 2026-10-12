@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/experimental-ct-react";
-/** Test proxy forwards to production Next rewrites; it never invents API responses. */
+/** Test proxy forwards to production Next API bridge; it never invents API responses. */
 export default defineConfig({
   testDir: "./tests/integration",
   fullyParallel: false,

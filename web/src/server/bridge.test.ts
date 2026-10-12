@@ -111,3 +111,26 @@ describe('private API bridge', () => {
   expect((await call).status).toBe(504); expect(cancelled).toBe(true); expect(fetcher).not.toHaveBeenCalled();
  });
 });
+
+describe('durable command transport', () => {
+ const id='00000000-0000-4000-8000-000000000001';
+ it.each(['execute','cancel','acknowledge'])('forwards %s by durable identity without inventing a new key',async(action)=>{
+  const fetcher=transport();const body='{"expected_revision":1}';
+  const result=await createBridge(fetcher,()=>env)(request(`/v1/commands/${id}/${action}`,{'Content-Type':'application/json'},body));
+  expect(result.status).toBe(200);
+  expect(new Headers(fetcher.mock.calls[1][1]?.headers).has('Idempotency-Key')).toBe(false);
+  expect(new TextDecoder().decode(fetcher.mock.calls[1][1]?.body as Uint8Array)).toBe(body);
+ });
+ it('requires a key for registration and allows pending discovery',async()=>{
+  const missing=vi.fn<typeof fetch>();
+  expect((await createBridge(missing,()=>env)(request('/v1/commands',{'Content-Type':'application/json'},'{}'))).status).toBe(400);
+  expect(missing).not.toHaveBeenCalled();
+  expect((await createBridge(transport(),()=>env)(request('/v1/commands',{'Content-Type':'application/json','Idempotency-Key':'same-command'},'{}'))).status).toBe(200);
+  expect((await createBridge(transport(),()=>env)(request('/v1/commands/pending'))).status).toBe(200);
+ });
+ it.each(['/v1/commands/pending?actor=other',`/v1/commands/${id}/force`,`/v1/commands/invalid/execute`])('rejects non-contract route %s before provider access',async(path)=>{
+  const fetcher=vi.fn<typeof fetch>();
+  expect((await createBridge(fetcher,()=>env)(request(path,{'Content-Type':'application/json'},'{}'))).status).toBe(404);
+  expect(fetcher).not.toHaveBeenCalled();
+ });
+});

@@ -54,7 +54,7 @@ release file. [Release instructions](../../deploy/README.md) define fields.
 Missing, expired, foreign-project, mutable-image, mixed-build and incomplete
 metadata fail before cloud authentication. Unsigned candidate receipts alone
 cannot approve release. Successful owner/main build metadata and all three
-same-run/attempt receipts must match the manifest. Recheck #23/#24 merged and
+same-run/attempt receipts must match the manifest. Recheck #23/#24 merged and verify their merge commits are ancestors of the release; require
 #6/#11/#26 closed; owner evidence links supplement, not replace, these checks.
 
 Forward order: migration-root plan/apply, execute-and-wait, runtime-root plan/apply,

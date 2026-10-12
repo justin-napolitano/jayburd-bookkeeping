@@ -1,5 +1,6 @@
 import type { useCommands } from "./commands";
 import type { Workspace } from "./types";
+import { currencyAt, formatAmount } from "./amount";
 // Recovered work is review-only until the owner explicitly chooses its next transition.
 export function CommandPanel({
   recovery: r,
@@ -13,6 +14,12 @@ export function CommandPanel({
   const book = entity?.books.find((b) => b.book_id === c?.book_id);
   const policyID = c && "policy_id" in c.body ? c.body.policy_id : null;
   const policy = book?.policies.find((p) => p.policy_id === policyID);
+  const functionalMinorUnit = workspace?.currencies.find(
+    (currency) =>
+      currency.currency_version_id === policy?.functional_currency_version_id,
+  )?.minor_unit;
+  const accountingDate =
+    c && "accounting_date" in c.body ? c.body.accounting_date : "";
   return (
     <section aria-labelledby="command-title">
       <h2 id="command-title">Saved command</h2>
@@ -119,10 +126,22 @@ export function CommandPanel({
                         </th>
                         <td>{line.side}</td>
                         <td>
-                          {line.transaction_amount} {line.transaction_currency}
+                          {formatAmount(
+                            line.transaction_amount,
+                            currencyAt(
+                              workspace?.currencies ?? [],
+                              line.transaction_currency,
+                              accountingDate,
+                            )?.minor_unit,
+                          )}{" "}
+                          {line.transaction_currency}
                         </td>
                         <td>
-                          {line.functional_amount} {policy?.functional_currency}
+                          {formatAmount(
+                            line.functional_amount,
+                            functionalMinorUnit,
+                          )}{" "}
+                          {policy?.functional_currency}
                         </td>
                         <td>
                           {line.valuation_basis}
