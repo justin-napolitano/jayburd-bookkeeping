@@ -162,6 +162,8 @@ for a possible administrator bootstrap path; it does not establish role compatib
 or authorize elevated application logins.
 G25 covers the pinned owner-operated IAM proxy, private socket boundary and
 outbound connector requirement; read it before diagnosing bootstrap connectivity.
+G26 records Cloud Shell command access and its owner-administration boundary,
+including observed CLI behavior and the distinction from runtime authentication.
 
 ## Agent maintenance rules
 

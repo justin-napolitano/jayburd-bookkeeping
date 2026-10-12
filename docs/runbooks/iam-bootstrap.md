@@ -3,6 +3,11 @@
 
 ## Status and boundary
 
+Follow-up: the local transport blocker was resolved by using Cloud Shell.
+[Cloud Shell bootstrap evidence](cloud-shell-bootstrap.md) records successful
+IAM login, SQL bootstrap/replay and the now-retained operator ownership dependency.
+The cleanup evidence below describes this earlier unsuccessful attempt only.
+
 Owner authorized continuation after #42 merged at `ef2675a` on 2026-10-12.
 Issue #26, branch `issue/26-iam-bootstrap`. The existing database has no product
 schema yet. No financial data or credential retrieval is authorized by this work.
