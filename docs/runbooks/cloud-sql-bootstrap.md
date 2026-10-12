@@ -38,6 +38,9 @@ source; no real financial data, credential retrieval or plan/state inspection.
 
 ## Remaining work
 
+Follow-up: [IAM operator implementation and connectivity evidence](iam-bootstrap.md)
+records the next attempt and its local transport blocker.
+
 1. Establish the administrative SQL bootstrap path. The current Terraform root
    provisions only API/migrator logins; neither is an administrator. G24 in the
    [source register](../research/gcp-sources.md) documents a possible separate IAM
