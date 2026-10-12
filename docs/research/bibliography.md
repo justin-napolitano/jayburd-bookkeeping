@@ -163,7 +163,7 @@ delivery; provider documentation and budget assumptions are not deployment proof
 The first application adds three source registers: [server composition](server-sources.md)
 for bounded HTTP, workload identity and PostgreSQL pooling;
 [browser authentication](browser-auth-sources.md) for memory-only sign-in and
-TOTP enrollment/challenge; and [frontend behavior](frontend-sources.md) for
+TOTP enrollment/challenge and explicit email verification through hosted action links; and [frontend behavior](frontend-sources.md) for
 Next.js, React and synthetic browser testing. The [integration source notes](app-integration-sources.md)
 record generated OpenAPI types, Node LTS and CI choices. Read their stated review
 depth and limits; offline tests do not verify live provider configuration.

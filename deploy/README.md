@@ -45,6 +45,11 @@ and prior deployment ID, then dispatch its new hash. Workflow skips migrations a
 changes services through Terraform. It never rolls back SQL or silently selects an
 image. Missing artifacts block automated rollback; review a separate recovery path.
 
+Before closing #6, complete the separate managed-identity rehearsal (#39),
+email-verification implementation (#38), and restricted SQL identity evidence.
+The rehearsal has no finance routes and does not require a Cloud Run deployment;
+it does not replace hosted acceptance or relax the current closure gates.
+
 After transport smoke, complete real sign-in/MFA, entity/revocation denials and
 synthetic posting/recovery with owner-controlled access. A green transport receipt
 is not bookkeeping or identity acceptance. See the [living ledger](../docs/runbooks/gcp-delivery.md).

@@ -34,7 +34,8 @@ export function useAuth() {
   if (!controller) throw new Error('AuthProvider required.');
   const state = useSyncExternalStore(controller.subscribe, controller.snapshot, controller.snapshot);
   return { ...state, getToken: controller.getToken, signOut: controller.signOut, rejectSession: controller.rejectSession,
-    signIn: controller.signIn, beginEnrollment: controller.beginEnrollment, enroll: controller.enroll, challenge: controller.challenge };
+    signIn: controller.signIn, sendVerification: controller.sendVerification, checkVerification: controller.checkVerification,
+    beginEnrollment: controller.beginEnrollment, enroll: controller.enroll, challenge: controller.challenge };
 }
 /** Accessible invitation-only credentials/MFA UI; sensitive inputs clear immediately on submit. */
 export function LoginPanel() {
@@ -53,9 +54,16 @@ export function LoginPanel() {
   if (auth.phase === 'unconfigured') return <section className="panel"><h2>Sign-in is not configured</h2><p>This installation needs its public identity settings before you can sign in.</p></section>;
   if (auth.phase === 'signed-in') return null;
   return <section className="panel" aria-labelledby="signin-title">
-    <h2 id="signin-title">{auth.phase === 'enrolling' ? 'Set up your authenticator' : auth.phase === 'challenge' ? 'Verify your sign-in' : 'Sign in to Jayburd'}</h2>
+    <h2 id="signin-title">{auth.phase === 'verifying-email' ? 'Verify your email' : auth.phase === 'enrolling' ? 'Set up your authenticator' : auth.phase === 'challenge' ? 'Verify your sign-in' : 'Sign in to Jayburd'}</h2>
     {auth.error && <p role="alert">{auth.error}</p>}
-    {auth.phase === 'signed-out' && <p>Use your invited, verified account. New accounts are provisioned by your operator.</p>}
+    {auth.notice && <p role="status">{auth.notice}</p>}
+    {auth.phase === 'signed-out' && <p>Use your invited account. We will help you verify your email and set up an authenticator before accessing your books.</p>}
+    {auth.phase === 'verifying-email' && <>
+      <p>Verify your email before setting up your authenticator. Creating your account does not send this email; use the button below.</p>
+      <button disabled={auth.busy} onClick={() => { void auth.sendVerification(); }}>Send verification email</button>
+      <p>Open the link in your email, then return to this tab. If the link has expired, request another email.</p>
+      <button disabled={auth.busy} onClick={() => { void auth.checkVerification(); }}>I have verified my email</button>
+    </>}
     {auth.phase === 'enrolling' && !auth.enrollmentKey && <><p>Add a time-based authenticator before accessing your books.</p><button disabled={auth.busy} onClick={() => { void auth.beginEnrollment(); }}>Set up authenticator</button></>}
     {auth.phase === 'enrolling' && auth.enrollmentKey && <><p>In your authenticator, add a time-based account called Jayburd with this setup key. Keep it private.</p><p aria-label="Authenticator setup key"><code>{auth.enrollmentKey}</code></p></>}
     {(auth.phase === 'signed-out' || auth.phase === 'challenge' || (auth.phase === 'enrolling' && auth.enrollmentKey)) && <form onSubmit={submit}>
@@ -65,7 +73,7 @@ export function LoginPanel() {
       </> : <label>Authenticator code<input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} required disabled={auth.busy} /></label>}
       <button type="submit" disabled={auth.busy}>{auth.busy ? 'Please wait…' : auth.phase === 'signed-out' ? 'Sign in' : 'Verify code'}</button>
     </form>}
-    {(auth.phase === 'enrolling' || auth.phase === 'challenge' || auth.busy) && <button type="button" onClick={() => { void auth.signOut(); }}>Cancel and sign out</button>}
+    {(auth.phase === 'verifying-email' || auth.phase === 'enrolling' || auth.phase === 'challenge' || auth.busy) && <button type="button" onClick={() => { void auth.signOut(); }}>Cancel and sign out</button>}
     {(auth.phase === 'enrolling' || auth.phase === 'challenge') && <p>Lost access? Contact your operator for identity recovery.</p>}
   </section>;
 }

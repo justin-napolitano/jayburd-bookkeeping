@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { initializeAuth, inMemoryPersistence, signInWithEmailAndPassword, signOut,
-  multiFactor, TotpMultiFactorGenerator, getMultiFactorResolver,
+  multiFactor, TotpMultiFactorGenerator, getMultiFactorResolver, sendEmailVerification, reload,
   type Auth, type MultiFactorError, type MultiFactorResolver, type TotpSecret } from 'firebase/auth';
 import type { AuthAdapter, LoginResult } from './controller';
 
@@ -27,7 +27,7 @@ export class FirebaseAdapter implements AuthAdapter {
     this.clear();
     try {
       const { user } = await signInWithEmailAndPassword(this.auth, email, password);
-      if (!user.emailVerified) throw new Error('Verified invitation required.');
+      if (!user.emailVerified) return 'verifying-email';
       if (multiFactor(user).enrolledFactors.length !== 0) throw new Error('Second factor required.');
       return 'enrolling';
     } catch (error) {
@@ -37,6 +37,20 @@ export class FirebaseAdapter implements AuthAdapter {
       this.resolver = resolver;
       return 'challenge';
     }
+  }
+  /** Send only to the current unverified user, using Google's default hosted handler. */
+  async sendVerification() {
+    const user = this.auth.currentUser;
+    if (!user || user.emailVerified) throw new Error('Verification unavailable.');
+    await sendEmailVerification(user);
+  }
+  /** Reload provider truth; a stale or replaced SDK session cannot complete this step. */
+  async checkVerification() {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('Sign in required.');
+    await reload(user);
+    if (this.auth.currentUser !== user) throw new Error('Sign in required.');
+    return user.emailVerified;
   }
   /** Only fresh, verified first-factor sessions can request a new TOTP secret. */
   async beginEnrollment() {
