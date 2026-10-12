@@ -34,6 +34,13 @@ web-browser:
 app-integration:
 	bash scripts/test-app-integration.sh
 
+.PHONY: demo demo-test
+demo:
+	bash scripts/test-app-integration.sh --demo
+
+demo-test:
+	bash scripts/test-app-integration.sh --demo-test
+
 backlog:
 	go run ./cmd/project backlog
 
