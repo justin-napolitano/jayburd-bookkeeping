@@ -205,3 +205,7 @@ Runtime rollout, job ordering, IAM ingress and revocation permission references 
 
 G28 in the [GCP source register](gcp-sources.md#g28--node-runtime-image-contents--2026-10-12)
 reviews Node maintainers' guidance on excluding build package managers from runtime.
+
+G29 in the [GCP source register](gcp-sources.md#g29--execution-field-serialization--2026-10-12)
+records Cloud Run timeout encoding and CLI array projections, checked against the
+first completed migration execution.
