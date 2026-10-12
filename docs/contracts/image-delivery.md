@@ -11,7 +11,7 @@ The build workflow reuses Seed validation before building linux/amd64 candidates
 Each image is built once, tested by its local content ID, scanned with pinned Trivy
 for HIGH/CRITICAL vulnerabilities including unfixed findings, inventoried as
 CycloneDX, then pushed without rebuilding. Buildx metadata records build provenance.
-The receipt links commit, run/attempt, local configuration digest and registry
+The receipt links commit, run/attempt, tested local content ID (configuration or manifest/index, depending on Docker store) and registry
 manifest digest. Tests reject missing build evidence and mismatched identities.
 
 Metadata is unsigned evidence, **not a signed attestation or SLSA conformance**.

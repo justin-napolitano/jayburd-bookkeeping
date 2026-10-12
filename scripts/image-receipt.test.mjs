@@ -16,3 +16,10 @@ test('mismatched image, missing provenance, wrong repository and ambiguous diges
  assert.throws(() => receipt(input, build, [image, image]));
  assert.throws(() => receipt({...input, commit: 'main'}, build, [image]));
 });
+
+test('containerd manifest identity works when Buildx omits a configuration digest', () => {
+ const metadata = {'containerimage.digest': input.imageID, 'buildx.build.provenance': {builder: {id: 'synthetic'}}};
+ assert.equal(receipt(input, metadata, [image]).testedImageID, input.imageID);
+ assert.equal(receipt(input, metadata, [image]).configDigest, null);
+ assert.throws(() => receipt({...input, imageID: 'sha256:' + 'd'.repeat(64)}, metadata, [image]));
+});
