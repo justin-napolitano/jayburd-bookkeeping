@@ -32,6 +32,34 @@ run "reject_missing_project" {
   variables { project_id = "" }
   expect_failures = [var.project_id]
 }
+run "bootstrap_disabled_by_default" {
+  command = plan
+  assert {
+    condition     = length(google_sql_user.bootstrap_operator) == 0 && length(google_project_iam_member.bootstrap_operator) == 0
+    error_message = "Default plans must not grant administrator access."
+  }
+}
+run "separate_bootstrap_operator" {
+  command = plan
+  variables { bootstrap_operator_email = "synthetic-owner@example.test" }
+  assert {
+    condition     = google_sql_user.bootstrap_operator[0].type == "CLOUD_IAM_USER" && google_sql_user.bootstrap_operator[0].database_roles == tolist(["cloudsqlsuperuser"]) && google_sql_user.bootstrap_operator[0].name == "synthetic-owner@example.test"
+    error_message = "Only the explicitly selected human operator receives the administrative role."
+  }
+  assert {
+    condition     = length(google_project_iam_member.bootstrap_operator) == 2 && alltrue([for b in google_project_iam_member.bootstrap_operator : b.member == "user:synthetic-owner@example.test"])
+    error_message = "Operator receives only connector/login IAM bindings."
+  }
+  assert {
+    condition     = alltrue([for u in google_sql_user.component : u.database_roles == null || length(u.database_roles) == 0])
+    error_message = "Application identities must not receive administrator memberships."
+  }
+}
+run "reject_service_account_operator" {
+  command = plan
+  variables { bootstrap_operator_email = "synthetic-api@jayburd-synthetic-test.iam.gserviceaccount.com" }
+  expect_failures = [var.bootstrap_operator_email]
+}
 run "reject_unreviewed_region" {
   command = plan
   variables { region = "europe-west1" }

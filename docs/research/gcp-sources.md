@@ -112,3 +112,21 @@ G10 pricing was rechecked on 2026-10-12 through indexed official regional tables
 the full page exceeded the browser response limit. This is a bounded price check,
 not a new full-page review. The [provisioning estimate](../runbooks/cloud-sql-bootstrap.md#provisioning-estimate)
 records assumptions separately from actual spend.
+
+## G25 — Owner-operated IAM proxy — 2026-10-12
+
+Google, [Cloud SQL Auth Proxy v2.26.0 README](https://github.com/GoogleCloudPlatform/cloud-sql-proxy/blob/v2.26.0/README.md),
+installation, credentials, Unix sockets and automatic IAM authentication;
+[proxy connection guide](https://docs.cloud.google.com/sql/docs/postgres/connect-auth-proxy),
+Unix socket length and troubleshooting outbound port 3307. Reviewed those sections
+and installed proxy help. The proxy consumes ADC internally and supports automatic
+IAM login; it does not establish network connectivity or SQL authorization.
+Selected source version matches the official connection guide; GitHub's latest
+release endpoint returned a v1 tag and was not used as v2 version authority.
+
+Inference: a private 0700 Unix directory confines local access during the operator
+check without exposing a TCP listener. Keep this exception outside runtime's
+metadata-only connector. A failed TCP 3307 check is evidence of local reachability
+failure, not proof of a particular firewall rule. Resume on a permitted network or
+review a GCP runner; do not weaken Cloud SQL transport policy. Provider example
+commands that print access tokens are not adopted.
