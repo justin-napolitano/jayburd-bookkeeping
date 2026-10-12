@@ -43,7 +43,10 @@ export function createAPI(
           Authorization: `Bearer ${token}`,
           ...(body === undefined
             ? {}
-            : { "Content-Type": "application/json", "Idempotency-Key": key! }),
+            : {
+                "Content-Type": "application/json",
+                ...(key ? { "Idempotency-Key": key } : {}),
+              }),
         },
         body,
       });

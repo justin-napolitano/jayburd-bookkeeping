@@ -54,6 +54,16 @@ func (s *Service) Workspace(ctx context.Context, c Command) (Result, error) {
 	return s.execute(ctx, c, "workspace")
 }
 
+// Recovery runs only the explicit interactive command lifecycle, never a worker.
+func (s *Service) Recovery(ctx context.Context, c Command, action string) (Result, error) {
+	switch action {
+	case "register", "pending", "execute", "cancel", "acknowledge":
+	default:
+		return Result{}, &Failure{400, "invalid_request"}
+	}
+	return s.execute(ctx, c, "command_"+action)
+}
+
 // Setup creates a new development entity/book bundle without accepting an actor
 // or permissions from its request body; SQL owns atomic setup and receipt replay.
 func (s *Service) Setup(ctx context.Context, c Command) (Result, error) {
@@ -62,8 +72,8 @@ func (s *Service) Setup(ctx context.Context, c Command) (Result, error) {
 
 // Command carries trusted identity separately from unchanged user JSON text.
 type Command struct {
-	Actor, Entity, Book, Journal, Key, Request string
-	Body                                       string
+	Actor, Entity, Book, Journal, Key, Request, CommandID string
+	Body                                                  string
 }
 
 // Result is returned only after a successful commit, including on durable replay.
@@ -90,6 +100,7 @@ func failure(err error) *Failure {
 			"P2100": {400, "invalid_request"}, "P2101": {404, "not_found"}, "P2102": {403, "permission_denied"},
 			"P2103": {409, "revision_conflict"}, "P2104": {409, "idempotency_conflict"}, "P2105": {409, "period_closed"},
 			"P2106": {409, "already_reversed"}, "P2107": {422, "invalid_amount"}, "P2108": {422, "invalid_journal"},
+			"P2112": {409, "pending_command"}, "P2113": {409, "invalid_command_state"},
 			"P2109": {422, "unsupported_policy"}, "P2110": {422, "result_out_of_range"}, "P2111": {413, "request_too_large"},
 			"22P02": {400, "invalid_request"}, "22021": {400, "invalid_request"}, "40001": {503, "temporarily_unavailable"},
 			"40P01": {503, "temporarily_unavailable"}, "57014": {503, "temporarily_unavailable"}, "55P03": {503, "temporarily_unavailable"},
@@ -193,6 +204,15 @@ func (s *Service) attempt(ctx context.Context, c Command, op string, iso pgx.TxI
 	}
 	var r Result
 	switch op {
+	case "command_register":
+		r.Status = 201
+		err = tx.QueryRow(ctx, "select ledger.register_command($1,$2,$3,$4)", c.Actor, c.Key, c.Request, c.Body).Scan(&r.Body)
+	case "command_pending":
+		r.Status = 200
+		err = tx.QueryRow(ctx, "select ledger.pending_command($1)", c.Actor).Scan(&r.Body)
+	case "command_execute", "command_cancel", "command_acknowledge":
+		r.Status = 200
+		err = tx.QueryRow(ctx, "select ledger.transition_command($1,$2,$3,$4,$5)", c.Actor, c.CommandID, c.Request, strings.TrimPrefix(op, "command_"), c.Body).Scan(&r.Body)
 	case "workspace":
 		r.Status = 200
 		err = tx.QueryRow(ctx, "select reporting.workspace($1)", c.Actor).Scan(&r.Body)

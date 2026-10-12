@@ -36,8 +36,10 @@ included. `npm run api:generate` regenerates types from the repository OpenAPI;
 
 ## Review limits
 
-See [first UI contract](../docs/contracts/first-ui.md). Unknown mutation outcomes
-retain request key/body while the session stays open. Signing out, expiry or tab
-closure clears memory; verify the request before re-entry to avoid duplication.
+See [first UI contract](../docs/contracts/first-ui.md). Pending work is discovered from the server before new entries are enabled.
+Review registers a durable command; confirmation executes it; explicit acknowledgement
+releases the next-work gate. Session/tab loss clears browser memory, while registered
+work remains recoverable after authorized sign-in. No automatic execution or acknowledgement
+occurs during discovery. Unsaved form edits are not durable.
 The gRPC override patches Firebase's unused Firestore transitive dependency;
 revisit when Firebase publishes a compatible patched dependency graph.

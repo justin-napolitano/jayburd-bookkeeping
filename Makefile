@@ -1,4 +1,4 @@
-.PHONY: check test build backlog packet issue-drafts migration-create migration-seal migration-check migration-test ledger-test web-check web-test web-build web-browser
+.PHONY: check test build backlog packet issue-drafts migration-create migration-seal migration-check migration-test ledger-test web-check web-test web-build web-browser app-integration
 
 check:
 	go run ./cmd/project check
@@ -30,6 +30,9 @@ web-build:
 
 web-browser:
 	npm --prefix web run test:browser
+
+app-integration:
+	bash scripts/test-app-integration.sh
 
 backlog:
 	go run ./cmd/project backlog

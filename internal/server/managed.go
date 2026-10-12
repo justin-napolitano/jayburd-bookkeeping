@@ -25,6 +25,12 @@ const runtimeSafety = `SELECT
  AND NOT EXISTS(SELECT FROM pg_namespace WHERE nspname IN ('public','ledger','reporting','reference','audit','integration','banking','deployment') AND has_schema_privilege(current_user,oid,'CREATE'))
  AND NOT EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','deployment') AND c.relkind IN ('r','p','v','m','S') AND has_table_privilege(current_user,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'))
  AND NOT has_function_privilege(current_user,'ledger.enroll_principal(text,text)','EXECUTE')
+ AND to_regprocedure('ledger.register_command(uuid,text,uuid,text)') IS NOT NULL
+ AND has_function_privilege(current_user,'ledger.register_command(uuid,text,uuid,text)','EXECUTE')
+ AND to_regprocedure('ledger.pending_command(uuid)') IS NOT NULL
+ AND has_function_privilege(current_user,'ledger.pending_command(uuid)','EXECUTE')
+ AND to_regprocedure('ledger.transition_command(uuid,uuid,uuid,text,text)') IS NOT NULL
+ AND has_function_privilege(current_user,'ledger.transition_command(uuid,uuid,uuid,text,text)','EXECUTE')
  AND to_regprocedure('reporting.workspace(uuid)') IS NOT NULL
  AND has_function_privilege(current_user,'reporting.workspace(uuid)','EXECUTE')`
 

@@ -31,6 +31,11 @@ type Operations interface {
 // identity and database adapters. Server composition owns listener policy.
 func Handler(auth Authenticator, ops Operations) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /v1/commands", endpoint(auth, ops, "command_register"))
+	mux.HandleFunc("GET /v1/commands/pending", endpoint(auth, ops, "command_pending"))
+	mux.HandleFunc("POST /v1/commands/{command}/execute", endpoint(auth, ops, "command_execute"))
+	mux.HandleFunc("POST /v1/commands/{command}/cancel", endpoint(auth, ops, "command_cancel"))
+	mux.HandleFunc("POST /v1/commands/{command}/acknowledge", endpoint(auth, ops, "command_acknowledge"))
 	mux.HandleFunc("GET /v1/workspace", endpoint(auth, ops, "workspace"))
 	mux.HandleFunc("POST /v1/setup", endpoint(auth, ops, "setup"))
 	base := "/v1/entities/{entity}/books/{book}"
@@ -83,14 +88,21 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			fail(401, "unauthenticated")
 			return
 		}
-		c := Command{Actor: actor, Entity: r.PathValue("entity"), Book: r.PathValue("book"), Journal: r.PathValue("journal"), Request: id}
-		if op == "post" || op == "reverse" || op == "setup" {
-			keys := r.Header.Values("Idempotency-Key")
-			if len(keys) != 1 || keys[0] == "" {
-				fail(400, "invalid_request")
-				return
+		c := Command{Actor: actor, Entity: r.PathValue("entity"), Book: r.PathValue("book"), Journal: r.PathValue("journal"), CommandID: r.PathValue("command"), Request: id}
+		isRecovery := strings.HasPrefix(op, "command_")
+		if isRecovery && r.URL.RawQuery != "" {
+			fail(400, "invalid_request")
+			return
+		}
+		if op == "post" || op == "reverse" || op == "setup" || (isRecovery && op != "command_pending") {
+			if !isRecovery || op == "command_register" {
+				keys := r.Header.Values("Idempotency-Key")
+				if len(keys) != 1 || keys[0] == "" {
+					fail(400, "invalid_request")
+					return
+				}
+				c.Key = keys[0]
 			}
-			c.Key = keys[0]
 			body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
 			if err != nil {
 				var tooBig *http.MaxBytesError
@@ -116,6 +128,19 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 		}
 		var result Result
 		switch op {
+		case "command_register", "command_pending", "command_execute", "command_cancel", "command_acknowledge":
+			if op == "command_pending" && (r.ContentLength > 0 || len(r.TransferEncoding) > 0) {
+				fail(400, "invalid_request")
+				return
+			}
+			recovery, ok := ops.(interface {
+				Recovery(context.Context, Command, string) (Result, error)
+			})
+			if !ok {
+				fail(503, "temporarily_unavailable")
+				return
+			}
+			result, err = recovery.Recovery(r.Context(), c, strings.TrimPrefix(op, "command_"))
 		case "workspace":
 			if r.URL.RawQuery != "" || r.ContentLength > 0 || len(r.TransferEncoding) > 0 {
 				fail(400, "invalid_request")

@@ -40,6 +40,7 @@ background work. The two predecessor repos are reference material only.
 | What worked in Brainblast? | [Tooling assessment](research/brainblast.md) |
 | How are identities enrolled and books created? | [Identity/setup contract](contracts/identity-setup.md) and [delivery evidence](runbooks/identity-setup.md) |
 | How does the first application run? | [Server contract](contracts/server.md), [browser sign-in](contracts/browser-auth.md), [first UI](contracts/first-ui.md) and [application evidence](runbooks/first-app.md) |
+| How do postings recover after losing a browser session? | [Durable command contract](contracts/command-recovery.md), [source review](research/recovery-sources.md) and [integration evidence](runbooks/command-recovery.md) |
 | What has actually passed? | [PostgreSQL posting proof](runbooks/posting-proof.md) |
 | What was checked for the contract package? | [Ledger contract runbook](runbooks/ledger-contracts.md) |
 
