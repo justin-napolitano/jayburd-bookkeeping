@@ -1,7 +1,10 @@
 # Review a development release
 
-No enabled release manifest is committed. This implementation does not authorize
-or execute a cloud apply. Follow the [rollout contract](../docs/contracts/cloud-run-rollout.md).
+A migration-only candidate is committed in [dev-release.json](dev-release.json).
+It does not execute on merge. Review its source, digests and expiry using the
+[candidate runbook](../docs/runbooks/migration-candidate.md); deployment federation
+and exact-hash owner dispatch are separate steps. Follow the
+[rollout contract](../docs/contracts/cloud-run-rollout.md).
 
 ## Migration-only bootstrap release
 
