@@ -8,10 +8,10 @@ import { AuthProvider, LoginPanel, useAuth } from './index';
 
 /** This fixture replaces the provider boundary only in test-owned module loading. */
 function fixture(): AuthAdapter {
-  return { signIn: vi.fn(async () => 'enrolling' as const), beginEnrollment: vi.fn(async () => 'SYNTHETIC-KEY'), enroll: vi.fn(async () => {}), challenge: vi.fn(async () => {}), token: vi.fn(async () => 'synthetic-token'), signOut: vi.fn(async () => {}), clear: vi.fn() };
+  return { signIn: vi.fn(async () => 'enrolling' as const), sendVerification: vi.fn(async () => {}), checkVerification: vi.fn(async () => false), beginEnrollment: vi.fn(async () => 'SYNTHETIC-KEY'), enroll: vi.fn(async () => {}), challenge: vi.fn(async () => {}), token: vi.fn(async () => 'synthetic-token'), signOut: vi.fn(async () => {}), clear: vi.fn() };
 }
 /** Expose only public session state as a test probe, never credentials. */
-function Probe() { const auth = useAuth(); return createElement('output', { 'data-testid': 'phase' }, auth.phase); }
+function Probe() { const auth = useAuth(); return createElement('output', { 'data-testid': 'phase', role: 'note' }, auth.phase); }
 /** Construct the same provider/component composition as the real application. */
 function mount() { render(createElement(AuthProvider, null, createElement(LoginPanel), createElement(Probe))); }
 beforeEach(() => {
@@ -64,4 +64,26 @@ it('does not initialize an SDK after unmount or a rejected runtime configuration
   mount();
   await new Promise(done => setTimeout(done,0));
   expect(boundary.createBrowserAuth).not.toHaveBeenCalled();
+});
+
+it('offers explicit verification and returns verified users to a fresh login', async () => {
+  const adapter = fixture(); vi.mocked(adapter.signIn).mockResolvedValue('verifying-email');
+  boundary.createBrowserAuth.mockReturnValue(adapter); mount();
+  await screen.findByLabelText('Email');
+  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'fixture@example.invalid' } });
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'synthetic-password' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+  await screen.findByRole('heading', { name: 'Verify your email' });
+  expect(adapter.sendVerification).not.toHaveBeenCalled();
+  expect(screen.queryByLabelText('Password')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Set up authenticator' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Send verification email' }));
+  await waitFor(() => expect(screen.getByRole('status').textContent).toContain('Verification email requested'));
+  fireEvent.click(screen.getByRole('button', { name: 'I have verified my email' }));
+  await waitFor(() => expect(screen.getByRole('status').textContent).toContain('not verified yet'));
+  vi.mocked(adapter.checkVerification).mockResolvedValue(true);
+  fireEvent.click(screen.getByRole('button', { name: 'I have verified my email' }));
+  await screen.findByLabelText('Password');
+  expect(screen.getByRole('status').textContent).toContain('Email verified');
+  expect(screen.getByTestId('phase').textContent).toBe('signed-out');
 });

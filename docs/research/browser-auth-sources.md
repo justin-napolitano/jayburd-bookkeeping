@@ -34,3 +34,17 @@ TOTP-only tokens, enrollment isolation, cancellation, failure redaction and stal
 session suppression. They do not prove project configuration, recovery controls,
 provider availability or end-to-end MFA. Those require an approved synthetic
 provider release test before deployment. Google Go verification remains authoritative.
+
+## BA03 — Firebase email verification and hosted actions
+
+Reviewed 2026-10-12: [Manage users](https://firebase.google.com/docs/auth/web/manage-users),
+“Send a user a verification email”; [JavaScript Auth reference](https://firebase.google.com/docs/reference/js/auth),
+`sendEmailVerification` and `reload`; [email action handlers](https://firebase.google.com/docs/auth/custom-email-handler),
+default-handler introduction. SDK methods send to the authenticated user and
+reload provider account data; Firebase supplies a default hosted action handler.
+The TOTP guide's prerequisites require verified email. Review covers these sections,
+not the whole reference. Implementation remains pinned to Firebase 13.0.0.
+Our inference: explicit send, provider-hosted links, and a fresh login after
+verification avoid custom mail/URL handling. The 60-second UI resend interval is
+our choice, not a documented provider quota. Live sender, inbox delivery and
+expired-link behavior are unproven and require owner review.
