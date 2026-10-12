@@ -3,14 +3,24 @@
 
 ## Status and boundary
 
-Runtime identity/private API implementation slice (#27) under [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
+Terraform runtime rollout implementation slice (#27) under [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
 GitHub owns current task state; this ledger records decisions and observed review
 results. Terraform foundation/database configuration, explicit IAM connector and
 restricted migration runner are implemented. Foundation infrastructure is now applied;
 application/database deployment, live build-token exchange and live-bookkeeping
 approval remain unestablished.
 
-## Runtime identity/private API slice — current branch
+## Runtime rollout slice — current branch
+
+- Decision: separate migration/runtime roots and runtime-only state bucket; disabled independent deployment federation and reviewed manifest gate. See [rollout contract](../contracts/cloud-run-rollout.md).
+- #34 merged at `452e76d`; all hosted checks passed. #23/#24 remain open; runtime deployment is intentionally blocked pending dependencies and owner configuration.
+- Implemented bounded services, dedicated migration job, exact-digest release validation, migration-before-service orchestration and explicit compatible rollback without SQL changes.
+- Initial validation caught HCL multiline syntax and an overbroad test log matcher (runtime bucket name mistaken for service mutation); corrected both. Eight release/smoke tests and synthetic shell ordering/failure/rollback proof pass.
+- PASS: pinned Terraform 1.15.7/Google 8.6.0 validate and 16 mocked runs across foundation/database/migration/runtime. Registry DNS sandbox denial resolved through approved rerun.
+- PASS: `make check test build release-test` with Go 1.26.9; nine Node release/smoke/readback tests and synthetic shell failure/rollback proof; workflow actionlint, shell syntax and diff checks. Initial actionlint registry denial resolved through approved rerun.
+- Reviewed token lifetime, exact ready revision/digest/traffic receipts and fail-closed expiry recheck. Hosted PR CI pending. No cloud apply, token retrieval, image publication or protected state/plan access.
+
+## Runtime identity/private API slice — prior branch
 
 - Merge #33 verified at `9fbb5d0`; this slice changes application code only. Foundation stays applied; no new live provider request or apply is performed.
 - Replaced build-time Firebase identifiers and static rewrite with dynamic public configuration and a fixed-target bridge carrying separate user/service tokens.
@@ -96,11 +106,11 @@ from foundation provisioning.
 
 ## PR handoff
 
-Review runtime public configuration, fixed-target API forwarding and the
-[bridge contract](../contracts/private-api-bridge.md). This is a bounded #27 slice;
-the issue stays open for deployment and real identity evidence. No SQL migration,
-Terraform apply, real token retrieval or image publication is included. Hosted CI
-is pending PR creation. Foundation evidence below belongs to prior slices.
+Review Terraform runtime/migration roots, deployment trust/state isolation and the
+owner-dispatch manifest workflow. #27 stays open: this is implementation evidence,
+not deployment or real identity acceptance. No SQL migration or accounting/API
+contract changes. No provisioning or workflow dispatch performed. Hosted checks
+pending PR creation; see current slice above for local evidence.
 
 ## Foundation evidence — prior slice
 

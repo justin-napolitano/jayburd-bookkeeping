@@ -1,6 +1,6 @@
 # These outputs are identifiers only; agents must not retrieve Terraform state or plans.
 output "state_bucket_names" {
-  description = "Separate bootstrap/application state destinations for owner-operated backend setup."
+  description = "Separate foundation/database/runtime state destinations for owner-operated backend setup."
   value       = { for key, bucket in google_storage_bucket.state : key => bucket.name }
 }
 output "service_account_names" {
@@ -14,4 +14,9 @@ output "image_repository" {
 output "build_identity_provider" {
   description = "Disabled-by-default GitHub provider; requires canonical resource-name audience."
   value       = google_iam_workload_identity_pool_provider.build.name
+}
+
+output "deploy_identity_provider" {
+  description = "Independent disabled-by-default deployment provider; owner review required."
+  value       = google_iam_workload_identity_pool_provider.deployment.name
 }

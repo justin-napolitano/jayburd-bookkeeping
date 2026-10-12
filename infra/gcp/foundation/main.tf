@@ -7,7 +7,7 @@ locals {
   identities    = toset(["builder", "deployer", "migrator", "api", "frontend", "publisher", "consumer", "scheduler", "task-invoker"])
   foundation_apis = toset([
     "artifactregistry.googleapis.com", "cloudbilling.googleapis.com", "cloudresourcemanager.googleapis.com",
-    "billingbudgets.googleapis.com", "iam.googleapis.com",
+    "billingbudgets.googleapis.com", "iam.googleapis.com", "run.googleapis.com", "identitytoolkit.googleapis.com",
     "iamcredentials.googleapis.com", "sts.googleapis.com",
     "serviceusage.googleapis.com", "storage.googleapis.com"
   ])
@@ -31,7 +31,7 @@ resource "google_project_service" "foundation" {
 
 # Separate buckets prevent an application deployer from changing bootstrap state.
 resource "google_storage_bucket" "state" {
-  for_each                    = toset(["foundation", "application"])
+  for_each                    = toset(["foundation", "application", "runtime"])
   project                     = var.project_id
   name                        = "${var.project_id}-jayburd-dev-${each.key}-state"
   location                    = var.region
@@ -80,7 +80,7 @@ resource "google_artifact_registry_repository_iam_member" "builder" {
   member     = "serviceAccount:${google_service_account.component["builder"].email}"
 }
 resource "google_storage_bucket_iam_member" "application_state" {
-  bucket = google_storage_bucket.state["application"].name
+  bucket = google_storage_bucket.state["runtime"].name
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.component["deployer"].email}"
 }
@@ -132,4 +132,57 @@ resource "google_billing_budget" "development" {
   threshold_rules { threshold_percent = 0.8 }
   threshold_rules { threshold_percent = 1.0 }
   depends_on = [google_project_service.foundation]
+}
+
+# A separate pool is essential: repository_id alone must not let build tokens impersonate the deployer.
+resource "google_iam_workload_identity_pool" "deployment" {
+  project                   = var.project_id
+  workload_identity_pool_id = "jayburd-dev-deploy"
+  disabled                  = !var.enable_github_deploy_identity
+  depends_on                = [google_project_service.foundation]
+}
+resource "google_iam_workload_identity_pool_provider" "deployment" {
+  project                            = var.project_id
+  workload_identity_pool_id          = google_iam_workload_identity_pool.deployment.workload_identity_pool_id
+  workload_identity_pool_provider_id = "owner-deploy"
+  disabled                           = !var.enable_github_deploy_identity
+  attribute_mapping                  = { "google.subject" = "assertion.sub", "attribute.repository_id" = "assertion.repository_id" }
+  attribute_condition                = join(" && ", [for claim, value in merge(local.build_claims, { workflow_ref = "${local.repository}/.github/workflows/deploy-dev.yml@refs/heads/main" }) : "assertion.${claim} == '${value}'"])
+  oidc { issuer_uri = "https://token.actions.githubusercontent.com" }
+}
+resource "google_service_account_iam_member" "github_deployer" {
+  service_account_id = google_service_account.component["deployer"].name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/projects/${var.project_number}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.deployment.workload_identity_pool_id}/attribute.repository_id/${local.repository_id}"
+}
+resource "google_project_iam_member" "run_deployer" {
+  project = var.project_id
+  role    = "roles/run.admin"
+  member  = "serviceAccount:${google_service_account.component["deployer"].email}"
+}
+resource "google_service_account_iam_member" "runtime_act_as" {
+  for_each           = toset(["api", "frontend", "migrator"])
+  service_account_id = google_service_account.component[each.key].name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.component["deployer"].email}"
+}
+resource "google_artifact_registry_repository_iam_member" "deployer" {
+  project    = var.project_id
+  location   = var.region
+  repository = google_artifact_registry_repository.images.name
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.component["deployer"].email}"
+}
+# Revocation verification needs user lookup, not identity provisioning or modification.
+resource "google_project_iam_custom_role" "identity_lookup" {
+  project     = var.project_id
+  role_id     = "jayburdIdentityLookup"
+  title       = "Jayburd identity revocation lookup"
+  permissions = ["firebaseauth.users.get"]
+  depends_on  = [google_project_service.foundation]
+}
+resource "google_project_iam_member" "identity_lookup" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.identity_lookup.name
+  member  = "serviceAccount:${google_service_account.component["api"].email}"
 }
