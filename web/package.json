@@ -11,26 +11,29 @@
     "test:browser": "playwright test -c playwright-ct.config.ts",
     "api:generate": "openapi-typescript ../api/openapi.json -o src/lib/api.generated.ts",
     "api:check": "openapi-typescript ../api/openapi.json -o src/lib/api.generated.ts --check",
-    "format": "prettier --write src/bookkeeping src/app tests playwright *.ts package.json"
+    "format": "prettier --write src/bookkeeping src/app tests playwright *.ts package.json",
+    "rehearsal:build": "vite build --config rehearsal/vite.config.ts",
+    "rehearsal:test": "playwright test -c rehearsal/playwright.config.ts"
   },
   "dependencies": {
+    "firebase": "13.0.0",
     "next": "16.4.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "firebase": "13.0.0"
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "typescript": "5.9.3",
+    "@playwright/experimental-ct-react": "1.62.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
     "@types/node": "24.10.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.2.3",
-    "vitest": "5.0.3",
     "jsdom": "27.4.0",
-    "@testing-library/react": "16.3.2",
-    "@testing-library/user-event": "14.6.1",
-    "@playwright/experimental-ct-react": "1.62.1",
     "openapi-typescript": "7.13.0",
-    "prettier": "3.6.2"
+    "prettier": "3.6.2",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.3"
   },
   "engines": {
     "node": ">=24.18.0 <25"

@@ -87,3 +87,17 @@ it('offers explicit verification and returns verified users to a fresh login', a
   expect(screen.getByRole('status').textContent).toContain('Email verified');
   expect(screen.getByTestId('phase').textContent).toBe('signed-out');
 });
+
+it('uses validated explicit public configuration without fetching a runtime endpoint', async () => {
+  boundary.createBrowserAuth.mockReturnValue(fixture());
+  render(createElement(AuthProvider, {children: null,config:{apiKey:'synthetic-public',projectId:'synthetic-project',authDomain:'synthetic-project.firebaseapp.com'}}, createElement(LoginPanel)));
+  await screen.findByLabelText('Email');
+  expect(fetch).not.toHaveBeenCalled();
+  expect(boundary.createBrowserAuth).toHaveBeenCalledOnce();
+});
+it('fails closed for invalid supplied configuration without trying another source', async () => {
+  render(createElement(AuthProvider, {children: null,config:{apiKey:'synthetic-public',projectId:'synthetic-project',authDomain:'foreign.example.invalid'}}, createElement(LoginPanel)));
+  await new Promise(done => setTimeout(done,0));
+  expect(screen.getByText('Sign-in is not configured')).toBeTruthy();
+  expect(fetch).not.toHaveBeenCalled(); expect(boundary.createBrowserAuth).not.toHaveBeenCalled();
+});
