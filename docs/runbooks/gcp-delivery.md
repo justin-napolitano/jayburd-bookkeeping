@@ -3,12 +3,22 @@
 
 ## Status and boundary
 
-Owner-authorized development foundation bootstrap under [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
+Runtime identity/private API implementation slice (#27) under [epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25).
 GitHub owns current task state; this ledger records decisions and observed review
 results. Terraform foundation/database configuration, explicit IAM connector and
 restricted migration runner are implemented. Foundation infrastructure is now applied;
 application/database deployment, live build-token exchange and live-bookkeeping
 approval remain unestablished.
+
+## Runtime identity/private API slice — current branch
+
+- Merge #33 verified at `9fbb5d0`; this slice changes application code only. Foundation stays applied; no new live provider request or apply is performed.
+- Replaced build-time Firebase identifiers and static rewrite with dynamic public configuration and a fixed-target bridge carrying separate user/service tokens.
+- PASS: initial 67 browser/server tests, including transport denials, failure, replay-byte preservation, cancellation, concurrency and late configuration disposal. Type checks identified a Next ProcessEnv augmentation in test fixtures; helpers now declare their actual string-map input contract.
+- PASS: `make web-check web-test web-build web-browser`: generated API/type checks, 67 unit tests, production build with dynamic auth/bridge routes and three Chromium journeys.
+- PASS: `bash scripts/test-web-container.sh`: non-root/read-only isolated image, denied unconfigured routes, static assets, graceful shutdown and same-image synthetic runtime configuration without rebuild.
+- PASS: pinned Go 1.26.9 `make check test build`, including race tests, documentation links and immutable migration checks. No database contract or migration changes.
+- Next: Terraform runtime settings/Invoker grants and controlled migration/rollout; real identity and Infisical acceptance remain open.
 
 ## Foundation bootstrap — 2026-10-12
 
@@ -76,8 +86,9 @@ planning evidence. Local `make check test build` also passed for this documentat
 
 No GitHub token exchange or image publication has been executed.
 
-Next: runtime browser configuration and private service-token forwarding, then
-serialized Terraform migration/rollout. Identity and Infisical acceptance remain
+Next: Terraform runtime settings/Invoker grants and serialized migration/rollout.
+Runtime browser configuration and private service-token forwarding are implemented
+with synthetic evidence on this branch. Identity and Infisical acceptance remain
 open. PRs #23/#24 were open at the last feature review; recheck before final cloud
 acceptance. Final #12 proof still requires recovery, 1,000 postings and measured
 spend. Default CI remains credential-free. No live-bookkeeping approval follows
@@ -85,10 +96,11 @@ from foundation provisioning.
 
 ## PR handoff
 
-Foundation bootstrap is complete and remote-state verification reports no drift.
-Review this operational record and explicit quota-project instructions. Future
-foundation changes use the same private GCS backend. No Terraform source,
-application code, SQL, credentials, plan or state artifacts are included.
+Review runtime public configuration, fixed-target API forwarding and the
+[bridge contract](../contracts/private-api-bridge.md). This is a bounded #27 slice;
+the issue stays open for deployment and real identity evidence. No SQL migration,
+Terraform apply, real token retrieval or image publication is included. Hosted CI
+is pending PR creation. Foundation evidence below belongs to prior slices.
 
 ## Foundation evidence — prior slice
 
