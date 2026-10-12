@@ -1,9 +1,11 @@
 /** Browser state is presentation only; the API independently verifies every token. */
-export type Phase = 'unconfigured' | 'signed-out' | 'loading' | 'enrolling' | 'challenge' | 'signed-in';
-export type LoginResult = 'enrolling' | 'challenge' | 'signed-in';
+export type Phase = 'unconfigured' | 'signed-out' | 'loading' | 'verifying-email' | 'enrolling' | 'challenge' | 'signed-in';
+export type LoginResult = 'verifying-email' | 'enrolling' | 'challenge' | 'signed-in';
 /** The SDK seam keeps provider credentials out of UI state and offline test fixtures. */
 export interface AuthAdapter {
   signIn(email: string, password: string): Promise<LoginResult>;
+  sendVerification(): Promise<void>;
+  checkVerification(): Promise<boolean>;
   beginEnrollment(): Promise<string>;
   enroll(code: string): Promise<void>;
   challenge(code: string): Promise<void>;
@@ -15,6 +17,7 @@ export interface AuthState {
   phase: Phase;
   busy: boolean;
   error: string;
+  notice: string;
   enrollmentKey: string;
   sessionKey: string;
 }
@@ -23,11 +26,12 @@ export class AuthController {
   private epoch = 0;
   private pending = false;
   private signingOut = 0;
+  private nextVerificationAttempt = 0;
   private listeners = new Set<() => void>();
   private state: AuthState;
   /** Missing provider configuration starts in an explicit unavailable state. */
   constructor(private adapter: AuthAdapter | null) {
-    this.state = { phase: adapter ? 'signed-out' : 'unconfigured', busy: false, error: '', enrollmentKey: '', sessionKey: '0' };
+    this.state = { phase: adapter ? 'signed-out' : 'unconfigured', busy: false, error: '', notice: '', enrollmentKey: '', sessionKey: '0' };
   }
   /** React observes stable snapshots, never SDK objects or bearer tokens. */
   snapshot = () => this.state;
@@ -40,7 +44,7 @@ export class AuthController {
     if (!this.adapter || this.pending || this.signingOut !== 0) return;
     const epoch = this.epoch;
     this.pending = true;
-    this.update({ busy: true, error: '' });
+    this.update({ busy: true, error: '', notice: '' });
     try {
       const result = await work();
       if (epoch === this.epoch) this.update(result);
@@ -50,7 +54,7 @@ export class AuthController {
           this.adapter.clear();
           await this.adapter.signOut().catch(() => {});
         }
-        this.update({ error: 'Unable to authenticate. Check your details or sign in again.', ...(resetOnFailure ? { phase: 'signed-out' as const, enrollmentKey: '' } : {}) });
+        if (epoch === this.epoch) this.update({ error: 'Unable to authenticate. Check your details or sign in again.', ...(resetOnFailure ? { phase: 'signed-out' as const, enrollmentKey: '' } : {}) });
       }
     } finally {
       if (epoch !== this.epoch) await this.adapter.signOut().catch(() => {});
@@ -59,23 +63,42 @@ export class AuthController {
     }
   }
   /** Only operator-provisioned accounts can authenticate; no signup method exists. */
-  signIn = (email: string, password: string) => this.run(async () => ({ phase: await this.adapter!.signIn(email, password), enrollmentKey: '' }), true);
+  signIn = (email: string, password: string) => this.state.phase !== 'signed-out' ? Promise.resolve() : this.run(async () => ({ phase: await this.adapter!.signIn(email, password), enrollmentKey: '' }), true);
+  /** Explicit sends are confined to verification and locally spaced, including failed attempts. */
+  sendVerification = async () => {
+    if (this.state.phase !== 'verifying-email') return;
+    await this.run(async () => {
+      if (Date.now() < this.nextVerificationAttempt) return { notice: 'Wait 60 seconds between email requests, then try again.' };
+      this.nextVerificationAttempt = Date.now() + 60_000;
+      await this.adapter!.sendVerification();
+      return { notice: 'Verification email requested. Check your inbox and spam folder, open the link, then return here.' };
+    });
+  };
+  /** Verification never grants finance access; confirmed users must establish a fresh session. */
+  checkVerification = async () => {
+    if (this.state.phase !== 'verifying-email') return;
+    await this.run(async () => {
+      if (!await this.adapter!.checkVerification()) return { notice: 'Your email is not verified yet. Open the verification link, then check again.' };
+      await this.adapter!.signOut();
+      return { phase: 'signed-out', enrollmentKey: '', notice: 'Email verified. Sign in again to set up your authenticator.' };
+    }, true);
+  };
   /** Generate the enrollment secret only after the user explicitly requests it. */
-  beginEnrollment = () => this.run(async () => ({ enrollmentKey: await this.adapter!.beginEnrollment() }));
+  beginEnrollment = () => this.state.phase !== 'enrolling' ? Promise.resolve() : this.run(async () => ({ enrollmentKey: await this.adapter!.beginEnrollment() }));
   /** Enrollment always requires a new password/TOTP sign-in before API access. */
-  enroll = (code: string) => this.run(async () => {
+  enroll = (code: string) => this.state.phase !== 'enrolling' ? Promise.resolve() : this.run(async () => {
     await this.adapter!.enroll(code);
     await this.adapter!.signOut();
     return { phase: 'signed-out', enrollmentKey: '', error: 'Authenticator added. Sign in again to complete verification.' };
   });
   /** Only a successfully completed TOTP challenge opens the application UI. */
-  challenge = (code: string) => this.run(async () => { await this.adapter!.challenge(code); return { phase: 'signed-in' }; });
+  challenge = (code: string) => this.state.phase !== 'challenge' ? Promise.resolve() : this.run(async () => { await this.adapter!.challenge(code); return { phase: 'signed-in' }; });
   /** Clear UI and enrollment material immediately, even when provider signout fails. */
   signOut = async () => {
     ++this.epoch;
     ++this.signingOut;
     this.adapter?.clear();
-    this.update({ phase: this.adapter ? 'signed-out' : 'unconfigured', enrollmentKey: '', error: '', sessionKey: String(this.epoch), busy: true });
+    this.update({ phase: this.adapter ? 'signed-out' : 'unconfigured', enrollmentKey: '', error: '', notice: '', sessionKey: String(this.epoch), busy: true });
     await this.adapter?.signOut().catch(() => {});
     --this.signingOut;
     this.update({ busy: this.pending || this.signingOut !== 0 });

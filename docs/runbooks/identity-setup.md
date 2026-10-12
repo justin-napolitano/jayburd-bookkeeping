@@ -84,8 +84,9 @@ additional books/accounts/periods and real-LLC policy are later work.
 Owner next action: open [development Identity Platform users](https://console.cloud.google.com/customer-identity/users?project=jayburd-bookkeeping-dev)
 and create the intended invited account privately. Do not share its password,
 verification links or authenticator codes with agents. Email verification must be
-established before our browser permits TOTP enrollment; the current application
-does not send verification mail. Review and complete that operator flow before
+established before our browser permits TOTP enrollment; verification UI implementation
+is tracked in #38 and the [verification runbook](email-verification.md). Review
+and complete the live operator flow before
 claiming the account is ready. Provider creation does not enroll a SQL principal.
 
 Then supply public browser configuration through the reviewed release inputs,
