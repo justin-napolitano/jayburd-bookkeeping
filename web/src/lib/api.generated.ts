@@ -795,7 +795,7 @@ export interface components {
             name: string;
             /** @enum {string} */
             kind: "legal" | "personal";
-            permissions: ("read" | "prepare" | "post" | "close")[];
+            permissions: ("read" | "prepare" | "post" | "close" | "import")[];
             books: components["schemas"]["WorkspaceBook"][];
         };
         Workspace: {
@@ -818,20 +818,28 @@ export interface components {
             /** Format: uuid */
             book_id: string;
             body: components["schemas"]["PostJournal"];
+        } | {
+            /** @constant */
+            operation: "import";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            body: components["schemas"]["ImportCommandBody"];
         };
         DurableCommand: {
             /** Format: uuid */
             command_id: string;
             /** @enum {string} */
-            operation: "setup" | "post";
+            operation: "setup" | "post" | "import";
             /** Format: uuid */
             entity_id: string | null;
             /** Format: uuid */
             book_id: string | null;
             /** @enum {string} */
             state: "prepared" | "committed" | "cancelled";
-            body: components["schemas"]["SetupRequest"] | components["schemas"]["PostJournal"];
-            result: components["schemas"]["SetupResult"] | components["schemas"]["Journal"] | null;
+            body: components["schemas"]["SetupRequest"] | components["schemas"]["PostJournal"] | components["schemas"]["ImportCommandBody"];
+            result: components["schemas"]["SetupResult"] | components["schemas"]["Journal"] | components["schemas"]["ImportCommandResult"] | null;
             /** Format: date-time */
             created_at: string;
             acknowledged: boolean;
@@ -859,6 +867,31 @@ export interface components {
                 line_number: number;
             };
             journal: components["schemas"]["Journal"];
+        };
+        /** @description Explicit confirmation of one immutable synthetic preview. Imports create review items, never journals. Current source permissions and pinned revisions are checked by SQL. */
+        ImportCommandBody: {
+            /** Format: uuid */
+            batch_id: string;
+            /** Format: uuid */
+            preview_id: string;
+            preview_revision: components["schemas"]["Revision"];
+            binding_revision: components["schemas"]["Revision"];
+            source_revision: components["schemas"]["Revision"];
+            /** @constant */
+            profile: "jayburd-synthetic-statement-csv/1";
+        };
+        ImportCommandResult: {
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            /** Format: uuid */
+            batch_id: string;
+            /** @description Canonical count, maximum 1000. */
+            created_count: string;
+            /** @description Canonical count, maximum 1000. */
+            existing_count: string;
+            source_revision: components["schemas"]["Revision"];
         };
     };
     responses: {

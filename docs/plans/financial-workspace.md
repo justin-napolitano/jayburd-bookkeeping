@@ -2,43 +2,41 @@
 
 ## Decision
 
-Propose a financial review workspace for #52 under epic #50. Owner review is
-pending. Open the [self-contained prototype](../prototypes/financial-workspace.html)
-locally; it makes no requests and adds no application route. The existing
-Next.js authentication and durable-command boundaries remain authoritative.
+Issue #80 implements a book-first workspace under #52/#50 using the existing
+Next.js identity, durable-command and ledger-read boundaries. The static
+[prototype](../prototypes/financial-workspace.html) remains design history, not
+an application route or runtime data source. No combined balances across LLCs.
 
-## Work
+## Implemented work
 
-Navigation covers overview, accounts, review inbox, reports and reconciliation.
-Entity/book, period and currency context stay visible. All-LLC cards retain
-separate books; no consolidation or currency pooling. Reports distinguish an
-as-of balance sheet from period income. Exact fixed golden-month expectations
-are copied independently of posting code; the prototype does not compute an
-accounting report or claim backend pagination support.
+Select an authorized entity/book, then use **Overview, Accounts, Account activity,
+Reports or New journal**. The compact header retains functional currency and
+explicit dates. Workspace metadata revision is labelled separately from freshly
+read report snapshots. Overview and Accounts read the existing trial-balance API;
+amounts remain exact strings. Account activity uses the existing scoped general
+ledger, followed by revision-pinned journal detail. There is no book-wide
+transaction endpoint or connected bank feed.
 
-Journey: select Fictional A → Reports → Checking → AC-02 → account journals →
-Reports. Period and currency selectors survive return. Switching entity, period,
-currency or simulated response state clears detail immediately. A changed-book
-state requires a fresh snapshot; future runtime requests must enforce current
-authorization and revision consistency under #51.
+Account balance → account ledger → journal → Overview preserves date context.
+Changing book remounts scope-owned state; dates invalidate superseded responses.
+Hidden report views cannot repopulate from late requests. Denied reads clear the
+book selection. Loading/error/denied is never rendered as zero. Report comparison,
+CSV review download and source-provenance behavior retain their owned contracts.
 
-Review-inbox states are explicitly illustrative. Reconciliation, exports and
-close actions remain pending and cannot be executed here. USD original and
-functional units match only because this fixture is USD; multicurrency and FX
-policies are still required. February is missing fixture data, never verified
-zero activity. Loading, error, denied and changed-book states hide all totals.
+Recovery stays mounted. Idle status and discovery action remain visible in a
+compact row; registration uncertainty, pending work, errors and unacknowledged
+results retain the full recovery panel. Scope/navigation/editing remain locked
+until authoritative recovery permits new work. New journal moves behind explicit
+navigation without bypassing review or terminal acknowledgement.
 
-## Done when
+## Evidence and remaining gates
 
-[FW-DOM evidence](../runbooks/financial-workspace.md) verifies fixture equality,
-drill/return, scope clearing and display states. Native keyboard controls,
-visible focus, captions and responsive layouts follow
-[FW01–FW02](../research/financial-workspace-sources.md). Semantic tables were
-chosen over card-only reports for comparative review.
+[Living workspace evidence](../runbooks/book-workspace.md) owns named tests and
+review captures. Native controls, visible focus, semantic tables and mobile layout
+reuse [FW01–FW02](../research/financial-workspace-sources.md). Amount/read correctness
+still comes from SQL contracts, not screenshots or synthetic browser mocks.
 
-Owner design approval, real browser keyboard/mobile review and runtime journeys
-remain gates; this partial prototype does not close #52. Implement reviewed
-#51 read contracts before connecting live report views. Add named browser tests
-for authorized report → journal → return, denied/revoked scope, revision refresh,
-empty/error/loading and entity switches. Production accessibility and runtime
-correctness cannot be inferred from the static prototype.
+Owner visual approval, full accessibility audit and hosted evidence remain separate.
+Review inbox, reconciliation, bank-provider ingestion and live policy approval are
+future work; #80 does not close #52/#50. No arbitrary functional FX or audit-export
+conformance is introduced by this interface.

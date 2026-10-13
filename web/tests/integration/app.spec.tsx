@@ -59,6 +59,7 @@ test("real setup and lost committed journal recover after remount with exactly o
   await page
     .getByLabel("Entity and book")
     .selectOption({ label: "Synthetic browser LLC / Operating" });
+  await page.getByRole("button", { name: "New journal", exact: true }).click();
   await page.getByLabel("Accounting date", { exact: true }).fill("2026-01-15");
   await page
     .getByRole("combobox", { name: "Policy", exact: true })
@@ -120,6 +121,7 @@ test("real setup and lost committed journal recover after remount with exactly o
     page.locator("tbody tr").filter({ hasText: "3000" }),
   ).toContainText("125.5");
   // Read the actual committed journal through every new report screen without adding posts.
+  await page.getByRole("button", { name: "Reports", exact: true }).click();
   const reports = page.getByRole("region", { name: "Financial reports" });
   await reports
     .getByLabel("Report through date (inclusive)")
@@ -201,15 +203,15 @@ test("real setup and lost committed journal recover after remount with exactly o
   await reports.getByRole("button", { name: "Download review CSV" }).click();
   expect((await exportResponse).status()).toBe(200);
   const downloaded = await download;
-  expect(downloaded.suggestedFilename()).toBe(
-    "financial-reporting-review.csv",
-  );
+  expect(downloaded.suggestedFilename()).toBe("financial-reporting-review.csv");
   // Check the actual download bytes after the bridge/client, not only its filename.
   const stream = await downloaded.createReadStream();
   expect(stream).not.toBeNull();
   let csv = "";
   for await (const chunk of stream!) csv += chunk.toString("utf8");
-  expect(csv).toContain('"total_debits","positive","125.5","zero","0","positive","125.5"\r\n');
+  expect(csv).toContain(
+    '"total_debits","positive","125.5","zero","0","positive","125.5"\r\n',
+  );
   await reports
     .getByRole("button", { name: "Review account 1000", exact: true })
     .click();

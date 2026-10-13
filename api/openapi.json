@@ -3702,7 +3702,8 @@
                 "read",
                 "prepare",
                 "post",
-                "close"
+                "close",
+                "import"
               ]
             }
           },
@@ -3797,6 +3798,33 @@
                 "$ref": "#/components/schemas/PostJournal"
               }
             }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation",
+              "entity_id",
+              "book_id",
+              "body"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "const": "import"
+              },
+              "entity_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "book_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "body": {
+                "$ref": "#/components/schemas/ImportCommandBody"
+              }
+            }
           }
         ]
       },
@@ -3823,7 +3851,8 @@
             "type": "string",
             "enum": [
               "setup",
-              "post"
+              "post",
+              "import"
             ]
           },
           "entity_id": {
@@ -3855,6 +3884,9 @@
               },
               {
                 "$ref": "#/components/schemas/PostJournal"
+              },
+              {
+                "$ref": "#/components/schemas/ImportCommandBody"
               }
             ]
           },
@@ -3865,6 +3897,9 @@
               },
               {
                 "$ref": "#/components/schemas/Journal"
+              },
+              {
+                "$ref": "#/components/schemas/ImportCommandResult"
               },
               {
                 "type": "null"
@@ -3964,6 +3999,81 @@
           "selector",
           "journal"
         ]
+      },
+      "ImportCommandBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "batch_id",
+          "preview_id",
+          "preview_revision",
+          "binding_revision",
+          "source_revision",
+          "profile"
+        ],
+        "properties": {
+          "batch_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "preview_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "preview_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "binding_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "profile": {
+            "type": "string",
+            "const": "jayburd-synthetic-statement-csv/1"
+          }
+        },
+        "description": "Explicit confirmation of one immutable synthetic preview. Imports create review items, never journals. Current source permissions and pinned revisions are checked by SQL."
+      },
+      "ImportCommandResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entity_id",
+          "book_id",
+          "batch_id",
+          "created_count",
+          "existing_count",
+          "source_revision"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "batch_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,3})$",
+            "description": "Canonical count, maximum 1000."
+          },
+          "existing_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,3})$",
+            "description": "Canonical count, maximum 1000."
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          }
+        }
       }
     },
     "responses": {
