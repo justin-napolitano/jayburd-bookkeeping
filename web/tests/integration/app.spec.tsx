@@ -107,7 +107,8 @@ test("real setup and lost committed journal recover after remount with exactly o
   await page
     .getByLabel("Entity and book")
     .selectOption({ label: "Synthetic browser LLC / Operating" });
-  await page.getByLabel("Through date").fill("2026-01-31");
+  // Select the preserved trial-balance control, not the new report date field.
+  await page.getByLabel("Through date", { exact: true }).fill("2026-01-31");
   await page
     .getByRole("button", { name: "Load trial balance", exact: true })
     .click();
@@ -118,4 +119,52 @@ test("real setup and lost committed journal recover after remount with exactly o
   await expect(
     page.locator("tbody tr").filter({ hasText: "3000" }),
   ).toContainText("125.5");
+  // Read the actual committed journal through every new report screen without adding posts.
+  const reports = page.getByRole("region", { name: "Financial reports" });
+  await reports
+    .getByLabel("Report through date (inclusive)")
+    .fill("2026-01-31");
+  for (const kind of [
+    "trial-balance",
+    "balance-sheet",
+    "profit-and-loss",
+    "general-ledger",
+  ]) {
+    await reports.getByLabel("Report type").selectOption(kind);
+    if (["profit-and-loss", "general-ledger"].includes(kind)) {
+      await reports.getByLabel("Report starts on").fill("2026-01-01");
+      await reports.getByLabel("Report ends before").fill("2026-02-01");
+    }
+    if (kind === "general-ledger")
+      await reports
+        .getByLabel("Report account")
+        .selectOption({ label: "1000 · Cash" });
+    const response = page.waitForResponse((r) =>
+      r.url().includes(`/reports/${kind}?`),
+    );
+    await reports.getByRole("button", { name: "Refresh report" }).click();
+    expect((await response).status()).toBe(200);
+    // Controlled setup advances revision before the one posted journal; revisions are not journal counts.
+    await expect(reports.getByText(/Snapshot 5 ·/)).toBeVisible();
+    const totals = reports.locator("table").first();
+    await expect(
+      totals
+        .getByRole("row")
+        .filter({
+          hasText:
+            kind === "trial-balance"
+              ? "Total debits"
+              : kind === "balance-sheet"
+                ? "Assets"
+                : kind === "profit-and-loss"
+                  ? "Net income"
+                  : "Closing balance",
+        })
+        .locator("td"),
+    ).toHaveText(kind === "profit-and-loss" ? "0.00" : "125.50");
+    if (kind === "general-ledger")
+      await expect(
+        reports.getByRole("cell", { name: /125.5 USD/ }),
+      ).toBeVisible();
+  }
 });

@@ -17,6 +17,7 @@ import type {
 } from "./types";
 import { useCommands } from "./commands";
 import { CommandPanel } from "./CommandPanel";
+import { Reports } from "./Reports";
 import { currencyAt, formatAmount } from "./amount";
 // UI account drafts carry strings unchanged to the authoritative setup transaction.
 type AccountDraft = {
@@ -625,6 +626,7 @@ function BookView({
           </>
         )}
       </section>
+      <Reports api={api} entity={entity} book={book} locked={locked} />
       <section>
         <h2>Trial balance</h2>
         <form onSubmit={trial}>
