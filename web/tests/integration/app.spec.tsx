@@ -167,4 +167,69 @@ test("real setup and lost committed journal recover after remount with exactly o
         reports.getByRole("cell", { name: /125.5 USD/ }),
       ).toBeVisible();
   }
+  // Follow the actual GL line through the pinned authorized journal wrapper.
+  const journalResponse = page.waitForResponse((r) =>
+    r.url().includes("/reports/general-ledger/journals/"),
+  );
+  await reports
+    .getByRole("button", { name: "Review journal line 1", exact: true })
+    .click();
+  expect((await journalResponse).status()).toBe(200);
+  const detail = reports.getByRole("region", { name: "Journal detail" });
+  await expect(detail).toContainText("Synthetic initial capital");
+  await expect(detail).toContainText("Report snapshot 5");
+  await expect(detail.locator("tbody tr")).toHaveCount(2);
+  await reports.getByRole("button", { name: "Close journal detail" }).click();
+  await reports.getByLabel("Report type").selectOption("trial-balance");
+  await reports.getByLabel("Compare another period").check();
+  await reports
+    .getByLabel("Comparison through date (inclusive)")
+    .fill("2026-01-01");
+  await reports.getByRole("button", { name: "Refresh report" }).click();
+  await expect(
+    reports
+      .locator("table")
+      .first()
+      .getByRole("row")
+      .filter({ hasText: "Total debits" })
+      .locator("td"),
+  ).toHaveText(["125.50", "0.00", "125.50"]);
+  const exportResponse = page.waitForResponse((r) =>
+    r.url().includes("/export.csv?"),
+  );
+  const download = page.waitForEvent("download");
+  await reports.getByRole("button", { name: "Download review CSV" }).click();
+  expect((await exportResponse).status()).toBe(200);
+  const downloaded = await download;
+  expect(downloaded.suggestedFilename()).toBe(
+    "financial-reporting-review.csv",
+  );
+  // Check the actual download bytes after the bridge/client, not only its filename.
+  const stream = await downloaded.createReadStream();
+  expect(stream).not.toBeNull();
+  let csv = "";
+  for await (const chunk of stream!) csv += chunk.toString("utf8");
+  expect(csv).toContain('"total_debits","positive","125.5","zero","0","positive","125.5"\r\n');
+  await reports
+    .getByRole("button", { name: "Review account 1000", exact: true })
+    .click();
+  await reports.getByLabel("Drill starts on").fill("2026-01-01");
+  await reports.getByLabel("Drill ends before").fill("2026-02-01");
+  const navigation = page.waitForResponse((r) =>
+    r.url().includes("/reports/general-ledger?"),
+  );
+  await reports.getByRole("button", { name: "Open account ledger" }).click();
+  const navigationResult = await navigation;
+  expect(navigationResult.status()).toBe(200);
+  expect(
+    new URL(navigationResult.url()).searchParams.get("snapshot_revision"),
+  ).toBe("5");
+  await expect(
+    reports
+      .locator("table")
+      .first()
+      .getByRole("row")
+      .filter({ hasText: "Closing balance" })
+      .locator("td"),
+  ).toHaveText("125.50");
 });
