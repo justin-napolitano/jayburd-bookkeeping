@@ -107,7 +107,8 @@ test("real setup and lost committed journal recover after remount with exactly o
   await page
     .getByLabel("Entity and book")
     .selectOption({ label: "Synthetic browser LLC / Operating" });
-  await page.getByLabel("Through date").fill("2026-01-31");
+  // Select the preserved trial-balance control, not the new report date field.
+  await page.getByLabel("Through date", { exact: true }).fill("2026-01-31");
   await page
     .getByRole("button", { name: "Load trial balance", exact: true })
     .click();
@@ -143,7 +144,8 @@ test("real setup and lost committed journal recover after remount with exactly o
     );
     await reports.getByRole("button", { name: "Refresh report" }).click();
     expect((await response).status()).toBe(200);
-    await expect(reports.getByText(/Snapshot 1/)).toBeVisible();
+    // Controlled setup advances revision before the one posted journal; revisions are not journal counts.
+    await expect(reports.getByText(/Snapshot 5 ·/)).toBeVisible();
     const totals = reports.locator("table").first();
     await expect(
       totals
