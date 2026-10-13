@@ -190,3 +190,53 @@ describe('report follow-up bridge',()=>{
    }
  });
 });
+
+describe("source review bridge", () => {
+  const id = "00000000-0000-4000-8000-000000000001";
+  const base = `/v1/entities/${id}/books/${id}`;
+  it.each([
+    `${base}/sources`,
+    `${base}/review-items?source_account_id=${id}&limit=100`,
+    `${base}/review-items/${id}`,
+    `${base}/review-items/${id}/categories`,
+  ])("forwards reviewed read %s", async (path) => {
+    const fetcher = transport(Response.json({ amount: "9007199254740993.01" }));
+    const response = await createBridge(fetcher, () => env)(request(path));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ amount: "9007199254740993.01" });
+  });
+  it.each([
+    `${base}/review-items?source_account_id=${id}&source_account_id=${id}`,
+    `${base}/review-items?source_account_id=${id}&limit=101`,
+    `${base}/review-items?source_account_id=${id}&actor=other`,
+    `${base}/review-items`,
+    "/v1/demo/acquisition",
+  ])("rejects non-contract surface %s before network", async (path) => {
+    const fetcher = vi.fn<typeof fetch>();
+    expect((await createBridge(fetcher, () => env)(request(path))).status).toBe(
+      404,
+    );
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("retains the immutable draft request and its key without retrying", async () => {
+    const fetcher = transport(Response.json({ draft_id: id }));
+    const body = '{"description":"reviewed","source_revision":"4"}';
+    const response = await createBridge(
+      fetcher,
+      () => env,
+    )(
+      request(
+        `${base}/review-items/${id}/drafts`,
+        { "Content-Type": "application/json", "Idempotency-Key": "same-draft" },
+        body,
+      ),
+    );
+    expect(response.status).toBe(200);
+    expect(
+      new TextDecoder().decode(fetcher.mock.calls[1][1]?.body as Uint8Array),
+    ).toBe(body);
+    expect(
+      new Headers(fetcher.mock.calls[1][1]?.headers).get("Idempotency-Key"),
+    ).toBe("same-draft");
+  });
+});

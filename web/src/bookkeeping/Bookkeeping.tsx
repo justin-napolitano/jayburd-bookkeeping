@@ -160,6 +160,7 @@ export function Bookkeeping({
           {...selected}
           currencies={workspace?.currencies ?? []}
           api={api}
+          prepare={recovery.prepare}
           locked={locked}
           denied={() => {
             setScope("");

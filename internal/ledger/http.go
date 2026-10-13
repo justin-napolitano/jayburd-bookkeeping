@@ -39,6 +39,11 @@ func Handler(auth Authenticator, ops Operations) http.Handler {
 	mux.HandleFunc("GET /v1/workspace", endpoint(auth, ops, "workspace"))
 	mux.HandleFunc("POST /v1/setup", endpoint(auth, ops, "setup"))
 	base := "/v1/entities/{entity}/books/{book}"
+	mux.HandleFunc("GET "+base+"/sources", endpoint(auth, ops, "review_sources"))
+	mux.HandleFunc("GET "+base+"/review-items", endpoint(auth, ops, "review_list"))
+	mux.HandleFunc("GET "+base+"/review-items/{review}", endpoint(auth, ops, "review_detail"))
+	mux.HandleFunc("GET "+base+"/review-items/{review}/categories", endpoint(auth, ops, "review_categories"))
+	mux.HandleFunc("POST "+base+"/review-items/{review}/drafts", endpoint(auth, ops, "review_draft"))
 	mux.HandleFunc("POST "+base+"/journals", endpoint(auth, ops, "post"))
 	mux.HandleFunc("POST "+base+"/journals/{journal}/reversals", endpoint(auth, ops, "reverse"))
 	mux.HandleFunc("GET "+base+"/journals/{journal}", endpoint(auth, ops, "journal"))
@@ -93,13 +98,17 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			fail(401, "unauthenticated")
 			return
 		}
-		c := Command{Actor: actor, Entity: r.PathValue("entity"), Book: r.PathValue("book"), Journal: r.PathValue("journal"), CommandID: r.PathValue("command"), Request: id}
+		c := Command{Actor: actor, Entity: r.PathValue("entity"), Book: r.PathValue("book"), Journal: r.PathValue("journal"), ReviewID: r.PathValue("review"), CommandID: r.PathValue("command"), Request: id}
 		isRecovery := strings.HasPrefix(op, "command_")
-		if isRecovery && r.URL.RawQuery != "" {
+		if strings.HasPrefix(op, "review_") && r.Method == http.MethodHead {
+			fail(405, "method_not_allowed")
+			return
+		}
+		if (isRecovery || (strings.HasPrefix(op, "review_") && op != "review_list")) && r.URL.RawQuery != "" {
 			fail(400, "invalid_request")
 			return
 		}
-		if op == "post" || op == "reverse" || op == "setup" || (isRecovery && op != "command_pending") {
+		if op == "post" || op == "reverse" || op == "setup" || op == "review_draft" || (isRecovery && op != "command_pending") {
 			if !isRecovery || op == "command_register" {
 				keys := r.Header.Values("Idempotency-Key")
 				if len(keys) != 1 || keys[0] == "" {
@@ -108,7 +117,11 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 				}
 				c.Key = keys[0]
 			}
-			body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
+			maximum := int64(1 << 20)
+			if op == "review_draft" {
+				maximum = 64 << 10
+			}
+			body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maximum))
 			if err != nil {
 				var tooBig *http.MaxBytesError
 				if errors.As(err, &tooBig) {
@@ -171,6 +184,26 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			}
 		}
 		switch op {
+		case "review_sources", "review_list", "review_detail", "review_categories", "review_draft":
+			if op != "review_draft" && (r.ContentLength > 0 || len(r.TransferEncoding) > 0) {
+				fail(400, "invalid_request")
+				return
+			}
+			if op == "review_list" {
+				c.Body, err = sourceReviewRequest(r)
+				if err != nil {
+					fail(400, "invalid_request")
+					return
+				}
+			}
+			review, ok := ops.(interface {
+				SourceReview(context.Context, Command, string) (Result, error)
+			})
+			if !ok {
+				fail(503, "temporarily_unavailable")
+				return
+			}
+			result, err = review.SourceReview(r.Context(), c, strings.TrimPrefix(op, "review_"))
 		case "drill_journal":
 			c.Body, err = reportJournalRequest(r)
 			if err != nil {
