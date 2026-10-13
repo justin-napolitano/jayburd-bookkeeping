@@ -42,6 +42,8 @@ background work. The two predecessor repos are reference material only.
 | What are the proposed reporting queries and exports? | [Financial reporting contract](contracts/financial-reporting.md) |
 | How will the financial review workspace look and behave? | [Workspace design](plans/financial-workspace.md) and [synthetic prototype](prototypes/financial-workspace.html) |
 | What is the first proposed statement-import format? | [Synthetic statement-import contract](contracts/statement-import.md) |
+| How will Plaid pulls and webhooks feed the same ingestion core? | [Provider ingestion proposal](contracts/provider-ingestion.md) |
+| How will outbox delivery, leases and sync recovery be proved? | [Worker contract review](runbooks/outbox-contract-review.md) and [provider/worker integration review](runbooks/provider-worker-review.md) |
 | What did the parallel design sessions deliver? | [Integration review and remaining gates](runbooks/parallel-contract-review.md) |
 | What worked in Brainblast? | [Tooling assessment](research/brainblast.md) |
 | How are identities enrolled and books created? | [Identity/setup contract](contracts/identity-setup.md) and [delivery evidence](runbooks/identity-setup.md) |

@@ -15,6 +15,7 @@ W63-20261013T143600Z owns only background-work contract, sources and this runboo
 | SQL review | Immutable outbox v1, post/reverse receipt and interactive-command boundaries retained. |
 | Research | BW01–BW05 selected sections reviewed; technical facts separated from proposals. |
 | Coordination | #70 shares connection generation/fence and requested/target/completed generation vocabulary; source revision is not book revision. |
+| Integration review | Distinguished terminal completion from a successful intermediate-step receipt so replay cannot suppress continuation work. |
 | Validation | `make check test build` PASS with Go1.26.9: project/doc checks, immutable migration verification, runbook structure, vet, race-enabled existing tests and binaries. |
 
 ## Current evidence
