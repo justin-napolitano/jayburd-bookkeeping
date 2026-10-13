@@ -261,9 +261,10 @@ mapping or an ISO-conformance claim.
 
 - [Worker SQL source review](../contracts/worker-sql.md#source-review-and-alternatives),
   WS01–WS03: PostgreSQL 17 locking, actual-clock timestamps and SECURITY DEFINER
-  guidance for the proposed journal-observer schema/functions. These primary
-  sections explain mechanisms; the named role, race and receipt tests remain
-  future evidence until that separate worker migration is implemented.
+  guidance for the journal-observer schema/functions. These primary sections
+  explain mechanisms; migration8 and the named role, race and receipt tests
+  are recorded in [foundation evidence](../runbooks/ingestion-foundations.md).
+  Hosted queue delivery remains unproved.
 - [Decoder implementation source review](../contracts/statement-decoder.md#implementation-evidence-and-alternatives):
   Go's standard `encoding/csv` behavior explains why this restricted synthetic
   profile validates ASCII and physical CRLF records before quoted-field parsing.
@@ -275,3 +276,5 @@ records selected PostgreSQL constraint/isolation, OWASP upload and Plaid transac
 identity sections, their interpretation and access limits. These support proposed
 persistence and overlap decisions; they do not establish implemented ingestion or
 ISO exchange conformance.
+
+- [Local observer runtime source application](../contracts/observer-runtime.md#evidence-and-sources): existing queue/SQL/pgx sources support short committed claims, injected transport and uncertain-commit handling. Read its named fault evidence separately from future hosted delivery proof.
