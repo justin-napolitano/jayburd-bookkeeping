@@ -1,14 +1,12 @@
-# Draft ledger API
+# Ledger and reporting API
 
-`openapi.json` is an OpenAPI 3.1.1 review artifact; `post-journal.example.json`
-is a synthetic request, also embedded in the specification for lint validation.
-No application server or financial integration exists. Read the
-[HTTP semantics](../docs/contracts/api.md) and [SQL contract](../docs/contracts/ledger-sql.md)
-together before implementation.
+`openapi.json` is the OpenAPI 3.1.1 contract for implemented ledger operations and
+bounded JSON reports. Development accounting policy and deployment evidence are
+separate. Close and CSV reporting remain deferred. Read [HTTP semantics](../docs/contracts/api.md),
+[report transport](../docs/contracts/reporting-http.md) and [SQL reporting](../docs/contracts/reporting-sql.md).
 
-Validate with `npx --yes @redocly/cli@2.62.1 lint api/openapi.json`.
-This optional review tool may download packages; it is not part of the default
-credential-free Go build and does not call financial providers. A missing-license
-metadata warning is expected: no API license grant has been chosen. Do not add a
-license merely to silence lint. Structural validity does not prove accounting,
-authorization, concurrent transaction behavior or ISO conformance.
+Generate clients with `npm --prefix web run api:generate`. Validate with
+`npx --yes @redocly/cli@2.62.1 lint api/openapi.json`. This optional tool may download
+packages; default Go checks remain credential-free. Missing-license metadata
+warning is expected; no license grant is inferred. Structural validity does not
+prove accounting, authorization, concurrent behavior or ISO conformance.
