@@ -4,6 +4,86 @@
  */
 
 export interface paths {
+    "/v1/entities/{entity_id}/books/{book_id}/reports/trial-balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read trial-balance with exact monetary strings
+         * @description GET only; request bodies and HEAD rejected. Unknown, duplicate or malformed query fields reject. A cursor requires matching snapshot_revision. SQL reauthorizes each page before checking revision. No CSV. Complete request URI maximum 4096 bytes.
+         */
+        get: operations["getTrialBalanceReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/reports/general-ledger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read general-ledger with exact monetary strings
+         * @description GET only; request bodies and HEAD rejected. Unknown, duplicate or malformed query fields reject. A cursor requires matching snapshot_revision. SQL reauthorizes each page before checking revision. No CSV. Complete request URI maximum 4096 bytes.
+         */
+        get: operations["getGeneralLedgerReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/reports/balance-sheet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read balance-sheet with exact monetary strings
+         * @description GET only; request bodies and HEAD rejected. Unknown, duplicate or malformed query fields reject. A cursor requires matching snapshot_revision. SQL reauthorizes each page before checking revision. No CSV. Complete request URI maximum 4096 bytes.
+         */
+        get: operations["getBalanceSheetReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/reports/profit-and-loss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read profit-and-loss with exact monetary strings
+         * @description GET only; request bodies and HEAD rejected. Unknown, duplicate or malformed query fields reject. A cursor requires matching snapshot_revision. SQL reauthorizes each page before checking revision. No CSV. Complete request URI maximum 4096 bytes.
+         */
+        get: operations["getProfitAndLossReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/entities/{entity_id}/books/{book_id}/journals": {
         parameters: {
             query?: never;
@@ -256,6 +336,130 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        FinancialReportSelector: {
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            /** @description Canonical nonnegative bigint text; SQL enforces upper bound. */
+            snapshot_revision: string;
+            /** Format: uuid */
+            account_id?: string;
+            /** Format: date */
+            starts_on?: string;
+            /** Format: date */
+            ends_before?: string;
+            /** Format: date */
+            through_date?: string;
+            categories?: ("asset" | "liability" | "equity" | "revenue" | "expense")[];
+        };
+        /** @description Report-specific fields follow reporting-sql.md; account and GL rows retain exact strings. Derived earnings has no account_id. */
+        FinancialReportRow: {
+            id: string;
+            amounts: {
+                [key: string]: string;
+            };
+            selector: components["schemas"]["FinancialReportSelector"];
+            /** Format: uuid */
+            account_id?: string;
+            account_code?: string;
+            account_name?: string;
+            /** @enum {string} */
+            category?: "asset" | "liability" | "equity" | "revenue" | "expense";
+            /** @enum {string} */
+            normal_side?: "debit" | "credit";
+            /** Format: uuid */
+            journal_id?: string;
+            line_number?: number;
+            /** Format: date */
+            accounting_date?: string;
+            /** Format: date-time */
+            posted_at?: string;
+            kind?: string;
+            /** Format: uuid */
+            reverses_journal_id?: string | null;
+            /** Format: uuid */
+            policy_id?: string;
+            transaction_currency?: string;
+            /** Format: uuid */
+            transaction_currency_version_id?: string;
+            /** @description Exact canonical decimal; never a JSON number. */
+            transaction_amount?: string;
+            /** @description Exact canonical decimal; never a JSON number. */
+            functional_amount?: string;
+            /** @enum {string} */
+            side?: "debit" | "credit";
+            valuation_basis?: string;
+            /** Format: uuid */
+            rate_observation_id?: string | null;
+            /** @description Exact canonical decimal; never a JSON number. */
+            running_balance?: string;
+            comparison?: {
+                amounts: {
+                    [key: string]: string;
+                };
+                difference: {
+                    [key: string]: string;
+                };
+            };
+        };
+        /** @description Bounded internal review report. Supported synthetic policy only. Totals span complete selected scope, not the page. No ISO audit export or live-policy approval. */
+        FinancialReport: {
+            /** @constant */
+            contract_version: "financial-reporting-v1";
+            /** @enum {string} */
+            report: "trial-balance" | "general-ledger" | "balance-sheet" | "profit-and-loss";
+            /** @enum {string} */
+            layout: "account-v1" | "posting-v1" | "basic-unclassified-v1";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            /** @description Canonical nonnegative bigint text; SQL enforces upper bound. */
+            snapshot_revision: string;
+            /** Format: date-time */
+            generated_at: string;
+            /** @constant */
+            basis: "accrual";
+            /** @constant */
+            timezone: "UTC";
+            functional_currency: string;
+            /** Format: uuid */
+            functional_currency_version_id: string;
+            minor_units: number;
+            policy_ids: string[];
+            filters: {
+                /** @enum {string} */
+                report: "trial-balance" | "general-ledger" | "balance-sheet" | "profit-and-loss";
+                /** Format: date */
+                through_date?: string;
+                /** Format: date */
+                starts_on?: string;
+                /** Format: date */
+                ends_before?: string;
+                /** Format: date */
+                compare_through_date?: string;
+                /** Format: date */
+                compare_starts_on?: string;
+                /** Format: date */
+                compare_ends_before?: string;
+                /** Format: uuid */
+                account_id?: string;
+            };
+            totals: {
+                [key: string]: string;
+            };
+            comparison: {
+                totals: {
+                    [key: string]: string;
+                };
+                difference: {
+                    [key: string]: string;
+                };
+            } | null;
+            rows: components["schemas"]["FinancialReportRow"][];
+            next_cursor: string | null;
+        };
         /** @description Unsigned finite decimal string, up to 29 integer and 9 fractional digits. Validate lexical bounds before casts, then enforce currency minor-unit and functional posting scale by value; no silent rounding of supplied amounts. */
         Amount: string;
         /** @description Unsigned canonical decimal string, semantic maximum 9223372036854775807. Mutation at maximum fails before writes; no wraparound. */
@@ -637,6 +841,161 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getTrialBalanceReport: {
+        parameters: {
+            query: {
+                through_date: string;
+                compare_through_date?: string;
+                snapshot_revision?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete bounded page after transaction commit. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialReport"];
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    getGeneralLedgerReport: {
+        parameters: {
+            query: {
+                starts_on: string;
+                ends_before: string;
+                account_id: string;
+                snapshot_revision?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete bounded page after transaction commit. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialReport"];
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    getBalanceSheetReport: {
+        parameters: {
+            query: {
+                through_date: string;
+                compare_through_date?: string;
+                snapshot_revision?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete bounded page after transaction commit. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialReport"];
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    getProfitAndLossReport: {
+        parameters: {
+            query: {
+                starts_on: string;
+                ends_before: string;
+                compare_starts_on?: string;
+                compare_ends_before?: string;
+                snapshot_revision?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete bounded page after transaction commit. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialReport"];
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
     postJournal: {
         parameters: {
             query?: never;
