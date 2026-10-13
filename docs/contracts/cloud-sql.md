@@ -99,6 +99,12 @@ checksum drift and overlapping execution. Terraform's application tests assert
 recovery/capacity/transport configuration. Existing migration and ledger suites
 remain required. Passing these tests does not establish IAM token/TLS acceptance.
 
+Denial evidence must match the expected SQLSTATE, not merely any failure:
+`42501` for forbidden DDL/table reads/owner role, and `P2101` for an unknown
+principal at the workspace entrypoint under its required repeatable-read isolation.
+Connection failures, missing objects and the `P2100` isolation precondition do
+not demonstrate authorization. Direct-table probes use zero-row reads.
+
 Maximum planned demand including overlapping API/publisher/consumer revisions is
 28 runtime connections, plus two migrator and five administrative = 35 below the
 configured 50. Publisher/consumer pools are future #7 work. Live shared-core login

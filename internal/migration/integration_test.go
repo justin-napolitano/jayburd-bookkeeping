@@ -6,12 +6,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"errors"
 	"flag"
 	"fmt"
 	"testing"
 	"testing/fstest"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/justin-napolitano/jayburd-bookkeeping/db/migrations"
 )
@@ -53,13 +55,20 @@ func TestRestrictedMigration(t *testing.T) {
 		t.Fatal("runtime lost its authorized entrypoint")
 	}
 
-	for _, query := range []string{`CREATE TABLE public.denied(id int)`, `CREATE SCHEMA denied`, `CREATE ROLE denied`, `SELECT * FROM ledger.entity`, `SELECT * FROM deployment.migration_artifact`, `SET ROLE bookkeeping_owner`} {
-		if _, err := runtime.ExecContext(ctx, query); err == nil {
-			t.Fatalf("runtime authority exceeded: %s", query)
-		}
+	for _, query := range []string{`CREATE TABLE public.denied(id int)`, `CREATE SCHEMA denied`, `CREATE ROLE denied`, `SELECT * FROM ledger.entity LIMIT 0`, `SELECT * FROM deployment.migration_artifact LIMIT 0`, `SET ROLE bookkeeping_owner`} {
+		_, err := runtime.ExecContext(ctx, query)
+		requireSQLState(t, err, "42501")
 	}
-	if _, err := runtime.ExecContext(ctx, `SELECT reporting.workspace('00000000-0000-4000-8000-000000000099')`); err == nil {
-		t.Fatal("unknown principal accepted")
+	// Satisfy the isolation precondition so P2101 proves principal denial, not an unrelated P2100 failure.
+	tx, err := runtime.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+	if err != nil {
+		t.Fatal("runtime acceptance transaction unavailable")
+	}
+	defer tx.Rollback()
+	_, err = tx.ExecContext(ctx, `SELECT reporting.workspace('00000000-0000-4000-8000-000000000099')`)
+	requireSQLState(t, err, "P2101")
+	if err := tx.Rollback(); err != nil {
+		t.Fatal("runtime acceptance rollback failed")
 	}
 	files := copyAssets(t)
 	files["000001_ledger.up.sql"].Data = append(files["000001_ledger.up.sql"].Data, []byte("\n-- altered artifact\n")...)
@@ -73,6 +82,15 @@ func TestRestrictedMigration(t *testing.T) {
 	files["SHA256SUMS"] = &fstest.MapFile{Data: manifest}
 	if err := Up(ctx, proofDB(t, "synthetic_migrator", "bookkeeping"), files); err == nil {
 		t.Fatal("resealed deployed SQL accepted")
+	}
+}
+
+// requireSQLState prevents connection, syntax or isolation failures from being mistaken for authorization denial.
+func requireSQLState(t *testing.T, err error, expected string) {
+	t.Helper()
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != expected {
+		t.Fatalf("expected PostgreSQL rejection %s", expected)
 	}
 }
 
