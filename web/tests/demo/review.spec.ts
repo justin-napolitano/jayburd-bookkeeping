@@ -12,7 +12,7 @@ test("generated review books preserve cents and recover a posted result after re
     label:
       "Fictional Generator Trading LLC / Synthetic review — USD functional",
   });
-  await page.getByLabel("Through date").fill("2026-12-31");
+  await page.getByLabel("Through date", { exact: true }).fill("2026-12-31");
   await page
     .getByRole("button", { name: "Load trial balance", exact: true })
     .click();
@@ -23,7 +23,7 @@ test("generated review books preserve cents and recover a posted result after re
   await page.getByLabel("Entity and book").selectOption({
     label: "Fictional Cents Lab LLC / Synthetic review — USD functional",
   });
-  await page.getByLabel("Through date").fill("2026-12-31");
+  await page.getByLabel("Through date", { exact: true }).fill("2026-12-31");
   await page
     .getByRole("button", { name: "Load trial balance", exact: true })
     .click();
@@ -66,7 +66,7 @@ test("generated review books preserve cents and recover a posted result after re
   await page.getByLabel("Entity and book").selectOption({
     label: "Fictional Cents Lab LLC / Synthetic review — USD functional",
   });
-  await page.getByLabel("Through date").fill("2026-12-31");
+  await page.getByLabel("Through date", { exact: true }).fill("2026-12-31");
   await page
     .getByRole("button", { name: "Load trial balance", exact: true })
     .click();
