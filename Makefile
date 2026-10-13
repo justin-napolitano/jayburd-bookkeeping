@@ -94,3 +94,7 @@ observer-test:
 .PHONY: source-registry-test
 source-registry-test:
 	bash scripts/test-source-registry.sh
+
+.PHONY: import-service-test
+import-service-test:
+	bash scripts/test-import-service.sh

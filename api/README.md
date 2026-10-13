@@ -16,3 +16,9 @@ Generate clients with `npm --prefix web run api:generate`. Validate with
 packages; default Go checks remain credential-free. Missing-license metadata
 warning is expected; no license grant is inferred. Structural validity does not
 prove accounting, authorization, concurrent behavior or ISO conformance.
+
+Import confirmation uses the existing saved-command endpoints with operation `import`;
+see `ImportCommandBody`/`ImportCommandResult` and the durable import contract. This
+adds no public upload, preview publication or arbitrary-row endpoint. The current
+workspace supports safe recovery/cancellation/acknowledgement; it does not confirm
+an import without a statement-preview client.

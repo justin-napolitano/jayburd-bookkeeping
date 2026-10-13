@@ -2,6 +2,11 @@
 
 ## Purpose and reading order
 
+The [independent decoder property evidence](../runbooks/import-properties.md)
+records reviewed Go1.26.9 `math/big` integer/rational source sections and the
+separate exact-money oracle. It supplements parser fuzzing; it does not establish
+provider behavior or database isolation.
+
 For bank sync qualification and measurable scaling, read the
 [sync quality source review](sync-quality-sources.md): selected official Plaid
 lifecycle/Sandbox and Google Cloud concurrency/queue sections, reviewed
