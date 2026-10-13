@@ -13,14 +13,16 @@ BEGIN
   RAISE EXCEPTION 'unsafe IAM login roles';
  END IF;
  IF EXISTS(SELECT FROM pg_roles WHERE (rolsuper OR rolcreatedb OR rolcreaterole OR rolbypassrls OR rolreplication OR rolname='cloudsqlsuperuser') AND (pg_has_role(api_name,oid,'MEMBER') OR pg_has_role(migrator_name,oid,'MEMBER'))) THEN RAISE EXCEPTION 'unsafe inherited authority'; END IF;
- FOREACH role_name IN ARRAY ARRAY['bookkeeping_owner','bookkeeping_api','bookkeeping_identity_operator'] LOOP
+ -- Capability roles exist before restricted migrations; no worker login or binding is provisioned.
+ FOREACH role_name IN ARRAY ARRAY['bookkeeping_owner','bookkeeping_api','bookkeeping_identity_operator','bookkeeping_publisher','bookkeeping_observer'] LOOP
   IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname=role_name) THEN
    EXECUTE format('CREATE ROLE %I NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS',role_name);
   END IF;
   IF EXISTS(SELECT FROM pg_roles WHERE rolname=role_name AND (rolcanlogin OR rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls)) THEN RAISE EXCEPTION 'unsafe bookkeeping role'; END IF;
  END LOOP;
  -- Reject existing privilege inheritance instead of silently downgrading an unsafe account.
- IF pg_has_role(api_name,'bookkeeping_owner','MEMBER') OR pg_has_role(api_name,'bookkeeping_identity_operator','MEMBER') THEN RAISE EXCEPTION 'unsafe runtime membership'; END IF;
+ IF pg_has_role(api_name,'bookkeeping_owner','MEMBER') OR pg_has_role(api_name,'bookkeeping_identity_operator','MEMBER')
+ OR pg_has_role(api_name,'bookkeeping_publisher','MEMBER') OR pg_has_role(api_name,'bookkeeping_observer','MEMBER') THEN RAISE EXCEPTION 'unsafe runtime membership'; END IF;
  EXECUTE format('GRANT bookkeeping_owner TO %I WITH INHERIT FALSE, SET TRUE',migrator_name);
  EXECUTE format('GRANT bookkeeping_api TO %I WITH INHERIT TRUE, SET FALSE',api_name);
  EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC',current_database());
