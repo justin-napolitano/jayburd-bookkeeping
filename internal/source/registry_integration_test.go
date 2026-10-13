@@ -385,7 +385,7 @@ func TestSourceRegistryPrivileges(t *testing.T) {
 	for _, role := range []string{"bookkeeping_api", "bookkeeping_observer", "bookkeeping_publisher"} {
 		allowed := []string{}
 		if role == "bookkeeping_api" {
-			allowed = []string{"get_source", "register_import_batch", "import_context", "publish_import_preview", "get_import_batch", "get_review_item"}
+			allowed = []string{"get_source", "register_import_batch", "import_context", "publish_import_preview", "get_import_batch", "get_review_item", "list_sources", "list_review_items", "review_categories", "create_review_draft"}
 		}
 		if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='banking' AND has_function_privilege($1,p.oid,'EXECUTE')<>(p.proname=ANY($2::text[]))`, role, allowed) != "0" {
 			t.Fatal("function privileges")
