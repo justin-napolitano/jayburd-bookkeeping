@@ -242,6 +242,14 @@ migration verification.
 
 ## Provider ingestion and worker delivery — 2026-10-13
 
+Reporting follow-up source records:
+[CSV review profile](../contracts/report-export.md#sources-and-alternatives) rechecks
+RFC 4180 quoting/CRLF and OWASP formula hazards for a fixed, generated-field
+download; [pinned journal review](../contracts/report-drill.md#sources-and-alternatives)
+uses PostgreSQL 17 snapshot and restricted-function guidance. These support
+internal transport and authorization choices, not normative accountant-export
+mapping or an ISO-conformance claim.
+
 - [Plaid ingestion sources](plaid-ingestion-sources.md): official API, connection,
   transaction lifecycle and webhook verification guidance supporting the proposed
   adapter. Review notes distinguish provider behavior from Jayburd policy; no

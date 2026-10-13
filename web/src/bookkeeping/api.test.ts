@@ -163,3 +163,69 @@ describe("API client boundary", () => {
     expect(fetch.mock.calls[0][1]?.body).toBe("{}");
   });
 });
+
+// Downloads share bearer refresh and reject oversized or non-CSV payloads before returning bytes.
+describe("review CSV client", () => {
+  it("downloads exact bytes with fresh header authentication", async () => {
+    const { fetch, api, getToken } = fixture();
+    fetch.mockResolvedValue(
+      new Response('"amount"\r\n"0.01"\r\n', {
+        headers: { "Content-Type": "text/csv; charset=utf-8; header=present" },
+      }),
+    );
+    const blob = await api.download!(
+      "/v1/reports/test/export.csv?snapshot_revision=1",
+    );
+    const text = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsText(blob);
+    });
+    expect(text).toBe('"amount"\r\n"0.01"\r\n');
+    expect(getToken).toHaveBeenCalledOnce();
+    expect(fetch.mock.calls[0][0]).not.toContain("token");
+    expect(fetch.mock.calls[0][1]).toMatchObject({
+      cache: "no-store",
+      credentials: "omit",
+      redirect: "error",
+      headers: { Authorization: "Bearer synthetic-token" },
+    });
+  });
+  it.each(["application/json", "text/html", "text/csv"])(
+    "rejects unapproved content type %s",
+    async (content) => {
+      const { fetch, api } = fixture();
+      fetch.mockResolvedValue(
+        new Response("private", { headers: { "Content-Type": content } }),
+      );
+      await expect(api.download!("/v1/export.csv")).rejects.toBeInstanceOf(
+        APIError,
+      );
+    },
+  );
+  it("cancels at the streaming byte cap rather than returning a partial file", async () => {
+    const { fetch, api } = fixture();
+    let cancelled = false;
+    fetch.mockResolvedValue(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new Uint8Array(10 * 1024 * 1024 + 1));
+          },
+          cancel() {
+            cancelled = true;
+          },
+        }),
+        {
+          headers: {
+            "Content-Type": "text/csv; charset=utf-8; header=present",
+          },
+        },
+      ),
+    );
+    await expect(api.download!("/v1/export.csv")).rejects.toBeInstanceOf(
+      APIError,
+    );
+    expect(cancelled).toBe(true);
+  });
+});

@@ -16,8 +16,8 @@ const book = {
   book_revision: "1",
   policies: [],
   periods: [],
-  accounts: [],
-} as Book;
+  accounts: [{ account_id: "a", code: "1000", name: "Cash" }],
+} as unknown as Book;
 const entity = {
   entity_id: "e",
   name: "Synthetic LLC",
@@ -261,5 +261,223 @@ describe("financial report review", () => {
     request();
     await screen.findByRole("alert");
     expect(screen.queryByText(/Snapshot 1/)).toBeNull();
+  });
+});
+
+// Comparison fixtures come directly from the wire; the UI never calculates deltas.
+describe("comparison review", () => {
+  it("renders exact server comparisons and retains filters across pages", async () => {
+    const compared = {
+      ...fixture,
+      comparison: {
+        totals: {
+          total_debits: "9007199254740993.02",
+          total_credits: "9007199254740993.02",
+        },
+        difference: { total_debits: "-0.01", total_credits: "-0.01" },
+      },
+      rows: [
+        {
+          ...fixture.rows[0],
+          comparison: {
+            amounts: {
+              debit_balance: "9007199254740993.02",
+              credit_balance: "0",
+              net: "9007199254740993.02",
+            },
+            difference: {
+              debit_balance: "-0.01",
+              credit_balance: "0",
+              net: "-0.01",
+            },
+          },
+        },
+      ],
+    };
+    const api = vi.fn().mockResolvedValue(compared);
+    render(
+      <Reports api={api as API} entity={entity} book={book} locked={false} />,
+    );
+    fireEvent.click(screen.getByLabelText("Compare another period"));
+    fireEvent.change(
+      screen.getByLabelText("Comparison through date (inclusive)"),
+      { target: { value: "2026-01-30" } },
+    );
+    request();
+    await screen.findByText(/Snapshot 1/);
+    expect(screen.getAllByText("-0.01")).toHaveLength(4);
+    expect(screen.getAllByText("9007199254740993.02")).toHaveLength(4);
+    fireEvent.click(screen.getByRole("button", { name: "Next report page" }));
+    await screen.findByText(/Page 2\./);
+    expect(api.mock.calls[1][0]).toContain("compare_through_date=2026-01-30");
+    expect(api.mock.calls[1][0]).toContain("snapshot_revision=1");
+    fireEvent.change(
+      screen.getByLabelText("Comparison through date (inclusive)"),
+      { target: { value: "2026-01-29" } },
+    );
+    expect(screen.queryByText(/Snapshot 1/)).toBeNull();
+    expect(screen.queryAllByText("-0.01")).toHaveLength(0);
+  });
+  it("sends paired P&L comparison dates and excludes comparison when changing to GL", async () => {
+    const api = vi
+      .fn()
+      .mockResolvedValue({ ...fixture, report: "profit-and-loss", rows: [] });
+    render(
+      <Reports api={api as API} entity={entity} book={book} locked={false} />,
+    );
+    fireEvent.change(screen.getByLabelText("Report type"), {
+      target: { value: "profit-and-loss" },
+    });
+    fireEvent.change(screen.getByLabelText("Report starts on"), {
+      target: { value: "2026-02-01" },
+    });
+    fireEvent.change(screen.getByLabelText("Report ends before"), {
+      target: { value: "2026-03-01" },
+    });
+    fireEvent.click(screen.getByLabelText("Compare another period"));
+    fireEvent.change(screen.getByLabelText("Comparison starts on"), {
+      target: { value: "2026-01-01" },
+    });
+    fireEvent.change(screen.getByLabelText("Comparison ends before"), {
+      target: { value: "2026-02-01" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    await screen.findByText(/Snapshot 1/);
+    expect(api.mock.calls[0][0]).toContain(
+      "compare_starts_on=2026-01-01&compare_ends_before=2026-02-01",
+    );
+    fireEvent.change(screen.getByLabelText("Report type"), {
+      target: { value: "general-ledger" },
+    });
+    expect(screen.queryByLabelText("Compare another period")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Report account"), {
+      target: { value: "a" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
+    expect(api.mock.calls[1][0]).not.toContain("compare_");
+  });
+});
+
+// Follow-ups must stay tied to the displayed report rather than silently obtaining a fresh revision.
+describe("scoped report actions", () => {
+  it("requires an explicit account range and pins its report revision", async () => {
+    const api = vi
+      .fn()
+      .mockResolvedValueOnce(fixture)
+      .mockResolvedValueOnce({
+        ...fixture,
+        report: "general-ledger",
+        layout: "posting-v1",
+        rows: [],
+        next_cursor: null,
+      });
+    render(
+      <Reports api={api as API} entity={entity} book={book} locked={false} />,
+    );
+    request();
+    await screen.findByText(/Snapshot 1/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Review account 1000" }),
+    );
+    expect(
+      (screen.getByLabelText("Drill starts on") as HTMLInputElement).value,
+    ).toBe("");
+    fireEvent.change(screen.getByLabelText("Drill starts on"), {
+      target: { value: "2026-01-01" },
+    });
+    fireEvent.change(screen.getByLabelText("Drill ends before"), {
+      target: { value: "2026-02-01" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open account ledger" }),
+    );
+    await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
+    expect(api.mock.calls[1][0]).toContain("/reports/general-ledger?");
+    expect(api.mock.calls[1][0]).toContain("account_id=a&snapshot_revision=1");
+  });
+  it("downloads all selected filters with pinned revision and revokes the object URL", async () => {
+    const download = vi.fn().mockResolvedValue(new Blob(["synthetic"]));
+    const api = Object.assign(vi.fn().mockResolvedValue(fixture), { download });
+    const create = vi.fn().mockReturnValue("blob:synthetic"),
+      revoke = vi.fn();
+    vi.stubGlobal(
+      "URL",
+      class extends URL {
+        static createObjectURL = create;
+        static revokeObjectURL = revoke;
+      },
+    );
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+    render(
+      <Reports api={api as API} entity={entity} book={book} locked={false} />,
+    );
+    request();
+    await screen.findByText(/Snapshot 1/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Download review CSV" }),
+    );
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:synthetic"));
+    expect(download).toHaveBeenCalledWith(
+      "/v1/entities/e/books/b/reports/trial-balance/export.csv?through_date=2026-01-31&snapshot_revision=1",
+    );
+    expect(click).toHaveBeenCalledOnce();
+    click.mockRestore();
+    vi.unstubAllGlobals();
+  });
+  it.each([403, 409])(
+    "clears all report values after export denial %s",
+    async (status) => {
+      const api = Object.assign(vi.fn().mockResolvedValue(fixture), {
+        download: vi.fn().mockRejectedValue(new APIError(status, false)),
+      });
+      render(
+        <Reports api={api as API} entity={entity} book={book} locked={false} />,
+      );
+      request();
+      await screen.findByText(/Snapshot 1/);
+      fireEvent.click(
+        screen.getByRole("button", { name: "Download review CSV" }),
+      );
+      await screen.findByRole("alert");
+      expect(screen.queryByText(/Snapshot 1/)).toBeNull();
+      expect(screen.queryAllByText("9007199254740993.01")).toHaveLength(0);
+    },
+  );
+  it("ignores a late export when filters changed", async () => {
+    let resolve!: (value: Blob) => void;
+    const download = vi.fn(
+      () =>
+        new Promise<Blob>((done) => {
+          resolve = done;
+        }),
+    );
+    const api = Object.assign(vi.fn().mockResolvedValue(fixture), { download });
+    const create = vi.fn();
+    vi.stubGlobal(
+      "URL",
+      class extends URL {
+        static createObjectURL = create;
+      },
+    );
+    render(
+      <Reports api={api as API} entity={entity} book={book} locked={false} />,
+    );
+    request();
+    await screen.findByText(/Snapshot 1/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Download review CSV" }),
+    );
+    fireEvent.change(screen.getByLabelText("Report through date (inclusive)"), {
+      target: { value: "2026-02-01" },
+    });
+    resolve(new Blob(["late"]));
+    await waitFor(() =>
+      expect(screen.queryByText(/Preparing report/)).toBeNull(),
+    );
+    expect(create).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });
