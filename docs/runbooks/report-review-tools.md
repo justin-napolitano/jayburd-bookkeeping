@@ -35,6 +35,10 @@ authorization changes; the unchanged thousand-posting report proof also passes.
 A rejected fixture account UPDATE was replaced with a dedicated inserted account;
 ledger immutability was preserved. Lane runbooks contain focused evidence.
 
+Initial frontend CI exposed an existing auth-fixture timing race: the test entered
+credentials before the new session reset effect flushed. The enrollment test now
+awaits React configuration/effect setup before input; production auth is unchanged.
+
 Root reviewed
 RFC 4180 section 2 and OWASP CSV Injection guidance on 2026-10-13, alongside
 FR03/FR05. The selected profile omits arbitrary labels and serializes exact sign
@@ -43,12 +47,13 @@ numeric import is not promised lossless. See the export contract for precise fie
 
 ## Remaining work
 
-Publish the PR and release leases. Full subtotal/history drill and normative
+PR #77 is open; coordinator releases agent leases in #65. Full subtotal/history drill and normative
 accountant exports remain outside this bounded slice. CSV is a bounded internal
 review profile, not an ISO accountant-exchange conformance claim.
 
 ## PR handoff
 
+PR: https://github.com/justin-napolitano/jayburd-bookkeeping/pull/77.
 Combined review and validation passed; review before merge. Existing migrations
 1–6 are unchanged.
 Migration 7 is forward-only; runtime and schema must be released compatibly.

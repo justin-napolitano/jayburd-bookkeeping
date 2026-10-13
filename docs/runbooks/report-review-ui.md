@@ -33,12 +33,12 @@ Browser journey `comparison, account drill, pinned journal and download remain
 scoped` proves those interactions using synthetic HTTP fixtures.
 
 Extended `web/tests/integration/app.spec.tsx` to prove real comparison125.50/0,
-pinned journal read, CSV download and account drill. This requires combined backend
-changes; coordinator must run `make app-integration` before PR readiness.
+pinned journal read, CSV download and account drill. Combined `make app-integration` passed, including inspection of downloaded CSV
+bytes; see [combined evidence](report-review-tools.md).
 
 ## Remaining work
 
-Combined real browser/API/SQL test remains pending integration. Category/derived
+Combined real browser/API/SQL test passed. Category/derived
 subtotal navigation is deferred; only account and GL journal paths are implemented.
 Point account review uses an explicit <=366-day GL range and does not claim that
 those period postings alone explain the full historical balance. No live data,
