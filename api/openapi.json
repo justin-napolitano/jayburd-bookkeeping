@@ -2,8 +2,8 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Jayburd Ledger Contract",
-    "version": "0.5.0-review",
-    "description": "Implementation-review contract; no server exists. Manual posting/read/reversal uses dev-accrual-usd-v1. Close remains deferred. SQL/accounting contracts own semantic validation. Not a registered ISO financial message.",
+    "version": "0.6.0-review",
+    "description": "Implemented ledger and bounded JSON reporting contract; synthetic development policy only. Close and CSV reporting remain deferred. SQL/accounting contracts own semantic validation. Not a registered ISO financial message.",
     "contact": {
       "name": "Jayburd contract review",
       "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/2"
@@ -27,6 +27,529 @@
     }
   ],
   "paths": {
+    "/v1/entities/{entity_id}/books/{book_id}/reports/trial-balance": {
+      "get": {
+        "operationId": "getTrialBalanceReport",
+        "summary": "Read trial-balance with exact monetary strings",
+        "description": "GET only; request bodies and HEAD rejected. Unknown, duplicate or malformed query fields reject. A cursor requires matching snapshot_revision. SQL reauthorizes each page before checking revision. No CSV. Complete request URI maximum 4096 bytes.",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "through_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "compare_through_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "snapshot_revision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$",
+              "description": "Canonical nonnegative bigint text; SQL enforces upper bound."
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "200": {
+            "description": "Complete bounded page after transaction commit.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/reports/general-ledger": {
+      "get": {
+        "operationId": "getGeneralLedgerReport",
+        "summary": "Read general-ledger with exact monetary strings",
+        "description": "GET only; request bodies and HEAD rejected. Unknown, duplicate or malformed query fields reject. A cursor requires matching snapshot_revision. SQL reauthorizes each page before checking revision. No CSV. Complete request URI maximum 4096 bytes.",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "starts_on",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "ends_before",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "snapshot_revision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$",
+              "description": "Canonical nonnegative bigint text; SQL enforces upper bound."
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "200": {
+            "description": "Complete bounded page after transaction commit.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/reports/balance-sheet": {
+      "get": {
+        "operationId": "getBalanceSheetReport",
+        "summary": "Read balance-sheet with exact monetary strings",
+        "description": "GET only; request bodies and HEAD rejected. Unknown, duplicate or malformed query fields reject. A cursor requires matching snapshot_revision. SQL reauthorizes each page before checking revision. No CSV. Complete request URI maximum 4096 bytes.",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "through_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "compare_through_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "snapshot_revision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$",
+              "description": "Canonical nonnegative bigint text; SQL enforces upper bound."
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "200": {
+            "description": "Complete bounded page after transaction commit.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/reports/profit-and-loss": {
+      "get": {
+        "operationId": "getProfitAndLossReport",
+        "summary": "Read profit-and-loss with exact monetary strings",
+        "description": "GET only; request bodies and HEAD rejected. Unknown, duplicate or malformed query fields reject. A cursor requires matching snapshot_revision. SQL reauthorizes each page before checking revision. No CSV. Complete request URI maximum 4096 bytes.",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "starts_on",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "ends_before",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "compare_starts_on",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "compare_ends_before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "snapshot_revision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$",
+              "description": "Canonical nonnegative bigint text; SQL enforces upper bound."
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "200": {
+            "description": "Complete bounded page after transaction commit.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/entities/{entity_id}/books/{book_id}/journals": {
       "parameters": [
         {
@@ -1249,6 +1772,398 @@
       }
     },
     "schemas": {
+      "FinancialReportSelector": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entity_id",
+          "book_id",
+          "snapshot_revision"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "snapshot_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$",
+            "description": "Canonical nonnegative bigint text; SQL enforces upper bound."
+          },
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "starts_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "ends_before": {
+            "type": "string",
+            "format": "date"
+          },
+          "through_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "asset",
+                "liability",
+                "equity",
+                "revenue",
+                "expense"
+              ]
+            }
+          }
+        }
+      },
+      "FinancialReportRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "amounts",
+          "selector"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^-?(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
+              "description": "Exact canonical decimal; never a JSON number."
+            }
+          },
+          "selector": {
+            "$ref": "#/components/schemas/FinancialReportSelector"
+          },
+          "account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "account_code": {
+            "type": "string"
+          },
+          "account_name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "asset",
+              "liability",
+              "equity",
+              "revenue",
+              "expense"
+            ]
+          },
+          "normal_side": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ]
+          },
+          "journal_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "line_number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "accounting_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "posted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "reverses_journal_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transaction_currency": {
+            "type": "string"
+          },
+          "transaction_currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transaction_amount": {
+            "type": "string",
+            "pattern": "^-?(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
+            "description": "Exact canonical decimal; never a JSON number."
+          },
+          "functional_amount": {
+            "type": "string",
+            "pattern": "^-?(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
+            "description": "Exact canonical decimal; never a JSON number."
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "debit",
+              "credit"
+            ]
+          },
+          "valuation_basis": {
+            "type": "string"
+          },
+          "rate_observation_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "running_balance": {
+            "type": "string",
+            "pattern": "^-?(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
+            "description": "Exact canonical decimal; never a JSON number."
+          },
+          "comparison": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "amounts",
+              "difference"
+            ],
+            "properties": {
+              "amounts": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^-?(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
+                  "description": "Exact canonical decimal; never a JSON number."
+                }
+              },
+              "difference": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^-?(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
+                  "description": "Exact canonical decimal; never a JSON number."
+                }
+              }
+            }
+          }
+        },
+        "description": "Report-specific fields follow reporting-sql.md; account and GL rows retain exact strings. Derived earnings has no account_id."
+      },
+      "FinancialReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "contract_version",
+          "report",
+          "layout",
+          "entity_id",
+          "book_id",
+          "snapshot_revision",
+          "generated_at",
+          "basis",
+          "timezone",
+          "functional_currency",
+          "functional_currency_version_id",
+          "minor_units",
+          "policy_ids",
+          "filters",
+          "totals",
+          "comparison",
+          "rows",
+          "next_cursor"
+        ],
+        "properties": {
+          "contract_version": {
+            "type": "string",
+            "const": "financial-reporting-v1"
+          },
+          "report": {
+            "type": "string",
+            "enum": [
+              "trial-balance",
+              "general-ledger",
+              "balance-sheet",
+              "profit-and-loss"
+            ]
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "account-v1",
+              "posting-v1",
+              "basic-unclassified-v1"
+            ]
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "snapshot_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$",
+            "description": "Canonical nonnegative bigint text; SQL enforces upper bound."
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "basis": {
+            "type": "string",
+            "const": "accrual"
+          },
+          "timezone": {
+            "type": "string",
+            "const": "UTC"
+          },
+          "functional_currency": {
+            "type": "string"
+          },
+          "functional_currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minor_units": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9
+          },
+          "policy_ids": {
+            "type": "array",
+            "maxItems": 1024,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "filters": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "report"
+            ],
+            "properties": {
+              "report": {
+                "type": "string",
+                "enum": [
+                  "trial-balance",
+                  "general-ledger",
+                  "balance-sheet",
+                  "profit-and-loss"
+                ]
+              },
+              "through_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "starts_on": {
+                "type": "string",
+                "format": "date"
+              },
+              "ends_before": {
+                "type": "string",
+                "format": "date"
+              },
+              "compare_through_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "compare_starts_on": {
+                "type": "string",
+                "format": "date"
+              },
+              "compare_ends_before": {
+                "type": "string",
+                "format": "date"
+              },
+              "account_id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          "totals": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^-?(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
+              "description": "Exact canonical decimal; never a JSON number."
+            }
+          },
+          "comparison": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "totals",
+              "difference"
+            ],
+            "properties": {
+              "totals": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^-?(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
+                  "description": "Exact canonical decimal; never a JSON number."
+                }
+              },
+              "difference": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^-?(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",
+                  "description": "Exact canonical decimal; never a JSON number."
+                }
+              }
+            }
+          },
+          "rows": {
+            "type": "array",
+            "maxItems": 500,
+            "items": {
+              "$ref": "#/components/schemas/FinancialReportRow"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
+        },
+        "description": "Bounded internal review report. Supported synthetic policy only. Totals span complete selected scope, not the page. No ISO audit export or live-policy approval."
+      },
       "Amount": {
         "type": "string",
         "pattern": "^(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$",

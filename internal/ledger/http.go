@@ -43,6 +43,9 @@ func Handler(auth Authenticator, ops Operations) http.Handler {
 	mux.HandleFunc("POST "+base+"/journals/{journal}/reversals", endpoint(auth, ops, "reverse"))
 	mux.HandleFunc("GET "+base+"/journals/{journal}", endpoint(auth, ops, "journal"))
 	mux.HandleFunc("GET "+base+"/trial-balance", endpoint(auth, ops, "balance"))
+	for _, kind := range []string{"trial-balance", "general-ledger", "balance-sheet", "profit-and-loss"} {
+		mux.HandleFunc("GET "+base+"/reports/"+kind, endpoint(auth, ops, "report_"+kind))
+	}
 	return mux
 }
 
@@ -127,6 +130,25 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			c.Body = q[0]
 		}
 		var result Result
+		if strings.HasPrefix(op, "report_") {
+			kind := strings.TrimPrefix(op, "report_")
+			c.Body, err = reportRequest(r, kind)
+			if err != nil {
+				fail(400, "invalid_request")
+				return
+			}
+			reports, ok := ops.(interface {
+				FinancialReport(context.Context, Command) (Result, error)
+			})
+			if !ok {
+				fail(503, "temporarily_unavailable")
+				return
+			}
+			result, err = reports.FinancialReport(r.Context(), c)
+			if err == nil {
+				result.Body, err = reportResponse(result.Body, kind)
+			}
+		}
 		switch op {
 		case "command_register", "command_pending", "command_execute", "command_cancel", "command_acknowledge":
 			if op == "command_pending" && (r.ContentLength > 0 || len(r.TransferEncoding) > 0) {
