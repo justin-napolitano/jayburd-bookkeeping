@@ -69,6 +69,9 @@ background work. The two predecessor repos are reference material only.
 | How can I try generated books locally? | [Synthetic demo and cent checks](runbooks/synthetic-demo.md) |
 | What was checked for the contract package? | [Ledger contract runbook](runbooks/ledger-contracts.md) |
 
+For the generated 3,000-transaction review workflow, see the
+[populated demo delivery](runbooks/populated-demo.md).
+
 ## Synthetic test data
 
 Use the [corpus and execution guide](../tests/corpus/README.md),

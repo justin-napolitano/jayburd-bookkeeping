@@ -59,6 +59,11 @@ func TestRuntimeReadiness(t *testing.T) {
 		{"missing_recovery_pending", "REVOKE EXECUTE ON FUNCTION ledger.pending_command(uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.pending_command(uuid) TO bookkeeping_api"},
 		{"missing_recovery_transition", "REVOKE EXECUTE ON FUNCTION ledger.transition_command(uuid,uuid,uuid,text,text) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.transition_command(uuid,uuid,uuid,text,text) TO bookkeeping_api"},
 		{"missing_workspace", "REVOKE EXECUTE ON FUNCTION reporting.workspace(uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION reporting.workspace(uuid) TO bookkeeping_api"},
+		{"missing_list_sources", "REVOKE EXECUTE ON FUNCTION banking.list_sources(uuid,uuid,uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION banking.list_sources(uuid,uuid,uuid) TO bookkeeping_api"},
+		{"missing_list_review_items", "REVOKE EXECUTE ON FUNCTION banking.list_review_items(uuid,uuid,uuid,text) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION banking.list_review_items(uuid,uuid,uuid,text) TO bookkeeping_api"},
+		{"missing_get_review_item", "REVOKE EXECUTE ON FUNCTION banking.get_review_item(uuid,uuid,uuid,uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION banking.get_review_item(uuid,uuid,uuid,uuid) TO bookkeeping_api"},
+		{"missing_review_categories", "REVOKE EXECUTE ON FUNCTION banking.review_categories(uuid,uuid,uuid,uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION banking.review_categories(uuid,uuid,uuid,uuid) TO bookkeeping_api"},
+		{"missing_create_review_draft", "REVOKE EXECUTE ON FUNCTION banking.create_review_draft(uuid,uuid,uuid,uuid,text,text) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION banking.create_review_draft(uuid,uuid,uuid,uuid,text,text) TO bookkeeping_api"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if _, err := setup.Exec(ctx, tc.grant); err != nil {

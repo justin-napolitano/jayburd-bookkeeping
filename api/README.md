@@ -22,3 +22,8 @@ see `ImportCommandBody`/`ImportCommandResult` and the durable import contract. T
 adds no public upload, preview publication or arbitrary-row endpoint. The current
 workspace supports safe recovery/cancellation/acknowledgement; it does not confirm
 an import without a statement-preview client.
+
+Source review adds scoped source/item/category reads and immutable category-draft
+creation. `source_post` reuses command recovery with full immutable posting lines.
+Demo acquisition endpoints exist only in the integration-tagged loopback fixture,
+not this production OpenAPI surface. No owner-prepared CSV is needed for the demo.

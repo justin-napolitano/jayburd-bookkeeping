@@ -61,6 +61,54 @@ function allowed(url: URL, method: string): boolean {
     }
     return true;
   }
+  if (
+    method === "GET" &&
+    new RegExp(`^${bookPath}/review-items$`, "i").test(url.pathname)
+  ) {
+    if (
+      /%(?![0-9a-f]{2})/i.test(url.search) ||
+      !url.searchParams.has("source_account_id")
+    )
+      return false;
+    const seen = new Set<string>();
+    for (const [key, value] of url.searchParams) {
+      if (seen.has(key) || !value) return false;
+      seen.add(key);
+      if (key === "source_account_id") {
+        if (!new RegExp(`^${uuid}$`).test(value)) return false;
+      } else if (key === "state") {
+        if (
+          !["needs_review", "overlap_hold", "draft_ready", "posted"].includes(
+            value,
+          )
+        )
+          return false;
+      } else if (key === "limit") {
+        if (!/^[1-9][0-9]{0,2}$/.test(value) || Number(value) > 100)
+          return false;
+      } else if (key === "cursor") {
+        if (value.length > 2048) return false;
+      } else return false;
+    }
+    return true;
+  }
+  if (
+    !url.search &&
+    method === "GET" &&
+    new RegExp(
+      `^${bookPath}/(?:sources|review-items/${uuid}(?:/categories)?)$`,
+      "i",
+    ).test(url.pathname)
+  )
+    return true;
+  if (
+    !url.search &&
+    method === "POST" &&
+    new RegExp(`^${bookPath}/review-items/${uuid}/drafts$`, "i").test(
+      url.pathname,
+    )
+  )
+    return true;
   if (url.search) return false;
   return method === 'GET' && (url.pathname === '/v1/workspace' || url.pathname === '/v1/commands/pending' || new RegExp(`^${bookPath}/journals/${uuid}$`, 'i').test(url.pathname)) ||
     method === 'POST' && (url.pathname === '/v1/setup' || url.pathname === '/v1/commands' || commandAction.test(url.pathname) || new RegExp(`^${bookPath}/journals(?:/${uuid}/reversals)?$`, 'i').test(url.pathname));
