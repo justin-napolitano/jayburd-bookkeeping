@@ -13,7 +13,7 @@ resource "google_cloud_run_v2_job" "migrate" {
       max_retries     = 0
       containers {
         image = var.image
-        args  = ["-action=up", "-instance=${var.project_id}:${var.region}:jayburd-dev"]
+        args  = ["-action=${var.action}", "-instance=${var.project_id}:${var.region}:jayburd-dev"]
         resources { limits = { cpu = "1", memory = "512Mi" } }
       }
     }

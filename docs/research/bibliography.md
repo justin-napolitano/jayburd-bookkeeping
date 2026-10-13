@@ -209,3 +209,7 @@ reviews Node maintainers' guidance on excluding build package managers from runt
 G29 in the [GCP source register](gcp-sources.md#g29--execution-field-serialization--2026-10-12)
 records Cloud Run timeout encoding and CLI array projections, checked against the
 first completed migration execution.
+
+G30 in the [GCP source register](gcp-sources.md#g30--read-only-migration-metadata-snapshot--2026-10-12)
+reviews PostgreSQL 17 read-only restrictions and snapshot limits for workload-owned
+migration verification.

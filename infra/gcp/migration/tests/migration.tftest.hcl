@@ -19,3 +19,16 @@ run "reject_mutable_image" {
   variables { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/migrate:latest" }
   expect_failures = [var.image]
 }
+run "read_only_status_job" {
+  command = plan
+  variables { action = "status" }
+  assert {
+    condition     = google_cloud_run_v2_job.migrate.template[0].template[0].containers[0].args[0] == "-action=status"
+    error_message = "Verification must use the read-only status action."
+  }
+}
+run "reject_repair_action" {
+  command = plan
+  variables { action = "force" }
+  expect_failures = [var.action]
+}
