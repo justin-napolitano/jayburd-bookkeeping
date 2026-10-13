@@ -13,6 +13,27 @@ export type ReportKind =
   | "profit-and-loss";
 // The reviewed HTTP schema owns report payloads; no local financial shape is duplicated.
 export type FinancialReport = components["schemas"]["FinancialReport"];
+// Workspace date context is memory-only and never combines book currencies.
+export type ReportContext = { through: string; start: string; end: string };
+// An account selection optionally pins the revision from its source balance report.
+export type ReportSelection = {
+  key: number;
+  kind: ReportKind;
+  account?: string;
+  revision?: string;
+};
+// Optional workspace integration leaves standalone report journeys unchanged.
+type ReportProps = {
+  api: API;
+  entity: Entity;
+  book: Book;
+  locked: boolean;
+  active?: boolean;
+  context?: ReportContext;
+  onContextChange?: (value: ReportContext) => void;
+  selection?: ReportSelection;
+  onAccessDenied?: () => void;
+};
 // Navigation preserves the source revision; point reports require an explicit bounded range.
 type AccountNavigation = {
   account: string;
@@ -59,15 +80,10 @@ export function reportAmount(value: string | undefined, scale: number): string {
     : formatAmount(value, scale);
 }
 // Remount on scope, revision or command-lock changes so prior financial state cannot survive.
-export function Reports(props: {
-  api: API;
-  entity: Entity;
-  book: Book;
-  locked: boolean;
-}) {
+export function Reports(props: ReportProps) {
   return (
     <ReportContent
-      key={`${props.entity.entity_id}/${props.book.book_id}/${props.book.book_revision}/${props.locked}`}
+      key={`${props.entity.entity_id}/${props.book.book_id}/${props.book.book_revision}/${props.locked}/${props.selection?.key ?? 0}`}
       {...props}
     />
   );
@@ -78,17 +94,19 @@ function ReportContent({
   entity,
   book,
   locked,
-}: {
-  api: API;
-  entity: Entity;
-  book: Book;
-  locked: boolean;
-}) {
-  const [kind, setKind] = useState<ReportKind>("trial-balance");
-  const [through, setThrough] = useState("");
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [account, setAccount] = useState("");
+  active = true,
+  context,
+  onContextChange,
+  selection,
+  onAccessDenied,
+}: ReportProps) {
+  const [kind, setKind] = useState<ReportKind>(
+    selection?.kind ?? "trial-balance",
+  );
+  const [through, setThrough] = useState(context?.through ?? "");
+  const [start, setStart] = useState(context?.start ?? "");
+  const [end, setEnd] = useState(context?.end ?? "");
+  const [account, setAccount] = useState(selection?.account ?? "");
   const [compare, setCompare] = useState(false);
   const [compareThrough, setCompareThrough] = useState("");
   const [compareStart, setCompareStart] = useState("");
@@ -129,6 +147,11 @@ function ReportContent({
       setStart(destination.start);
       setEnd(destination.end);
       setAccount(destination.account);
+      onContextChange?.({
+        through,
+        start: destination.start,
+        end: destination.end,
+      });
       setCompare(false);
     }
     setNavigation(null);
@@ -187,6 +210,8 @@ function ReportContent({
       setPage(next ? page + 1 : 1);
     } catch (e) {
       if (n !== epoch.current) return;
+      if (e instanceof APIError && [401, 403, 404].includes(e.status))
+        onAccessDenied?.();
       setError(
         e instanceof APIError && e.status === 409
           ? "The book changed. Refresh report to start a new snapshot."
@@ -210,6 +235,42 @@ function ReportContent({
     setActionError("");
     setActionBusy(false);
   }, [api]);
+  // Hidden views invalidate pending reads; navigating back keeps filters but needs a fresh report.
+  useEffect(() => {
+    if (!active) clear();
+  }, [active]);
+  // The persistent scope bar invalidates prior results before applying changed dates.
+  useEffect(() => {
+    if (
+      context &&
+      (through !== context.through ||
+        start !== context.start ||
+        end !== context.end)
+    ) {
+      clear();
+      setThrough(context.through);
+      setStart(context.start);
+      setEnd(context.end);
+    }
+  }, [context?.through, context?.start, context?.end]);
+  // Only an explicit account click with complete dates triggers an automatic pinned read.
+  useEffect(() => {
+    if (
+      active &&
+      !locked &&
+      selection?.account &&
+      selection.revision &&
+      context?.start &&
+      context.end
+    ) {
+      void load(false, {
+        account: selection.account,
+        revision: selection.revision,
+        start: context.start,
+        end: context.end,
+      });
+    }
+  }, [selection?.key]);
   // Any stale or denied follow-up invalidates all visible financial state.
   const failAction = (failure: unknown) => {
     if (
@@ -217,6 +278,7 @@ function ReportContent({
       [401, 403, 404, 409].includes(failure.status)
     ) {
       clear();
+      if ([401, 403, 404].includes(failure.status)) onAccessDenied?.();
       setError(
         failure.status === 409
           ? "The book changed. Refresh report to start a new snapshot."
@@ -347,6 +409,11 @@ function ReportContent({
                     onChange={(e) => {
                       clear();
                       setStart(e.target.value);
+                      onContextChange?.({
+                        through,
+                        start: e.target.value,
+                        end,
+                      });
                     }}
                   />
                 </label>
@@ -359,6 +426,11 @@ function ReportContent({
                     onChange={(e) => {
                       clear();
                       setEnd(e.target.value);
+                      onContextChange?.({
+                        through,
+                        start,
+                        end: e.target.value,
+                      });
                     }}
                   />
                 </label>
@@ -373,6 +445,7 @@ function ReportContent({
                   onChange={(e) => {
                     clear();
                     setThrough(e.target.value);
+                    onContextChange?.({ through: e.target.value, start, end });
                   }}
                 />
               </label>

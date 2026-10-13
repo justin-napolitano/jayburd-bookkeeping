@@ -21,7 +21,14 @@ export function CommandPanel({
   const accountingDate =
     c && "accounting_date" in c.body ? c.body.accounting_date : "";
   return (
-    <section aria-labelledby="command-title">
+    <section
+      className={
+        !c && !r.registration && r.ready && !r.error
+          ? "command-idle"
+          : "command-attention"
+      }
+      aria-labelledby="command-title"
+    >
       <h2 id="command-title">Saved command</h2>
       {!r.ready && (
         <p role="status">Checking saved work before enabling new entries…</p>
