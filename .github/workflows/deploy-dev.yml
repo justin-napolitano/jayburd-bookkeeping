@@ -107,12 +107,12 @@ jobs:
           CLOUDSDK_AUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
         run: bash scripts/deploy-dev.sh "$RUNNER_TEMP/release"
       - name: Verify anonymous transport and record bounded evidence
-        if: env.RELEASE_OPERATION != 'migrate'
+        if: env.RELEASE_OPERATION != 'migrate' && env.RELEASE_OPERATION != 'verify'
         run: |
           mkdir -p "$RUNNER_TEMP/receipt"
           node scripts/deployment-smoke.mjs "$RUNNER_TEMP/release/approved.json" "$RUNNER_TEMP/receipt/deployment.json" "$RUNNER_TEMP/release"
       - name: Retain migration-only evidence without probing application services
-        if: env.RELEASE_OPERATION == 'migrate'
+        if: env.RELEASE_OPERATION == 'migrate' || env.RELEASE_OPERATION == 'verify'
         run: |
           mkdir -p "$RUNNER_TEMP/receipt"
           cp "$RUNNER_TEMP/release/migration.json" "$RUNNER_TEMP/receipt/deployment.json"

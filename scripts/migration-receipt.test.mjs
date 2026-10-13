@@ -14,6 +14,13 @@ test('exact successful migration emits only bounded evidence',()=>{
  const r=migrationReceipt(m,e,name);assert.equal(r.status,'migration-execution-passed');
  assert.equal(r.execution,name);assert.equal(JSON.stringify(r).includes('must-not-be-copied'),false);
 });
+test('verification receipt requires the status action, never an up execution',()=>{
+ const {m,name,e}=fixture();m.operation='verify';
+ assert.throws(()=>migrationReceipt(m,e,name));
+ e.spec.template.spec.containers[0].args[0]='-action=status';
+ assert.equal(migrationReceipt(m,e,name).status,'migration-verification-passed');
+ m.operation='migrate';assert.throws(()=>migrationReceipt(m,e,name));
+});
 test('accepts the observed decimal-string timeout without coercing other values',()=>{
  const {m,name,e}=fixture();e.spec.template.spec.timeoutSeconds='660';
  assert.equal(migrationReceipt(m,e,name).execution,name);

@@ -185,3 +185,15 @@ coercion or whole-resource export would weaken validation/data minimization.
 Synthetic regression checks cover the selected command paths and representation;
 corrected validator also passed against the already completed real execution.
 No migration replay was needed to repair evidence; the hosted run remains failed.
+
+## G30 — Read-only migration metadata snapshot — 2026-10-12
+
+PostgreSQL 17, [SET TRANSACTION](https://www.postgresql.org/docs/17/sql-set-transaction.html),
+read-only restrictions; [Transaction Isolation](https://www.postgresql.org/docs/17/transaction-iso.html),
+repeatable-read snapshot semantics. Reviewed those sections. Read-only mode rejects
+persistent DML/DDL/grants; it does not mean PostgreSQL performs no physical writes.
+Repeatable read gives both metadata queries a consistent committed snapshot, not
+a guarantee that the database cannot change after verification. Apply with the
+existing Cloud SQL identity/job sources G27/G29: no added operator grant or new
+provider authentication path. A forced-RLS synthetic fixture checks the actual
+transaction mode; wrong/dirty versions and artifact set/hash mismatches fail.

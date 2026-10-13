@@ -13,6 +13,10 @@ application promotion can require #26 closed. Alternative owner-terminal migrati
 apply is possible, but would duplicate release validation and execution tracking.
 This is infrastructure configuration, not a new ISO financial message or SQL policy.
 
+For inspection without forward execution, use the separately defined
+[read-only status release](migration-status.md); it preserves these release gates
+but requires a status-capable image and a distinct operation/receipt.
+
 ## Contract
 
 The migration manifest contains exactly schemaVersion, project, projectNumber,
