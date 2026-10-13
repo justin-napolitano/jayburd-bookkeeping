@@ -42,6 +42,13 @@ selected instance. Broader inherited project grants require deployment review.
 
 ## Bootstrap and migration
 
+Migration 8 requires the owner-operated bootstrap to precreate the safe NOLOGIN
+`bookkeeping_publisher` and `bookkeeping_observer` capability roles. Rerun the
+reviewed bootstrap before applying migration 8 to an existing hosted database;
+the restricted migrator still has no CREATEROLE privilege. This does not provision
+worker IAM logins, observer bindings or service permissions. Those remain a
+separate hosted-worker enrollment gate. API readiness rejects worker-role membership.
+
 Owner uses [bootstrap SQL](../../db/bootstrap/cloud-sql.sql) with existing API and
 migrator IAM role identifiers. Administrator must own the database/schema and have
 CREATEROLE plus sufficient authority to alter the two logins; this authority is

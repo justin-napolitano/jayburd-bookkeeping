@@ -45,6 +45,8 @@ background work. The two predecessor repos are reference material only.
 | How will Plaid pulls and webhooks feed the same ingestion core? | [Provider ingestion proposal](contracts/provider-ingestion.md) |
 | How will outbox delivery, leases and sync recovery be proved? | [Worker contract review](runbooks/outbox-contract-review.md) and [provider/worker integration review](runbooks/provider-worker-review.md) |
 | What is the reporting SQL/service implementation boundary? | [Reporting SQL contract](contracts/reporting-sql.md) and [foundation evidence](runbooks/reporting-foundation.md) |
+| How will source evidence become a reviewed draft? | [Durable import proposal](contracts/durable-import.md), [review journey](plans/import-review.md), and [prototype](prototypes/import-review.html) |
+| What proves the first receipt-only worker? | [Observer contract](contracts/worker-sql.md) and [integration evidence](runbooks/ingestion-foundations.md) |
 | What can the synthetic CSV decoder validate? | [Decoder contract](contracts/statement-decoder.md) and [test evidence](runbooks/statement-decoder.md) |
 | What tables and privileges would the first worker need? | [Proposed worker SQL contract](contracts/worker-sql.md) |
 | What did the parallel foundation build verify? | [Integration evidence and remaining gates](runbooks/build-foundations.md) |

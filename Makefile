@@ -86,3 +86,7 @@ identity-rehearsal:
 identity-rehearsal-test:
 	node --test scripts/identity-rehearsal-server.test.mjs
 	npm --prefix web run rehearsal:test
+
+.PHONY: observer-test
+observer-test:
+	bash scripts/test-observer.sh

@@ -19,7 +19,7 @@ const common = {
 test("four report views show exact totals, original units and revision-bound pages", async ({
   mount,
   page,
-}) => {
+}, testInfo) => {
   let changed = false;
   await page.route("**/reports/*?*", async (route) => {
     const url = new URL(route.request().url());
@@ -129,7 +129,7 @@ test("four report views show exact totals, original units and revision-bound pag
   }
   await expect(page.getByRole("cell", { name: /10 EUR/ })).toBeVisible();
   await page.screenshot({
-    path: "/private/tmp/jayburd-reporting-screens.png",
+    path: testInfo.outputPath("reporting-screens.png"),
     fullPage: true,
   });
   await page.getByRole("button", { name: "Next report page" }).click();
