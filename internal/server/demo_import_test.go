@@ -191,6 +191,11 @@ func bootstrapDemoAcquisition(ctx context.Context, admin *pgx.Conn, pool *pgxpoo
 		if json.Unmarshal(setup.Body, &value) != nil || value.Entity == "" || value.Book == "" {
 			return nil, errors.New("demo_configuration")
 		}
+		// Setup grants read/post only. The fixture administrator separately grants
+		// prepare; replay never restores a deliberately revoked membership.
+		if _, e = demoOwnerCall(ctx, admin, `WITH granted AS (INSERT INTO ledger.membership(entity_id,principal_id,permission,revoked_at) VALUES($1,$2,'prepare',NULL) ON CONFLICT(entity_id,principal_id,permission) DO NOTHING RETURNING 1) SELECT '{}'::jsonb`, value.Entity, demoImportActor); e != nil {
+			return nil, e
+		}
 		bank := ""
 		for _, a := range value.Accounts {
 			if a.Code == "1000" {

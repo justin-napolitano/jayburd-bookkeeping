@@ -241,6 +241,52 @@ func TestDemoAcquisitionPostgres(t *testing.T) {
 	if e = owner.QueryRow(ctx, `SELECT count(*)=3 AND bool_and(n=1000 AND inflows=500 AND outflows=500 AND net=37495.00) FROM (SELECT entity_id,count(*) n,count(*) FILTER(WHERE direction='inflow') inflows,count(*) FILTER(WHERE direction='outflow') outflows,sum(CASE direction WHEN 'inflow' THEN amount ELSE -amount END) net FROM banking.observation_revision GROUP BY entity_id) q`).Scan(&correct); e != nil || !correct {
 		t.Fatalf("entity/cents separation failed %v", e)
 	}
+	// A loaded review is actually categorizable by the restricted runtime actor.
+	first := d.batches[0]
+	var reviewID string
+	if e = owner.QueryRow(ctx, "select review_id::text from banking.review_item where entity_id=$1 and book_id=$2 order by review_id limit 1", first.Entity, first.Book).Scan(&reviewID); e != nil {
+		t.Fatal(e)
+	}
+	detailRaw := demoRuntimeJSON(t, ctx, pool, "select banking.get_review_item($1::uuid,$2::uuid,$3::uuid,$4::uuid)", demoImportActor, first.Entity, first.Book, reviewID)
+	var detail struct {
+		Review  string `json:"review_revision"`
+		Source  string `json:"source_revision"`
+		Binding string `json:"binding_revision"`
+		Book    string `json:"book_revision"`
+	}
+	if e = json.Unmarshal(detailRaw, &detail); e != nil {
+		t.Fatal(e)
+	}
+	categoryRaw := demoRuntimeJSON(t, ctx, pool, "select banking.review_categories($1::uuid,$2::uuid,$3::uuid,$4::uuid)", demoImportActor, first.Entity, first.Book, reviewID)
+	var categories struct {
+		Policy   string `json:"policy_id"`
+		Date     string `json:"accounting_date"`
+		Accounts []struct {
+			ID   string `json:"account_id"`
+			Code string `json:"code"`
+		} `json:"accounts"`
+	}
+	if e = json.Unmarshal(categoryRaw, &categories); e != nil {
+		t.Fatal(e)
+	}
+	offset := ""
+	for _, account := range categories.Accounts {
+		if account.Code == "5000" {
+			offset = account.ID
+		}
+	}
+	if offset == "" {
+		t.Fatal("missing active category account")
+	}
+	body := demoJSON(map[string]any{"expected_review_revision": detail.Review, "source_revision": detail.Source, "binding_revision": detail.Binding, "expected_book_revision": detail.Book, "category_account_id": offset, "policy_id": categories.Policy, "accounting_date": categories.Date, "description": "Explicit fictional category review"})
+	draft := demoRuntimeJSON(t, ctx, pool, "select banking.create_review_draft($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text,$6::text)", demoImportActor, first.Entity, first.Book, reviewID, "demo-proof-draft", body)
+	replay := demoRuntimeJSON(t, ctx, pool, "select banking.create_review_draft($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text,$6::text)", demoImportActor, first.Entity, first.Book, reviewID, "demo-proof-draft", body)
+	if string(draft) != string(replay) {
+		t.Fatal("draft replay changed immutable receipt")
+	}
+	if e = owner.QueryRow(ctx, `SELECT (SELECT count(*) FROM ledger.journal_entry)=0 AND (SELECT count(*) FROM integration.outbox_message)=0 AND (SELECT count(*) FROM banking.review_draft)=1 AND (SELECT state FROM banking.review_item WHERE review_id=$1)='draft_ready' AND (SELECT string_agg(revision::text,',' order by book_id) FROM ledger.book)=$2 AND (SELECT sum(CASE direction WHEN 'inflow' THEN amount ELSE -amount END) FROM banking.observation_revision)=112485.00`, reviewID, before).Scan(&correct); e != nil || !correct {
+		t.Fatalf("draft changed accounting effects: %v", e)
+	}
 	// No HTTP request can replace the generated CSV with caller financial input.
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/v1/demo/acquisition/step", strings.NewReader(`{"csv":"caller"}`))
@@ -249,4 +295,26 @@ func TestDemoAcquisitionPostgres(t *testing.T) {
 	if w.Code != 400 {
 		t.Fatal("arbitrary input accepted")
 	}
+}
+
+// demoRuntimeJSON exercises restricted SQL APIs without borrowing administrator authority.
+func demoRuntimeJSON(t *testing.T, ctx context.Context, pool *pgxpool.Pool, query string, args ...any) []byte {
+	t.Helper()
+	tx, e := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		_ = tx.Rollback(cleanup)
+	}()
+	var result []byte
+	if e = tx.QueryRow(ctx, query, args...).Scan(&result); e != nil {
+		t.Fatal(e)
+	}
+	if e = tx.Commit(ctx); e != nil {
+		t.Fatal(e)
+	}
+	return result
 }

@@ -35,11 +35,22 @@ and these contract/runbook files. No production route, cloud or provider mutatio
 - `make check test build`: PASS before final handoff.
 
 Focused proof used migration 11 up SHA256
-`e1fe02956f83631a54c3388154775d4fcf4ad6a1a936cca5b5a97d683b7e3edf`.
+`b57974247dc00aea1408c9a152896858c0c7310f1f7603a70fb50abae8fe9ecd`.
 The temporary migration copy/checksum was removed/restored before commit.
 Logs: /private/tmp/jayburd-demo-backend-proof.log and
 /private/tmp/jayburd-demo-backend-default.log. Root repeats relevant proof after
 integrating the SQL lane's final version.
+
+## Browser-discovered permission correction
+
+The first integrated category-draft browser request exposed missing entity prepare
+membership: setup grants only read/post. The fixture now explicitly provisions
+prepare through its owner connection before runtime registration, without weakening
+SQL authority or restoring an existing revoked grant. The extended actual
+PostgreSQL proof passes: restricted-runtime category lookup and draft creation
+succeed after all 3,000 imports, exact draft replay creates no second draft, and
+journal/outbox counts, book revisions and source net remain unchanged. Root reruns
+the browser workflow after integration.
 
 ## Remaining work
 

@@ -9,7 +9,9 @@ transactions, and bounded explicit request-driven progress. No bank connection,
 real upload, automatic journal, cloud workload or background runner is introduced.
 
 The fixture administrator separately provisions source read/import/review grants
-through their owner-only functions. Book setup, batch registration, staging,
+through their owner-only functions, plus entity prepare membership. Existing setup
+grants only read/post. Prepare fixture insertion does not restore an existing
+revoked membership; no runtime self-grant or SQL authorization relaxation exists. Book setup, batch registration, staging,
 decoding, preview and explicit import use the existing restricted runtime pool.
 The runtime loader never retains the administrator connection. The root composition
 owns a private staging Store and keeps its directory for the disposable database's
