@@ -161,3 +161,32 @@ describe('financial reporting bridge', () => {
   expect(response.status).toBe(409); expect(await response.text()).not.toContain('untrusted');
  });
 });
+
+describe('report follow-up bridge',()=>{
+ const account='00000000-0000-4000-8000-000000000003';
+ const journal='00000000-0000-4000-8000-000000000004';
+ const csv=reportsBase+'trial-balance/export.csv?through_date=2026-01-31&snapshot_revision=1';
+ it('returns exact CSV with fixed no-store download framing',async()=>{
+   const content='"value"\r\n"0.01"\r\n';
+   const upstream=new Response(content,{headers:{'Content-Type':'text/csv; charset=utf-8; header=present','Content-Disposition':'inline; filename="unsafe.html"','Set-Cookie':'private'}});
+   const fetcher=transport(upstream);const result=await createBridge(fetcher,()=>env)(request(csv));
+   expect(result.status).toBe(200);expect(await result.text()).toBe(content);
+   expect(result.headers.get('Content-Disposition')).toBe('attachment; filename="financial-reporting-review.csv"');
+   expect(result.headers.get('Cache-Control')).toBe('no-store');expect(result.headers.has('Set-Cookie')).toBe(false);
+   expect(new Headers(fetcher.mock.calls[1][1]?.headers).get('Accept')).toBe('text/csv');
+ });
+ it.each(['?through_date=2026-01-31','?snapshot_revision=1&cursor=abc','?snapshot_revision=1&limit=100'])('rejects unpinned or paged CSV %s',async query=>{
+   const fetcher=vi.fn<typeof fetch>();expect((await createBridge(fetcher,()=>env)(request(reportsBase+'trial-balance/export.csv'+query))).status).toBe(404);expect(fetcher).not.toHaveBeenCalled();
+ });
+ it('bounds CSV bytes and rejects wrong content type',async()=>{
+   for(const response of [new Response(new Uint8Array(10*1024*1024+1),{headers:{'Content-Type':'text/csv; charset=utf-8; header=present'}}),Response.json({})])
+     expect((await createBridge(transport(response),()=>env)(request(csv))).status).toBe(502);
+ });
+ it('requires complete bounded journal selection without extra filters',async()=>{
+   const path=reportsBase+`general-ledger/journals/${journal}?account_id=${account}&starts_on=2026-01-01&ends_before=2026-02-01&line_number=1&snapshot_revision=1`;
+   expect((await createBridge(transport(),()=>env)(request(path))).status).toBe(200);
+   for(const bad of [path.replace('&snapshot_revision=1',''),path.replace('line_number=1','line_number=1001'),path+'&cursor=abc']){
+     const fetcher=vi.fn<typeof fetch>();expect((await createBridge(fetcher,()=>env)(request(bad))).status).toBe(404);expect(fetcher).not.toHaveBeenCalled();
+   }
+ });
+});
