@@ -241,3 +241,14 @@ migration verification.
   queue delivery limitations, authentication and database claim/receipt semantics.
   These support the proposed lifecycle and fault matrix, not an implemented
   publisher, deployed worker or measured operational guarantee.
+
+- [Worker SQL source review](../contracts/worker-sql.md#source-review-and-alternatives),
+  WS01–WS03: PostgreSQL 17 locking, actual-clock timestamps and SECURITY DEFINER
+  guidance for the proposed journal-observer schema/functions. These primary
+  sections explain mechanisms; the named role, race and receipt tests remain
+  future evidence until that separate worker migration is implemented.
+- [Decoder implementation source review](../contracts/statement-decoder.md#implementation-evidence-and-alternatives):
+  Go's standard `encoding/csv` behavior explains why this restricted synthetic
+  profile validates ASCII and physical CRLF records before quoted-field parsing.
+  This supports parser design only; it does not establish bank-format support,
+  source ownership, durable import or ledger correctness.
