@@ -432,6 +432,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/books/{book_id}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * listSources
+         * @description Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.
+         */
+        get: operations["listSources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/review-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * listReviewItems
+         * @description Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.
+         */
+        get: operations["listReviewItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/review-items/{review_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * getReviewItem
+         * @description Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.
+         */
+        get: operations["getReviewItem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/review-items/{review_id}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * getReviewCategories
+         * @description Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.
+         */
+        get: operations["getReviewCategories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/review-items/{review_id}/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * createReviewDraft
+         * @description Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.
+         */
+        post: operations["createReviewDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -826,20 +926,28 @@ export interface components {
             /** Format: uuid */
             book_id: string;
             body: components["schemas"]["ImportCommandBody"];
+        } | {
+            /** @constant */
+            operation: "source_post";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            body: components["schemas"]["SourcePostCommandBody"];
         };
         DurableCommand: {
             /** Format: uuid */
             command_id: string;
             /** @enum {string} */
-            operation: "setup" | "post" | "import";
+            operation: "setup" | "post" | "import" | "source_post";
             /** Format: uuid */
             entity_id: string | null;
             /** Format: uuid */
             book_id: string | null;
             /** @enum {string} */
             state: "prepared" | "committed" | "cancelled";
-            body: components["schemas"]["SetupRequest"] | components["schemas"]["PostJournal"] | components["schemas"]["ImportCommandBody"];
-            result: components["schemas"]["SetupResult"] | components["schemas"]["Journal"] | components["schemas"]["ImportCommandResult"] | null;
+            body: components["schemas"]["SetupRequest"] | components["schemas"]["PostJournal"] | components["schemas"]["ImportCommandBody"] | components["schemas"]["SourcePostCommandBody"];
+            result: components["schemas"]["SetupResult"] | components["schemas"]["Journal"] | components["schemas"]["ImportCommandResult"] | null | components["schemas"]["SourcePostCommandResult"];
             /** Format: date-time */
             created_at: string;
             acknowledged: boolean;
@@ -892,6 +1000,182 @@ export interface components {
             /** @description Canonical count, maximum 1000. */
             existing_count: string;
             source_revision: components["schemas"]["Revision"];
+        };
+        SourcePostCommandBody: {
+            /** Format: uuid */
+            review_id: string;
+            /** Format: uuid */
+            draft_id: string;
+            review_revision: components["schemas"]["Revision"];
+            source_revision: components["schemas"]["Revision"];
+            binding_revision: components["schemas"]["Revision"];
+            expected_book_revision: components["schemas"]["Revision"];
+            posting_body: components["schemas"]["PostJournal"];
+        };
+        SourcePostCommandResult: {
+            /** Format: uuid */
+            review_id: string;
+            /** Format: uuid */
+            draft_id: string;
+            /** Format: uuid */
+            journal_id: string;
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            book_revision: components["schemas"]["Revision"];
+            review_revision: components["schemas"]["Revision"];
+            source_revision: components["schemas"]["Revision"];
+            journal: components["schemas"]["Journal"];
+        };
+        ReviewSource: {
+            /** Format: uuid */
+            source_account_id: string;
+            display_name: string;
+            currency: string;
+            /** Format: uuid */
+            currency_version_id: string;
+            /** Format: uuid */
+            ledger_account_id: string;
+            state: string;
+            binding_revision: components["schemas"]["Revision"];
+            source_revision: components["schemas"]["Revision"];
+        };
+        Sources: {
+            /** @constant */
+            profile: "source-list-v1";
+            items: components["schemas"]["ReviewSource"][];
+        };
+        ReviewRow: {
+            /** Format: uuid */
+            review_id: string;
+            /** @enum {string} */
+            state: "needs_review" | "overlap_hold" | "draft_ready" | "posted";
+            review_revision: components["schemas"]["Revision"];
+            /** Format: date */
+            booked_date: string;
+            currency: string;
+            /** Format: uuid */
+            currency_version_id: string;
+            /** @enum {string} */
+            direction: "inflow" | "outflow";
+            amount: string;
+            description: string;
+            /** Format: uuid */
+            draft_id: string | null;
+            /** Format: uuid */
+            journal_id: string | null;
+        };
+        ReviewPage: {
+            /** @constant */
+            profile: "source-review-page-v1";
+            /** Format: uuid */
+            source_account_id: string;
+            source_revision: components["schemas"]["Revision"];
+            items: components["schemas"]["ReviewRow"][];
+            next_cursor: string | null;
+        };
+        ReviewDraft: {
+            /** Format: uuid */
+            draft_id: string;
+            /** Format: uuid */
+            review_id: string;
+            review_revision: components["schemas"]["Revision"];
+            source_revision: components["schemas"]["Revision"];
+            binding_revision: components["schemas"]["Revision"];
+            book_revision: components["schemas"]["Revision"];
+            posting_body: components["schemas"]["PostJournal"];
+        };
+        ReviewEvidence: {
+            /** Format: uuid */
+            observation_id: string;
+            /** Format: uuid */
+            namespace_id: string;
+            /** Format: uuid */
+            currency_version_id: string;
+            observation_revision: components["schemas"]["Revision"];
+            external_entry_id: string;
+            source_state: string;
+            /** Format: date */
+            booked_date: string;
+            /** @enum {string} */
+            direction: "inflow" | "outflow";
+            amount: string;
+            description: string;
+        };
+        ReviewItem: {
+            /** Format: uuid */
+            review_id: string;
+            /** @enum {string} */
+            state: "needs_review" | "overlap_hold" | "draft_ready" | "posted";
+            review_revision: components["schemas"]["Revision"];
+            /** Format: date */
+            booked_date: string;
+            currency: string;
+            /** Format: uuid */
+            currency_version_id: string;
+            /** @enum {string} */
+            direction: "inflow" | "outflow";
+            amount: string;
+            description: string;
+            /** Format: uuid */
+            draft_id: string | null;
+            /** Format: uuid */
+            journal_id: string | null;
+            /** @constant */
+            profile: "source-review-v1";
+            /** Format: uuid */
+            source_account_id: string;
+            source_revision: components["schemas"]["Revision"];
+            binding_revision: components["schemas"]["Revision"];
+            book_revision: components["schemas"]["Revision"];
+            /** Format: uuid */
+            ledger_account_id: string;
+            blockers: string[];
+            draft: components["schemas"]["ReviewDraft"] | null;
+            /** Format: date-time */
+            created_at: string;
+            evidence: components["schemas"]["ReviewEvidence"][];
+        };
+        ReviewCategories: {
+            /** @constant */
+            profile: "source-review-categories-v1";
+            /** Format: uuid */
+            review_id: string;
+            /** Format: uuid */
+            source_account_id: string;
+            book_revision: components["schemas"]["Revision"];
+            /** Format: uuid */
+            policy_id: string;
+            /** Format: date */
+            accounting_date: string;
+            source_currency: string;
+            functional_currency: string;
+            fx_required: boolean;
+            accounts: {
+                /** Format: uuid */
+                account_id: string;
+                code: string;
+                name: string;
+                /** @enum {string} */
+                category: "asset" | "liability" | "equity" | "revenue" | "expense";
+                /** @enum {string} */
+                normal_side: "debit" | "credit";
+                monetary: boolean;
+            }[];
+        };
+        ReviewDraftRequest: {
+            expected_review_revision: components["schemas"]["Revision"];
+            source_revision: components["schemas"]["Revision"];
+            binding_revision: components["schemas"]["Revision"];
+            expected_book_revision: components["schemas"]["Revision"];
+            /** Format: uuid */
+            category_account_id: string;
+            /** Format: uuid */
+            policy_id: string;
+            /** Format: date */
+            accounting_date: string;
+            description: string;
         };
     };
     responses: {
@@ -1890,6 +2174,180 @@ export interface operations {
             422: components["responses"]["Problem422"];
             500: components["responses"]["Problem500"];
             503: components["responses"]["Problem503"];
+        };
+    };
+    listSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sources"];
+                };
+            };
+            /** @description Safe failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listReviewItems: {
+        parameters: {
+            query: {
+                source_account_id: string;
+                state?: "needs_review" | "overlap_hold" | "draft_ready" | "posted";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPage"];
+                };
+            };
+            /** @description Safe failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getReviewItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewItem"];
+                };
+            };
+            /** @description Safe failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getReviewCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewCategories"];
+                };
+            };
+            /** @description Safe failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createReviewDraft: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                entity_id: string;
+                book_id: string;
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description Authorized result */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDraft"];
+                };
+            };
+            /** @description Safe failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
 }

@@ -2,6 +2,12 @@
 
 ## Purpose and reading order
 
+The [source review contract](../contracts/source-review-sql.md) applies existing
+PostgreSQL and accounting source records to category drafts and atomic source-linked
+posting. The [generated acquisition contract](../contracts/demo-acquisition.md)
+documents fixture design and the absence of live-provider evidence.
+
+
 The [independent decoder property evidence](../runbooks/import-properties.md)
 records reviewed Go1.26.9 `math/big` integer/rational source sections and the
 separate exact-money oracle. It supplements parser fuzzing; it does not establish

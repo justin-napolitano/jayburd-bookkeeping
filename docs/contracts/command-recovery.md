@@ -91,3 +91,14 @@ Named proofs: `TestCommandLifecycle`, `TestCommandAuthorization`,
 setup/post/report, dropped real response followed by remount/recovery, and denied
 scope. Full Go/PostgreSQL regression and existing browser unit/component gates
 remain required. Live Firebase and deployed GCP verification remain separate.
+
+## Source-linked posting extension
+
+Migration11 adds `source_post` to the same principal recovery gate. Its body pins
+review/draft/source/binding/book revisions and contains the immutable full
+`posting_body`; SQL requires exact equality to the saved draft. The recovery UI
+shows those lines after refresh. Execute commits the journal, source link, review
+state and receipt together. Cancel does not post; acknowledge does not reverse.
+Current permissions are rechecked even for committed replay. See the
+[source review SQL contract](source-review-sql.md) and
+[delivery evidence](../runbooks/populated-demo.md).

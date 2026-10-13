@@ -55,6 +55,8 @@ case "$(docker exec "$proof_id" uname -m)" in
 esac
 CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o "$proof_dir/app.test" ./internal/server
 docker cp "$proof_dir/app.test" "$proof_id:/proof/app.test"
+# Separate disposable database proves generated imports before serving the browser fixture.
+docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/app.test "$POSTGRES_IMAGE" -demo-acquisition-proof -test.run='^TestDemoAcquisitionPostgres$' -test.v -test.timeout=180s
 docker run -d --name "$proof_id-api" --network "$proof_id" \
  --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/app.test \
  "$POSTGRES_IMAGE" -app-proof -app-proof-demo="$demo" -app-proof-marker="$proof_id" -test.run='^TestAppIntegrationServer$' -test.timeout="$proof_timeout" >/dev/null
@@ -86,7 +88,10 @@ if [[ "$demo" == true ]]; then
  if [[ "$demo_test" == true ]]; then
   (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-demo.config.ts)
   [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.journal_entry j JOIN ledger.entity e USING(entity_id) WHERE e.name LIKE 'Volume Lab %'")" == 1000 ]]
-  echo 'PASS: generated demo balances, cent posting and reload recovery'
+  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.source_observation')" == 3000 ]]
+  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.review_posting')" == 1 ]]
+  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.journal_entry j JOIN ledger.entity e USING(entity_id) WHERE e.name='Fictional Harbor Design LLC'")" == 1 ]]
+  echo 'PASS: 3000 generated imports, one atomic source-linked posting, exact cents and recovery'
   exit 0
  fi
  echo 'Synthetic demo: http://localhost:39083 — Ctrl+C to stop; make demo to reset.'

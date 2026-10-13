@@ -72,8 +72,8 @@ func (s *Service) Setup(ctx context.Context, c Command) (Result, error) {
 
 // Command carries trusted identity separately from unchanged user JSON text.
 type Command struct {
-	Actor, Entity, Book, Journal, Key, Request, CommandID string
-	Body                                                  string
+	Actor, Entity, Book, Journal, ReviewID, Key, Request, CommandID string
+	Body                                                            string
 }
 
 // Result is returned only after a successful commit, including on durable replay.
@@ -101,6 +101,9 @@ func failure(err error) *Failure {
 			"P2103": {409, "revision_conflict"}, "P2104": {409, "idempotency_conflict"}, "P2105": {409, "period_closed"},
 			"P2106": {409, "already_reversed"}, "P2107": {422, "invalid_amount"}, "P2108": {422, "invalid_journal"},
 			"P2112": {409, "pending_command"}, "P2113": {409, "invalid_command_state"},
+			"P2500": {400, "invalid_review"}, "P2501": {404, "review_denied"},
+			"P2502": {409, "review_conflict"}, "P2503": {409, "review_snapshot_changed"},
+			"P2504": {422, "fx_required"}, "P2505": {422, "review_limit"},
 			"P2400": {400, "invalid_import"}, "P2401": {404, "import_denied"},
 			"P2402": {409, "import_conflict"}, "P2403": {409, "stale_preview"}, "P2404": {422, "import_limit"},
 			"P2109": {422, "unsupported_policy"}, "P2110": {422, "result_out_of_range"}, "P2111": {413, "request_too_large"},
@@ -156,7 +159,7 @@ func (s *Service) execute(parent context.Context, c Command, operation string) (
 	ctx, cancel := context.WithTimeout(parent, 4*time.Second)
 	defer cancel()
 	iso := pgx.Serializable
-	if operation == "journal" || operation == "balance" || operation == "workspace" {
+	if operation == "journal" || operation == "balance" || operation == "workspace" || operation == "review_sources" || operation == "review_list" || operation == "review_detail" || operation == "review_categories" {
 		iso = pgx.RepeatableRead
 	}
 	for attempt := 0; attempt < 3; attempt++ {
@@ -215,6 +218,21 @@ func (s *Service) attempt(ctx context.Context, c Command, op string, iso pgx.TxI
 	case "command_execute", "command_cancel", "command_acknowledge":
 		r.Status = 200
 		err = tx.QueryRow(ctx, "select ledger.transition_command($1,$2,$3,$4,$5)", c.Actor, c.CommandID, c.Request, strings.TrimPrefix(op, "command_"), c.Body).Scan(&r.Body)
+	case "review_sources":
+		r.Status = 200
+		err = tx.QueryRow(ctx, "select banking.list_sources($1::uuid,$2::uuid,$3::uuid)", c.Actor, c.Entity, c.Book).Scan(&r.Body)
+	case "review_list":
+		r.Status = 200
+		err = tx.QueryRow(ctx, "select banking.list_review_items($1::uuid,$2::uuid,$3::uuid,$4::text)", c.Actor, c.Entity, c.Book, c.Body).Scan(&r.Body)
+	case "review_detail":
+		r.Status = 200
+		err = tx.QueryRow(ctx, "select banking.get_review_item($1::uuid,$2::uuid,$3::uuid,$4::uuid)", c.Actor, c.Entity, c.Book, c.ReviewID).Scan(&r.Body)
+	case "review_categories":
+		r.Status = 200
+		err = tx.QueryRow(ctx, "select banking.review_categories($1::uuid,$2::uuid,$3::uuid,$4::uuid)", c.Actor, c.Entity, c.Book, c.ReviewID).Scan(&r.Body)
+	case "review_draft":
+		r.Status = 201
+		err = tx.QueryRow(ctx, "select banking.create_review_draft($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text,$6::text)", c.Actor, c.Entity, c.Book, c.ReviewID, c.Key, c.Body).Scan(&r.Body)
 	case "workspace":
 		r.Status = 200
 		err = tx.QueryRow(ctx, "select reporting.workspace($1)", c.Actor).Scan(&r.Body)
@@ -233,6 +251,9 @@ func (s *Service) attempt(ctx context.Context, c Command, op string, iso pgx.TxI
 	}
 	if err != nil {
 		return Result{}, err, false
+	}
+	if strings.HasPrefix(op, "review_") && len(r.Body) > 2<<20 {
+		return Result{}, &pgconn.PgError{Code: "P2505"}, false
 	}
 	err = tx.Commit(ctx)
 	if err != nil {

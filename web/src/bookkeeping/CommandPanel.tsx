@@ -10,16 +10,17 @@ export function CommandPanel({
   workspace: Workspace | null;
 }) {
   const c = r.command;
+  const body = c && ("posting_body" in c.body ? c.body.posting_body : c.body);
   const entity = workspace?.entities.find((e) => e.entity_id === c?.entity_id);
   const book = entity?.books.find((b) => b.book_id === c?.book_id);
-  const policyID = c && "policy_id" in c.body ? c.body.policy_id : null;
+  const policyID = body && "policy_id" in body ? body.policy_id : null;
   const policy = book?.policies.find((p) => p.policy_id === policyID);
   const functionalMinorUnit = workspace?.currencies.find(
     (currency) =>
       currency.currency_version_id === policy?.functional_currency_version_id,
   )?.minor_unit;
   const accountingDate =
-    c && "accounting_date" in c.body ? c.body.accounting_date : "";
+    body && "accounting_date" in body ? body.accounting_date : "";
   return (
     <section
       className={
@@ -54,7 +55,7 @@ export function CommandPanel({
           </button>
         </>
       )}
-      {c && (
+      {c && body && (
         <>
           <p>
             Command <code>{c.command_id}</code> · {c.state}
@@ -74,7 +75,7 @@ export function CommandPanel({
           {c.state === "committed" && (
             <div role="status">
               <h3>
-                {c.operation === "post"
+                {c.operation === "post" || c.operation === "source_post"
                   ? "Posting confirmed"
                   : c.operation === "import"
                     ? "Import confirmed"
@@ -98,11 +99,15 @@ export function CommandPanel({
               before preparing new work.
             </p>
           )}
-          {"batch_id" in c.body ? (
+          {c.operation === "source_post" && "review_id" in c.body && (
+            <p>
+              Source-linked journal · Review item {c.body.review_id}. Posting
+              and its source link commit together.
+            </p>
+          )}
+          {"batch_id" in body ? (
             <>
-              <p>
-                Statement import · preview revision {c.body.preview_revision}
-              </p>
+              <p>Statement import · preview revision {body.preview_revision}</p>
               <p>
                 This workspace does not yet display the statement preview.
                 Confirm imports only in a client that shows the reviewed rows.
@@ -117,16 +122,16 @@ export function CommandPanel({
                 </p>
               )}
             </>
-          ) : "lines" in c.body ? (
+          ) : "lines" in body ? (
             <>
               <p>
-                <strong>{c.body.description}</strong> · Accounting date{" "}
-                {c.body.accounting_date}
+                <strong>{body.description}</strong> · Accounting date{" "}
+                {body.accounting_date}
               </p>
               <p>
                 Functional currency:{" "}
                 {policy?.functional_currency ?? "See saved policy metadata"} ·
-                Policy {c.body.policy_id}
+                Policy {body.policy_id}
               </p>
               <div className="table-scroll">
                 <table>
@@ -145,7 +150,7 @@ export function CommandPanel({
                     </tr>
                   </thead>
                   <tbody>
-                    {c.body.lines.map((line, i) => (
+                    {body.lines.map((line, i) => (
                       <tr key={i}>
                         <th scope="row">
                           {book?.accounts.find(
@@ -189,14 +194,14 @@ export function CommandPanel({
           ) : (
             <>
               <p>
-                <strong>{c.body.entity_name}</strong> / {c.body.book_name}
+                <strong>{body.entity_name}</strong> / {body.book_name}
               </p>
               <p>
-                Period: {c.body.starts_on} until before {c.body.ends_before}.
-                USD functional currency.
+                Period: {body.starts_on} until before {body.ends_before}. USD
+                functional currency.
               </p>
               <ul>
-                {c.body.accounts.map((a, i) => (
+                {body.accounts.map((a, i) => (
                   <li key={i}>
                     {a.code} · {a.name} · {a.category} · normal {a.normal_side}{" "}
                     · {a.monetary ? "monetary" : "non-monetary"}
@@ -217,7 +222,7 @@ export function CommandPanel({
                 disabled={r.busy || !r.ready || c.operation === "import"}
                 onClick={() => void r.transition("execute")}
               >
-                {c.operation === "post"
+                {c.operation === "post" || c.operation === "source_post"
                   ? "Post journal"
                   : c.operation === "import"
                     ? "Review import in originating client"

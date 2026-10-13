@@ -43,3 +43,13 @@ No active provider or hosted frontend is implied. Private cloud storage, raw
 retention/deletion, connection identity/secrets and hosted queue acceptance remain
 required. Initial staging/enrollment are synthetic only. Advanced FX and group
 consolidation remain explicitly deferred under #59.
+
+## Generated acquisition and review slice
+
+Owner direction: no user-prepared CSV is required. #97 loads 3,000 generated
+transactions across fictional LLCs through private staging and the real import
+authority. #96 supplies scoped review/category drafts and atomic source-linked
+posting; #98 presents the inbox and explicit confirmation. Exact source units
+remain separate from posted balances. Plaid will feed the same review core; CSV
+remains an optional future acquisition surface. Follow the
+[populated demo runbook](../runbooks/populated-demo.md) for actual evidence.

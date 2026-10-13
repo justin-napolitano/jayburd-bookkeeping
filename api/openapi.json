@@ -2,8 +2,8 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Jayburd Ledger Contract",
-    "version": "0.7.0-review",
-    "description": "Implemented ledger and bounded JSON reporting contract; synthetic development policy only. Close and CSV reporting remain deferred. SQL/accounting contracts own semantic validation. Not a registered ISO financial message.",
+    "version": "0.8.0-review",
+    "description": "Implemented ledger, reporting and source review contract. Synthetic development policy only; no live-use approval. SQL owns semantics. Internal operations are not registered ISO financial messages.",
     "contact": {
       "name": "Jayburd contract review",
       "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/2"
@@ -2377,6 +2377,341 @@
           }
         }
       }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/sources": {
+      "get": {
+        "operationId": "listSources",
+        "summary": "listSources",
+        "description": "Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sources"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe failure",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/review-items": {
+      "get": {
+        "operationId": "listReviewItems",
+        "summary": "listReviewItems",
+        "description": "Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "source_account_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "needs_review",
+                "overlap_hold",
+                "draft_ready",
+                "posted"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe failure",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/review-items/{review_id}": {
+      "get": {
+        "operationId": "getReviewItem",
+        "summary": "getReviewItem",
+        "description": "Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewItem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe failure",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/review-items/{review_id}/categories": {
+      "get": {
+        "operationId": "getReviewCategories",
+        "summary": "getReviewCategories",
+        "description": "Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewCategories"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe failure",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/review-items/{review_id}/drafts": {
+      "post": {
+        "operationId": "createReviewDraft",
+        "summary": "createReviewDraft",
+        "description": "Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDraft"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe failure",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDraftRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3825,6 +4160,33 @@
                 "$ref": "#/components/schemas/ImportCommandBody"
               }
             }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "operation": {
+                "type": "string",
+                "const": "source_post"
+              },
+              "entity_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "book_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "body": {
+                "$ref": "#/components/schemas/SourcePostCommandBody"
+              }
+            },
+            "required": [
+              "operation",
+              "entity_id",
+              "book_id",
+              "body"
+            ]
           }
         ]
       },
@@ -3852,7 +4214,8 @@
             "enum": [
               "setup",
               "post",
-              "import"
+              "import",
+              "source_post"
             ]
           },
           "entity_id": {
@@ -3887,6 +4250,9 @@
               },
               {
                 "$ref": "#/components/schemas/ImportCommandBody"
+              },
+              {
+                "$ref": "#/components/schemas/SourcePostCommandBody"
               }
             ]
           },
@@ -3903,6 +4269,9 @@
               },
               {
                 "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SourcePostCommandResult"
               }
             ]
           },
@@ -4074,6 +4443,642 @@
             "$ref": "#/components/schemas/Revision"
           }
         }
+      },
+      "SourcePostCommandBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "draft_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "review_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "binding_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "expected_book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "posting_body": {
+            "$ref": "#/components/schemas/PostJournal"
+          }
+        },
+        "required": [
+          "review_id",
+          "draft_id",
+          "review_revision",
+          "source_revision",
+          "binding_revision",
+          "expected_book_revision",
+          "posting_body"
+        ]
+      },
+      "SourcePostCommandResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "draft_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "journal_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "review_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "journal": {
+            "$ref": "#/components/schemas/Journal"
+          }
+        },
+        "required": [
+          "review_id",
+          "draft_id",
+          "journal_id",
+          "entity_id",
+          "book_id",
+          "book_revision",
+          "review_revision",
+          "source_revision",
+          "journal"
+        ]
+      },
+      "ReviewSource": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ledger_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string"
+          },
+          "binding_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          }
+        },
+        "required": [
+          "source_account_id",
+          "display_name",
+          "currency",
+          "currency_version_id",
+          "ledger_account_id",
+          "state",
+          "binding_revision",
+          "source_revision"
+        ]
+      },
+      "Sources": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "source-list-v1",
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewSource"
+            },
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "profile",
+          "items"
+        ]
+      },
+      "ReviewRow": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "needs_review",
+              "overlap_hold",
+              "draft_ready",
+              "posted"
+            ]
+          },
+          "review_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "booked_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "inflow",
+              "outflow"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?$"
+          },
+          "description": {
+            "type": "string"
+          },
+          "draft_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "journal_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "review_id",
+          "state",
+          "review_revision",
+          "booked_date",
+          "currency",
+          "currency_version_id",
+          "direction",
+          "amount",
+          "description",
+          "draft_id",
+          "journal_id"
+        ]
+      },
+      "ReviewPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "type": "string",
+            "const": "source-review-page-v1"
+          },
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewRow"
+            },
+            "maxItems": 100
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048
+          }
+        },
+        "required": [
+          "profile",
+          "source_account_id",
+          "source_revision",
+          "items",
+          "next_cursor"
+        ]
+      },
+      "ReviewDraft": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "draft_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "review_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "binding_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "posting_body": {
+            "$ref": "#/components/schemas/PostJournal"
+          }
+        },
+        "required": [
+          "draft_id",
+          "review_id",
+          "review_revision",
+          "source_revision",
+          "binding_revision",
+          "book_revision",
+          "posting_body"
+        ]
+      },
+      "ReviewEvidence": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "namespace_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "observation_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "external_entry_id": {
+            "type": "string"
+          },
+          "source_state": {
+            "type": "string"
+          },
+          "booked_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "inflow",
+              "outflow"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?$"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "observation_id",
+          "namespace_id",
+          "currency_version_id",
+          "observation_revision",
+          "external_entry_id",
+          "source_state",
+          "booked_date",
+          "direction",
+          "amount",
+          "description"
+        ]
+      },
+      "ReviewItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "needs_review",
+              "overlap_hold",
+              "draft_ready",
+              "posted"
+            ]
+          },
+          "review_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "booked_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "inflow",
+              "outflow"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)?$"
+          },
+          "description": {
+            "type": "string"
+          },
+          "draft_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "journal_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "profile": {
+            "type": "string",
+            "const": "source-review-v1"
+          },
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "binding_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "ledger_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "draft": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReviewDraft"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewEvidence"
+            }
+          }
+        },
+        "required": [
+          "review_id",
+          "state",
+          "review_revision",
+          "booked_date",
+          "currency",
+          "currency_version_id",
+          "direction",
+          "amount",
+          "description",
+          "draft_id",
+          "journal_id",
+          "profile",
+          "source_account_id",
+          "source_revision",
+          "binding_revision",
+          "book_revision",
+          "ledger_account_id",
+          "blockers",
+          "draft",
+          "created_at",
+          "evidence"
+        ]
+      },
+      "ReviewCategories": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "type": "string",
+            "const": "source-review-categories-v1"
+          },
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accounting_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "source_currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "functional_currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "fx_required": {
+            "type": "boolean"
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "account_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "asset",
+                    "liability",
+                    "equity",
+                    "revenue",
+                    "expense"
+                  ]
+                },
+                "normal_side": {
+                  "type": "string",
+                  "enum": [
+                    "debit",
+                    "credit"
+                  ]
+                },
+                "monetary": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "account_id",
+                "code",
+                "name",
+                "category",
+                "normal_side",
+                "monetary"
+              ]
+            }
+          }
+        },
+        "required": [
+          "profile",
+          "review_id",
+          "source_account_id",
+          "book_revision",
+          "policy_id",
+          "accounting_date",
+          "source_currency",
+          "functional_currency",
+          "fx_required",
+          "accounts"
+        ]
+      },
+      "ReviewDraftRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expected_review_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "binding_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "expected_book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "category_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accounting_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "expected_review_revision",
+          "source_revision",
+          "binding_revision",
+          "expected_book_revision",
+          "category_account_id",
+          "policy_id",
+          "accounting_date",
+          "description"
+        ]
       }
     },
     "responses": {

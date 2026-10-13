@@ -7,9 +7,16 @@ import {
   type ReactNode,
 } from "react";
 import { APIError, type API } from "./api";
+import { ReviewInbox } from "./ReviewInbox";
 import { currencyAt, formatAmount } from "./amount";
 import { Reports, type ReportContext, type ReportSelection } from "./Reports";
-import type { Book, Entity, TrialBalance, Workspace } from "./types";
+import type {
+  Book,
+  Entity,
+  TrialBalance,
+  Workspace,
+  RegisterCommand,
+} from "./types";
 
 // Navigation names reflect implemented reads and commands, never a bank feed.
 type View =
@@ -17,13 +24,15 @@ type View =
   | "Accounts"
   | "Account activity"
   | "Reports"
-  | "New journal";
+  | "New journal"
+  | "Review transactions";
 const views: View[] = [
   "Overview",
   "Accounts",
   "Account activity",
   "Reports",
   "New journal",
+  "Review transactions",
 ];
 
 // An explicit visible starting range comes from this book's period metadata.
@@ -51,6 +60,7 @@ export function BookWorkspace({
   locked,
   denied,
   children,
+  prepare,
 }: {
   entity: Entity;
   book: Book;
@@ -59,6 +69,7 @@ export function BookWorkspace({
   locked: boolean;
   denied: () => void;
   children: ReactNode;
+  prepare?: (command: RegisterCommand) => void;
 }) {
   const [view, setView] = useState<View>("Overview");
   const [context, setContext] = useState<ReportContext>(() =>
@@ -331,6 +342,17 @@ export function BookWorkspace({
           onAccessDenied={() => deniedRef.current()}
         />
       </div>
+      {view === "Review transactions" && prepare && (
+        <ReviewInbox
+          api={api}
+          entity={entity}
+          book={book}
+          currencies={currencies}
+          locked={locked}
+          prepare={prepare}
+          denied={denied}
+        />
+      )}
       <div hidden={view !== "New journal"}>{children}</div>
     </div>
   );
