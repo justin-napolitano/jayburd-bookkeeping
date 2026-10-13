@@ -32,7 +32,17 @@ const runtimeSafety = `SELECT
  AND to_regprocedure('ledger.transition_command(uuid,uuid,uuid,text,text)') IS NOT NULL
  AND has_function_privilege(current_user,'ledger.transition_command(uuid,uuid,uuid,text,text)','EXECUTE')
  AND to_regprocedure('reporting.workspace(uuid)') IS NOT NULL
- AND has_function_privilege(current_user,'reporting.workspace(uuid)','EXECUTE')`
+ AND has_function_privilege(current_user,'reporting.workspace(uuid)','EXECUTE')
+ AND to_regprocedure('banking.list_sources(uuid,uuid,uuid)') IS NOT NULL
+ AND has_function_privilege(current_user,'banking.list_sources(uuid,uuid,uuid)','EXECUTE')
+ AND to_regprocedure('banking.list_review_items(uuid,uuid,uuid,text)') IS NOT NULL
+ AND has_function_privilege(current_user,'banking.list_review_items(uuid,uuid,uuid,text)','EXECUTE')
+ AND to_regprocedure('banking.get_review_item(uuid,uuid,uuid,uuid)') IS NOT NULL
+ AND has_function_privilege(current_user,'banking.get_review_item(uuid,uuid,uuid,uuid)','EXECUTE')
+ AND to_regprocedure('banking.review_categories(uuid,uuid,uuid,uuid)') IS NOT NULL
+ AND has_function_privilege(current_user,'banking.review_categories(uuid,uuid,uuid,uuid)','EXECUTE')
+ AND to_regprocedure('banking.create_review_draft(uuid,uuid,uuid,uuid,text,text)') IS NOT NULL
+ AND has_function_privilege(current_user,'banking.create_review_draft(uuid,uuid,uuid,uuid,text,text)','EXECUTE')`
 
 // runtimeReady checks current role privileges on each probe using a bounded query.
 func runtimeReady(ctx context.Context, p *pgxpool.Pool) error {

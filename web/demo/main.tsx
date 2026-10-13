@@ -2,6 +2,8 @@ import React, { useCallback, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Bookkeeping } from "../src/bookkeeping/Bookkeeping";
 import { FlowViewer } from "./FlowViewer";
+import { LoadDemo } from "./LoadDemo";
+import { createAPI } from "../src/bookkeeping/api";
 import { VolumeViewer } from "./VolumeViewer";
 import "../src/app/style.css";
 
@@ -10,6 +12,8 @@ const getToken = async () => "synthetic.browser.proof";
 const rejectSession = () => {
   throw new Error("Demo session unavailable. Restart make demo.");
 };
+
+const demoAPI = createAPI(getToken, rejectSession);
 
 // Reuse production bookkeeping components against real SQL, with an explicit synthetic label.
 function Demo() {
@@ -30,10 +34,11 @@ function Demo() {
       <details className="demo-guide">
         <summary>About this synthetic workspace</summary>
         <p>
-          Fictional books use the real ledger. Generator Trading contains
-          reviewed EUR journals; Cents Lab demonstrates exact cents. No bank
-          accounts are connected. Changes are disposable; restart{" "}
-          <code>make demo</code> to reset.
+          Load demo books to generate 3,000 source transactions across three
+          fictional LLCs. Review transactions and explicitly post entries to
+          update balances. Generator Trading contains reviewed EUR journals;
+          Cents Lab demonstrates exact cents. No bank accounts are connected.
+          Changes are disposable; restart <code>make demo</code> to reset.
         </p>
       </details>
       <nav className="demo-nav" aria-label="Demo views">
@@ -67,6 +72,14 @@ function Demo() {
         </p>
       )}
       {view === "manual" && (
+        <LoadDemo
+          api={demoAPI}
+          locked={false}
+          onComplete={changed}
+          onActiveChange={setActive}
+        />
+      )}
+      {view === "manual" && !active && (
         <Bookkeeping
           key={version}
           getToken={getToken}

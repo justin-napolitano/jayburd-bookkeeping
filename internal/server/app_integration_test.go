@@ -6,12 +6,15 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/staging"
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
 	"os/signal"
 	"regexp"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -68,7 +71,21 @@ func TestAppIntegrationServer(t *testing.T) {
 	if err = runtimeReady(setupCtx, pool); err != nil {
 		t.Fatal("synthetic runtime permissions rejected")
 	}
+	var acquisition *demoAcquisition
 	if *appProofDemo {
+		evidenceRoot := t.TempDir()
+		if err := os.Chmod(evidenceRoot, 0700); err != nil {
+			t.Fatal("private demo storage unavailable")
+		}
+		store, err := staging.Open(evidenceRoot)
+		if err != nil {
+			t.Fatal("private demo storage unavailable")
+		}
+		defer store.Close()
+		acquisition, err = bootstrapDemoAcquisition(ctx, admin, pool, store)
+		if err != nil {
+			t.Fatal("synthetic acquisition bootstrap rejected", err)
+		}
 		if err := seedDemo(ctx, admin, pool); err != nil {
 			t.Fatal("synthetic demo seed rejected", err)
 		}
@@ -78,6 +95,30 @@ func TestAppIntegrationServer(t *testing.T) {
 		t.Fatal("synthetic server composition rejected")
 	}
 	handler := app.HTTP.Handler
+	if acquisition != nil {
+		demoHandler, e := ledger.BrowserBoundary("http://localhost:39083", acquisition)
+		if e != nil {
+			t.Fatal("synthetic acquisition origin invalid")
+		}
+		productHandler := handler
+		demoSlots := make(chan struct{}, 4)
+		// Demo acquisition is absent from cmd/api and bounded independently of production routes.
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, "/v1/demo/") {
+				select {
+				case demoSlots <- struct{}{}:
+					defer func() { <-demoSlots }()
+				default:
+					writeProblem(w, 503, "temporarily_unavailable")
+					return
+				}
+				r.Body = http.MaxBytesReader(w, r.Body, 64)
+				demoHandler.ServeHTTP(w, r)
+				return
+			}
+			productHandler.ServeHTTP(w, r)
+		})
+	}
 	app.HTTP.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Jayburd-Proof", *appProofMarker)
 		handler.ServeHTTP(w, r)
