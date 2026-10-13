@@ -10,6 +10,7 @@ background work. The two predecessor repos are reference material only.
 
 | Question | Authoritative document |
 | --- | --- |
+| What works now, and how do I review it? | [Project status and frontend guide](project-status.md) |
 | What are we building? | [Product scope](product.md) |
 | Why this stack and boundaries? | [Architecture](decisions/0001-architecture.md) |
 | What research supports the database direction? | [Research review](research/database-foundations.md) |
@@ -46,6 +47,7 @@ background work. The two predecessor repos are reference material only.
 | How will outbox delivery, leases and sync recovery be proved? | [Worker contract review](runbooks/outbox-contract-review.md) and [provider/worker integration review](runbooks/provider-worker-review.md) |
 | What is the reporting SQL/service implementation boundary? | [Reporting SQL contract](contracts/reporting-sql.md) and [foundation evidence](runbooks/reporting-foundation.md) |
 | How will source evidence become a reviewed draft? | [Durable import proposal](contracts/durable-import.md), [review journey](plans/import-review.md), and [prototype](prototypes/import-review.html) |
+| How does Go drive observer SQL without a queue transaction? | [Runtime adapter contract](contracts/observer-runtime.md) and [delivery evidence](runbooks/observer-runtime-delivery.md) |
 | What proves the first receipt-only worker? | [Observer contract](contracts/worker-sql.md) and [integration evidence](runbooks/ingestion-foundations.md) |
 | What can the synthetic CSV decoder validate? | [Decoder contract](contracts/statement-decoder.md) and [test evidence](runbooks/statement-decoder.md) |
 | What tables and privileges would the first worker need? | [Proposed worker SQL contract](contracts/worker-sql.md) |
