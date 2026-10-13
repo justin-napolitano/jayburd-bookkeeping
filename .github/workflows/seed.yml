@@ -44,6 +44,8 @@ jobs:
         run: make ledger-test
       - name: Prove receipt-only observer on disposable PostgreSQL
         run: make observer-test
+      - name: Synthetic source registry proof
+        run: make source-registry-test
       - name: Build and prove isolated health-only API container
         run: bash scripts/test-api-container.sh
       - name: Build and verify inert non-root migration image
