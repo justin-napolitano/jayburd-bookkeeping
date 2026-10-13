@@ -1,6 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {mkdtempSync,writeFileSync,readFileSync,existsSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
 import {validateManifest,validateBuild,validateRollback,requiredGates} from './release-manifest.mjs';
 const now=Date.parse('2026-10-12T00:00:00Z');
 // Independent synthetic release/build evidence; no real identities or provider clients.
@@ -50,6 +54,28 @@ test('migration-only release omits runtime configuration but still requires comp
 });
 test('migration prerequisites cannot relax full application closure gates',()=>{
  assert.deepEqual(requiredGates('migrate'),{issues:[5],prs:[44]});
+ assert.deepEqual(requiredGates('verify'),{issues:[5],prs:[44]});
  for(const operation of ['promote','rollback']) assert.deepEqual(requiredGates(operation),{issues:[6,11,26],prs:[23,24]});
  assert.throws(()=>requiredGates('force'));
+});
+test('read-only verification preserves the complete build gate and rejects runtime inputs',()=>{
+ const {m,run,receipts}=fixture();m.operation='verify';delete m.firebaseApiKey;delete m.previousDeployment;
+ delete m.evidence.identity;delete m.evidence.secrets;
+ validate(m);validateBuild(m,run,receipts);
+ assert.throws(()=>validateBuild(m,{...run,conclusion:'failure'},receipts));
+ assert.throws(()=>validate({...m,firebaseApiKey:'unexpected'}));
+});
+test('release CLI maps verification to status without producing service configuration',()=>{
+ for (const [operation,action] of [['verify','status'],['migrate','up']]) {
+  const dir=mkdtempSync(join(tmpdir(),'jayburd-release-inputs-'));
+  try {
+   const {m}=fixture();m.operation=operation;delete m.firebaseApiKey;delete m.previousDeployment;
+   delete m.evidence.identity;delete m.evidence.secrets;
+   m.expiresAt=new Date(Date.now()+86400000).toISOString().replace(/\.\d{3}Z$/,'Z');
+   const bytes=JSON.stringify(m),path=join(dir,'manifest.json'),out=join(dir,'out');writeFileSync(path,bytes);
+   execFileSync(process.execPath,['scripts/release-manifest.mjs',path,createHash('sha256').update(bytes).digest('hex'),out]);
+   assert.equal(JSON.parse(readFileSync(join(out,'migration.tfvars.json'))).action,action);
+   assert.equal(existsSync(join(out,'runtime.tfvars.json')),false);
+  } finally {rmSync(dir,{recursive:true,force:true});}
+ }
 });

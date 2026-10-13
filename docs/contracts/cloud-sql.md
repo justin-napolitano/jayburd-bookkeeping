@@ -82,6 +82,12 @@ version/dirty-state lock. `deployment.migration_artifact` stores filename, SHA25
 and registration time; it is not a claim that every registered version succeeded.
 The library owns `deployment.schema_migrations` as the applied/dirty authority.
 
+`cmd/migrate -action=status -instance=...` uses the same restricted IAM connector
+but only a read-only repeatable-read transaction to check current clean version
+and exact registered hashes. It does not create metadata or run migrations. The
+[status release contract](migration-status.md) defines its distinct reviewed
+`verify` operation and receipt; the human operator receives no additional access.
+
 Resealed registered SQL is rejected. Crash after artifact registration is replayable
 with the identical package; dirty SQL execution blocks retry until owner-reviewed
 repair. Migration SQL remains immutable. A signal requests stop between migrations;

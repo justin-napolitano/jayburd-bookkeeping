@@ -35,6 +35,8 @@ docker exec "$proof" psql -X -v ON_ERROR_STOP=1 -U synthetic_admin -d bookkeepin
 docker exec "$proof" psql -X -v ON_ERROR_STOP=1 -U synthetic_admin -d bookkeeping -v api_user=synthetic_api -v migrator_user=synthetic_migrator -f /tmp/bootstrap.sql >/dev/null
 docker exec "$proof" createdb -U synthetic_admin bookkeeping_failure
 docker exec "$proof" psql -X -v ON_ERROR_STOP=1 -U synthetic_admin -d bookkeeping_failure -v api_user=synthetic_api -v migrator_user=synthetic_migrator -f /tmp/bootstrap.sql >/dev/null
+docker exec "$proof" createdb -U synthetic_admin bookkeeping_status
+docker exec "$proof" psql -X -v ON_ERROR_STOP=1 -U synthetic_admin -d bookkeeping_status -v api_user=synthetic_api -v migrator_user=synthetic_migrator -f /tmp/bootstrap.sql >/dev/null
 case "$(docker exec "$proof" uname -m)" in
  aarch64) arch=arm64 ;;
  x86_64) arch=amd64 ;;

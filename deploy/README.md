@@ -23,6 +23,15 @@ root, frontend configuration or service smoke runs. It does not close #26 or
 approve a later promote/rollback. Provider readback failure requires investigation
 because SQL may already have committed. Never force dirty state or down-migrate.
 
+## Read-only migration verification
+
+Read-only database acceptance uses the same manifest shape as migration-only,
+but `operation: verify` and a fresh image supporting `-action=status`. See the
+[status contract](../docs/contracts/migration-status.md). It still requires all
+three successful build receipts and an exact reviewed hash; it updates the existing
+job action and never deploys services. The currently committed old `migrate`
+manifest is not a verification release and must not be used as one.
+
 ## Full application promotion and rollback
 
 Before dispatch: merge recovery #23 and synthetic tooling #24; evidence and close

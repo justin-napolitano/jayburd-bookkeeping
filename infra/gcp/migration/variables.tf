@@ -21,3 +21,13 @@ variable "image" {
     error_message = "Matching project migrator digest required."
   }
 }
+
+variable "action" {
+  description = "Reviewed forward migration or read-only status; no arbitrary command or repair."
+  type        = string
+  default     = "up"
+  validation {
+    condition     = contains(["up", "status"], var.action)
+    error_message = "Only up or status is allowed."
+  }
+}

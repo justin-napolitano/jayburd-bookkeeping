@@ -1,4 +1,4 @@
-// Command migrate applies only embedded, checksummed SQL through an explicit IAM connector.
+// Command migrate checks metadata or applies embedded SQL through an explicit restricted IAM connector.
 package main
 
 import (
@@ -16,9 +16,9 @@ import (
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/migration"
 )
 
-// run defaults to offline artifact verification; applying requires explicit instance and action.
+// run defaults to offline artifact verification; status and up require explicit instance and action.
 func run() error {
-	action := flag.String("action", "verify", "verify or up; no down, force or arbitrary target")
+	action := flag.String("action", "verify", "offline verify, read-only status or up; no down, force or arbitrary target")
 	instance := flag.String("instance", "", "explicit project:region:instance for IAM migration")
 	flag.Parse()
 	if flag.NArg() != 0 {
@@ -30,7 +30,7 @@ func run() error {
 	if *action == "verify" && *instance == "" {
 		return nil
 	}
-	if *action != "up" || *instance == "" {
+	if (*action != "up" && *action != "status") || *instance == "" {
 		return migration.ErrMigration
 	}
 	if _, present := os.LookupEnv("JAYBURD_DATABASE_URL"); present {
@@ -50,6 +50,9 @@ func run() error {
 	db.SetMaxOpenConns(2)
 	db.SetMaxIdleConns(0)
 	db.SetConnMaxLifetime(30 * time.Minute)
+	if *action == "status" {
+		return migration.Status(ctx, db, migrations.Files)
+	}
 	return migration.Up(ctx, db, migrations.Files)
 }
 

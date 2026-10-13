@@ -94,6 +94,75 @@ func requireSQLState(t *testing.T, err error, expected string) {
 	}
 }
 
+// TestMigrationStatus proves exact metadata matching, denied elevated access, and a genuinely read-only snapshot.
+func TestMigrationStatus(t *testing.T) {
+	if !*cloudSQLProof {
+		t.Skip("disposable proof not selected")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	admin := proofDB(t, "postgres", "bookkeeping_status")
+	reader := proofDB(t, "synthetic_migrator", "bookkeeping_status")
+	if Status(ctx, reader, migrations.Files) == nil {
+		t.Fatal("missing metadata accepted")
+	}
+	// Free the probe connection before Up uses the role's two-connection budget.
+	reader.Close()
+	if err := Up(ctx, proofDB(t, "synthetic_migrator", "bookkeeping_status"), migrations.Files); err != nil {
+		t.Fatal("fixture migration failed")
+	}
+	reader = proofDB(t, "synthetic_migrator", "bookkeeping_status")
+	if Status(ctx, admin, migrations.Files) == nil {
+		t.Fatal("administrator accepted")
+	}
+	if Status(ctx, proofDB(t, "synthetic_api", "bookkeeping_status"), migrations.Files) == nil {
+		t.Fatal("API reader accepted")
+	}
+	// Force metadata visibility to require transaction_read_only, independently of the implementation.
+	_, err := admin.ExecContext(ctx, `ALTER TABLE deployment.migration_artifact ENABLE ROW LEVEL SECURITY; ALTER TABLE deployment.migration_artifact FORCE ROW LEVEL SECURITY; CREATE POLICY readonly_proof ON deployment.migration_artifact FOR SELECT USING (current_setting('transaction_read_only')='on')`)
+	if err != nil {
+		t.Fatal("read-only guard setup failed")
+	}
+	var count int
+	if err := reader.QueryRowContext(ctx, `SELECT count(*) FROM deployment.migration_artifact`).Scan(&count); err != nil || count != 0 {
+		t.Fatal("read-only guard not effective")
+	}
+	if err := Status(ctx, reader, migrations.Files); err != nil {
+		t.Fatal("clean read-only status rejected")
+	}
+	for _, scenario := range []struct{ bad, restore string }{
+		{`UPDATE deployment.schema_migrations SET dirty=true`, `UPDATE deployment.schema_migrations SET dirty=false`},
+		{`UPDATE deployment.schema_migrations SET version=4`, `UPDATE deployment.schema_migrations SET version=5`},
+		{`UPDATE deployment.schema_migrations SET version=6`, `UPDATE deployment.schema_migrations SET version=5`},
+		{`DELETE FROM deployment.schema_migrations`, `INSERT INTO deployment.schema_migrations VALUES(5,false)`},
+		{`INSERT INTO deployment.migration_artifact VALUES('extra.sql',repeat('a',64),now())`, `DELETE FROM deployment.migration_artifact WHERE filename='extra.sql'`},
+		{`CREATE TEMP TABLE saved_artifact AS SELECT * FROM deployment.migration_artifact WHERE filename='000001_ledger.up.sql'; DELETE FROM deployment.migration_artifact WHERE filename='000001_ledger.up.sql'`, `INSERT INTO deployment.migration_artifact SELECT * FROM saved_artifact; DROP TABLE saved_artifact`},
+		{`UPDATE deployment.migration_artifact SET sha256=repeat('a',64) WHERE filename='000001_ledger.up.sql'`, `UPDATE deployment.migration_artifact SET sha256='d9ae8fa5ff9715241de5cb52c63f7f6972baa9bab2083b0d92cb82ce7931e255' WHERE filename='000001_ledger.up.sql'`},
+	} {
+		// Keep temporary fixture repair on one administrative session; status uses its own restricted session.
+		conn, err := admin.Conn(ctx)
+		if err != nil {
+			t.Fatal("fixture session failed")
+		}
+		if _, err := conn.ExecContext(ctx, scenario.bad); err != nil {
+			conn.Close()
+			t.Fatal("fixture mutation failed")
+		}
+		statusErr := Status(ctx, reader, migrations.Files)
+		if _, err := conn.ExecContext(ctx, scenario.restore); err != nil {
+			conn.Close()
+			t.Fatal("fixture restore failed")
+		}
+		conn.Close()
+		if statusErr == nil {
+			t.Fatal("invalid metadata accepted")
+		}
+	}
+	if err := Status(ctx, reader, migrations.Files); err != nil {
+		t.Fatal("restored status rejected")
+	}
+}
+
 // TestMigrationContention rejects a second runner before it records or executes migration work.
 func TestMigrationContention(t *testing.T) {
 	if !*cloudSQLProof {
