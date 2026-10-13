@@ -61,6 +61,11 @@ Read result profile source-registry-v1 contains entity_id,book_id,source_account
 ledger_account_id,currency_version_id,currency,minor_units,binding_date,state,
 binding_revision,source_revision and namespaces. Each namespace contains namespace_id,
 profile,synthetic_dataset_id,source_account_ref,state,overlap_review_required.
+Migration12 adds a tagged provider namespace variant, documented in
+[provider sync SQL](provider-sync-sql.md): provider, environment, item_id and
+provider_account_id replace CSV dataset/ref fields. Existing CSV output remains
+unchanged; the profile selects the identity shape. This is not a new public HTTP
+enrollment surface or proof of live account ownership.
 Revisions are decimal strings, namespace order UUID ascending, max 25 and <=64 KiB
 result. No grant roster, evidence reference, approval identity or database login
 is exposed. No list/discovery endpoint in this slice.

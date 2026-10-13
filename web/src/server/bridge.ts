@@ -78,7 +78,7 @@ function allowed(url: URL, method: string): boolean {
         if (!new RegExp(`^${uuid}$`).test(value)) return false;
       } else if (key === "state") {
         if (
-          !["needs_review", "overlap_hold", "draft_ready", "posted"].includes(
+          !["needs_review", "overlap_hold", "correction_hold", "draft_ready", "posted"].includes(
             value,
           )
         )

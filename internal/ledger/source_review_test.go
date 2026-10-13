@@ -32,6 +32,7 @@ func TestSourceReviewTransport(t *testing.T) {
 		{"detail", "GET", base + "/review-items/r", "", "", 200, 1},
 		{"categories", "GET", base + "/review-items/r/categories", "", "", 200, 1},
 		{"list", "GET", base + "/review-items?source_account_id=00000000-0000-4000-8000-000000000001&limit=100", "", "", 200, 1},
+		{"correction_hold", "GET", base + "/review-items?source_account_id=00000000-0000-4000-8000-000000000001&state=correction_hold", "", "", 200, 1},
 		{"duplicate", "GET", base + "/review-items?source_account_id=x&source_account_id=y", "", "", 400, 0},
 		{"unknown", "GET", base + "/sources?ignored=yes", "", "", 400, 0},
 		{"missing_source", "GET", base + "/review-items", "", "", 400, 0},

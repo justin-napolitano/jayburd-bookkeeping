@@ -80,6 +80,10 @@ Use the [corpus and execution guide](../tests/corpus/README.md),
 
 ## Next action
 
+The next parallel build is [sync foundations](runbooks/sync-foundations.md).
+Read [runtime boundaries](contracts/provider-runtime-boundaries.md) before the
+provider proposal: SQL, exact decoding and private transport are distinct gates.
+
 Review the [first application evidence](runbooks/first-app.md), then complete the
 managed identity and deployment gates before connecting live accounts. JB-001 remains open for a real
 LLC policy, opening-balance source and accountant cutover review. Development

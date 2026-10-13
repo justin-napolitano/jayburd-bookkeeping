@@ -3,6 +3,9 @@
 ## Decision and scope
 
 **Proposed contract**, owner project maintainer, 2026-10-13, [#70](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/70).
+The [runtime implementation boundaries](provider-runtime-boundaries.md) reconcile
+this proposal with merged migrations9–11 and define the current synthetic build.
+Proposal capabilities below must not be read as implemented provider behavior.
 Plan Plaid server-to-server Transactions alongside [CSV](statement-import.md),
 feeding a shared source-observation/review layer. CSV is one fixture adapter, not
 the architecture. No provider runtime, source tables, general draft API or automated

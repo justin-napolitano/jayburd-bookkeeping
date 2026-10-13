@@ -27,3 +27,8 @@ Source review adds scoped source/item/category reads and immutable category-draf
 creation. `source_post` reuses command recovery with full immutable posting lines.
 Demo acquisition endpoints exist only in the integration-tagged loopback fixture,
 not this production OpenAPI surface. No owner-prepared CSV is needed for the demo.
+
+Provider-source compatibility adds `correction_hold`, zero-valued source evidence
+and optional bounded `provider_exceptions` on review detail. Posted source amounts
+remain historical; exceptions expose revision references separately. These read
+extensions do not add a provider connection or acquisition endpoint.
