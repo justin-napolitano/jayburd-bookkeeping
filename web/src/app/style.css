@@ -188,3 +188,298 @@ footer {
     display: block;
   }
 }
+
+/* Book-first layout keeps scope and actions visible without a marketing-sized hero. */
+.app-shell {
+  max-width: 1440px;
+  padding: 1.5rem 2rem;
+}
+.app-masthead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 2rem;
+  padding-bottom: 0.8rem;
+  margin-bottom: 1rem;
+}
+.app-masthead h1 {
+  font:
+    600 1.6rem/1.2 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  margin: 0;
+}
+.app-masthead p {
+  margin: 0.25rem 0;
+}
+.app-masthead .eyebrow {
+  flex-basis: 100%;
+}
+.demo-guide {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+.demo-guide p {
+  max-width: 70ch;
+}
+.demo-nav button {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  background: transparent;
+  color: var(--ink);
+}
+.demo-nav button[aria-pressed="true"] {
+  background: var(--ink);
+  color: white;
+}
+.workspace-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+}
+.workspace-picker .heading {
+  gap: 1rem;
+}
+.workspace-picker h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+.workspace-picker > label {
+  flex: 1;
+  min-width: min(100%, 260px);
+}
+.workspace-picker .heading button {
+  font-size: 0.85rem;
+  background: transparent;
+  color: var(--ink);
+}
+.command-idle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  padding: 0.5rem 1rem;
+  margin: 0.75rem 0;
+  background: transparent;
+  border-style: dashed;
+}
+.command-idle h2 {
+  font-size: 0.85rem;
+  margin: 0;
+}
+.command-idle p {
+  font-size: 0.85rem;
+  margin: 0;
+  flex: 1;
+}
+.command-idle button {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+  background: transparent;
+  color: var(--ink);
+}
+.command-attention {
+  border-left: 4px solid var(--accent);
+}
+.book-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+}
+.book-context h2 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+.book-context p {
+  margin: 0.2rem 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.context-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+.context-dates label {
+  font-size: 0.8rem;
+  margin: 0;
+}
+.context-dates input {
+  padding: 0.45rem 0.6rem;
+}
+.book-nav {
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  gap: 0.2rem;
+}
+.book-nav button {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+  border-radius: 5px 5px 0 0;
+  margin: 0.25rem 0 0;
+  padding: 0.7rem 1rem;
+}
+.book-nav button[aria-current="page"] {
+  color: var(--accent);
+  border-bottom: 3px solid var(--accent);
+  background: #e7eeea;
+}
+.view-title {
+  font-size: 1.1rem;
+  margin: 1.1rem 0 -0.25rem;
+}
+.view-title:focus-visible {
+  outline: 3px solid #c3822a;
+  outline-offset: 4px;
+}
+.balances {
+  margin-top: 1rem;
+}
+.balances h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.balances .heading p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.report-stamp {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.account-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 0.25rem;
+  margin: 0;
+  text-align: left;
+}
+.account-link span {
+  color: var(--ink);
+  font-weight: 400;
+}
+.workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+}
+.workspace-actions p {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+[hidden] {
+  display: none !important;
+}
+@media (max-width: 650px) {
+  .app-shell {
+    padding: 1rem;
+  }
+  .app-masthead {
+    display: block;
+  }
+  .app-masthead p:not(.eyebrow) {
+    font-size: 0.85rem;
+  }
+  .workspace-picker {
+    display: block;
+  }
+  .workspace-picker .heading {
+    flex-wrap: wrap;
+  }
+  .context-dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .context-dates label:first-child {
+    grid-column: 1/-1;
+  }
+  .book-nav button {
+    flex: 1 0 auto;
+    font-size: 0.85rem;
+    padding: 0.65rem 0.6rem;
+  }
+  .balances {
+    padding: 1rem;
+  }
+  .balances .heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .account-link {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+}
+/* Dense review controls preserve touch targets while prioritizing the financial table. */
+.workspace-picker > label {
+  margin: 0;
+}
+.book-context {
+  padding: 0.5rem 0;
+}
+.view-title {
+  margin: 0.7rem 0 -0.5rem;
+}
+.balances caption {
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+}
+.balances .report-stamp {
+  margin: 0.5rem 0;
+}
+.balances td,
+.balances th {
+  padding: 0.55rem 0.7rem;
+}
+@media (max-width: 650px) {
+  .workspace-picker .heading {
+    display: flex;
+  }
+  .workspace-picker > label {
+    margin-top: 0.35rem;
+  }
+  .command-idle {
+    gap: 0.2rem 0.6rem;
+  }
+  .command-idle h2 {
+    flex-basis: 100%;
+  }
+  .command-idle p {
+    font-size: 0.8rem;
+  }
+  .command-idle button {
+    max-width: 125px;
+    line-height: 1.2;
+  }
+  .book-context h2 {
+    font-size: 1.35rem;
+  }
+  .book-nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .book-nav button {
+    white-space: nowrap;
+  }
+}

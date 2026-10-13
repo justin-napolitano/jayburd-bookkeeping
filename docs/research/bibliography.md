@@ -2,6 +2,16 @@
 
 ## Purpose and reading order
 
+The [independent decoder property evidence](../runbooks/import-properties.md)
+records reviewed Go1.26.9 `math/big` integer/rational source sections and the
+separate exact-money oracle. It supplements parser fuzzing; it does not establish
+provider behavior or database isolation.
+
+For bank sync qualification and measurable scaling, read the
+[sync quality source review](sync-quality-sources.md): selected official Plaid
+lifecycle/Sandbox and Google Cloud concurrency/queue sections, reviewed
+2026-10-13. These constrain test design; they do not certify live readiness.
+
 Shared resource index for the owner and agents, maintained with the contracts.
 Updated 2026-10-11. Sources explain or constrain decisions; listing a source
 does not approve a design or establish compliance.
@@ -278,3 +288,9 @@ persistence and overlap decisions; they do not establish implemented ingestion o
 ISO exchange conformance.
 
 - [Local observer runtime source application](../contracts/observer-runtime.md#evidence-and-sources): existing queue/SQL/pgx sources support short committed claims, injected transport and uncertain-commit handling. Read its named fault evidence separately from future hosted delivery proof.
+
+## Source collection foundations — 2026-10-13
+
+- [Source registry applicability and sources](../contracts/source-registry.md#standards-sources-and-alternatives): applies the existing PostgreSQL key/locking/function and ISO currency source records to narrow synthetic enrollment. Operator attestation is not evidence of live account ownership.
+- [Private staging source review](../contracts/import-staging.md#sources-alternatives-and-limits), ST01–ST03: pinned Go filesystem confinement and Linux local-filesystem link/sync/lock behavior support immutable synthetic evidence storage. Documented limits include cancellation, cooperative locking, power-loss evidence and separately required hosted encryption/retention.
+- Existing [workspace accessibility sources](financial-workspace-sources.md) support native focus/navigation and semantic financial tables. Runtime screenshots and journey tests are separate evidence; they do not establish full accessibility conformance or competitor superiority.

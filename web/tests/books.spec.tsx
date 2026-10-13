@@ -160,7 +160,9 @@ async function mockCommands(page: Page, empty = false) {
       return route.fulfill({ status: 404, json: { code: "not_found" } });
     return route.fulfill({
       json: {
-        through_date: "2026-01-01",
+        entity_id: "e1",
+        book_id: "b1",
+        through_date: url.searchParams.get("through_date"),
         snapshot_revision: "0",
         functional_currency: "USD",
         total_debits: "123.450000000",
@@ -172,6 +174,12 @@ async function mockCommands(page: Page, empty = false) {
             debit_balance: "123.450000000",
             credit_balance: "0.000000000",
           },
+          {
+            account_id: "a2",
+            account_code: "3000",
+            debit_balance: "0.000000000",
+            credit_balance: "123.450000000",
+          },
         ],
       },
     });
@@ -181,6 +189,7 @@ async function mockCommands(page: Page, empty = false) {
 // Use accessible controls and exact decimal strings to prepare a split journal.
 async function fillJournal(page: Page) {
   await page.getByLabel("Entity and book").selectOption("e1/b1");
+  await page.getByRole("button", { name: "New journal", exact: true }).click();
   await page
     .getByRole("combobox", { name: "Policy", exact: true })
     .selectOption("p1");
@@ -303,13 +312,12 @@ test("denied entity switch clears previous financial values", async ({
   await expect(page.getByRole("table")).toBeVisible();
   await expect(
     page.getByRole("cell", { name: "123.45", exact: true }),
-  ).toHaveCount(3);
+  ).toHaveCount(4);
   await expect(
     page.getByRole("cell", { name: "0.00", exact: true }),
-  ).toHaveCount(1);
+  ).toHaveCount(2);
   await page.getByLabel("Entity and book").selectOption("e2/b2");
   await expect(page.getByRole("table")).toHaveCount(0);
-  await page.getByRole("button", { name: "Load trial balance" }).click();
   await expect(page.getByLabel("Entity and book")).toHaveValue("");
   await expect(page.getByText("123.45", { exact: true })).toHaveCount(0);
 });
@@ -356,6 +364,216 @@ test("successful acknowledgement followed by failed discovery keeps new work loc
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
   await expect(
-    page.getByRole("button", { name: "Review journal", exact: true }),
+    page.getByRole("button", { name: "New journal", exact: true }),
   ).toBeDisabled();
+});
+
+// Product navigation follows one pinned account to its journal and back without a fake transaction feed.
+test("book workspace balances, account activity and journal remain scoped on desktop and mobile", async ({
+  mount,
+  page,
+}, testInfo) => {
+  await mockCommands(page);
+  let activityReads = 0;
+  await page.route("**/reports/**", async (route) => {
+    const url = new URL(route.request().url());
+    expect(url.searchParams.get("snapshot_revision")).toBe("0");
+    expect(url.searchParams.get("account_id")).toBe("a1");
+    const common = { entity_id: "e1", book_id: "b1", snapshot_revision: "0" };
+    if (url.pathname.includes("/journals/"))
+      return route.fulfill({
+        json: {
+          ...common,
+          contract_version: "report-journal-v1",
+          selector: {
+            account_id: "a1",
+            starts_on: "2026-01-01",
+            ends_before: "2026-02-01",
+            journal_id: "journal-one",
+            line_number: 1,
+          },
+          journal: {
+            entity_id: "e1",
+            book_id: "b1",
+            journal_id: "journal-one",
+            book_revision: "0",
+            functional_currency_version_id: "c1",
+            accounting_date: "2026-01-15",
+            kind: "manual",
+            policy_id: "p1",
+            description: "Synthetic reviewed capital",
+            lines: [
+              {
+                line_number: 1,
+                account_id: "a1",
+                side: "debit",
+                transaction_currency: "USD",
+                transaction_amount: "123.45",
+                functional_amount: "123.45",
+                valuation_basis: "identity",
+              },
+              {
+                line_number: 2,
+                account_id: "a2",
+                side: "credit",
+                transaction_currency: "USD",
+                transaction_amount: "123.45",
+                functional_amount: "123.45",
+                valuation_basis: "identity",
+              },
+            ],
+          },
+        },
+      });
+    activityReads++;
+    return route.fulfill({
+      json: {
+        ...common,
+        contract_version: "financial-reporting-v1",
+        report: "general-ledger",
+        layout: "posting-v1",
+        generated_at: "2026-01-31T00:00:00Z",
+        basis: "accrual",
+        timezone: "UTC",
+        functional_currency: "USD",
+        functional_currency_version_id: "c1",
+        minor_units: 2,
+        policy_ids: ["p1"],
+        filters: {
+          report: "general-ledger",
+          account_id: "a1",
+          starts_on: "2026-01-01",
+          ends_before: "2026-02-01",
+        },
+        comparison: null,
+        next_cursor: null,
+        totals: {
+          opening: "0",
+          period_debits: "123.45",
+          period_credits: "0",
+          closing: "123.45",
+        },
+        rows: [
+          {
+            id: "line:journal-one:1",
+            journal_id: "journal-one",
+            line_number: 1,
+            accounting_date: "2026-01-15",
+            amounts: {
+              debit: "123.45",
+              credit: "0",
+              running_balance: "123.45",
+            },
+            transaction_amount: "123.45",
+            transaction_currency: "USD",
+            valuation_basis: "identity",
+            kind: "manual",
+            policy_id: "p1",
+          },
+        ],
+      },
+    });
+  });
+  await mount(<Harness />);
+  await page.getByLabel("Entity and book").selectOption("e1/b1");
+  await expect(
+    page.getByRole("heading", { name: "Account balances", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Review journal", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator("tfoot td")).toHaveText(["123.45", "123.45"]);
+  await page.getByLabel("Through date", { exact: true }).fill("2026-01-31");
+  await page.getByLabel("Activity ends before").fill("2026-02-01");
+  await expect(page.locator("tfoot td")).toHaveText(["123.45", "123.45"]);
+  await page.screenshot({
+    path: testInfo.outputPath("book-workspace-desktop.png"),
+    fullPage: true,
+  });
+  await testInfo.attach("book-workspace-desktop", {
+    path: testInfo.outputPath("book-workspace-desktop.png"),
+    contentType: "image/png",
+  });
+  await page.getByRole("button", { name: "1000 Cash", exact: true }).click();
+  await expect(page.getByLabel("Report account")).toHaveValue("a1");
+  await page
+    .getByRole("button", { name: "Review journal line 1", exact: true })
+    .click();
+  await expect(
+    page.getByRole("region", { name: "Journal detail" }),
+  ).toContainText("Synthetic reviewed capital");
+  await page
+    .getByRole("button", { name: "Close journal detail", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Overview", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("heading", { name: "Overview", exact: true }),
+  ).toBeFocused();
+  await expect(page.getByLabel("Through date", { exact: true })).toHaveValue(
+    "2026-01-31",
+  );
+  await expect(page.getByLabel("Activity ends before")).toHaveValue(
+    "2026-02-01",
+  );
+  await expect(page.locator("tfoot td")).toHaveText(["123.45", "123.45"]);
+  expect(activityReads).toBe(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    page.getByRole("navigation", { name: "Book navigation" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath("book-workspace-mobile.png"),
+    fullPage: true,
+  });
+  await testInfo.attach("book-workspace-mobile", {
+    path: testInfo.outputPath("book-workspace-mobile.png"),
+    contentType: "image/png",
+  });
+  await page.getByLabel("Entity and book").selectOption("e2/b2");
+  await expect(page.getByLabel("Entity and book")).toHaveValue("");
+  await expect(page.getByText("123.45", { exact: true })).toHaveCount(0);
+});
+
+// An import prepared by another client must never be mistaken for setup or silently executed.
+test("recovers an import safely until statement preview UI is available", async ({
+  mount,
+  page,
+}) => {
+  const state = await mockCommands(page);
+  state.command = {
+    command_id: "import-command",
+    operation: "import",
+    entity_id: "e1",
+    book_id: "b1",
+    state: "prepared",
+    acknowledged: false,
+    result: null,
+    created_at: "2026-01-01T00:00:00Z",
+    body: {
+      batch_id: "batch1",
+      preview_id: "preview1",
+      preview_revision: "1",
+      binding_revision: "1",
+      source_revision: "0",
+      profile: "jayburd-synthetic-statement-csv/1",
+    },
+  };
+  await mount(<Harness />);
+  await expect(
+    page.getByRole("button", { name: "Review import in originating client" }),
+  ).toBeDisabled();
+  expect(state.executions).toBe(0);
+  await page.getByRole("button", { name: "Cancel saved command" }).click();
+  await expect(page.getByText(/Cancellation confirmed/)).toBeVisible();
+  await page.getByRole("button", { name: "Acknowledge result" }).click();
+  await expect(
+    page.getByText("No unacknowledged command. New work is available."),
+  ).toBeVisible();
+  expect(state.executions).toBe(0);
 });

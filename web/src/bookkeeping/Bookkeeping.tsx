@@ -7,18 +7,11 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { APIError, createAPI, type API } from "./api";
-import type {
-  Book,
-  Entity,
-  TrialBalance,
-  Workspace,
-  RegisterCommand,
-} from "./types";
+import { createAPI } from "./api";
+import type { Book, Entity, Workspace, RegisterCommand } from "./types";
 import { useCommands } from "./commands";
 import { CommandPanel } from "./CommandPanel";
-import { Reports } from "./Reports";
-import { currencyAt, formatAmount } from "./amount";
+import { BookWorkspace } from "./BookWorkspace";
 // UI account drafts carry strings unchanged to the authoritative setup transaction.
 type AccountDraft = {
   code: string;
@@ -118,10 +111,9 @@ export function Bookkeeping({
     .find((x) => `${x.entity.entity_id}/${x.book.book_id}` === scope);
   return (
     <>
-      <CommandPanel recovery={recovery} workspace={workspace} />
-      <section aria-labelledby="workspace-title">
+      <section className="workspace-picker" aria-labelledby="workspace-title">
         <div className="heading">
-          <h2 id="workspace-title">Workspace</h2>
+          <h2 id="workspace-title">Your books</h2>
           <button disabled={loading || locked} onClick={() => void load()}>
             Refresh workspace
           </button>
@@ -161,19 +153,25 @@ export function Bookkeeping({
           </>
         )}
       </section>
+      <CommandPanel recovery={recovery} workspace={workspace} />
       {selected && (
-        <BookView
+        <BookWorkspace
           key={`${scope}/${recovery.command?.command_id ?? "none"}/${recovery.command?.state ?? "none"}`}
           {...selected}
           currencies={workspace?.currencies ?? []}
           api={api}
           locked={locked}
-          prepare={recovery.prepare}
           denied={() => {
             setScope("");
             void load();
           }}
-        />
+        >
+          <ManualJournal
+            {...selected}
+            locked={locked}
+            prepare={recovery.prepare}
+          />
+        </BookWorkspace>
       )}
       {workspace && !recovery.accessDenied && (
         <Setup
@@ -373,47 +371,24 @@ function Setup({
     </section>
   );
 }
-// The selected scope owns report requests, draft state and immutable committed result.
-function BookView({
+// The selected scope owns manual draft strings; durable recovery owns review and execution.
+function ManualJournal({
   entity,
   book,
-  currencies,
-  api,
-  denied,
   locked,
   prepare,
 }: {
   entity: Entity;
   book: Book;
-  currencies: Workspace["currencies"];
-  api: API;
-  denied: () => void;
   locked: boolean;
   prepare: (value: RegisterCommand) => void;
 }) {
   const [lines, setLines] = useState<LineDraft[]>([
-      blankLine(),
-      { ...blankLine(), side: "credit" },
-    ]),
-    [report, setReport] = useState<TrialBalance | null>(null),
-    [reportError, setReportError] = useState(""),
-    [reportBusy, setReportBusy] = useState(false);
-  const reportMinorUnit = report
-    ? currencyAt(currencies, report.functional_currency, report.through_date)
-        ?.minor_unit
-    : undefined;
-  const reportEpoch = useRef(0);
-  useEffect(
-    () => () => {
-      reportEpoch.current++;
-    },
-    [],
-  );
-  const base = `/v1/entities/${entity.entity_id}/books/${book.book_id}`;
+    blankLine(),
+    { ...blankLine(), side: "credit" },
+  ]);
   const review = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    reportEpoch.current++;
-    setReportBusy(false);
     const f = new FormData(e.currentTarget);
     prepare({
       operation: "post",
@@ -431,27 +406,6 @@ function BookView({
         ),
       } as Extract<RegisterCommand, { operation: "post" }>["body"],
     });
-  };
-  const trial = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const date = new FormData(e.currentTarget).get("through");
-    const n = ++reportEpoch.current;
-    setReport(null);
-    setReportError("");
-    setReportBusy(true);
-    try {
-      const r = await api<TrialBalance>(
-        `${base}/trial-balance?through_date=${date}`,
-      );
-      if (n === reportEpoch.current) setReport(r);
-    } catch (e) {
-      if (n === reportEpoch.current) {
-        setReportError(e instanceof Error ? e.message : "Report unavailable.");
-        if (e instanceof APIError && [403, 404].includes(e.status)) denied();
-      }
-    } finally {
-      if (n === reportEpoch.current) setReportBusy(false);
-    }
   };
   const update = (i: number, k: keyof LineDraft, value: string) =>
     setLines((v) => v.map((x, j) => (j === i ? { ...x, [k]: value } : x)));
@@ -623,59 +577,6 @@ function BookView({
                 <button>Review journal</button>
               </fieldset>
             </form>
-          </>
-        )}
-      </section>
-      <Reports api={api} entity={entity} book={book} locked={locked} />
-      <section>
-        <h2>Trial balance</h2>
-        <form onSubmit={trial}>
-          <label>
-            Through date
-            <input name="through" type="date" required defaultValue={today()} />
-          </label>
-          <button disabled={reportBusy || locked}>Load trial balance</button>
-        </form>
-        {reportBusy && <p role="status">Reading ledger snapshot…</p>}
-        {reportError && <p role="alert">{reportError}</p>}
-        {report && (
-          <>
-            <p>
-              Through {report.through_date} · {report.functional_currency} ·
-              snapshot {report.snapshot_revision}
-            </p>
-            <div className="table-scroll">
-              <table>
-                <caption>Account balances from posted journals</caption>
-                <thead>
-                  <tr>
-                    <th>Account</th>
-                    <th>Debit</th>
-                    <th>Credit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.accounts.map((a) => (
-                    <tr key={a.account_id}>
-                      <th scope="row">{a.account_code}</th>
-                      <td>{formatAmount(a.debit_balance, reportMinorUnit)}</td>
-                      <td>{formatAmount(a.credit_balance, reportMinorUnit)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <th>Total</th>
-                    <td>
-                      {formatAmount(report.total_debits, reportMinorUnit)}
-                    </td>
-                    <td>
-                      {formatAmount(report.total_credits, reportMinorUnit)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
           </>
         )}
       </section>

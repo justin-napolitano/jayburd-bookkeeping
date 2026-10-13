@@ -31,6 +31,7 @@ test("generated review books preserve cents and recover a posted result after re
     page.locator("tbody tr").filter({ hasText: "1000" }).locator("td"),
   ).toHaveText(["0.29", "0.00"]);
   await expect(page.locator("tfoot td")).toHaveText(["0.30", "0.30"]);
+  await page.getByRole("button", { name: "New journal", exact: true }).click();
   await page.getByLabel("Accounting date", { exact: true }).fill("2026-02-01");
   await page
     .getByRole("combobox", { name: "Policy", exact: true })

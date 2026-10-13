@@ -750,7 +750,8 @@ func TestTransactionIsolation(t *testing.T) {
 // lostCommitDB wraps a real transaction to discard one successful commit reply.
 type lostCommitDB struct {
 	Beginner
-	lost bool
+	lost       bool
+	replyError error // Optional synthetic database-reported completion uncertainty.
 }
 
 // BeginTx simulates only acknowledgement loss, not a fake database effect.
@@ -775,6 +776,9 @@ func (t *lostCommitTx) Commit(ctx context.Context) error {
 	}
 	if !t.parent.lost {
 		t.parent.lost = true
+		if t.parent.replyError != nil {
+			return t.parent.replyError
+		}
 		return errors.New("synthetic connection lost after commit")
 	}
 	return nil
@@ -991,7 +995,7 @@ func TestReceiptActorAndArchive(t *testing.T) {
 // TestSchemaCompatibility verifies controlled setup and the reporting migration's version state.
 func TestSchemaCompatibility(t *testing.T) {
 	c, _, _ := fixtureDB(t, "schema")
-	if scalar(t, c, "SELECT version::text||':'||dirty::text FROM public.schema_migrations") != "8:false" {
+	if scalar(t, c, "SELECT version::text||':'||dirty::text FROM public.schema_migrations") != "10:false" {
 		t.Fatal("migration state")
 	}
 	for _, q := range []string{
