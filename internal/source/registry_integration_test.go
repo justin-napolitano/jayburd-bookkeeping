@@ -378,16 +378,16 @@ func TestSourceRegistryPermission(t *testing.T) {
 	}
 }
 
-// TestSourceRegistryPrivileges uses real runtime sessions against all banking functions and owned relations.
+// TestSourceRegistryPrivileges bounds runtime EXECUTE to the reviewed registry/import entrypoints.
 func TestSourceRegistryPrivileges(t *testing.T) {
 	c, db := fixture(t)
 	id, _ := enroll(t, db)
 	for _, role := range []string{"bookkeeping_api", "bookkeeping_observer", "bookkeeping_publisher"} {
-		allowed := ""
+		allowed := []string{}
 		if role == "bookkeeping_api" {
-			allowed = "get_source"
+			allowed = []string{"get_source", "register_import_batch", "import_context", "publish_import_preview", "get_import_batch", "get_review_item"}
 		}
-		if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='banking' AND has_function_privilege($1,p.oid,'EXECUTE')<>(p.proname=$2)`, role, allowed) != "0" {
+		if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='banking' AND has_function_privilege($1,p.oid,'EXECUTE')<>(p.proname=ANY($2::text[]))`, role, allowed) != "0" {
 			t.Fatal("function privileges")
 		}
 	}

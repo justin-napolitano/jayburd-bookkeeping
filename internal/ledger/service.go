@@ -101,6 +101,8 @@ func failure(err error) *Failure {
 			"P2103": {409, "revision_conflict"}, "P2104": {409, "idempotency_conflict"}, "P2105": {409, "period_closed"},
 			"P2106": {409, "already_reversed"}, "P2107": {422, "invalid_amount"}, "P2108": {422, "invalid_journal"},
 			"P2112": {409, "pending_command"}, "P2113": {409, "invalid_command_state"},
+			"P2400": {400, "invalid_import"}, "P2401": {404, "import_denied"},
+			"P2402": {409, "import_conflict"}, "P2403": {409, "stale_preview"}, "P2404": {422, "import_limit"},
 			"P2109": {422, "unsupported_policy"}, "P2110": {422, "result_out_of_range"}, "P2111": {413, "request_too_large"},
 			"22P02": {400, "invalid_request"}, "22021": {400, "invalid_request"}, "40001": {503, "temporarily_unavailable"},
 			"40P01": {503, "temporarily_unavailable"}, "57014": {503, "temporarily_unavailable"}, "55P03": {503, "temporarily_unavailable"},
@@ -235,7 +237,12 @@ func (s *Service) attempt(ctx context.Context, c Command, op string, iso pgx.TxI
 	err = tx.Commit(ctx)
 	if err != nil {
 		var p *pgconn.PgError
-		return Result{}, err, !errors.As(err, &p) && !errors.Is(err, pgx.ErrTxCommitRollback)
+		// Database-reported completion uncertainty is just as ambiguous as a lost socket reply.
+		unknown := !errors.As(err, &p) && !errors.Is(err, pgx.ErrTxCommitRollback)
+		if p != nil && (p.Code == "40003" || strings.HasPrefix(p.Code, "08")) {
+			unknown = true
+		}
+		return Result{}, err, unknown
 	}
 	return r, nil, false
 }

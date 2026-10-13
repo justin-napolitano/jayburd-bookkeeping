@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // durableCommand mirrors only the public recovery contract for synthetic assertions.
@@ -484,4 +485,33 @@ func TestCommandExecutionValidation(t *testing.T) {
 	}
 	recoverCommand(t, s, v.ID, "cancel")
 	recoverCommand(t, s, v.ID, "acknowledge")
+}
+
+// TestCommandDatabaseUnknownCommit keeps database-reported uncertainty recoverable after a real commit.
+func TestCommandDatabaseUnknownCommit(t *testing.T) {
+	for _, code := range []string{"08007", "40003"} {
+		t.Run(code, func(t *testing.T) {
+			c, s, _ := fixtureDB(t, "command_unknown_"+code)
+			input := registration("post", "database-unknown")
+			registered, err := s.Recovery(context.Background(), input, "register")
+			if err != nil {
+				t.Fatal(err)
+			}
+			id := decodeCommand(t, registered).ID
+			s.DB = &lostCommitDB{Beginner: s.DB, replyError: &pgconn.PgError{Code: code, Message: "synthetic unknown completion"}}
+			result, err := s.Recovery(context.Background(), Command{Actor: actor, CommandID: id, Request: requestID(), Body: `{}`}, "execute")
+			requireFailure(t, err, "temporarily_unavailable")
+			if len(result.Body) != 0 {
+				t.Fatal("unconfirmed commit result escaped")
+			}
+			recovered := pendingCommand(t, s, actor)
+			if recovered == nil || recovered.ID != id || recovered.State != "committed" {
+				t.Fatal("committed work not recoverable")
+			}
+			recoverCommand(t, s, id, "execute")
+			if scalar(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != "1" {
+				t.Fatal("unknown completion duplicated effect")
+			}
+		})
+	}
 }
