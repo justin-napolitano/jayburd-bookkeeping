@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Jayburd Ledger Contract",
-    "version": "0.6.0-review",
+    "version": "0.7.0-review",
     "description": "Implemented ledger and bounded JSON reporting contract; synthetic development policy only. Close and CSV reporting remain deferred. SQL/accounting contracts own semantic validation. Not a registered ISO financial message.",
     "contact": {
       "name": "Jayburd contract review",
@@ -1761,6 +1761,622 @@
           }
         }
       }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/reports/trial-balance/export.csv": {
+      "get": {
+        "operationId": "exportTrialBalanceReviewCSV",
+        "summary": "Download complete trial-balance review CSV at an explicit revision",
+        "description": "Internal financial-reporting-csv-v1 long measure profile; exact ordered header and row mapping in docs/contracts/report-export.md. No account labels or arbitrary text. All selected rows, not a visible page. Requires explicit snapshot_revision; cursor/limit rejected. At most 10000 physical data records and 10 MiB including header; 10-second shared budget. Buffer all bytes before success, reauthorize each page and before release. Not an accountant/audit exchange.",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "through_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "compare_through_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "snapshot_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$",
+              "description": "Canonical nonnegative bigint text; SQL enforces upper bound."
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "200": {
+            "description": "Complete quoted CRLF CSV; exact amounts use separate sign/magnitude fields.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string",
+                  "const": "attachment; filename=\"financial-reporting-review.csv\""
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/reports/general-ledger/export.csv": {
+      "get": {
+        "operationId": "exportGeneralLedgerReviewCSV",
+        "summary": "Download complete general-ledger review CSV at an explicit revision",
+        "description": "Internal financial-reporting-csv-v1 long measure profile; exact ordered header and row mapping in docs/contracts/report-export.md. No account labels or arbitrary text. All selected rows, not a visible page. Requires explicit snapshot_revision; cursor/limit rejected. At most 10000 physical data records and 10 MiB including header; 10-second shared budget. Buffer all bytes before success, reauthorize each page and before release. Not an accountant/audit exchange.",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "starts_on",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "ends_before",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "snapshot_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$",
+              "description": "Canonical nonnegative bigint text; SQL enforces upper bound."
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "200": {
+            "description": "Complete quoted CRLF CSV; exact amounts use separate sign/magnitude fields.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string",
+                  "const": "attachment; filename=\"financial-reporting-review.csv\""
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/reports/balance-sheet/export.csv": {
+      "get": {
+        "operationId": "exportBalanceSheetReviewCSV",
+        "summary": "Download complete balance-sheet review CSV at an explicit revision",
+        "description": "Internal financial-reporting-csv-v1 long measure profile; exact ordered header and row mapping in docs/contracts/report-export.md. No account labels or arbitrary text. All selected rows, not a visible page. Requires explicit snapshot_revision; cursor/limit rejected. At most 10000 physical data records and 10 MiB including header; 10-second shared budget. Buffer all bytes before success, reauthorize each page and before release. Not an accountant/audit exchange.",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "through_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "compare_through_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "snapshot_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$",
+              "description": "Canonical nonnegative bigint text; SQL enforces upper bound."
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "200": {
+            "description": "Complete quoted CRLF CSV; exact amounts use separate sign/magnitude fields.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string",
+                  "const": "attachment; filename=\"financial-reporting-review.csv\""
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/reports/profit-and-loss/export.csv": {
+      "get": {
+        "operationId": "exportProfitAndLossReviewCSV",
+        "summary": "Download complete profit-and-loss review CSV at an explicit revision",
+        "description": "Internal financial-reporting-csv-v1 long measure profile; exact ordered header and row mapping in docs/contracts/report-export.md. No account labels or arbitrary text. All selected rows, not a visible page. Requires explicit snapshot_revision; cursor/limit rejected. At most 10000 physical data records and 10 MiB including header; 10-second shared budget. Buffer all bytes before success, reauthorize each page and before release. Not an accountant/audit exchange.",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "starts_on",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "ends_before",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "compare_starts_on",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "compare_ends_before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "snapshot_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,18})$",
+              "description": "Canonical nonnegative bigint text; SQL enforces upper bound."
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "200": {
+            "description": "Complete quoted CRLF CSV; exact amounts use separate sign/magnitude fields.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string",
+                  "const": "attachment; filename=\"financial-reporting-review.csv\""
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/reports/general-ledger/journals/{journal_id}": {
+      "get": {
+        "operationId": "getReportJournal",
+        "summary": "Review a journal behind a pinned general-ledger line",
+        "description": "Strict five required query fields; unknown/duplicate fields, body and HEAD reject. SQL authorizes scope, validates current revision and actual account/date/line membership before reading immutable journal in the same repeatable-read transaction. Maximum URI4096 bytes, response2MiB.",
+        "tags": [
+          "Ledger"
+        ],
+        "x-required-permission": "read",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "journal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "starts_on",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "ends_before",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "line_number",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          },
+          {
+            "name": "snapshot_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Revision"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "200": {
+            "description": "Journal and selected GL line checked at the pinned revision in one authorized transaction.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportJournal"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3282,6 +3898,72 @@
             ]
           }
         }
+      },
+      "ReportJournal": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contract_version": {
+            "type": "string",
+            "const": "report-journal-v1"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "snapshot_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "selector": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "starts_on": {
+                "type": "string",
+                "format": "date"
+              },
+              "ends_before": {
+                "type": "string",
+                "format": "date"
+              },
+              "journal_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "line_number": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            },
+            "required": [
+              "account_id",
+              "starts_on",
+              "ends_before",
+              "journal_id",
+              "line_number"
+            ]
+          },
+          "journal": {
+            "$ref": "#/components/schemas/Journal"
+          }
+        },
+        "required": [
+          "contract_version",
+          "entity_id",
+          "book_id",
+          "snapshot_revision",
+          "selector",
+          "journal"
+        ]
       }
     },
     "responses": {

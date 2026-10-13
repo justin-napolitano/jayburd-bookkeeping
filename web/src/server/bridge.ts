@@ -134,7 +134,7 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
       const headers = new Headers({Authorization: bearer, Origin: config.origin, Accept: csv ? 'text/csv' : 'application/json'});
       let body: Uint8Array | undefined;
       if (request.method === 'POST') {
-      if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('Content-Type') ?? '')) return failure(415);
+        if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('Content-Type') ?? '')) return failure(415);
         // Recovery transitions are replay-bound by durable command ID; registration still requires a key.
         const key = request.headers.get('Idempotency-Key');
         if ((key !== null || !commandAction.test(url.pathname)) && !/^[A-Za-z0-9._:-]{1,128}$/.test(key ?? '')) return failure(400);
@@ -150,7 +150,7 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
         void upstream.body?.cancel();
         return failure([400,401,403,404,409,413,415,422,429,503,504].includes(upstream.status) ? upstream.status : 502);
       }
-        if (csv) {
+      if (csv) {
         if (upstream.status !== 200 || upstream.headers.get('Content-Type') !== 'text/csv; charset=utf-8; header=present') {
           void upstream.body?.cancel(); return failure(502);
         }

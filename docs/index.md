@@ -49,6 +49,7 @@ background work. The two predecessor repos are reference material only.
 | What tables and privileges would the first worker need? | [Proposed worker SQL contract](contracts/worker-sql.md) |
 | What did the parallel foundation build verify? | [Integration evidence and remaining gates](runbooks/build-foundations.md) |
 | What connects financial reports to HTTP and browser review? | [Reporting delivery evidence](runbooks/reporting-delivery.md) |
+| What adds comparisons, journal detail and internal CSV? | [Review tools delivery](runbooks/report-review-tools.md), [pinned journal contract](contracts/report-drill.md), and [CSV wire contract](contracts/report-export.md) |
 | What is the report wire format? | [HTTP contract](contracts/reporting-http.md) and [transport evidence](runbooks/reporting-http.md) |
 | How are deleted and disabled identities tested? | [Posting identity evidence](runbooks/posting-gate.md) |
 | What did the parallel design sessions deliver? | [Integration review and remaining gates](runbooks/parallel-contract-review.md) |

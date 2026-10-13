@@ -200,9 +200,16 @@ test("real setup and lost committed journal recover after remount with exactly o
   const download = page.waitForEvent("download");
   await reports.getByRole("button", { name: "Download review CSV" }).click();
   expect((await exportResponse).status()).toBe(200);
-  expect((await download).suggestedFilename()).toBe(
+  const downloaded = await download;
+  expect(downloaded.suggestedFilename()).toBe(
     "financial-reporting-review.csv",
   );
+  // Check the actual download bytes after the bridge/client, not only its filename.
+  const stream = await downloaded.createReadStream();
+  expect(stream).not.toBeNull();
+  let csv = "";
+  for await (const chunk of stream!) csv += chunk.toString("utf8");
+  expect(csv).toContain('"total_debits","positive","125.5","zero","0","positive","125.5"\r\n');
   await reports
     .getByRole("button", { name: "Review account 1000", exact: true })
     .click();
