@@ -2,6 +2,11 @@
 
 ## Purpose and reading order
 
+For bank sync qualification and measurable scaling, read the
+[sync quality source review](sync-quality-sources.md): selected official Plaid
+lifecycle/Sandbox and Google Cloud concurrency/queue sections, reviewed
+2026-10-13. These constrain test design; they do not certify live readiness.
+
 Shared resource index for the owner and agents, maintained with the contracts.
 Updated 2026-10-11. Sources explain or constrain decisions; listing a source
 does not approve a design or establish compliance.

@@ -23,6 +23,10 @@ threads; no duplicate agents or shared-file writes. Keep merged migrations immut
 
 ## Done when
 
+The [sync quality gates](sync-quality.md) connect #84–#90 to these milestones:
+independent reconciliation, provider recovery, fuzz/isolation, webhook security,
+Sandbox, measured scaling and a separately authorized live pilot.
+
 Named tests prove each journey with independent synthetic results, exact currency
 units, replay/conflict/failure and current scope checks. Distinguish source evidence,
 drafts and posted journals. Every balance links to ledger evidence; unavailable
