@@ -26,7 +26,8 @@ malformed and duplicate JSON, absent PUBLIC/private-helper grants and revoked re
 
 ## Remaining work
 
-Coordinator integrates HTTP/UI and browser evidence.
+HTTP/UI and actual browser/API/SQL evidence are integrated and passed; see
+[report review tools](report-review-tools.md).
 No historical report storage or category/subtotal drill support in this slice.
 
 ## PR handoff

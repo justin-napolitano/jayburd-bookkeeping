@@ -42,8 +42,8 @@ Observed automated proofs:
 
 ## Remaining work
 
-Root owns HTTP/OpenAPI and UI agent owns browser downloads; combined integration
-is root's release gate. SQL materialization limits remain; no arbitrary functional
+HTTP/OpenAPI and browser downloads are integrated; combined validation passed
+in [report review tools](report-review-tools.md). SQL materialization limits remain; no arbitrary functional
 FX, large-ledger performance approval or accountant/audit exchange mapping.
 
 ## PR handoff

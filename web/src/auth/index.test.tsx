@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createElement } from 'react';
 import type { AuthAdapter } from './controller';
 const boundary = vi.hoisted(() => ({ createBrowserAuth: vi.fn() }));
@@ -25,11 +25,14 @@ it('renders an unavailable sign-in screen without configuration', () => {
   expect(screen.queryByLabelText('Password')).toBeNull();
 });
 it('shows the key only after explicit enrollment and removes it on cancel', async () => {
-  const adapter = fixture(); boundary.createBrowserAuth.mockReturnValue(adapter); mount();
+  const adapter = fixture(); boundary.createBrowserAuth.mockReturnValue(adapter);
+  // Flush runtime configuration and the session-reset effect before entering credentials.
+  await act(async () => { mount(); });
   await screen.findByLabelText('Email');
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'fixture@example.invalid' } });
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'synthetic-password' } });
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+  expect(adapter.signIn).toHaveBeenCalledWith('fixture@example.invalid', 'synthetic-password');
   await waitFor(() => expect(screen.getByTestId('phase').textContent).toBe('enrolling'));
   expect(screen.queryByText('SYNTHETIC-KEY')).toBeNull();
   expect(adapter.beginEnrollment).not.toHaveBeenCalled();
@@ -42,11 +45,14 @@ it('shows the key only after explicit enrollment and removes it on cancel', asyn
 });
 it('does not render provider errors or leave a submitted password in the input', async () => {
   const adapter = fixture(); vi.mocked(adapter.signIn).mockRejectedValue(new Error('private provider text'));
-  boundary.createBrowserAuth.mockReturnValue(adapter); mount();
+  boundary.createBrowserAuth.mockReturnValue(adapter);
+  // Await provider configuration and field-reset effects before interacting.
+  await act(async () => { mount(); });
   await screen.findByLabelText('Email');
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'fixture@example.invalid' } });
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'synthetic-password' } });
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+  expect(adapter.signIn).toHaveBeenCalledWith('fixture@example.invalid', 'synthetic-password');
   await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
   expect(screen.getByRole('alert').textContent).not.toContain('private provider text');
   expect((screen.getByLabelText('Password') as HTMLInputElement).value).toBe('');
@@ -68,11 +74,14 @@ it('does not initialize an SDK after unmount or a rejected runtime configuration
 
 it('offers explicit verification and returns verified users to a fresh login', async () => {
   const adapter = fixture(); vi.mocked(adapter.signIn).mockResolvedValue('verifying-email');
-  boundary.createBrowserAuth.mockReturnValue(adapter); mount();
+  boundary.createBrowserAuth.mockReturnValue(adapter);
+  // Await provider configuration and field-reset effects before interacting.
+  await act(async () => { mount(); });
   await screen.findByLabelText('Email');
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'fixture@example.invalid' } });
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'synthetic-password' } });
   fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+  expect(adapter.signIn).toHaveBeenCalledWith('fixture@example.invalid', 'synthetic-password');
   await screen.findByRole('heading', { name: 'Verify your email' });
   expect(adapter.sendVerification).not.toHaveBeenCalled();
   expect(screen.queryByLabelText('Password')).toBeNull();
