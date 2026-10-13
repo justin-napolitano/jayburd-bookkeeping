@@ -142,8 +142,11 @@ eligibility for takeover, not proof the old network request stopped.
 
 ## Consumer fencing and receipts
 
-Claim by operation UUID under current authorization. A successful receipt returns
-204 without effect; terminal denial returns 204 only after durable outcome recording.
+Claim by operation UUID under current authorization. A successful **terminal**
+receipt returns 204 without effect; terminal denial returns 204 only after durable
+outcome recording. A successful intermediate-step receipt is not operation
+completion: its durable continuation must remain eligible/discoverable, and replay
+must neither repeat that step nor suppress the remaining work.
 An active unexpired claim returns 503/Retry-After without consuming a business
 attempt. An eligible claim increments the resource fence and business attempt,
 sets `running`, increments the work `execution_generation` (starts at0, first

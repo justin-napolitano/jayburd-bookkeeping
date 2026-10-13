@@ -138,7 +138,7 @@ are loaded internally. These are **new proposed work records**, not an extension
    commit-ack loss must not replay source effects. New notification during commit
    cannot be erased by an unqualified “sync done” flag.
 
-Proposed engineering bounds (not provider guarantees): request count 500; response
+Proposed engineering bounds (not provider guarantees): sync page size `count=500`; response
 2 MiB; call 20s; run 60s/at most 10 pages; lease 90s renewed at 30s; at most 100 pages,
 50,000 changes and 50 MiB per complete set; staging lifetime 24h. The #63 handler owns
 its tighter transaction/deadline limits. Cap/expiry produces durable `limit_exceeded`
@@ -181,8 +181,8 @@ review; this does not authorize an automatic 1.00 adjusting entry.
 ## CSV overlap and accounting boundary
 
 CSV and Plaid observations keep distinct adapter identities even for the same
-stable source account. The shared-core key is proposed as `(entity_id, stable_source_
-account_id, adapter_namespace, external_entry_id)`; this is a required reviewed
+stable source account. The shared-core key is proposed as
+`(entity_id, stable_source_account_id, adapter_namespace, external_entry_id)`; this is a required reviewed
 extension of CSV's existing three-part proposal, not a silent change to its file
 format. CSV maps to its fixed profile/source namespace and original entry ID;
 Plaid maps to provider/environment/Item/account identity and transaction ID, excluding
