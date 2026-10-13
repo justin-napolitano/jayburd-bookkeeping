@@ -48,6 +48,9 @@ background work. The two predecessor repos are reference material only.
 | What can the synthetic CSV decoder validate? | [Decoder contract](contracts/statement-decoder.md) and [test evidence](runbooks/statement-decoder.md) |
 | What tables and privileges would the first worker need? | [Proposed worker SQL contract](contracts/worker-sql.md) |
 | What did the parallel foundation build verify? | [Integration evidence and remaining gates](runbooks/build-foundations.md) |
+| What connects financial reports to HTTP and browser review? | [Reporting delivery evidence](runbooks/reporting-delivery.md) |
+| What is the report wire format? | [HTTP contract](contracts/reporting-http.md) and [transport evidence](runbooks/reporting-http.md) |
+| How are deleted and disabled identities tested? | [Posting identity evidence](runbooks/posting-gate.md) |
 | What did the parallel design sessions deliver? | [Integration review and remaining gates](runbooks/parallel-contract-review.md) |
 | What worked in Brainblast? | [Tooling assessment](research/brainblast.md) |
 | How are identities enrolled and books created? | [Identity/setup contract](contracts/identity-setup.md) and [delivery evidence](runbooks/identity-setup.md) |

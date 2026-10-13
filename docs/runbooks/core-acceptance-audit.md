@@ -20,6 +20,16 @@ semantics; stale contract/tooling status; non-USD functional-book policy and the
 full FX lifecycle; close/reconciliation/export contracts; official XSD provenance.
 These are coverage or delivery gaps, not reproduced accounting defects.
 
+## Follow-up evidence
+
+The observations below remain the original audit of `0376b87`. Subsequent
+`TestSpotReversalHistoricalProvenance` and `TestReversalOfReversalDenied` add
+exact historical FX and second-order reversal assertions. The
+[posting gate follow-up](posting-gate.md) records physical unused-principal
+removal, historical-reference retention and disabled-principal denial separately.
+It does not define an erasure lifecycle or close #4; consult that runbook for
+current execution evidence and the remaining acceptance decision.
+
 ## Stage ledger
 
 | Stage | Evidence / result | Next action |

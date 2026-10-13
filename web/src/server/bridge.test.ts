@@ -134,3 +134,30 @@ describe('durable command transport', () => {
   expect(fetcher).not.toHaveBeenCalled();
  });
 });
+
+const reportsBase = '/v1/entities/00000000-0000-4000-8000-000000000001/books/00000000-0000-4000-8000-000000000002/reports/';
+describe('financial reporting bridge', () => {
+ it.each(['trial-balance','balance-sheet','profit-and-loss','general-ledger'])('forwards bounded %s reads without financial conversion', async kind => {
+  const fetcher=transport(Response.json({amount:'9007199254740993.01'}));
+  const result=await createBridge(fetcher,()=>env)(request(reportsBase+kind+'?through_date=2026-01-31&limit=100&snapshot_revision=0&cursor=abc_123'));
+  expect(result.status).toBe(200);
+  expect(await result.json()).toEqual({amount:'9007199254740993.01'});
+  expect(result.headers.get('Cache-Control')).toBe('no-store');
+  expect(new Headers(fetcher.mock.calls[1][1]?.headers).has('Cookie')).toBe(false);
+ });
+ it.each(['?limit=501','?limit=01','?actor=other','?cursor=abc=','?snapshot_revision=-1','?through_date=2026-01-31&through_date=2026-01-31','?account_id=other','?through_date=%QQ'])('rejects unreviewed query %s before upstream', async query => {
+  const fetcher=vi.fn<typeof fetch>();
+  const result=await createBridge(fetcher,()=>env)(request(reportsBase+'trial-balance'+query));
+  expect(result.status).toBe(404); expect(fetcher).not.toHaveBeenCalled();
+ });
+ it('allows at most 2MiB for reports while preserving 1MiB for other reads', async () => {
+  const data={synthetic:'x'.repeat((1<<20)+20)};
+  expect((await createBridge(transport(Response.json(data)),()=>env)(request(reportsBase+'trial-balance?through_date=2026-01-31'))).status).toBe(200);
+  expect((await createBridge(transport(Response.json(data)),()=>env)(request())).status).toBe(502);
+  expect((await createBridge(transport(Response.json({synthetic:'x'.repeat(2<<20)})),()=>env)(request(reportsBase+'trial-balance?through_date=2026-01-31'))).status).toBe(502);
+ });
+ it('preserves stale snapshot status while hiding upstream problem details', async () => {
+  const response=await createBridge(transport(Response.json({code:'report_snapshot_changed',detail:'untrusted sensitive details'},{status:409})),()=>env)(request(reportsBase+'trial-balance?through_date=2026-01-31'));
+  expect(response.status).toBe(409); expect(await response.text()).not.toContain('untrusted');
+ });
+});

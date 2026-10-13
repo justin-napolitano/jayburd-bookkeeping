@@ -225,6 +225,15 @@ migration verification.
   W3C focus and table guidance used for the isolated synthetic prototype.
   DOM checks are not visual, keyboard, screen-reader or accessibility-conformance
   evidence; actual browser and owner review remain pending.
+- Reporting cursor encoding: [RFC 4648 sections 3.2–3.5 and 5](https://www.rfc-editor.org/rfc/rfc4648)
+  defines padding, alphabet and canonical base64url behavior;
+  [Go encoding/base64](https://pkg.go.dev/encoding/base64) documents the raw URL
+  encoding and strict decoder. Reviewed these sections on 2026-10-13 for the
+  reporting HTTP profile: unpadded encoding, exact re-encoding check and bounded
+  input. This is transport syntax, not accounting standard conformance or an
+  authorization token; scope/revision validation remains in SQL. The
+  [HTTP contract source register](../contracts/reporting-http.md#sources-and-applicability)
+  records RH01/RH02 and the selected profile.
 - [Statement-import sources](statement-import-sources.md), SI01–SI06:
   RFC CSV/date syntax, ISO message catalogue, SIX currency maintenance, OWASP
   upload boundaries and OpenStax reconciliation. The custom synthetic CSV is a
