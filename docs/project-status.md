@@ -3,7 +3,8 @@
 ## Decision
 
 Continue small Go/PostgreSQL delivery slices. Merged PR #79 is the current
-baseline (`5490f6d`). Implemented local behavior is distinct from hosted proof
+main baseline (`5490f6d`) at this build dispatch. Planning PR #91 merged into
+the still-open #83 branch; this delivery stacks on #83. Implemented local behavior is distinct from hosted proof
 and approval to keep official books.
 
 | Area | Evidence and remaining boundary |
@@ -13,7 +14,7 @@ and approval to keep official books.
 | Financial review | Trial balance, account general ledger, balance sheet, P&L, comparisons, journal detail and internal CSV: [review tools](runbooks/report-review-tools.md). |
 | Synthetic demonstrations | Real browser/Go/PostgreSQL posting; 1,000-posting proof passed. Full 5,000/10,000 runs remain unproved: [demo evidence](runbooks/synthetic-demo.md). |
 | Background work | Restricted observer SQL and recovery tests merged: [foundation evidence](runbooks/ingestion-foundations.md). Local Go adapter and injected-transport proof are merged: [runtime evidence](runbooks/observer-runtime-delivery.md). Hosted queue/OIDC proof remains pending. |
-| Ingestion | Pure CSV decoder, synthetic source registry and private local staging implemented: [delivery evidence](runbooks/product-workspace-delivery.md). Upload-to-review, source posting and Plaid remain future work: [import contract](contracts/durable-import.md). |
+| Ingestion | SQL/Go foundation connects private synthetic staging to validated preview and explicit recoverable import into immutable observations/review items: [delivery evidence](runbooks/durable-import-delivery.md). Public upload/preview/review UI, classification, source-linked posting and Plaid remain future work. |
 | Hosted application | Read-only Cloud Run service listing across regions returned no services in `jayburd-bookkeeping-dev` on 2026-10-13. No hosted frontend URL is available from that check. |
 
 ## Review the frontend
@@ -38,6 +39,7 @@ evidence](runbooks/book-workspace.md) for named tests and current limitations.
 ## Next delivery
 
 Follow the [product and collection milestones](plans/product-and-ingestion.md).
-#80 improves runtime navigation; #81 establishes stable scoped source identities;
-#82 adds immutable synthetic staging. End-to-end import, source-linked posting,
-Plaid acquisition and reconciliation remain subsequent acceptance slices.
+#92/#93 provide the durable SQL/Go import foundation; #94 adds independent decoder
+properties. Next expose the reviewed upload/preview/review workflow, then explicit
+classification/drafts and source-linked posting. [Quality gates](plans/sync-quality.md)
+remain open for complete reconciliation, provider integration and measured scaling.

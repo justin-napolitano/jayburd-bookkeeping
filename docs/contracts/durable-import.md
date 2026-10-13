@@ -2,6 +2,13 @@
 
 ## Decision and implementation boundary
 
+Implemented subset: [migration10 SQL authority](import-sql.md) and
+[Go storage/decoder orchestration](import-service.md), with
+[delivery evidence](../runbooks/durable-import-delivery.md). These own the exact
+initial function/projection shapes and refinements. The full HTTP, paginated
+review, decisions/drafts and source-post workflow below remains proposed;
+no upload UI or hosted storage is supplied by the foundation.
+
 **Proposed physical/API contract for review**, 2026-10-13, owner project maintainer;
 [#8](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/8), with
 [#61](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/61) and

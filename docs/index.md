@@ -44,6 +44,7 @@ background work. The two predecessor repos are reference material only.
 | How do we start, review and finish tasks? | [Delivery workflow](delivery.md) |
 | What are the proposed reporting queries and exports? | [Financial reporting contract](contracts/financial-reporting.md) |
 | How will the financial review workspace look and behave? | [Workspace design](plans/financial-workspace.md) and [synthetic prototype](prototypes/financial-workspace.html) |
+| What implements durable import confirmation and its Go storage boundary? | [Import SQL](contracts/import-sql.md), [Go orchestration](contracts/import-service.md), and [delivery evidence](runbooks/durable-import-delivery.md) |
 | What persists synthetic source identities and private evidence? | [Source registry](contracts/source-registry.md) and [import staging](contracts/import-staging.md) |
 | What is the first proposed statement-import format? | [Synthetic statement-import contract](contracts/statement-import.md) |
 | How will Plaid pulls and webhooks feed the same ingestion core? | [Provider ingestion proposal](contracts/provider-ingestion.md) |
