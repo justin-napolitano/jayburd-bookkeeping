@@ -66,6 +66,14 @@ import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
 assert.equal(readFileSync(process.argv[2],'utf8').trim().split('\n').length,5);
 assert.equal(JSON.parse(readFileSync(process.argv[3])).status,'migration-execution-passed');
 JS
+# Read-only verification uses the same isolated path but rejects an up execution.
+node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));m.operation="verify";fs.writeFileSync(p,JSON.stringify(m));' "$scratch/release/approved.json"
+if bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null 2>&1; then echo 'FAIL: verification accepted an up execution'; exit 1; fi
+node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));m.spec.template.spec.containers[0].args[0]="-action=status";fs.writeFileSync(p,JSON.stringify(m));' "$TEST_EXECUTION"
+: > "$TEST_LOG"
+bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null
+if rg -q 'chdir=infra/gcp/runtime|run services' "$TEST_LOG"; then echo 'FAIL: verification touched services'; exit 1; fi
+node -e 'const fs=require("fs"),assert=require("assert/strict");assert.equal(JSON.parse(fs.readFileSync(process.argv[1])).status,"migration-verification-passed");' "$scratch/release/migration.json"
 # Completed-but-wrong execution must fail acceptance, not emit a new success receipt.
 node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));m.spec.template.spec.containers[0].image="wrong";fs.writeFileSync(p,JSON.stringify(m));' "$TEST_EXECUTION"
 if bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null 2>&1; then echo 'FAIL: foreign image accepted'; exit 1; fi

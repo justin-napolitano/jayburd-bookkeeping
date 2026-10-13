@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -76,9 +77,7 @@ func Up(ctx context.Context, db *sql.DB, files fs.FS) error {
 	if err != nil {
 		return ErrMigration
 	}
-	var safe bool
-	err = db.QueryRowContext(ctx, `SELECT NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls AND pg_has_role(current_user,'bookkeeping_owner','MEMBER') AND NOT EXISTS(SELECT FROM pg_roles r WHERE r.rolname='cloudsqlsuperuser' AND pg_has_role(current_user,r.oid,'MEMBER')) FROM pg_roles WHERE rolname=current_user`).Scan(&safe)
-	if err != nil || !safe {
+	if safeMigrator(ctx, db) != nil {
 		return ErrMigration
 	}
 	lock, err := db.Conn(ctx)
@@ -164,6 +163,75 @@ func Up(ctx context.Context, db *sql.DB, files fs.FS) error {
 		return ErrMigration
 	}
 	if ctx.Err() != nil {
+		return ErrMigration
+	}
+	return nil
+}
+
+// safeMigrator excludes administrator sessions from both execution and metadata verification.
+func safeMigrator(ctx context.Context, db *sql.DB) error {
+	var safe bool
+	err := db.QueryRowContext(ctx, `SELECT NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls AND pg_has_role(current_user,'bookkeeping_owner','MEMBER') AND NOT EXISTS(SELECT FROM pg_roles r WHERE r.rolname='cloudsqlsuperuser' AND pg_has_role(current_user,r.oid,'MEMBER')) FROM pg_roles WHERE rolname=current_user`).Scan(&safe)
+	if err != nil || !safe {
+		return ErrMigration
+	}
+	return nil
+}
+
+// Status checks only migration metadata in one read-only snapshot; it never repairs or registers artifacts.
+func Status(ctx context.Context, db *sql.DB, files fs.FS) error {
+	hashes, err := Verify(files)
+	if err != nil || safeMigrator(ctx, db) != nil {
+		return ErrMigration
+	}
+	latest := 0
+	for name := range hashes {
+		if strings.HasSuffix(name, ".up.sql") {
+			version, err := strconv.Atoi(name[:6])
+			if err != nil {
+				return ErrMigration
+			}
+			if version > latest {
+				latest = version
+			}
+		}
+	}
+	if latest == 0 {
+		return ErrMigration
+	}
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err != nil {
+		return ErrMigration
+	}
+	defer tx.Rollback()
+	var clean bool
+	if err := tx.QueryRowContext(ctx, `SELECT count(*)=1 AND coalesce(bool_and(version=$1 AND NOT dirty),false) FROM deployment.schema_migrations`, latest).Scan(&clean); err != nil || !clean {
+		return ErrMigration
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT filename,sha256 FROM deployment.migration_artifact`)
+	if err != nil {
+		return ErrMigration
+	}
+	seen := map[string]bool{}
+	for rows.Next() {
+		var name, hash string
+		if rows.Scan(&name, &hash) != nil {
+			rows.Close()
+			return ErrMigration
+		}
+		expected, known := hashes[name]
+		if !known || expected != hash || seen[name] {
+			rows.Close()
+			return ErrMigration
+		}
+		seen[name] = true
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil || len(seen) != len(hashes) {
+		return ErrMigration
+	}
+	if tx.Commit() != nil {
 		return ErrMigration
 	}
 	return nil
