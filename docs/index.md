@@ -10,6 +10,7 @@ background work. The two predecessor repos are reference material only.
 
 | Question | Authoritative document |
 | --- | --- |
+| What is the next product/data-collection sequence? | [Delivery milestones](plans/product-and-ingestion.md) |
 | What works now, and how do I review it? | [Project status and frontend guide](project-status.md) |
 | What are we building? | [Product scope](product.md) |
 | Why this stack and boundaries? | [Architecture](decisions/0001-architecture.md) |
@@ -42,6 +43,7 @@ background work. The two predecessor repos are reference material only.
 | How do we start, review and finish tasks? | [Delivery workflow](delivery.md) |
 | What are the proposed reporting queries and exports? | [Financial reporting contract](contracts/financial-reporting.md) |
 | How will the financial review workspace look and behave? | [Workspace design](plans/financial-workspace.md) and [synthetic prototype](prototypes/financial-workspace.html) |
+| What persists synthetic source identities and private evidence? | [Source registry](contracts/source-registry.md) and [import staging](contracts/import-staging.md) |
 | What is the first proposed statement-import format? | [Synthetic statement-import contract](contracts/statement-import.md) |
 | How will Plaid pulls and webhooks feed the same ingestion core? | [Provider ingestion proposal](contracts/provider-ingestion.md) |
 | How will outbox delivery, leases and sync recovery be proved? | [Worker contract review](runbooks/outbox-contract-review.md) and [provider/worker integration review](runbooks/provider-worker-review.md) |

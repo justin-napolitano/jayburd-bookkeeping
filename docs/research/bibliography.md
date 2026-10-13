@@ -278,3 +278,9 @@ persistence and overlap decisions; they do not establish implemented ingestion o
 ISO exchange conformance.
 
 - [Local observer runtime source application](../contracts/observer-runtime.md#evidence-and-sources): existing queue/SQL/pgx sources support short committed claims, injected transport and uncertain-commit handling. Read its named fault evidence separately from future hosted delivery proof.
+
+## Source collection foundations — 2026-10-13
+
+- [Source registry applicability and sources](../contracts/source-registry.md#standards-sources-and-alternatives): applies the existing PostgreSQL key/locking/function and ISO currency source records to narrow synthetic enrollment. Operator attestation is not evidence of live account ownership.
+- [Private staging source review](../contracts/import-staging.md#sources-alternatives-and-limits), ST01–ST03: pinned Go filesystem confinement and Linux local-filesystem link/sync/lock behavior support immutable synthetic evidence storage. Documented limits include cancellation, cooperative locking, power-loss evidence and separately required hosted encryption/retention.
+- Existing [workspace accessibility sources](financial-workspace-sources.md) support native focus/navigation and semantic financial tables. Runtime screenshots and journey tests are separate evidence; they do not establish full accessibility conformance or competitor superiority.

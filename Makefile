@@ -90,3 +90,7 @@ identity-rehearsal-test:
 .PHONY: observer-test
 observer-test:
 	bash scripts/test-observer.sh
+
+.PHONY: source-registry-test
+source-registry-test:
+	bash scripts/test-source-registry.sh
