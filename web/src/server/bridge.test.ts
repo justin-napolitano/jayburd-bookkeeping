@@ -197,6 +197,7 @@ describe("source review bridge", () => {
   it.each([
     `${base}/sources`,
     `${base}/review-items?source_account_id=${id}&limit=100`,
+    `${base}/review-items?source_account_id=${id}&state=correction_hold`,
     `${base}/review-items/${id}`,
     `${base}/review-items/${id}/categories`,
   ])("forwards reviewed read %s", async (path) => {

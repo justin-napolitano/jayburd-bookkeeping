@@ -2,10 +2,9 @@
 
 ## Decision
 
-Continue small Go/PostgreSQL delivery slices. Merged PR #79 is the current
-main baseline (`5490f6d`) at this build dispatch. Planning PR #91 and durable import PR #95 merged into
-the still-open #83 branch; this delivery stacks on #83. Implemented local behavior is distinct from hosted proof
-and approval to keep official books.
+Continue small Go/PostgreSQL delivery slices. PR #83 and #99 are merged; the sync
+foundation build starts from main `29f861a`. Implemented local behavior is distinct
+from hosted proof and approval to keep official books.
 
 | Area | Evidence and remaining boundary |
 | --- | --- |
@@ -13,8 +12,8 @@ and approval to keep official books.
 | Interactive bookkeeping | Book-first navigation adds visible balances, account activity, reports and manual entry: [workspace evidence](runbooks/book-workspace.md). Recoverable commands: [recovery evidence](runbooks/command-recovery.md). |
 | Financial review | Trial balance, account general ledger, balance sheet, P&L, comparisons, journal detail and internal CSV: [review tools](runbooks/report-review-tools.md). |
 | Synthetic demonstrations | Real browser/Go/PostgreSQL posting; 1,000-posting proof passed. Full 5,000/10,000 runs remain unproved: [demo evidence](runbooks/synthetic-demo.md). |
-| Background work | Restricted observer SQL and recovery tests merged: [foundation evidence](runbooks/ingestion-foundations.md). Local Go adapter and injected-transport proof are merged: [runtime evidence](runbooks/observer-runtime-delivery.md). Hosted queue/OIDC proof remains pending. |
-| Ingestion | SQL/Go foundation connects private synthetic staging to validated preview and explicit recoverable import into immutable observations/review items: [delivery evidence](runbooks/durable-import-delivery.md). Generated acquisition and category review/source-linked posting are the current slice: [populated demo](runbooks/populated-demo.md). Plaid remains future work. |
+| Background work | Restricted observer SQL and recovery tests are merged: [foundation evidence](runbooks/ingestion-foundations.md). This branch adds private HTTP and injected Cloud Tasks transport with real PostgreSQL replay tests: [transport evidence](runbooks/observer-transport.md). Hosted executable, queue and OIDC qualification remain pending. |
+| Ingestion | Generated acquisition and category review/source-linked posting are merged: [populated demo](runbooks/populated-demo.md). This branch adds fenced provider publication and exact Plaid decoding: [sync foundations](runbooks/sync-foundations.md). Real enrollment, acquisition runner and provider qualification remain open. |
 | Hosted application | Read-only Cloud Run service listing across regions returned no services in `jayburd-bookkeeping-dev` on 2026-10-13. No hosted frontend URL is available from that check. |
 
 ## Review the frontend
@@ -43,7 +42,9 @@ evidence](runbooks/book-workspace.md) for named tests and current limitations.
 ## Next delivery
 
 Follow the [product and collection milestones](plans/product-and-ingestion.md).
-#92/#93 provide the durable SQL/Go import foundation; #94 adds independent decoder
-properties. The current #96–#98 slice adds generated acquisition, review/category drafts and
-explicit source-linked posting without asking the owner to prepare files. [Quality gates](plans/sync-quality.md)
-remain open for complete reconciliation, provider integration and measured scaling.
+The merged #96–#98 slice supplies generated acquisition and explicit source-linked
+posting without owner-prepared files. #100–#104 plan connected collection. The
+[sync foundation build](runbooks/sync-foundations.md) separates provider SQL state,
+lossless decoding and private observer transport from future connection enrollment,
+acquisition runner, webhooks and connected UI. [Quality gates](plans/sync-quality.md)
+remain open for reconciliation, provider qualification and measured scaling.

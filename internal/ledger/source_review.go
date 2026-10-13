@@ -40,7 +40,7 @@ func sourceReviewRequest(r *http.Request) (string, error) {
 			v[key] = value
 		case "state":
 			switch value {
-			case "needs_review", "overlap_hold", "draft_ready", "posted":
+			case "needs_review", "overlap_hold", "correction_hold", "draft_ready", "posted":
 				v[key] = value
 			default:
 				return "", errors.New("invalid state")

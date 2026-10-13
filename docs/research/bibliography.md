@@ -2,6 +2,24 @@
 
 ## Purpose and reading order
 
+The [sync implementation boundary](../contracts/provider-runtime-boundaries.md)
+records refreshed Plaid pagination/account-filter sections and PostgreSQL17
+isolation/function-privilege sections. It distinguishes vendor mechanisms from
+our bounded publication and role decisions. Source review does not qualify a live
+provider or establish measured scalability.
+
+- [Plaid decoder contract](../contracts/plaid-decoder.md): selected official
+  transaction/version fields, exact numeric interpretation, inert metadata allowlist
+  and limitations. Its [runbook](../runbooks/plaid-decoder.md) separates independent
+  fixed/fuzz evidence from provider qualification.
+- [Private observer transport](../contracts/observer-transport.md): OT01–OT06 cover
+  Cloud Run caller identity, Cloud Tasks request/deduplication semantics and the
+  pinned Google verifier. Local synthetic tests do not prove hosted IAM behavior.
+- [Provider sync SQL](../contracts/provider-sync-sql.md): forward extensions to
+  scoped source history, complete-set publication and current permission checks;
+  [runtime boundaries](../contracts/provider-runtime-boundaries.md) explain the
+  selected first-slice limits and deferred enrollment.
+
 The [source review contract](../contracts/source-review-sql.md) applies existing
 PostgreSQL and accounting source records to category drafts and atomic source-linked
 posting. The [generated acquisition contract](../contracts/demo-acquisition.md)

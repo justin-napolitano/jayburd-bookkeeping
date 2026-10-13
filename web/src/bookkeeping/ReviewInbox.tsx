@@ -336,6 +336,7 @@ function Inbox({
             <option value="draft_ready">Draft ready</option>
             <option value="posted">Posted</option>
             <option value="overlap_hold">Overlap hold</option>
+            <option value="correction_hold">Source correction hold</option>
             <option value="">All statuses</option>
           </select>
         </label>
@@ -426,6 +427,25 @@ function Inbox({
           </p>
           {detail.blockers.length > 0 && (
             <p role="alert">Review blocked: {detail.blockers.join(", ")}</p>
+          )}
+          {detail.provider_exceptions && detail.provider_exceptions.total_count !== "0" && (
+            <section aria-label="Source changes after posting">
+              <p role="alert">
+                The source changed after posting. The posted journal and its original
+                evidence are unchanged. These changes need separate correction review.
+              </p>
+              <p>{detail.provider_exceptions.total_count} recorded source changes</p>
+              <ul>
+                {detail.provider_exceptions.items.map((item) => (
+                  <li key={item.exception_id}>
+                    Source {item.kind}: revision {item.previous_revision} → {item.current_revision}
+                  </li>
+                ))}
+              </ul>
+              {detail.provider_exceptions.truncated && (
+                <p>Showing the latest 100 changes. Earlier history is retained.</p>
+              )}
+            </section>
           )}
           {detail.journal_id && (
             <>
