@@ -39,6 +39,10 @@ background work. The two predecessor repos are reference material only.
 | Has Cloud SQL role bootstrap succeeded? | [Cloud Shell bootstrap and current operator ownership](runbooks/cloud-shell-bootstrap.md) |
 | How is the GCP foundation validated and bootstrapped? | [Foundation operations](gcp-foundation.md) |
 | How do we start, review and finish tasks? | [Delivery workflow](delivery.md) |
+| What are the proposed reporting queries and exports? | [Financial reporting contract](contracts/financial-reporting.md) |
+| How will the financial review workspace look and behave? | [Workspace design](plans/financial-workspace.md) and [synthetic prototype](prototypes/financial-workspace.html) |
+| What is the first proposed statement-import format? | [Synthetic statement-import contract](contracts/statement-import.md) |
+| What did the parallel design sessions deliver? | [Integration review and remaining gates](runbooks/parallel-contract-review.md) |
 | What worked in Brainblast? | [Tooling assessment](research/brainblast.md) |
 | How are identities enrolled and books created? | [Identity/setup contract](contracts/identity-setup.md) and [delivery evidence](runbooks/identity-setup.md) |
 | How does the first application run? | [Server contract](contracts/server.md), [browser sign-in](contracts/browser-auth.md), [first UI](contracts/first-ui.md) and [application evidence](runbooks/first-app.md) |

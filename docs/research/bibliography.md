@@ -213,3 +213,20 @@ first completed migration execution.
 G30 in the [GCP source register](gcp-sources.md#g30--read-only-migration-metadata-snapshot--2026-10-12)
 reviews PostgreSQL 17 read-only restrictions and snapshot limits for workload-owned
 migration verification.
+
+## Financial review and import design — 2026-10-13
+
+- [Financial reporting sources](financial-reporting-sources.md), FR01–FR05:
+  OpenStax statement relationships, PostgreSQL snapshot/row-lock semantics,
+  OWASP CSV hazards, ISO applicability/access limits and IETF transport formats.
+  Selected sections support the proposed report contract; normative audit mappings,
+  real accounting policy and performance acceptance remain open.
+- [Workspace source notes](financial-workspace-sources.md), FW01–FW02:
+  W3C focus and table guidance used for the isolated synthetic prototype.
+  DOM checks are not visual, keyboard, screen-reader or accessibility-conformance
+  evidence; actual browser and owner review remain pending.
+- [Statement-import sources](statement-import-sources.md), SI01–SI06:
+  RFC CSV/date syntax, ISO message catalogue, SIX currency maintenance, OWASP
+  upload boundaries and OpenStax reconciliation. The custom synthetic CSV is a
+  proposed internal template, not a verified bank adapter or ISO message;
+  its standards exception and later camt profile still require review.
