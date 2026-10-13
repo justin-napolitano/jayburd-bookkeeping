@@ -539,3 +539,41 @@ test("book workspace balances, account activity and journal remain scoped on des
   await expect(page.getByLabel("Entity and book")).toHaveValue("");
   await expect(page.getByText("123.45", { exact: true })).toHaveCount(0);
 });
+
+// An import prepared by another client must never be mistaken for setup or silently executed.
+test("recovers an import safely until statement preview UI is available", async ({
+  mount,
+  page,
+}) => {
+  const state = await mockCommands(page);
+  state.command = {
+    command_id: "import-command",
+    operation: "import",
+    entity_id: "e1",
+    book_id: "b1",
+    state: "prepared",
+    acknowledged: false,
+    result: null,
+    created_at: "2026-01-01T00:00:00Z",
+    body: {
+      batch_id: "batch1",
+      preview_id: "preview1",
+      preview_revision: "1",
+      binding_revision: "1",
+      source_revision: "0",
+      profile: "jayburd-synthetic-statement-csv/1",
+    },
+  };
+  await mount(<Harness />);
+  await expect(
+    page.getByRole("button", { name: "Review import in originating client" }),
+  ).toBeDisabled();
+  expect(state.executions).toBe(0);
+  await page.getByRole("button", { name: "Cancel saved command" }).click();
+  await expect(page.getByText(/Cancellation confirmed/)).toBeVisible();
+  await page.getByRole("button", { name: "Acknowledge result" }).click();
+  await expect(
+    page.getByText("No unacknowledged command. New work is available."),
+  ).toBeVisible();
+  expect(state.executions).toBe(0);
+});

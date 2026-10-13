@@ -18,8 +18,12 @@ accounting contracts remain authoritative. GitHub owns current task/lease state.
 | Reconcile and operate | #10 statement reconciliation and close; #58 recovery/retention/load/cost evidence. #27 hosted application and #13/#1 source qualification/official-books cutover remain separate gates. |
 
 Parallel work has separate worktrees and bounded leases in #65. One SQL writer
-owns migration9; coordinator owns shared API/CI/version integration. Reuse stopped
+owns each new migration; coordinator owns shared API/CI/version integration. Reuse stopped
 threads; no duplicate agents or shared-file writes. Keep merged migrations immutable.
+
+This bounded build (#92/#93) implements the SQL/Go import foundation;
+#94 adds independent decoder money properties. The [delivery runbook](../runbooks/durable-import-delivery.md)
+distinguishes this backend foundation from a complete upload/review/post UI.
 
 ## Done when
 

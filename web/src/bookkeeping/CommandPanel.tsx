@@ -59,7 +59,7 @@ export function CommandPanel({
           <p>
             Command <code>{c.command_id}</code> · {c.state}
           </p>
-          {c.operation === "post" && (
+          {c.operation !== "setup" && (
             <p>
               Target: {entity?.name ?? c.entity_id} / {book?.name ?? c.book_id}
             </p>
@@ -76,7 +76,9 @@ export function CommandPanel({
               <h3>
                 {c.operation === "post"
                   ? "Posting confirmed"
-                  : "Book creation confirmed"}
+                  : c.operation === "import"
+                    ? "Import confirmed"
+                    : "Book creation confirmed"}
               </h3>
               <p>
                 The committed result remains saved until you acknowledge it.
@@ -96,7 +98,26 @@ export function CommandPanel({
               before preparing new work.
             </p>
           )}
-          {"lines" in c.body ? (
+          {"batch_id" in c.body ? (
+            <>
+              <p>
+                Statement import · preview revision {c.body.preview_revision}
+              </p>
+              <p>
+                This workspace does not yet display the statement preview.
+                Confirm imports only in a client that shows the reviewed rows.
+                You can cancel saved work or acknowledge its completed result
+                here.
+              </p>
+              {c.result && "created_count" in c.result && (
+                <p>
+                  {c.result.created_count} new review items ·{" "}
+                  {c.result.existing_count} existing observations. No journals
+                  were posted by this import.
+                </p>
+              )}
+            </>
+          ) : "lines" in c.body ? (
             <>
               <p>
                 <strong>{c.body.description}</strong> · Accounting date{" "}
@@ -193,10 +214,14 @@ export function CommandPanel({
           {c.state === "prepared" ? (
             <>
               <button
-                disabled={r.busy || !r.ready}
+                disabled={r.busy || !r.ready || c.operation === "import"}
                 onClick={() => void r.transition("execute")}
               >
-                {c.operation === "post" ? "Post journal" : "Create book"}
+                {c.operation === "post"
+                  ? "Post journal"
+                  : c.operation === "import"
+                    ? "Review import in originating client"
+                    : "Create book"}
               </button>
               <button
                 disabled={r.busy || !r.ready}
