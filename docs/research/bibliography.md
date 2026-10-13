@@ -269,3 +269,9 @@ mapping or an ISO-conformance claim.
   profile validates ASCII and physical CRLF records before quoted-field parsing.
   This supports parser design only; it does not establish bank-format support,
   source ownership, durable import or ledger correctness.
+
+Durable source import design: [DI01–DI03](../contracts/durable-import.md#standards-sources-and-alternatives)
+records selected PostgreSQL constraint/isolation, OWASP upload and Plaid transaction
+identity sections, their interpretation and access limits. These support proposed
+persistence and overlap decisions; they do not establish implemented ingestion or
+ISO exchange conformance.

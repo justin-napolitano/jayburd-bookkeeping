@@ -43,7 +43,8 @@ exercise impossible-to-wait clock/corruption cases; runtime has no clock overrid
 
 ## Remaining work
 
-Root integration runs migration, ledger and restricted Cloud SQL bootstrap gates.
+Combined migration, ledger, restricted bootstrap and observer gates passed; see
+[branch evidence](ingestion-foundations.md).
 Production Go transport, queue/OIDC, hosted enrollment, role transaction/idle
 limits, retention and pool budgets remain separate release gates. Deletion policy
 remains open; foreign keys currently restrict principal deletion. No ISO audit
