@@ -6,6 +6,7 @@ const tokenPattern = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const commandAction = new RegExp(`^/v1/commands/${uuid}/(?:execute|cancel|acknowledge)$`, 'i');
 const bookPath = `/v1/entities/${uuid}/books/${uuid}`;
+const reportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)$`, 'i');
 
 /** Read only named configuration and reject ambiguous transport or ambient credential overrides. */
 function configuration(env: Record<string, string | undefined>): BridgeConfig {
@@ -28,6 +29,27 @@ function allowed(url: URL, method: string): boolean {
   if (url.pathname.length + url.search.length > 4096) return false;
   if (method === 'GET' && new RegExp(`^${bookPath}/trial-balance$`, 'i').test(url.pathname)) {
     return [...url.searchParams.keys()].length === 1 && /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get('through_date') ?? '');
+  }
+  if (method === 'GET' && reportPath.test(url.pathname)) {
+    // The API validates accounting semantics; the bridge bounds the named wire surface.
+    if (/%(?![0-9a-f]{2})/i.test(url.search)) return false;
+    const seen = new Set<string>();
+    for (const [key, value] of url.searchParams) {
+      if (seen.has(key)) return false;
+      seen.add(key);
+      if (['through_date', 'starts_on', 'ends_before', 'compare_through_date', 'compare_starts_on', 'compare_ends_before'].includes(key)) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      } else if (key === 'account_id') {
+        if (!new RegExp(`^${uuid}$`, 'i').test(value)) return false;
+      } else if (key === 'snapshot_revision') {
+        if (!/^(0|[1-9][0-9]{0,18})$/.test(value)) return false;
+      } else if (key === 'limit') {
+        if (!/^[1-9][0-9]{0,2}$/.test(value) || Number(value) > 500) return false;
+      } else if (key === 'cursor') {
+        if (!/^[A-Za-z0-9_-]{1,2048}$/.test(value)) return false;
+      } else return false;
+    }
+    return true;
   }
   if (url.search) return false;
   return method === 'GET' && (url.pathname === '/v1/workspace' || url.pathname === '/v1/commands/pending' || new RegExp(`^${bookPath}/journals/${uuid}$`, 'i').test(url.pathname)) ||
@@ -120,7 +142,7 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
       if (!/^application\/json(?:\s*;.*)?$/i.test(upstream.headers.get('Content-Type') ?? '') || ![200,201].includes(upstream.status)) {
         void upstream.body?.cancel(); return failure(502);
       }
-      const bytes = await read(upstream.body, limit, signal);
+      const bytes = await read(upstream.body, reportPath.test(url.pathname) ? 2 * limit : limit, signal);
       // Validate framing, retaining original bytes so exact decimal strings and receipts never change.
       JSON.parse(new TextDecoder('utf-8', {fatal:true}).decode(bytes));
       return new Response(bytes as BodyInit, {status: upstream.status, headers: {'Content-Type':'application/json', 'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff'}});
