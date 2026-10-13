@@ -30,6 +30,9 @@ interaction, screen-reader output or runtime authorization.
 Repository `make check test build`: PASS on 2026-10-13 (Go vet, race tests,
 contract/link checks, migration artifact checks and command builds).
 No SQL/API changes; database integration tests are outside this design-only scope.
+Coordinator reran FW-DOM successfully after integration and aligned the prototype
+labels with #51: selected-period income and cumulative unclosed earnings. The
+prototype still defines no report API/schema; its fixed figures are illustrative.
 
 ## Remaining work
 
