@@ -11,6 +11,7 @@ background work. The two predecessor repos are reference material only.
 | Question | Authoritative document |
 | --- | --- |
 | What is the next product/data-collection sequence? | [Delivery milestones](plans/product-and-ingestion.md) |
+| What must pass before live sync, and how will scaling be measured? | [Sync quality gates](plans/sync-quality.md) and [validation evidence](runbooks/sync-quality.md) |
 | What works now, and how do I review it? | [Project status and frontend guide](project-status.md) |
 | What are we building? | [Product scope](product.md) |
 | Why this stack and boundaries? | [Architecture](decisions/0001-architecture.md) |
