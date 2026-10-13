@@ -157,7 +157,10 @@ remain approval gates; raw expiry alone cannot authorize live records.
 
 All names below are **planned**, not implemented/passing tests. Expected outcomes
 are hand-authored here, independent of parser/draft code. Each fixture verifies
-journal/audit/outbox accounting counts do not change merely from preview/import.
+that ledger journals/lines and `journal.posted` outbox intent do not change merely
+from preview/import. Import-specific audit records, receipts, drafts and file-row
+links change only as specified; those audit writes must not be mistaken for
+accounting postings.
 
 | Named future evidence | Required expected result |
 | --- | --- |

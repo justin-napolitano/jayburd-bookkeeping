@@ -22,6 +22,8 @@ Lease INGEST-61-20261013T134933Z; coordinator owns integration and shared biblio
 The three-row original worked example independently expects three distinct drafts,
 USD100 inflow/USD25 outflow/net75; this is specification arithmetic, not a running
 importer test. Every named importer test is future evidence.
+Integration review distinguishes import audit/receipt writes from unchanged
+accounting journals and `journal.posted` outbox intent.
 
 PASS: `PATH=/private/tmp/jayburd-toolchain-1.26.9/go/bin:$PATH GOCACHE=/private/tmp/jayburd-go-cache GOMODCACHE=/private/tmp/jayburd-go-modcache make check test build`.
 PASS: `bash scripts/check-stage-runbook.sh --staged` (three documentation files staged).

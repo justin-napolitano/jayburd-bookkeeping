@@ -30,7 +30,10 @@ historical metadata snapshots. No listed new report test is implemented by this 
 Owner reviews contract/applicability; #53 implements SQL, tests, OpenAPI, generated
 clients and integration in that order. #1/#10 retain real policy and audit-export
 mapping approval. Measure query/lock budgets; generated totals are not proof.
-Root coordinator links sources/index and records the lease handoff.
+Integration review clarified revision zero and per-measure CSV sign fields.
+The exact ordered CSV header and row-kind/nullability/measure mapping remain a
+required review gate before export implementation; this is not a complete wire
+schema. Root coordinator links sources/index and records the lease handoff.
 
 ## PR handoff
 

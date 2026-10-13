@@ -57,7 +57,8 @@ group separators, plus sign or negative zero. At most 29 integer and 9 fractiona
 digits; signed net fields may start with `-`; debit/credit fields are nonnegative.
 Normalize zero to `"0"`, remove insignificant trailing zeros, reject overflow
 with `result_out_of_range` before response. UUIDs and revisions are strings;
-revision is a positive decimal integer, never a JavaScript number. Display pads
+revision is a canonical nonnegative decimal integer string in the existing SQL
+bigint range (including `"0"`), never a JavaScript number. Display pads
 from currency metadata without discarding nonzero precision. All totals,
 comparisons and running balances are checked against the same bounds.
 
@@ -202,7 +203,8 @@ return 422 `report_export_limit`, never a truncated success. Buffer in bounded
 memory; no background job, bucket, share link or browser persistence in this slice.
 A repeated download repeats authorization and may fail after revocation.
 
-Stable header order and RFC4180 quoting/CRLF; a `financial-reporting-csv-v1` profile
+The implementation contract must pin a stable header order and RFC4180 quoting/CRLF;
+the proposed `financial-reporting-csv-v1` profile
 repeats provenance columns (report/layout/scope/revision/currency/date filters and
 generation time) on data rows. Empty exports contain header plus one explicit
 `row_kind=summary` row with actual opening/closing totals and provenance (all zero
@@ -212,16 +214,25 @@ Machine reconciliation uses exact decimal fields and UUIDs, not display labels.
 
 To avoid relying on fragile spreadsheet escaping, v1 export omits arbitrary
 account codes/names/descriptions/reasons/source text; UUIDs plus fixed enum labels
-provide drill-through. Magnitudes are unsigned canonical decimal; separate
-`amount_sign=positive|negative|zero` conveys signed balances/differences, and dates,
+provide drill-through. Magnitudes are unsigned canonical decimal; each measure
+has a separate `<measure>_sign=positive|negative|zero` and `<measure>_magnitude`
+pair. Posting debit/credit side remains a separate field. Dates,
 UUIDs and enums follow strict generated grammars. Quote all fields, double embedded
 quotes, reject control characters and any value outside its field grammar before
-serialization. The header is fixed. Thus no cell is user-controlled formula text;
+serialization. The approved header must be fixed. Thus no cell is user-controlled formula text;
 a validator error rejects the entire file. Rich descriptive CSV requires a later
 reviewed transformation and spreadsheet compatibility test; CSV is not promised
 safe after arbitrary downstream editing, or exact numeric import by spreadsheets.
 JSON remains the lossless contract. This is an internal **review export**, not an
 approved accountant/audit exchange. ISO audit mappings below block that promotion.
+
+**Remaining wire-schema gate:** before CSV implementation, specify and review the
+ordered header, row-kind field/nullability matrix, provenance/comparison columns,
+and the amount/sign pairs for opening, turnover, closing, current, prior and
+difference. The profile name is reserved for this proposal, not an implemented
+or fully specified wire schema. JSON report implementation and CSV delivery need
+separate acceptance; scope and safety requirements above do not settle the missing
+column mapping.
 
 ## Standards applicability and open policy
 
