@@ -332,6 +332,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/books/{book_id}/reports/trial-balance/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download complete trial-balance review CSV at an explicit revision
+         * @description Internal financial-reporting-csv-v1 long measure profile; exact ordered header and row mapping in docs/contracts/report-export.md. No account labels or arbitrary text. All selected rows, not a visible page. Requires explicit snapshot_revision; cursor/limit rejected. At most 10000 physical data records and 10 MiB including header; 10-second shared budget. Buffer all bytes before success, reauthorize each page and before release. Not an accountant/audit exchange.
+         */
+        get: operations["exportTrialBalanceReviewCSV"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/reports/general-ledger/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download complete general-ledger review CSV at an explicit revision
+         * @description Internal financial-reporting-csv-v1 long measure profile; exact ordered header and row mapping in docs/contracts/report-export.md. No account labels or arbitrary text. All selected rows, not a visible page. Requires explicit snapshot_revision; cursor/limit rejected. At most 10000 physical data records and 10 MiB including header; 10-second shared budget. Buffer all bytes before success, reauthorize each page and before release. Not an accountant/audit exchange.
+         */
+        get: operations["exportGeneralLedgerReviewCSV"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/reports/balance-sheet/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download complete balance-sheet review CSV at an explicit revision
+         * @description Internal financial-reporting-csv-v1 long measure profile; exact ordered header and row mapping in docs/contracts/report-export.md. No account labels or arbitrary text. All selected rows, not a visible page. Requires explicit snapshot_revision; cursor/limit rejected. At most 10000 physical data records and 10 MiB including header; 10-second shared budget. Buffer all bytes before success, reauthorize each page and before release. Not an accountant/audit exchange.
+         */
+        get: operations["exportBalanceSheetReviewCSV"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/reports/profit-and-loss/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download complete profit-and-loss review CSV at an explicit revision
+         * @description Internal financial-reporting-csv-v1 long measure profile; exact ordered header and row mapping in docs/contracts/report-export.md. No account labels or arbitrary text. All selected rows, not a visible page. Requires explicit snapshot_revision; cursor/limit rejected. At most 10000 physical data records and 10 MiB including header; 10-second shared budget. Buffer all bytes before success, reauthorize each page and before release. Not an accountant/audit exchange.
+         */
+        get: operations["exportProfitAndLossReviewCSV"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/reports/general-ledger/journals/{journal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review a journal behind a pinned general-ledger line
+         * @description Strict five required query fields; unknown/duplicate fields, body and HEAD reject. SQL authorizes scope, validates current revision and actual account/date/line membership before reading immutable journal in the same repeatable-read transaction. Maximum URI4096 bytes, response2MiB.
+         */
+        get: operations["getReportJournal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -738,6 +838,27 @@ export interface components {
         };
         PendingCommand: {
             command: components["schemas"]["DurableCommand"] | null;
+        };
+        ReportJournal: {
+            /** @constant */
+            contract_version: "report-journal-v1";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            snapshot_revision: components["schemas"]["Revision"];
+            selector: {
+                /** Format: uuid */
+                account_id: string;
+                /** Format: date */
+                starts_on: string;
+                /** Format: date */
+                ends_before: string;
+                /** Format: uuid */
+                journal_id: string;
+                line_number: number;
+            };
+            journal: components["schemas"]["Journal"];
         };
     };
     responses: {
@@ -1539,6 +1660,200 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    exportTrialBalanceReviewCSV: {
+        parameters: {
+            query: {
+                through_date: string;
+                compare_through_date?: string;
+                snapshot_revision: string;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete quoted CRLF CSV; exact amounts use separate sign/magnitude fields. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    "Content-Disposition"?: "attachment; filename=\"financial-reporting-review.csv\"";
+                    "X-Content-Type-Options"?: "nosniff";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    exportGeneralLedgerReviewCSV: {
+        parameters: {
+            query: {
+                starts_on: string;
+                ends_before: string;
+                account_id: string;
+                snapshot_revision: string;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete quoted CRLF CSV; exact amounts use separate sign/magnitude fields. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    "Content-Disposition"?: "attachment; filename=\"financial-reporting-review.csv\"";
+                    "X-Content-Type-Options"?: "nosniff";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    exportBalanceSheetReviewCSV: {
+        parameters: {
+            query: {
+                through_date: string;
+                compare_through_date?: string;
+                snapshot_revision: string;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete quoted CRLF CSV; exact amounts use separate sign/magnitude fields. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    "Content-Disposition"?: "attachment; filename=\"financial-reporting-review.csv\"";
+                    "X-Content-Type-Options"?: "nosniff";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    exportProfitAndLossReviewCSV: {
+        parameters: {
+            query: {
+                starts_on: string;
+                ends_before: string;
+                compare_starts_on?: string;
+                compare_ends_before?: string;
+                snapshot_revision: string;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete quoted CRLF CSV; exact amounts use separate sign/magnitude fields. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    "Content-Disposition"?: "attachment; filename=\"financial-reporting-review.csv\"";
+                    "X-Content-Type-Options"?: "nosniff";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    getReportJournal: {
+        parameters: {
+            query: {
+                account_id: string;
+                starts_on: string;
+                ends_before: string;
+                line_number: number;
+                snapshot_revision: components["schemas"]["Revision"];
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+                journal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Journal and selected GL line checked at the pinned revision in one authorized transaction. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportJournal"];
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
             422: components["responses"]["Problem422"];
             500: components["responses"]["Problem500"];
             503: components["responses"]["Problem503"];

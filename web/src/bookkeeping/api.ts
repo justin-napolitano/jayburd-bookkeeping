@@ -17,13 +17,25 @@ export class APIError extends Error {
     );
   }
 }
-export type API = <T>(path: string, body?: string, key?: string) => Promise<T>;
+// Download is optional for injected test clients; production clients own fresh authentication.
+export type API = (<T>(
+  path: string,
+  body?: string,
+  key?: string,
+) => Promise<T>) & {
+  download?: (path: string) => Promise<Blob>;
+};
 // A bounded same-origin request carries a fresh memory-only token and no cookies.
 export function createAPI(
   getToken: () => Promise<string>,
   rejectSession: () => void,
 ): API {
-  return async <T>(path: string, body?: string, key?: string): Promise<T> => {
+  // Share authentication and safe error handling across JSON and bounded CSV reads.
+  const request = async (
+    path: string,
+    body?: string,
+    key?: string,
+  ): Promise<Response> => {
     let token: string;
     try {
       token = await getToken();
@@ -61,10 +73,52 @@ export function createAPI(
           response.status === 408 ||
           response.status === 429,
       );
+    return response;
+  };
+  const client: API = async <T>(
+    path: string,
+    body?: string,
+    key?: string,
+  ): Promise<T> => {
+    const response = await request(path, body, key);
     try {
       return (await response.json()) as T;
     } catch {
       throw new APIError(0, true);
     }
   };
+  // Buffer a bounded response before offering any bytes to the user as a download.
+  client.download = async (path: string): Promise<Blob> => {
+    const response = await request(path);
+    if (
+      response.status !== 200 ||
+      response.headers.get("Content-Type") !==
+        "text/csv; charset=utf-8; header=present" ||
+      !response.body
+    ) {
+      void response.body?.cancel();
+      throw new APIError(0, false);
+    }
+    const reader = response.body.getReader();
+    const chunks: Uint8Array<ArrayBuffer>[] = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > 10 * 1024 * 1024) throw new Error("limit");
+        chunks.push(new Uint8Array(value));
+      }
+      return new Blob(chunks, {
+        type: "text/csv; charset=utf-8; header=present",
+      });
+    } catch {
+      throw new APIError(0, false);
+    } finally {
+      void reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  };
+  return client;
 }

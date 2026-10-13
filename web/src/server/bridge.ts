@@ -8,6 +8,9 @@ const commandAction = new RegExp(`^/v1/commands/${uuid}/(?:execute|cancel|acknow
 const bookPath = `/v1/entities/${uuid}/books/${uuid}`;
 const reportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)$`, 'i');
 
+const exportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)/export\\.csv$`, 'i');
+const journalReportPath = new RegExp(`^${bookPath}/reports/general-ledger/journals/${uuid}$`, 'i');
+
 /** Read only named configuration and reject ambiguous transport or ambient credential overrides. */
 function configuration(env: Record<string, string | undefined>): BridgeConfig {
   if (['GOOGLE_APPLICATION_CREDENTIALS', 'GCE_METADATA_HOST', 'GCE_METADATA_IP', 'FIREBASE_AUTH_EMULATOR_HOST'].some(name => env[name] !== undefined)) throw new Error('configuration');
@@ -30,7 +33,12 @@ function allowed(url: URL, method: string): boolean {
   if (method === 'GET' && new RegExp(`^${bookPath}/trial-balance$`, 'i').test(url.pathname)) {
     return [...url.searchParams.keys()].length === 1 && /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get('through_date') ?? '');
   }
-  if (method === 'GET' && reportPath.test(url.pathname)) {
+  if (method === 'GET' && (reportPath.test(url.pathname) || exportPath.test(url.pathname) || journalReportPath.test(url.pathname))) {
+    const csv = exportPath.test(url.pathname);
+    const journal = journalReportPath.test(url.pathname);
+    if ((csv || journal) && !url.searchParams.has('snapshot_revision')) return false;
+    if (csv && (url.searchParams.has('cursor') || url.searchParams.has('limit'))) return false;
+    if (journal && (['account_id','starts_on','ends_before','line_number','snapshot_revision'].some(key=>!url.searchParams.has(key)) || [...url.searchParams.keys()].some(key=>!['account_id','starts_on','ends_before','line_number','snapshot_revision'].includes(key)))) return false;
     // The API validates accounting semantics; the bridge bounds the named wire surface.
     if (/%(?![0-9a-f]{2})/i.test(url.search)) return false;
     const seen = new Set<string>();
@@ -43,6 +51,8 @@ function allowed(url: URL, method: string): boolean {
         if (!new RegExp(`^${uuid}$`, 'i').test(value)) return false;
       } else if (key === 'snapshot_revision') {
         if (!/^(0|[1-9][0-9]{0,18})$/.test(value)) return false;
+      } else if (key === 'line_number' && journal) {
+        if (!/^[1-9][0-9]{0,3}$/.test(value) || Number(value) > 1000) return false;
       } else if (key === 'limit') {
         if (!/^[1-9][0-9]{0,2}$/.test(value) || Number(value) > 500) return false;
       } else if (key === 'cursor') {
@@ -120,10 +130,11 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
       const bearer = request.headers.get('Authorization') ?? '';
       if (bearer.length > 16384 || !bearer.startsWith('Bearer ') || !tokenPattern.test(bearer.slice(7))) return failure(401);
       const signal = AbortSignal.any([request.signal, AbortSignal.timeout(12000)]);
-      const headers = new Headers({Authorization: bearer, Origin: config.origin, Accept: 'application/json'});
+      const csv = exportPath.test(url.pathname);
+      const headers = new Headers({Authorization: bearer, Origin: config.origin, Accept: csv ? 'text/csv' : 'application/json'});
       let body: Uint8Array | undefined;
       if (request.method === 'POST') {
-        if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('Content-Type') ?? '')) return failure(415);
+      if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('Content-Type') ?? '')) return failure(415);
         // Recovery transitions are replay-bound by durable command ID; registration still requires a key.
         const key = request.headers.get('Idempotency-Key');
         if ((key !== null || !commandAction.test(url.pathname)) && !/^[A-Za-z0-9._:-]{1,128}$/.test(key ?? '')) return failure(400);
@@ -139,10 +150,18 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
         void upstream.body?.cancel();
         return failure([400,401,403,404,409,413,415,422,429,503,504].includes(upstream.status) ? upstream.status : 502);
       }
+        if (csv) {
+        if (upstream.status !== 200 || upstream.headers.get('Content-Type') !== 'text/csv; charset=utf-8; header=present') {
+          void upstream.body?.cancel(); return failure(502);
+        }
+        const bytes = await read(upstream.body, 10 * limit, signal);
+        new TextDecoder('utf-8', {fatal:true}).decode(bytes);
+        return new Response(bytes as BodyInit, {status:200,headers:{'Content-Type':'text/csv; charset=utf-8; header=present','Content-Disposition':'attachment; filename="financial-reporting-review.csv"','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+      }
       if (!/^application\/json(?:\s*;.*)?$/i.test(upstream.headers.get('Content-Type') ?? '') || ![200,201].includes(upstream.status)) {
         void upstream.body?.cancel(); return failure(502);
       }
-      const bytes = await read(upstream.body, reportPath.test(url.pathname) ? 2 * limit : limit, signal);
+      const bytes = await read(upstream.body, (reportPath.test(url.pathname) || journalReportPath.test(url.pathname)) ? 2 * limit : limit, signal);
       // Validate framing, retaining original bytes so exact decimal strings and receipts never change.
       JSON.parse(new TextDecoder('utf-8', {fatal:true}).decode(bytes));
       return new Response(bytes as BodyInit, {status: upstream.status, headers: {'Content-Type':'application/json', 'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff'}});
