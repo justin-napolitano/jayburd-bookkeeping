@@ -288,22 +288,27 @@ func TestManualSpotPosting(t *testing.T) {
 	}
 }
 
-// TestSchemaPrivileges probes the actual runtime role and definer search path.
+// TestSchemaPrivileges requires exact permission denials, unchanged state and usable authorized operations.
 func TestSchemaPrivileges(t *testing.T) {
-	_, s, db := fixtureDB(t, "privileges")
+	c, s, db := fixtureDB(t, "privileges")
+	// Seed real history so UPDATE/DELETE/TRUNCATE probes cannot pass vacuously.
+	if _, err := s.Post(context.Background(), command("privilege-seed")); err != nil {
+		t.Fatal(err)
+	}
+	before := ledgerProofSnapshot(t, c)
 	runtime := connection(t, db, "synthetic_runtime")
 	defer runtime.Close(context.Background())
 	for _, q := range []string{"SELECT * FROM ledger.journal_entry", "UPDATE ledger.book SET revision=99", "DELETE FROM ledger.journal_line", "TRUNCATE ledger.journal_entry CASCADE", "CREATE TABLE public.evil(n int)", "CREATE TABLE ledger.evil(n int)", "SET ROLE bookkeeping_owner", "SELECT ledger.round_even(1.005,2)"} {
-		if _, err := runtime.Exec(context.Background(), q); err == nil {
-			t.Fatal("runtime bypass", q)
-		}
+		_, err := runtime.Exec(context.Background(), q)
+		requireLedgerSQLState(t, err, "42501")
+		requireLedgerUnchanged(t, c, before)
 	}
 	sql(t, runtime, "CREATE TEMP TABLE journal_entry(n int); SET search_path=pg_temp,public")
 	tx, err := runtime.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := command("safe")
+	cmd := change(command("safe"), func(v map[string]any) { v["expected_revision"] = "1" })
 	var r Result
 	err = tx.QueryRow(context.Background(), "SELECT * FROM ledger.post_journal($1,$2,$3,$4,$5,$6)", cmd.Actor, cmd.Entity, cmd.Book, cmd.Key, cmd.Request, cmd.Body).Scan(&r.Status, &r.Body, &r.Replayed)
 	if err != nil {
@@ -412,7 +417,7 @@ func TestPostingReplayConcurrency(t *testing.T) {
 	requireFailure(t, err, "permission_denied")
 }
 
-// TestJournalCorrectionHistory verifies exact reverse, immutability and date scopes.
+// TestJournalCorrectionHistory verifies reversal and trigger rejection without changing durable history.
 func TestJournalCorrectionHistory(t *testing.T) {
 	c, s, _ := fixtureDB(t, "correction")
 	cmd := command("original")
@@ -430,10 +435,11 @@ func TestJournalCorrectionHistory(t *testing.T) {
 	cmd.Body = strings.Replace(cmd.Body, `"1"`, `"2"`, 1)
 	_, err = s.Reverse(context.Background(), cmd)
 	requireFailure(t, err, "already_reversed")
+	before := ledgerProofSnapshot(t, c)
 	for _, q := range []string{"UPDATE ledger.journal_entry SET description='rewrite'", "DELETE FROM ledger.journal_line"} {
-		if _, err = c.Exec(context.Background(), q); err == nil {
-			t.Fatal("history rewritten")
-		}
+		_, err = c.Exec(context.Background(), q)
+		requireLedgerSQLState(t, err, "P2108")
+		requireLedgerUnchanged(t, c, before)
 	}
 	cmd.Body = "2026-02-28"
 	tb, err := s.TrialBalance(context.Background(), cmd)
