@@ -132,10 +132,10 @@ func TestMigrationStatus(t *testing.T) {
 	}
 	for _, scenario := range []struct{ bad, restore string }{
 		{`UPDATE deployment.schema_migrations SET dirty=true`, `UPDATE deployment.schema_migrations SET dirty=false`},
-		// Version six adds reporting; both older and newer metadata must still fail closed.
-		{`UPDATE deployment.schema_migrations SET version=5`, `UPDATE deployment.schema_migrations SET version=6`},
-		{`UPDATE deployment.schema_migrations SET version=7`, `UPDATE deployment.schema_migrations SET version=6`},
-		{`DELETE FROM deployment.schema_migrations`, `INSERT INTO deployment.schema_migrations VALUES(6,false)`},
+		// Version seven adds pinned report drill-through; both older and newer metadata must still fail closed.
+		{`UPDATE deployment.schema_migrations SET version=6`, `UPDATE deployment.schema_migrations SET version=7`},
+		{`UPDATE deployment.schema_migrations SET version=8`, `UPDATE deployment.schema_migrations SET version=7`},
+		{`DELETE FROM deployment.schema_migrations`, `INSERT INTO deployment.schema_migrations VALUES(7,false)`},
 		{`INSERT INTO deployment.migration_artifact VALUES('extra.sql',repeat('a',64),now())`, `DELETE FROM deployment.migration_artifact WHERE filename='extra.sql'`},
 		{`CREATE TEMP TABLE saved_artifact AS SELECT * FROM deployment.migration_artifact WHERE filename='000001_ledger.up.sql'; DELETE FROM deployment.migration_artifact WHERE filename='000001_ledger.up.sql'`, `INSERT INTO deployment.migration_artifact SELECT * FROM saved_artifact; DROP TABLE saved_artifact`},
 		{`UPDATE deployment.migration_artifact SET sha256=repeat('a',64) WHERE filename='000001_ledger.up.sql'`, `UPDATE deployment.migration_artifact SET sha256='d9ae8fa5ff9715241de5cb52c63f7f6972baa9bab2083b0d92cb82ce7931e255' WHERE filename='000001_ledger.up.sql'`},

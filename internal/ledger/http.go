@@ -45,7 +45,9 @@ func Handler(auth Authenticator, ops Operations) http.Handler {
 	mux.HandleFunc("GET "+base+"/trial-balance", endpoint(auth, ops, "balance"))
 	for _, kind := range []string{"trial-balance", "general-ledger", "balance-sheet", "profit-and-loss"} {
 		mux.HandleFunc("GET "+base+"/reports/"+kind, endpoint(auth, ops, "report_"+kind))
+		mux.HandleFunc("GET "+base+"/reports/"+kind+"/export.csv", endpoint(auth, ops, "export_"+kind))
 	}
+	mux.HandleFunc("GET "+base+"/reports/general-ledger/journals/{journal}", endpoint(auth, ops, "drill_journal"))
 	return mux
 }
 
@@ -130,6 +132,25 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			c.Body = q[0]
 		}
 		var result Result
+		isExport := strings.HasPrefix(op, "export_")
+		if isExport {
+			c.Body, err = reportExportRequest(r, strings.TrimPrefix(op, "export_"))
+			if err != nil {
+				fail(400, "invalid_request")
+				return
+			}
+			export, ok := ops.(interface {
+				FinancialReportCSV(context.Context, Command) (Result, error)
+			})
+			if !ok {
+				fail(503, "temporarily_unavailable")
+				return
+			}
+			result, err = export.FinancialReportCSV(r.Context(), c)
+			if err == nil && len(result.Body) > 10<<20 {
+				err = &Failure{422, "report_export_limit"}
+			}
+		}
 		if strings.HasPrefix(op, "report_") {
 			kind := strings.TrimPrefix(op, "report_")
 			c.Body, err = reportRequest(r, kind)
@@ -150,6 +171,23 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			}
 		}
 		switch op {
+		case "drill_journal":
+			c.Body, err = reportJournalRequest(r)
+			if err != nil {
+				fail(400, "invalid_request")
+				return
+			}
+			drill, ok := ops.(interface {
+				ReportJournal(context.Context, Command) (Result, error)
+			})
+			if !ok {
+				fail(503, "temporarily_unavailable")
+				return
+			}
+			result, err = drill.ReportJournal(r.Context(), c)
+			if err == nil && len(result.Body) > 2<<20 {
+				err = &Failure{422, "result_out_of_range"}
+			}
 		case "command_register", "command_pending", "command_execute", "command_cancel", "command_acknowledge":
 			if op == "command_pending" && (r.ContentLength > 0 || len(r.TransferEncoding) > 0) {
 				fail(400, "invalid_request")
@@ -199,6 +237,11 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			w.Header().Set("Idempotent-Replay", map[bool]string{true: "true", false: "false"}[result.Replayed])
 		}
 		w.Header().Set("Content-Type", "application/json")
+		if isExport {
+			w.Header().Set("Content-Type", "text/csv; charset=utf-8; header=present")
+			w.Header().Set("Content-Disposition", `attachment; filename="financial-reporting-review.csv"`)
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+		}
 		w.WriteHeader(result.Status)
 		_, _ = w.Write(result.Body)
 	}
