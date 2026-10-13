@@ -5,10 +5,16 @@ import { Bookkeeping } from "../bookkeeping/Bookkeeping";
 function Application() {
   const auth = useAuth();
   return (
-    <main>
-      <header>
+    <main className={auth.phase === "signed-in" ? "app-shell" : undefined}>
+      <header
+        className={auth.phase === "signed-in" ? "app-masthead" : undefined}
+      >
         <p className="eyebrow">JAYBURD / BOOKKEEPING</p>
-        <h1>Your books, with a clear record.</h1>
+        <h1>
+          {auth.phase === "signed-in"
+            ? "Books & reports"
+            : "Your books, with a clear record."}
+        </h1>
         <p>Manual entries. Explicit review. Immutable posted journals.</p>
       </header>
       {auth.phase === "signed-in" ? (
