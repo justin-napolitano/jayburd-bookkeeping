@@ -230,3 +230,14 @@ migration verification.
   upload boundaries and OpenStax reconciliation. The custom synthetic CSV is a
   proposed internal template, not a verified bank adapter or ISO message;
   its standards exception and later camt profile still require review.
+
+## Provider ingestion and worker delivery — 2026-10-13
+
+- [Plaid ingestion sources](plaid-ingestion-sources.md): official API, connection,
+  transaction lifecycle and webhook verification guidance supporting the proposed
+  adapter. Review notes distinguish provider behavior from Jayburd policy; no
+  provider Sandbox, live account or ISO message-conformance evidence is implied.
+- [Background-work sources](background-work-sources.md): primary references for
+  queue delivery limitations, authentication and database claim/receipt semantics.
+  These support the proposed lifecycle and fault matrix, not an implemented
+  publisher, deployed worker or measured operational guarantee.
