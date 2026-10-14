@@ -327,3 +327,9 @@ ISO exchange conformance.
 - [Source registry applicability and sources](../contracts/source-registry.md#standards-sources-and-alternatives): applies the existing PostgreSQL key/locking/function and ISO currency source records to narrow synthetic enrollment. Operator attestation is not evidence of live account ownership.
 - [Private staging source review](../contracts/import-staging.md#sources-alternatives-and-limits), ST01–ST03: pinned Go filesystem confinement and Linux local-filesystem link/sync/lock behavior support immutable synthetic evidence storage. Documented limits include cancellation, cooperative locking, power-loss evidence and separately required hosted encryption/retention.
 - Existing [workspace accessibility sources](financial-workspace-sources.md) support native focus/navigation and semantic financial tables. Runtime screenshots and journey tests are separate evidence; they do not establish full accessibility conformance or competitor superiority.
+
+- [Connections workspace contract](../contracts/connection-workspace.md): application
+  of the reviewed connection HTTP/service/SQL contracts to scoped browser enrollment,
+  explicit bindings and recovery. No additional provider behavior or conformance claim.
+  [Combined evidence](../runbooks/connection-workspace.md) separates injected UI and
+  real PostgreSQL proof from live Link, credential-store and hosted qualification.

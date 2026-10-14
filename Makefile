@@ -117,3 +117,7 @@ connection-service-test:
 .PHONY: provider-flow-test
 provider-flow-test:
 	bash scripts/test-provider-flow.sh
+
+.PHONY: connection-browser-test
+connection-browser-test:
+	bash scripts/test-app-integration.sh --connections
