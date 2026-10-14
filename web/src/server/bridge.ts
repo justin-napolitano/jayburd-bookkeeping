@@ -6,6 +6,10 @@ const tokenPattern = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const commandAction = new RegExp(`^/v1/commands/${uuid}/(?:execute|cancel|acknowledge)$`, 'i');
 const bookPath = `/v1/entities/${uuid}/books/${uuid}`;
+// Connection paths are case-sensitive canonical UUID routes, matching the Go boundary.
+const connectionRead = new RegExp(`^${bookPath}/(?:connections|connection-attempts/${uuid})$`);
+const connectionWrite = new RegExp(`^${bookPath}/(?:connection-attempts|connection-attempts/${uuid}/(?:execute|reconcile|bindings)|connections/streams/${uuid}/disconnect)$`);
+const connectionAction = new RegExp(`^${bookPath}/connection-attempts/${uuid}/(?:execute|reconcile)$`);
 const reportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)$`, 'i');
 
 const exportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)/export\\.csv$`, 'i');
@@ -30,6 +34,10 @@ function configuration(env: Record<string, string | undefined>): BridgeConfig {
 /** Permit only currently implemented bookkeeping routes; deferred close/admin paths stay unavailable. */
 function allowed(url: URL, method: string): boolean {
   if (url.pathname.length + url.search.length > 4096) return false;
+  if (connectionRead.test(url.pathname) || connectionWrite.test(url.pathname)) {
+    return !url.href.includes('?') && !url.hash &&
+      (method === 'GET' && connectionRead.test(url.pathname) || method === 'POST' && connectionWrite.test(url.pathname));
+  }
   if (method === 'GET' && new RegExp(`^${bookPath}/trial-balance$`, 'i').test(url.pathname)) {
     return [...url.searchParams.keys()].length === 1 && /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get('through_date') ?? '');
   }
@@ -183,12 +191,12 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
       let body: Uint8Array | undefined;
       if (request.method === 'POST') {
         if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('Content-Type') ?? '')) return failure(415);
-        // Recovery transitions are replay-bound by durable command ID; registration still requires a key.
+        // Durable command and connection transitions carry their own persisted operation identity.
         const key = request.headers.get('Idempotency-Key');
-        if ((key !== null || !commandAction.test(url.pathname)) && !/^[A-Za-z0-9._:-]{1,128}$/.test(key ?? '')) return failure(400);
+        if ((key !== null || !(commandAction.test(url.pathname) || connectionAction.test(url.pathname))) && !/^[A-Za-z0-9._:-]{1,128}$/.test(key ?? '')) return failure(400);
         headers.set('Content-Type', 'application/json');
         if (key !== null) headers.set('Idempotency-Key', key);
-        try { body = await read(request.body, limit, signal); } catch (error) { return failure(error instanceof RangeError ? 413 : 504); }
+        try { body = await read(request.body, connectionWrite.test(url.pathname) ? 32 << 10 : limit, signal); } catch (error) { return failure(error instanceof RangeError ? 413 : 504); }
       } else if (request.body !== null) return failure(400);
       if (config.cloud) headers.set('X-Serverless-Authorization', `Bearer ${await serviceToken(config.api, transport, signal)}`);
       const upstream = await transport(config.api + url.pathname + url.search, {
