@@ -96,7 +96,7 @@ test('runtime requires explicit connection state; legacy/omitted/partial states 
 test('connection metadata rejects arbitrary origins, identities, versions and ambiguous policy',()=>{
  const {m}=fixture();m.connections=connectionFixture();
  const changes=[{infisical_origin:'https://evil.invalid'},{infisical_project:'00000000-0000-0000-0000-000000000000'},
- {infisical_identity:1},{link_events_qualified:false},{link_events_qualified:'true'},
+ {infisical_identity:1},{link_events_qualified:'true'},
  {client_id_version:m.connections.client_secret_version},{client_id_version:m.connections.client_id_version.replace('123456789012','999999999999')},
  ...['latest','0','01','9223372036854775808'].map(v=>({client_secret_version:m.connections.client_secret_version.replace('/23','/'+v)})),
  {consent_expires_at:'2026-10-13T00:00:00Z'},{consent_expires_at:'2026-10-11T00:00:00Z'},
@@ -130,4 +130,9 @@ test('release CLI preserves enabled metadata and explicit null, including exact 
    assert.equal(JSON.parse(readFileSync(join(out,'approved.json'))).schemaVersion,2);
   } finally {rmSync(dir,{recursive:true,force:true});}
  }
+});
+
+// Hosted Link release metadata does not assert ordinary SDK account enablement.
+test('Hosted Link accepts explicit false SDK enablement',()=>{
+ const {m}=fixture();m.connections={...connectionFixture(),link_events_qualified:false};validate(m);
 });

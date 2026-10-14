@@ -58,14 +58,13 @@ so it cannot assert application journal counts or provider-to-review consistency
 
 ## Real Link readiness blocker
 
-Existing `connections.HTTPProvider.CreateLink` omits `hosted_link` and discards
-`hosted_link_url`, but VerifySession requires server `link_sessions` results.
-Plaid normally provides complete `/link/token/get` session data for Hosted Link;
-ordinary Link needs account-specific Link-events enablement. Before real execution,
-verify that enablement or implement/review the Hosted Link request/result/UI profile.
-Neither is enabled or claimed by this diagnostic. `/sandbox/public_token/create`
-bypasses interactive Link and cannot satisfy association/UI acceptance. Reconnect
-remains unqualified; a successful accounts/get is not reauthorization evidence.
+The [Sandbox Hosted Link profile](hosted-link-enrollment.md) requests a hosted
+session and exposes its validated URL. Explicit completion resolves a unique
+server session result before claiming exchange. Ordinary SDK use still requires
+account-specific Link-events enablement to verify association. Synthetic tests do
+not establish either actual interactive completion or account-specific enablement.
+`/sandbox/public_token/create` bypasses Link and cannot qualify it. Reconnect and
+full deployed acquisition/webhook acceptance remain unqualified.
 
 ## Annotated primary sources and review depth
 

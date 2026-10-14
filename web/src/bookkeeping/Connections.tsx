@@ -30,6 +30,13 @@ export type ConnectionsProps = {
   link?: ConnectionLink;
 };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+// Only the reviewed opaque Hosted Link path may become browser navigation.
+function validHostedURL(value: string): boolean {
+  return (
+    value.length <= 2048 &&
+    /^https:\/\/secure\.plaid\.com\/hl\/[A-Za-z0-9_-]+$/.test(value)
+  );
+}
 const revision = /^[1-9][0-9]*$/;
 const states = [
   "link_pending",
@@ -107,6 +114,7 @@ function ConnectionWorkspace({
     abort: new AbortController(),
   });
   const [busy, setBusy] = useState(false);
+  const [hosted, setHosted] = useState<Begin | null>(null);
   const [enrollmentStarted, setEnrollmentStarted] = useState(false);
   const [list, setList] = useState<Listing | null>(null);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
@@ -176,6 +184,7 @@ function ConnectionWorkspace({
   // Never print error payloads, provider diagnostics or transient credentials.
   const fail = (error: unknown) => {
     if (error instanceof APIError && [401, 403, 404].includes(error.status)) {
+      setHosted(null);
       setList(null);
       setAttempts(null);
       setStatus(null);
@@ -383,6 +392,20 @@ function ConnectionWorkspace({
         a.state !== "link_ready"
       )
         throw Error("handoff");
+      if (begun.hosted_link_url) {
+        if (
+          !validHostedURL(begun.hosted_link_url) ||
+          !begun.expires_at ||
+          !Number.isFinite(Date.parse(begun.expires_at)) ||
+          Date.parse(begun.expires_at) <= Date.now()
+        )
+          throw Error("handoff");
+        setHosted(begun);
+        setMessage(
+          "Open Plaid Sandbox in a new tab, finish setup, then return here to check completion.",
+        );
+        return;
+      }
       const result = await link.open({
         linkToken: begun.link_token,
         signal: life.current.abort.signal,
@@ -406,6 +429,42 @@ function ConnectionWorkspace({
       if (!current.live) return;
       setAttempt(checkedAttempt(value, a.attempt_id));
       await readList();
+    });
+  // Only an explicit check resolves Hosted Link. Unknown replies discard the handoff.
+  const completeHosted = () =>
+    run(async () => {
+      const current = life.current;
+      const handoff = hosted;
+      if (!handoff) return;
+      setHosted(null);
+      if (
+        !handoff.expires_at ||
+        !Number.isFinite(Date.parse(handoff.expires_at)) ||
+        Date.parse(handoff.expires_at) <= Date.now()
+      ) {
+        setMessage(
+          "Bank setup expired. Refresh attempts before starting again.",
+        );
+        return;
+      }
+      const value = await api<Attempt>(
+        `${base}/connection-attempts/${handoff.attempt.attempt_id}/execute`,
+        JSON.stringify({
+          nonce: handoff.nonce,
+          link_token: handoff.link_token,
+        }),
+      );
+      if (!current.live) return;
+      const checked = checkedAttempt(value, handoff.attempt.attempt_id);
+      setAttempt(checked);
+      if (checked.state === "link_ready") {
+        setHosted(handoff);
+        setMessage(
+          "Plaid has not reported completion yet. Finish setup, then check again.",
+        );
+      } else {
+        await readList();
+      }
     });
   // These two SQL-only operations have exact same-key replay; provider exchange does not.
   const submit = async (request: NonNullable<typeof pending>) => {
@@ -508,6 +567,38 @@ function ConnectionWorkspace({
   const mutable = unavailable || !!pending;
   return (
     <section aria-label="Connections" aria-busy={busy}>
+      {hosted?.hosted_link_url && (
+        <div role="group" aria-label="Complete Sandbox bank setup">
+          <p>
+            Keep this tab open while you complete fictional bank setup in Plaid.
+          </p>
+          <a
+            href={hosted.hosted_link_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
+          >
+            Open Plaid Sandbox
+          </a>
+          <button
+            disabled={locked || busy}
+            onClick={() => void completeHosted()}
+          >
+            Check bank setup completion
+          </button>
+          <button
+            disabled={locked || busy}
+            onClick={() => {
+              setHosted(null);
+              setMessage(
+                "Bank setup handoff cleared. Inspect the attempt; a new setup is available after its expiry.",
+              );
+            }}
+          >
+            Cancel bank setup
+          </button>
+        </div>
+      )}
       <p>
         Connections for {entity.name} / {book.name}. Enrollment is not a balance
         or confirmation of complete bank history.

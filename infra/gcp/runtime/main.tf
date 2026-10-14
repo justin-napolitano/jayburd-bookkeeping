@@ -1,7 +1,7 @@
 locals {
   # No metadata means no activation flags, secret reads or enrollment composition.
   connection_args = var.connections == null ? [] : [
-    "-connections-enabled", "-plaid-link-events-qualified",
+    "-connections-enabled", "-plaid-link-events-qualified=${var.connections.link_events_qualified}",
     "-provider-project-number=${var.project_number}",
     "-infisical-origin=${var.connections.infisical_origin}",
     "-infisical-project=${var.connections.infisical_project}",

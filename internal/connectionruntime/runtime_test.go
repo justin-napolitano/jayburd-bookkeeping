@@ -75,7 +75,7 @@ func TestExplicitCompleteConfiguration(t *testing.T) {
 		func(c *Config) { c.RegistryPrefix = "other-prefix" },
 		func(c *Config) { c.ClientIDVersion, c.ClientSecretVersion = c.ClientSecretVersion, c.ClientIDVersion },
 
-		func(c *Config) { c.Enabled = false }, func(c *Config) { c.LinkEventsQualified = false }, func(c *Config) { c.ProjectNumber = "synthetic-project" }, func(c *Config) { c.InfisicalEnvironment = "prod" }, func(c *Config) { c.InfisicalOrigin = "https://arbitrary.invalid" }, func(c *Config) { c.InfisicalIdentity = "00000000-0000-0000-0000-000000000000" }, func(c *Config) { c.RegistryPrefix = "../outside" }, func(c *Config) { c.ClientIDVersion = "projects/123456789012/secrets/a/versions/latest" }, func(c *Config) { c.ClientIDVersion = "projects/999999999999/secrets/a/versions/1" }, func(c *Config) { c.ClientIDVersion = c.ClientSecretVersion }, func(c *Config) { c.ConsentExpiresAt = time.Now().Add(-time.Second).Format(time.RFC3339) }, func(c *Config) { c.ConsentExpiresAt = time.Now().Add(31 * 24 * time.Hour).Format(time.RFC3339) },
+		func(c *Config) { c.Enabled = false }, func(c *Config) { c.ProjectNumber = "synthetic-project" }, func(c *Config) { c.InfisicalEnvironment = "prod" }, func(c *Config) { c.InfisicalOrigin = "https://arbitrary.invalid" }, func(c *Config) { c.InfisicalIdentity = "00000000-0000-0000-0000-000000000000" }, func(c *Config) { c.RegistryPrefix = "../outside" }, func(c *Config) { c.ClientIDVersion = "projects/123456789012/secrets/a/versions/latest" }, func(c *Config) { c.ClientIDVersion = "projects/999999999999/secrets/a/versions/1" }, func(c *Config) { c.ClientIDVersion = c.ClientSecretVersion }, func(c *Config) { c.ConsentExpiresAt = time.Now().Add(-time.Second).Format(time.RFC3339) }, func(c *Config) { c.ConsentExpiresAt = time.Now().Add(31 * 24 * time.Hour).Format(time.RFC3339) },
 	}
 	for i, mutate := range cases {
 		c := config()
@@ -148,5 +148,14 @@ func TestStaticReadFailuresAreRedacted(t *testing.T) {
 				t.Fatal("cancelled startup reached storage")
 			}
 		})
+	}
+}
+
+// TestHostedLinkDoesNotRequireSDKEnablement retains all other explicit configuration gates.
+func TestHostedLinkDoesNotRequireSDKEnablement(t *testing.T) {
+	c := config()
+	c.LinkEventsQualified = false
+	if e := c.Validate(); e != nil {
+		t.Fatal(e)
 	}
 }

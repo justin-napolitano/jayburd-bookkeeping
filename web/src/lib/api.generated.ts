@@ -1429,11 +1429,14 @@ export interface components {
             link_token?: string;
             /** Format: date-time */
             expires_at?: string;
+            /** @description Sandbox Hosted Link handoff; memory only. Open explicitly with noreferrer; keep this tab open. */
+            hosted_link_url?: string;
         };
         ConnectionExecuteRequest: {
             /** Format: uuid */
             nonce: string;
             link_token?: string;
+            /** @description Omit for Hosted Link completion; server resolves the unique completed session before claiming exchange. Pending returns unchanged link_ready attempt. */
             public_token?: string;
         };
         ConnectionBindingRequest: {

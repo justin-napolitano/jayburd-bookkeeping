@@ -10,7 +10,9 @@ carry connection settings. This closes the silent-default reset from PR110.
 
 The object uses the existing Terraform names: infisical_origin, infisical_project,
 infisical_identity, link_events_qualified, client_id_version, client_secret_version,
-consent_expires_at. No credentials, destination overrides or extra fields. Validate
+consent_expires_at. `link_events_qualified` remains a required boolean, but may
+be false for the [Hosted Link profile](hosted-link-enrollment.md). It describes
+ordinary-SDK account enablement, not overall Sandbox qualification. No credentials, destination overrides or extra fields. Validate
 exact approved origins/nonzero UUIDs, canonical same-project numeric resources and
 positive int64 project/version IDs. Absolute consent expiry must remain future, at most30
 days away, and later than release authorization expiry. Owner review binds the

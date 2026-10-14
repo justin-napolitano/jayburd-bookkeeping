@@ -56,15 +56,18 @@ run "enabled_connection_metadata" {
     }
   }
   assert {
-    condition     = length(local.connection_args) == 12 && alltrue([for arg in local.connection_args : contains(google_cloud_run_v2_service.api.template[0].containers[0].args, arg)]) && contains(local.connection_args, "-provider-registry-bucket=jayburd-synthetic-test-jayburd-dev-credential-registry") && contains(local.connection_args, "-infisical-environment=dev") && contains(local.connection_args, "-provider-registry-prefix=provider-credentials-v1") && contains(local.connection_args, "-plaid-link-events-qualified")
+    condition     = length(local.connection_args) == 12 && alltrue([for arg in local.connection_args : contains(google_cloud_run_v2_service.api.template[0].containers[0].args, arg)]) && contains(local.connection_args, "-provider-registry-bucket=jayburd-synthetic-test-jayburd-dev-credential-registry") && contains(local.connection_args, "-infisical-environment=dev") && contains(local.connection_args, "-provider-registry-prefix=provider-credentials-v1") && contains(local.connection_args, "-plaid-link-events-qualified=true")
     error_message = "Enabled metadata must produce the complete fixed Sandbox API profile."
   }
 }
 
-run "reject_unqualified_link" {
+run "hosted_link_without_sdk_enablement" {
   command = plan
   variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { link_events_qualified = false }) }
-  expect_failures = [var.connections]
+  assert {
+    condition     = contains(local.connection_args, "-plaid-link-events-qualified=false")
+    error_message = "Hosted Link must not assert ordinary SDK enablement."
+  }
 }
 
 run "reject_foreign_static_version" {

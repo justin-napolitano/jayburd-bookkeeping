@@ -25,7 +25,7 @@ Prefix `/v1/entities/{entity}/books/{book}`; IDs are canonical UUID strings.
 | GET `/connections/streams/{stream}/status` | Safe current publication/status pins; unknown provider update stays null. |
 | POST `/connections/streams/{stream}/operations` | Explicit pause/resume/request with Item, binding and stream revision pins. |
 | GET `/connection-attempts/{attempt}` | Safe current attempt projection. |
-| POST `/connection-attempts/{attempt}/execute` | Memory-only nonce/Link/public-token handoff; one-shot provider mutation. |
+| POST `/connection-attempts/{attempt}/execute` | Memory-only nonce/Link handoff; omit public token for Hosted Link completion. One-shot provider mutation. |
 | POST `/connection-attempts/{attempt}/reconcile` | Empty object; resolve known credential state without repeating exchange. |
 | POST `/connection-attempts/{attempt}/bindings` | Explicit verified account/source/ledger/currency selection. |
 | GET `/connections` | Bounded current connection list. |
@@ -65,3 +65,7 @@ cannot undo a later lifecycle transition. Manual request queues durable intent; 
 does not call a provider or report completed acquisition. The exact returned
 status may be a replayed receipt; refresh status before issuing a new operation.
 See [SQL operations](connection-operations-sql.md) for current-grant checks.
+
+Hosted Sandbox Begin also returns a validated memory-only URL; execute may return
+unchanged link_ready while session completion is pending. See the
+[Hosted Link contract](hosted-link-enrollment.md) for completion and recovery.
