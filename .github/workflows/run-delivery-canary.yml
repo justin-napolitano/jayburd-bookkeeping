@@ -1,6 +1,13 @@
 name: Run development delivery canary
 on:
   workflow_dispatch:
+    inputs:
+      job:
+        description: Reviewed job to invoke
+        type: choice
+        options: [delivery, sandbox-probe]
+        default: delivery
+        required: true
 permissions:
   contents: read
 concurrency:
@@ -31,7 +38,13 @@ jobs:
         env:
           CLOUDSDK_AUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          SELECTED_JOB: ${{ inputs.job }}
         run: |
           [[ "$PROJECT_ID" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]
-          gcloud run jobs execute jayburd-dev-delivery-canary --project="$PROJECT_ID" --region=us-central1 --async --quiet --format=none
+          case "$SELECTED_JOB" in
+            delivery) JOB_NAME=jayburd-dev-delivery-canary ;;
+            sandbox-probe) JOB_NAME=jayburd-dev-sandbox-probe ;;
+            *) exit 1 ;;
+          esac
+          gcloud run jobs execute "$JOB_NAME" --project="$PROJECT_ID" --region=us-central1 --async --quiet --format=none
           echo 'SUBMITTED: this workflow does not attest execution success or secret propagation.'

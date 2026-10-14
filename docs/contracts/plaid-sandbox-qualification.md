@@ -95,3 +95,10 @@ amount mapping follow the existing [decoder contract](plaid-decoder.md) and
 [standards applicability](standards.md). Plaid API is proprietary, not an ISO 20022
 message; this operational receipt is not a financial interchange or conformance
 certificate. No new accounting policy, SQL schema or dependency is introduced.
+
+## Separate API smoke runner
+
+Owner authorized a [hosted probe](hosted-sandbox-probe.md) that creates a disposable
+Sandbox Item via API. It reuses the diagnostic core but does not alter the pipe-fed
+command or count that API bypass as real Link qualification. No already-linked
+access token is required for this separate smoke runner.

@@ -75,3 +75,12 @@ document `viewSecretValue=false`, exact `version`, disabled reference expansion 
 imports. Reviewed those sections, not a hosted response. Unknown response fields
 are discarded and never printed; this does not claim the provider cannot return
 unexpected fields. Lookup success establishes metadata/auth access only.
+
+## Authorized Sandbox extension
+
+The [hosted Sandbox probe](hosted-sandbox-probe.md) extends the delivery command
+allowlist to the two original root Plaid keys. Explicit `key` selects the only
+destination granted write access; lookup stays value-disabled. A separate optional
+probe identity gets read-only access to the two destination containers. The manual
+workflow selects one of two fixed jobs, without overrides or broader invocation IAM.
+This supersedes the initial canary-only command restriction above.

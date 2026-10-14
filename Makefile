@@ -20,6 +20,7 @@ build:
 	go build -trimpath -o bin/worker ./cmd/worker
 	go build -trimpath -o bin/deliver ./cmd/deliver
 	go build -trimpath -o bin/sandbox-qualify ./cmd/sandbox-qualify
+	go build -trimpath -o bin/sandbox-probe ./cmd/sandbox-probe
 
 web-check:
 	npm --prefix web run api:check

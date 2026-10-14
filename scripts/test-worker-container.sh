@@ -30,6 +30,7 @@ check_rejected() {
   local result=0
   local entrypoint=()
   if [[ "$case_name" == delivery-* ]]; then entrypoint=(--entrypoint /deliver); fi
+  if [[ "$case_name" == probe-* ]]; then entrypoint=(--entrypoint /sandbox-probe); fi
   docker run --cidfile "$work_dir/$case_name.cid" --rm --pull=never --network=none --read-only --cap-drop=ALL \
     --security-opt=no-new-privileges:true --user=65532:65532 --pids-limit=64 \
     --memory=128m --cpus=1 "${entrypoint[@]}" "$candidate_id" "$@" >"$work_dir/$case_name" 2>&1 &
@@ -43,7 +44,13 @@ check_rejected() {
     exit 1
   fi
   wait "$run_pid" || result=$?
-  [[ "$result" == 1 ]] || { echo 'FAIL: worker did not reject configuration' >&2; exit 1; }
+  local expected_status=1
+  if [[ "$case_name" == probe-* ]]; then expected_status=2; fi
+  [[ "$result" == "$expected_status" ]] || { echo 'FAIL: worker did not reject configuration' >&2; exit 1; }
+  if [[ "$case_name" == probe-* ]]; then
+    node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(r.status!=="blocked"||r.checks[0].reason!=="invalid_invocation")process.exit(1)' "$work_dir/$case_name"
+    return
+  fi
   if [[ "$case_name" == delivery-* ]]; then
     printf 'BLOCKED: delivery configuration\n' >"$work_dir/expected"
   else
@@ -57,4 +64,6 @@ check_rejected missing-consumer -mode=consumer
 check_rejected secret-flag -password=synthetic-rejected-value
 check_rejected delivery-default
 check_rejected delivery-secret-flag -secret=synthetic-rejected-value
-printf 'PASS: worker and delivery commands reject six invalid configurations offline with fixed diagnostics.\n'
+check_rejected probe-default
+check_rejected probe-no-pins -allow-sandbox
+printf 'PASS: worker, delivery and probe commands reject eight invalid configurations offline with fixed diagnostics.\n'

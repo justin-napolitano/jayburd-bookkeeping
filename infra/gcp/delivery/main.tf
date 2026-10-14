@@ -18,7 +18,7 @@ resource "google_secret_manager_secret" "canary" {
   lifecycle { prevent_destroy = true }
 }
 resource "google_secret_manager_secret_iam_member" "add_canary" {
-  count     = var.canary == null ? 0 : (var.canary.mode == "execute" ? 1 : 0)
+  count     = var.canary == null ? 0 : (var.canary.mode == "execute" && var.canary.key == "JAYBURD_DELIVERY_CANARY" ? 1 : 0)
   project   = var.project_id
   secret_id = google_secret_manager_secret.canary.secret_id
   role      = "roles/secretmanager.secretVersionAdder"
@@ -68,12 +68,12 @@ resource "google_cloud_run_v2_job" "canary" {
       containers {
         image   = var.canary.image
         command = ["/deliver"]
-        args    = concat(["-${var.canary.mode}", "-project-id=${var.project_id}", "-project-number=${var.project_number}", "-infisical-project=${var.canary.infisical_project}", "-infisical-identity=${var.canary.infisical_identity}", "-source-version=${var.canary.source_version}"], var.canary.mode == "execute" ? ["-source-id=${var.canary.source_id}"] : [])
+        args    = concat(["-${var.canary.mode}", "-key=${var.canary.key}", "-project-id=${var.project_id}", "-project-number=${var.project_number}", "-infisical-project=${var.canary.infisical_project}", "-infisical-identity=${var.canary.infisical_identity}", "-source-version=${var.canary.source_version}"], var.canary.mode == "execute" ? ["-source-id=${var.canary.source_id}"] : [])
         resources { limits = { cpu = "1", memory = "512Mi" } }
       }
     }
   }
-  depends_on = [google_secret_manager_secret_iam_member.add_canary, google_storage_bucket_iam_member.registry]
+  depends_on = [google_secret_manager_secret_iam_member.provider_delivery, google_secret_manager_secret_iam_member.add_canary, google_storage_bucket_iam_member.registry]
   lifecycle { prevent_destroy = true }
 }
 # The workflow caller may invoke the canary job but cannot impersonate the runtime or override its arguments.
@@ -118,4 +118,59 @@ resource "google_service_account_iam_member" "runner_federation" {
   service_account_id = google_service_account.runner.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/projects/${var.project_number}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.canary.workload_identity_pool_id}/attribute.repository_id/1414515318"
+}
+
+# Only the selected static key gets write authority; existing worker-owned containers are not adopted here.
+resource "google_secret_manager_secret_iam_member" "provider_delivery" {
+  count     = var.canary == null ? 0 : (var.canary.mode == "execute" && var.canary.key != "JAYBURD_DELIVERY_CANARY" ? 1 : 0)
+  project   = var.project_id
+  secret_id = var.canary.key == "PLAID_CLIENT_ID" ? "jayburd-dev-bank-sync-client-id" : "jayburd-dev-bank-sync-client-secret"
+  role      = "roles/secretmanager.secretVersionAdder"
+  member    = "serviceAccount:${google_service_account.delivery.email}"
+}
+# Probe authority is separate from source delivery and has no database or write privileges.
+resource "google_service_account" "sandbox_probe" {
+  count        = var.sandbox_probe == null ? 0 : 1
+  project      = var.project_id
+  account_id   = "jayburd-dev-sandbox-probe"
+  display_name = "Jayburd bounded Sandbox probe"
+}
+resource "google_secret_manager_secret_iam_member" "sandbox_read" {
+  for_each  = var.sandbox_probe == null ? toset([]) : toset(["client-id", "client-secret"])
+  project   = var.project_id
+  secret_id = "jayburd-dev-bank-sync-${each.key}"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.sandbox_probe[0].email}"
+}
+resource "google_cloud_run_v2_job" "sandbox_probe" {
+  count               = var.sandbox_probe == null ? 0 : 1
+  project             = var.project_id
+  name                = "jayburd-dev-sandbox-probe"
+  location            = var.region
+  deletion_protection = true
+  template {
+    task_count  = 1
+    parallelism = 1
+    template {
+      service_account = google_service_account.sandbox_probe[0].email
+      max_retries     = 0
+      timeout         = "180s"
+      containers {
+        image   = var.sandbox_probe.image
+        command = ["/sandbox-probe"]
+        args    = ["-allow-sandbox", "-project-number=${var.project_number}", "-client-id-version=${var.sandbox_probe.client_id_version}", "-client-secret-version=${var.sandbox_probe.client_secret_version}"]
+        resources { limits = { cpu = "1", memory = "512Mi" } }
+      }
+    }
+  }
+  depends_on = [google_secret_manager_secret_iam_member.sandbox_read]
+  lifecycle { prevent_destroy = true }
+}
+resource "google_cloud_run_v2_job_iam_member" "sandbox_invoke" {
+  count    = var.enable_github_canary && var.sandbox_probe != null ? 1 : 0
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_job.sandbox_probe[0].name
+  role     = google_project_iam_custom_role.invoke.name
+  member   = "serviceAccount:${google_service_account.runner.email}"
 }

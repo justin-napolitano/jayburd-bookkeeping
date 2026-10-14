@@ -396,3 +396,12 @@ ISO exchange conformance.
 - [Canary metadata lookup](../contracts/delivery-job.md): reviewed Infisical Retrieve
   query parameters for value-disabled exact-version discovery. Synthetic tests
   validate output minimization; actual project authentication remains unverified.
+
+### Hosted Sandbox smoke test (2026-10-14)
+
+- [Plaid Sandbox API](https://plaid.com/docs/api/sandbox/): reviewed public-token
+  creation request/results; explicitly bypasses Link for fictional Items.
+- [Plaid Items API](https://plaid.com/docs/api/items/): reviewed token exchange and
+  Item removal; used for memory-only probe setup and bounded cleanup.
+- [Probe contract](../contracts/hosted-sandbox-probe.md) records applicability,
+  implementation limits and named tests. Source review is not hosted API evidence.

@@ -19,8 +19,8 @@ import (
 
 // config carries public binding identifiers; secret values and URLs are never accepted.
 type config struct {
-	project, number, sourceProject, identity, sourceID, version string
-	lookup                                                      bool
+	project, number, sourceProject, identity, sourceID, version, key string
+	lookup                                                           bool
 }
 
 var uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
@@ -28,6 +28,9 @@ var projectPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`)
 
 // valid rejects missing bindings before any metadata authentication or external operation.
 func (c config) valid() bool {
+	if c.key != "JAYBURD_DELIVERY_CANARY" && c.key != "PLAID_CLIENT_ID" && c.key != "PLAID_SECRET" {
+		return false
+	}
 	n, e := strconv.ParseInt(c.number, 10, 64)
 	v, ve := strconv.ParseInt(c.version, 10, 64)
 	if e != nil || n <= 0 || strconv.FormatInt(n, 10) != c.number || ve != nil || v <= 0 || strconv.FormatInt(v, 10) != c.version || !projectPattern.MatchString(c.project) {
@@ -58,6 +61,7 @@ func run(ctx context.Context, args []string, out io.Writer, execute func(context
 	f.StringVar(&c.sourceProject, "infisical-project", "", "")
 	f.StringVar(&c.identity, "infisical-identity", "", "")
 	f.StringVar(&c.sourceID, "source-id", "", "")
+	f.StringVar(&c.key, "key", "JAYBURD_DELIVERY_CANARY", "")
 	f.StringVar(&c.version, "source-version", "", "")
 	f.BoolVar(&authorized, "execute", false, "")
 	f.BoolVar(&check, "check", false, "")
@@ -99,7 +103,7 @@ func run(ctx context.Context, args []string, out io.Writer, execute func(context
 		}
 		return 0
 	}
-	fmt.Fprintln(out, "PASS: canary delivery acknowledged; independent verification pending")
+	fmt.Fprintln(out, "PASS: delivery acknowledged; independent verification pending")
 	return 0
 }
 
@@ -123,9 +127,9 @@ func managed(ctx context.Context, c config) (providersecrets.CanaryMetadata, err
 		return providersecrets.CanaryMetadata{}, e
 	}
 	if c.lookup {
-		return delivery.LookupCanary(ctx, c.version)
+		return delivery.LookupRoot(ctx, c.key, c.version)
 	}
-	_, e = delivery.Deliver(ctx, providersecrets.DeliveryRequest{Key: "JAYBURD_DELIVERY_CANARY", SourceID: c.sourceID, SourceVersion: c.version})
+	_, e = delivery.Deliver(ctx, providersecrets.DeliveryRequest{Key: c.key, SourceID: c.sourceID, SourceVersion: c.version})
 	return providersecrets.CanaryMetadata{}, e
 }
 

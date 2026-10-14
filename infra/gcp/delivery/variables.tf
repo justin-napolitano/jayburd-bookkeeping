@@ -22,13 +22,14 @@ variable "region" {
 }
 variable "canary" {
   description = "Reviewed public metadata only. Null provisions identity/storage but no executable job."
-  type        = object({ image = string, infisical_project = string, infisical_identity = string, source_id = optional(string), source_version = string, mode = optional(string, "lookup") })
+  type        = object({ image = string, infisical_project = string, infisical_identity = string, source_id = optional(string), source_version = string, mode = optional(string, "lookup"), key = optional(string, "JAYBURD_DELIVERY_CANARY") })
   default     = null
   validation {
     condition = var.canary == null ? true : (
       can(regex("^us-central1-docker[.]pkg[.]dev/${var.project_id}/jayburd-dev/worker@sha256:[a-f0-9]{64}$", var.canary.image)) &&
       alltrue([for id in [var.canary.infisical_project, var.canary.infisical_identity] : can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", id)) && id != "00000000-0000-0000-0000-000000000000"]) &&
       contains(["lookup", "execute"], var.canary.mode) &&
+      contains(["JAYBURD_DELIVERY_CANARY", "PLAID_CLIENT_ID", "PLAID_SECRET"], var.canary.key) &&
       (var.canary.mode == "lookup" ? var.canary.source_id == null : try(can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", var.canary.source_id)) && var.canary.source_id != "00000000-0000-0000-0000-000000000000", false)) &&
       can(regex("^[1-9][0-9]{0,18}$", var.canary.source_version)) && try(tonumber(var.canary.source_version) <= 9223372036854775807, false)
     )
@@ -42,5 +43,18 @@ variable "enable_github_canary" {
   validation {
     condition     = !var.enable_github_canary || var.canary != null
     error_message = "A reviewed canary job is required before execution federation can be enabled."
+  }
+}
+
+# Optional probe references existing numeric destination versions; no secret payload enters Terraform.
+variable "sandbox_probe" {
+  type    = object({ image = string, client_id_version = string, client_secret_version = string })
+  default = null
+  validation {
+    condition = var.sandbox_probe == null ? true : (
+      can(regex("^us-central1-docker[.]pkg[.]dev/${var.project_id}/jayburd-dev/worker@sha256:[a-f0-9]{64}$", var.sandbox_probe.image)) &&
+      alltrue([for v in [var.sandbox_probe.client_id_version, var.sandbox_probe.client_secret_version] : can(regex("^[1-9][0-9]{0,18}$", v)) && try(tonumber(v) <= 9223372036854775807, false)])
+    )
+    error_message = "Probe requires a pinned worker image and exact numeric versions."
   }
 }
