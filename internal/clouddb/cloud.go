@@ -22,9 +22,9 @@ var instancePattern = regexp.MustCompile(`^([a-z][a-z0-9-]{4,28}[a-z0-9]):us-cen
 // Config contains identifiers only; user/database are derived to prevent role substitution.
 type Config struct{ Instance, Component string }
 
-// Validate confines callers to the reviewed region and two implemented identities.
+// Validate confines callers to the reviewed region and the explicitly implemented identities.
 func (c Config) Validate() error {
-	if !instancePattern.MatchString(c.Instance) || (c.Component != "api" && c.Component != "migrator") {
+	if !instancePattern.MatchString(c.Instance) || (c.Component != "api" && c.Component != "migrator" && c.Component != "publisher" && c.Component != "sync") {
 		return ErrConfiguration
 	}
 	return nil
@@ -49,7 +49,7 @@ func PoolConfig(c Config, dial func(context.Context, string, string) (net.Conn, 
 	p.ConnConfig.DialFunc = dial
 	p.ConnConfig.Fallbacks = nil
 	p.MaxConns = 5
-	if c.Component == "migrator" {
+	if c.Component != "api" {
 		p.MaxConns = 2
 	}
 	p.MinConns = 0

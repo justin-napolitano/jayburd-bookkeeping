@@ -1,0 +1,15 @@
+# Strict source allowlist: unrelated files and secret material never enter context.
+**
+!Dockerfile.worker
+!go.mod
+!go.sum
+!cmd/
+!cmd/worker/
+!cmd/worker/*.go
+!internal/
+!internal/**/
+!internal/**/*.go
+**/.env
+**/.env.*
+**/*.secret*
+**/*private*key*

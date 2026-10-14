@@ -9,7 +9,7 @@ import (
 
 // TestConnectorConfiguration proves exact identifiers, pool bounds and absence of raw TCP fallback.
 func TestConnectorConfiguration(t *testing.T) {
-	for _, component := range []string{"api", "migrator"} {
+	for _, component := range []string{"api", "migrator", "publisher", "sync"} {
 		called := false
 		cfg, err := PoolConfig(Config{"synthetic-project:us-central1:jayburd-dev", component}, func(context.Context, string, string) (net.Conn, error) {
 			called = true
@@ -19,7 +19,7 @@ func TestConnectorConfiguration(t *testing.T) {
 			t.Fatal(err)
 		}
 		want := int32(5)
-		if component == "migrator" {
+		if component != "api" {
 			want = 2
 		}
 		if cfg.MaxConns != want || cfg.MinConns != 0 || cfg.ConnConfig.Password != "" || cfg.ConnConfig.TLSConfig != nil || len(cfg.ConnConfig.Fallbacks) != 0 || cfg.ConnConfig.User != "jayburd-dev-"+component+"@synthetic-project.iam" {
