@@ -54,3 +54,13 @@ from source binding revision so pausing acquisition does not change accounting
 mapping authority. SQL and full-stack acceptance are recorded in the
 [operations runbook](../runbooks/connection-operations.md); hosted routing and
 measured capacity remain qualification work.
+
+## PI01 compatibility refresh — 2026-10-14
+
+Reviewed the official Transactions API transaction_code response description:
+nullable classification, populated for European and some US institutions and
+null where unavailable. No provider payload was inspected. Accepting this as
+bounded inert metadata is a project interpretation; it cannot assign accounting
+meaning. See the [decoder contract](../contracts/plaid-decoder.md) and
+[regression evidence](../runbooks/sandbox-decoder.md). This selected-field review
+is not a complete response-schema audit or proof of the hosted failure cause.
