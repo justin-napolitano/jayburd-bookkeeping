@@ -154,3 +154,17 @@ single-account disconnect, Item removal uncertainty and private context access.
 Named executed evidence belongs in the [runbook](../runbooks/connection-sql.md).
 No test names here imply PASS. Hosted adapters, secret policy and Sandbox/live
 qualification remain explicit external gates.
+
+Private context revalidates Item generation and the approved sibling set for every
+nonterminal attempt before exposing credential references. Unclaimed attempts also
+require unexpired handoff authority; public status remains readable with current
+permissions after these pins become stale.
+
+New and first-claimed reconnect/rotation/removal operations require Item state
+active, paused or reauthorization_required. A claimed operation first moves the
+Item into credential_recovery_required or disconnect_pending, excluding overlapping
+remote mutations even when two attempts were prepared beforehand. Only that pinned
+attempt may reconcile its recorded manifest/reference. Unknown operations without
+a persisted manifest have no automatic recovery path; a new attempt cannot bypass
+the unresolved remote outcome. Generation fencing alone cannot cancel an in-flight
+provider request.

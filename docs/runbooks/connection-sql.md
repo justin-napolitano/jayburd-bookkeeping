@@ -17,7 +17,7 @@ Contract: [connection SQL](../contracts/connection-sql.md).
 | Contract | Coordinator approved explicit connect permission, owner-configured worker identity, one-shot claims, explicit bounded provider-first grants and lifecycle fences before DDL. Exact functions shared with both Go lanes. |
 | Implement | Migration 13 adds actor/scope/expiry/nonce attempts, one-shot claim and manifest-before-secret publication, immutable credential receipts, explicit binding, scoped management and current acquisition context/resume. |
 | Review refinements | Same-Item/account verification, precise affected-stream pins, per-account vs Item fences, exact UTC expiry and malformed-container diagnostics; worker configuration disable explicitly distinguished from revoking enrolled acquisition. |
-| SQL proof | Disposable PostgreSQL migrations 1–13 plus **11 top-level groups and 5 named subtests PASS**. Actual operator/API/sync logins; no role impersonation at runtime boundaries. |
+| SQL proof | Disposable PostgreSQL migrations 1–13 plus **12 top-level groups and 5 named subtests PASS**. Actual operator/API/sync logins; no role impersonation at runtime boundaries. |
 | Default checks | `make check`, `make test`, `make build` PASS with Go 1.26.9 and isolated caches. |
 | Integration | Coordinator owns runner/Make/CI/schema-version and prior privilege-fixture extensions; shared combined regression runs after this commit is integrated. |
 
@@ -92,3 +92,19 @@ contract and this runbook. Migrations 1–12 untouched. Coordinator's copied
 `scripts/test-connection-state.sh` stays untracked and is not committed here.
 Stage guard and diff check required before every implementation commit. No push,
 provider access or deployment from this lane.
+
+## Follow-up: credential context and exclusive remote operations
+
+Independent service review found that current actor authorization alone did not
+revalidate Item generation before credential reads. Private context now rejects
+stale nonterminal Item/sibling pins and expired unclaimed attempts while public
+status stays readable. Begin and first claim reject Items with unresolved remote
+operations, preventing overlapping rotation/removal/reconnect calls.
+
+`TestConnectionPrivateContextFenceAndExclusiveClaim` PASS in the disposable
+PostgreSQL proof: two attempts prepared before a claim, rejection of the second
+claim/context, rejection of all new lifecycle modes after the claim, generation
+change rejection before credential access, and retained public status reads.
+The focused proof now passes 12 top-level groups and 5 named subtests. Unknown
+operations without a persisted manifest still require separately reviewed recovery;
+there is no automatic retry or fresh-attempt escape.
