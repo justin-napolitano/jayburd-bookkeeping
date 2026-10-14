@@ -134,7 +134,14 @@ BEGIN
  RETURN v||jsonb_build_object('nonce',a.nonce,'item_generation',a.item_generation::text,'expected_item_id',a.expected_item_id,'claim_id',a.claim_id,'credential_ref',a.credential_ref,'credential_version',a.credential_version::text,'previous_credential_ref',a.previous_credential_ref,'previous_credential_version',a.previous_credential_version::text,'link_token_sha256',a.link_token_sha256,'public_token_sha256',a.public_token_sha256,'execute_link',false,'execute_provider',false);
 END $$;
 -- Read paths reauthorize instead of exposing stale attempt metadata after revocation.
-CREATE FUNCTION integration.connection_context(actor uuid,e uuid,b uuid,id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$ BEGIN RETURN integration.render_connection(integration.connection_lock(actor,e,b,id),true);END $$;
+CREATE FUNCTION integration.connection_context(actor uuid,e uuid,b uuid,id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE a integration.connection_attempt;
+BEGIN
+ a:=integration.connection_lock(actor,e,b,id);
+ IF a.claim_id IS NULL AND clock_timestamp()>=a.expires_at THEN PERFORM integration.connection_error('P2703');END IF;
+ IF a.sync_item_id IS NOT NULL AND a.state NOT IN ('active','disconnected') THEN PERFORM integration.connection_item_pin(a);END IF;
+ RETURN integration.render_connection(a,true);
+END $$;
 CREATE FUNCTION integration.get_connection_attempt(actor uuid,e uuid,b uuid,id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$ BEGIN RETURN integration.render_connection(integration.connection_lock(actor,e,b,id),false);END $$;
 -- Bind user intent to actor/scope before any Link session is created.
 CREATE FUNCTION integration.begin_connection(actor uuid,e uuid,b uuid,k text,raw text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
@@ -150,7 +157,7 @@ BEGIN
   SELECT * INTO i FROM integration.sync_item WHERE entity_id=e AND book_id=b AND sync_item_id=ledger.uuid_value(v->'sync_item_id');IF NOT FOUND THEN PERFORM integration.connection_error('P2701');END IF;
   FOR sid IN SELECT source_account_id FROM integration.sync_stream WHERE entity_id=e AND book_id=b AND sync_item_id=i.sync_item_id ORDER BY source_account_id LOOP PERFORM integration.connection_source(actor,e,b,sid);END LOOP;
   SELECT * INTO i FROM integration.sync_item WHERE entity_id=e AND book_id=b AND sync_item_id=i.sync_item_id FOR UPDATE;
-  IF i.generation<>banking.import_revision(v->'expected_generation') OR i.state='disconnected' THEN PERFORM integration.connection_error('P2703');END IF;
+  IF i.generation<>banking.import_revision(v->'expected_generation') OR i.state NOT IN ('active','paused','reauthorization_required') THEN PERFORM integration.connection_error('P2703');END IF;
   SELECT coalesce(jsonb_agg(stream_id ORDER BY stream_id),'[]'::jsonb) INTO approved FROM integration.sync_stream WHERE entity_id=e AND book_id=b AND sync_item_id=i.sync_item_id;
   IF approved<>(SELECT coalesce(jsonb_agg(ledger.uuid_value(value) ORDER BY ledger.uuid_value(value)),'[]'::jsonb) FROM jsonb_array_elements(v->'approved_stream_ids')) THEN PERFORM integration.connection_error('P2703');END IF;
  END IF;
@@ -193,7 +200,7 @@ BEGIN
  ELSE IF a.state<>'link_pending' OR link_hash IS NOT NULL OR public_hash IS NOT NULL THEN PERFORM integration.connection_error('P2704');END IF;END IF;
  IF a.sync_item_id IS NOT NULL THEN
   i:=integration.connection_item_pin(a);
-  IF i.generation<>a.item_generation OR i.state='disconnected' THEN PERFORM integration.connection_error('P2703');END IF;
+  IF i.generation<>a.item_generation OR i.state NOT IN ('active','paused','reauthorization_required') THEN PERFORM integration.connection_error('P2703');END IF;
   i:=integration.connection_fence(e,b,i.sync_item_id,CASE WHEN a.mode='remove' THEN 'disconnect_pending' ELSE 'credential_recovery_required' END);
  END IF;
  UPDATE integration.connection_attempt SET claim_id=gen_random_uuid(),credential_ref=CASE WHEN mode IN ('reconnect','remove') THEN previous_credential_ref ELSE gen_random_uuid() END,credential_version=CASE WHEN mode='new' THEN 1 WHEN mode='rotate' THEN previous_credential_version+1 ELSE previous_credential_version END,public_token_sha256=public_hash,item_generation=i.generation,state=CASE WHEN mode='remove' THEN 'disconnect_pending' ELSE 'exchange_claimed' END WHERE entity_id=e AND book_id=b AND attempt_id=id RETURNING * INTO a;
