@@ -50,7 +50,8 @@ func (c Config) Validate() error {
 	}
 	expiry, e := time.Parse(time.RFC3339, c.ConsentExpiresAt)
 	now := time.Now()
-	if !c.LinkEventsQualified || !project.MatchString(c.ProjectID) || !number.MatchString(c.ProjectNumber) || !nonzeroUUID(c.InfisicalProject) || !nonzeroUUID(c.InfisicalIdentity) || c.InfisicalEnvironment != "dev" || c.RegistryBucket != c.ProjectID+"-jayburd-dev-credential-registry" || c.RegistryPrefix != "provider-credentials-v1" || e != nil || !expiry.After(now) || expiry.After(now.Add(30*24*time.Hour)) {
+	// Hosted Link has session results by default; ordinary SDK enablement is metadata only.
+	if !project.MatchString(c.ProjectID) || !number.MatchString(c.ProjectNumber) || !nonzeroUUID(c.InfisicalProject) || !nonzeroUUID(c.InfisicalIdentity) || c.InfisicalEnvironment != "dev" || c.RegistryBucket != c.ProjectID+"-jayburd-dev-credential-registry" || c.RegistryPrefix != "provider-credentials-v1" || e != nil || !expiry.After(now) || expiry.After(now.Add(30*24*time.Hour)) {
 		return ErrConfiguration
 	}
 	if c.InfisicalOrigin != "https://us.infisical.com" && c.InfisicalOrigin != "https://eu.infisical.com" && c.InfisicalOrigin != "https://app.infisical.com" {

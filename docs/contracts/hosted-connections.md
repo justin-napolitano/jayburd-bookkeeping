@@ -3,7 +3,8 @@
 ## Approved bounded composition
 
 The API keeps connection enrollment disabled unless explicit complete metadata
-configuration and `plaid-link-events-qualified` acknowledgement are supplied.
+configuration is supplied. `plaid-link-events-qualified` remains ordinary-SDK
+account metadata; false is supported by the Sandbox Hosted Link profile.
 Enabled composition requires managed mode and the existing Cloud SQL IAM API pool;
 no second pool, alternate DSN, provider credential argument or environment lookup
 is introduced. Disabled composition reads no metadata token or secret and mounts
@@ -27,12 +28,11 @@ The command uses direct managed metadata transport without proxy/ADC discovery.
 
 ## Link and operational limits
 
-The acknowledgement records an operator assertion of ordinary-Link event enablement;
-it does not establish that Plaid enabled it, nor perform interactive Link. Current
-frontend ordinary-Link integration remains unavailable. The API provider's
-VerifySession needs link/token/get event data; its CreateLink does not enable Hosted
-Link. Reconnect remains unsupported by that provider. Sandbox qualification stays
-partial until the actual user/session/secret/SQL/webhook proof is completed.
+The [Hosted Link enrollment profile](hosted-link-enrollment.md) creates a
+Plaid-hosted session and resolves server completion before exchange. It does not
+require ordinary-SDK Link-events enablement. Retained LinkEventsQualified metadata
+cannot establish that Plaid enabled it. Reconnect remains unsupported; actual
+interactive session/secret/SQL/webhook qualification remains open.
 
 Existing12s API budget is unchanged. Unknown exchange/write/propagation outcomes
 follow durable service recovery; a slow propagation cannot authorize a new exchange

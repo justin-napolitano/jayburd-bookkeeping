@@ -12,7 +12,7 @@ Do not read or publish Terraform plans/state. This source is not live-cloud evid
 
 Optional `connections` metadata is null by default: no enrollment flags are added.
 An owner-reviewed object may specify `infisical_origin`, `infisical_project`,
-`infisical_identity`, `link_events_qualified = true`, `client_id_version`,
+`infisical_identity`, `link_events_qualified = false` (Hosted Link needs no ordinary-SDK enablement), `client_id_version`,
 `client_secret_version`, and an absolute `consent_expires_at`. The static versions
 must be numeric immutable resources in this project number's exact
 `jayburd-dev-bank-sync-client-id` and `jayburd-dev-bank-sync-client-secret`

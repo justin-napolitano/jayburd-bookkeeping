@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"regexp"
 	"time"
 	"unicode/utf8"
 )
@@ -88,6 +89,7 @@ func (p *HTTPProvider) CreateLink(ctx context.Context, input LinkRequest) (LinkR
 	body := map[string]any{"client_name": "Jayburd", "language": "en", "country_codes": []string{"US"}, "user": map[string]string{"client_user_id": input.ActorID}}
 	if input.Mode == "new" {
 		body["products"] = []string{"transactions"}
+		body["hosted_link"] = map[string]any{"url_lifetime_seconds": 900}
 	} else {
 		if !secretValid(input.AccessToken) {
 			return LinkResult{}, failed("invalid_request")
@@ -95,6 +97,7 @@ func (p *HTTPProvider) CreateLink(ctx context.Context, input LinkRequest) (LinkR
 		body["access_token"] = input.AccessToken.value
 	}
 	var response struct {
+		HostedURL  string `json:"hosted_link_url"`
 		Token      string `json:"link_token"`
 		Expiration string `json:"expiration"`
 	}
@@ -105,14 +108,22 @@ func (p *HTTPProvider) CreateLink(ctx context.Context, input LinkRequest) (LinkR
 	if e != nil || !expiry.After(time.Now()) || !secretValid(NewSecret(response.Token)) {
 		return LinkResult{}, failed("provider_unavailable")
 	}
-	return LinkResult{NewSecret(response.Token), expiry}, nil
+	if !validHostedURL(response.HostedURL) {
+		return LinkResult{}, failed("provider_unavailable")
+	}
+	return LinkResult{Token: NewSecret(response.Token), ExpiresAt: expiry, HostedURL: NewSecret(response.HostedURL)}, nil
 }
 
-// VerifySession requires one completed server-reported new Item result matching the public token.
-// Ordinary update-mode session proof is deliberately unavailable until its hosted profile is qualified.
-func (p *HTTPProvider) VerifySession(ctx context.Context, link, public Secret, expectedItem string) error {
-	if !secretValid(link) || !secretValid(public) || expectedItem != "" {
-		return failed("provider_unavailable")
+// validHostedURL restricts navigation to the reviewed Plaid-hosted opaque path only.
+func validHostedURL(v string) bool {
+	return len(v) <= 2048 && regexp.MustCompile(`^https://secure\.plaid\.com/hl/[A-Za-z0-9_-]+$`).MatchString(v)
+}
+
+// CompletedPublicToken reads a single completed association without consuming an exchange claim.
+// Empty results mean pending; ambiguity and malformed results never choose a first token.
+func (p *HTTPProvider) CompletedPublicToken(ctx context.Context, link Secret) (Secret, error) {
+	if !secretValid(link) {
+		return Secret{}, failed("invalid_request")
 	}
 	var response struct {
 		Token    string `json:"link_token"`
@@ -126,30 +137,51 @@ func (p *HTTPProvider) VerifySession(ctx context.Context, link, public Secret, e
 		} `json:"link_sessions"`
 	}
 	if e := p.post(ctx, "/link/token/get", map[string]any{"link_token": link.value}, &response); e != nil {
-		return e
+		return Secret{}, e
 	}
-	if response.Token != link.value || len(response.Sessions) == 0 || len(response.Sessions) > 25 {
-		return failed("provider_unavailable")
+	if response.Token != link.value || len(response.Sessions) > 25 {
+		return Secret{}, failed("provider_unavailable")
 	}
-	matches := 0
+	var token Secret
+	count := 0
 	for _, session := range response.Sessions {
-		if session.Finished == nil || session.Results == nil {
+		if session.Finished == nil {
 			continue
 		}
 		when, e := time.Parse(time.RFC3339, *session.Finished)
 		if e != nil || when.After(time.Now()) || time.Since(when) > 6*time.Hour {
-			return failed("provider_unavailable")
+			return Secret{}, failed("provider_unavailable")
+		}
+		if session.Results == nil {
+			continue
 		}
 		if len(session.Results.Added) > 25 {
-			return failed("provider_unavailable")
+			return Secret{}, failed("provider_unavailable")
 		}
 		for _, item := range session.Results.Added {
-			if item.PublicToken == public.value {
-				matches++
+			token = NewSecret(item.PublicToken)
+			if !secretValid(token) {
+				return Secret{}, failed("provider_unavailable")
 			}
+			count++
 		}
 	}
-	if matches != 1 {
+	if count == 0 {
+		return Secret{}, failed("link_session_pending")
+	}
+	if count != 1 {
+		return Secret{}, failed("provider_unavailable")
+	}
+	return token, nil
+}
+
+// VerifySession requires exactly one completed provider result matching the claimed token.
+func (p *HTTPProvider) VerifySession(ctx context.Context, link, public Secret, expectedItem string) error {
+	if expectedItem != "" || !secretValid(public) {
+		return failed("provider_unavailable")
+	}
+	token, e := p.CompletedPublicToken(ctx, link)
+	if e != nil || token.value != public.value {
 		return failed("provider_unavailable")
 	}
 	return nil

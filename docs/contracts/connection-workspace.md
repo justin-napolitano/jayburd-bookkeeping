@@ -8,7 +8,9 @@ sections reviewed: routes, authority, one-shot claims, verified manifest binding
 credential recovery and concrete adapter limitations. These reuse PI05–PI08's
 recorded source review; this UI adds no provider behavior or ISO message claim.
 Internal connection commands follow the existing standards applicability profile;
-currency versions and dates remain explicit. No provider SDK or live qualification.
+currency versions and dates remain explicit. No live qualification is implied.
+The [Hosted Link completion contract](hosted-link-enrollment.md) extends the
+original adapter flow with an explicit new-tab handoff and completion check.
 
 ## Component contract
 

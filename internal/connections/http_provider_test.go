@@ -40,10 +40,10 @@ func TestPlaidHTTPEnrollmentWire(t *testing.T) {
 		paths = append(paths, r.URL.Path)
 		switch r.URL.Path {
 		case "/link/token/create":
-			if v["products"].([]any)[0] != "transactions" || v["user"].(map[string]any)["client_user_id"] != actorID {
+			if v["hosted_link"].(map[string]any)["url_lifetime_seconds"] != float64(900) || v["products"].([]any)[0] != "transactions" || v["user"].(map[string]any)["client_user_id"] != actorID {
 				t.Fatal("wrong Link scope")
 			}
-			return response(200, `{"link_token":"synthetic-link","expiration":"2099-01-01T00:00:00Z"}`), nil
+			return response(200, `{"link_token":"synthetic-link","expiration":"2099-01-01T00:00:00Z","hosted_link_url":"https://secure.plaid.com/hl/synthetic"}`), nil
 		case "/link/token/get":
 			if v["link_token"] != "synthetic-link" {
 				t.Fatal("wrong token")
@@ -182,5 +182,45 @@ func TestPlaidHTTPCancellation(t *testing.T) {
 	_, e := p.Exchange(ctx, NewSecret("synthetic-public"))
 	if e == nil || strings.Contains(e.Error(), "private") {
 		t.Fatal("cancellation escaped")
+	}
+}
+
+// TestHostedLinkNavigation rejects credential-bearing or attacker-controlled navigation variants.
+func TestHostedLinkNavigation(t *testing.T) {
+	for _, u := range []string{"http://secure.plaid.com/hl/a", "https://secure.plaid.com.evil.test/hl/a", "https://evil@secure.plaid.com/hl/a", "https://secure.plaid.com:443/hl/a", "https://secure.plaid.com/hl/a?token=x", "https://secure.plaid.com/hl/a#x", "https://secure.plaid.com/hl/%2f", "https://secure.plaid.com/hl/a/b", ""} {
+		if validHostedURL(u) {
+			t.Fatal("unsafe navigation accepted")
+		}
+	}
+	if !validHostedURL("https://secure.plaid.com/hl/synthetic-1_a") {
+		t.Fatal("reviewed path rejected")
+	}
+}
+
+// TestHostedLinkCompletion checks pending, unique, ambiguous and stale results without remote mutations.
+func TestHostedLinkCompletion(t *testing.T) {
+	finished := time.Now().Add(-time.Minute).UTC().Format(time.RFC3339)
+	for _, tc := range []struct{ name, sessions, want string }{
+		{"pending", `[]`, "link_session_pending"},
+		{"unfinished", `[{"finished_at":null,"results":null}]`, "link_session_pending"},
+		{"complete", `[{"finished_at":"` + finished + `","results":{"item_add_results":[{"public_token":"synthetic-public"}]}}]`, ""},
+		{"ambiguous", `[{"finished_at":"` + finished + `","results":{"item_add_results":[{"public_token":"one"},{"public_token":"two"}]}}]`, "provider_unavailable"},
+		{"stale", `[{"finished_at":"2000-01-01T00:00:00Z","results":{"item_add_results":[{"public_token":"one"}]}}]`, "provider_unavailable"},
+		{"invalid", `[{"finished_at":"` + finished + `","results":{"item_add_results":[{"public_token":""}]}}]`, "provider_unavailable"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p, _ := NewHTTPProvider(config(), roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				if r.URL.Path != "/link/token/get" {
+					t.Fatal("unexpected mutation")
+				}
+				return response(200, `{"link_token":"synthetic-link","link_sessions":`+tc.sessions+`}`), nil
+			}))
+			token, e := p.CompletedPublicToken(context.Background(), NewSecret("synthetic-link"))
+			if tc.want != "" {
+				code(t, e, tc.want)
+			} else if e != nil || token.value != "synthetic-public" {
+				t.Fatal("completion rejected")
+			}
+		})
 	}
 }
