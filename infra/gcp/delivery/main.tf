@@ -69,7 +69,7 @@ resource "google_cloud_run_v2_job" "canary" {
         image   = var.canary.image
         command = ["/deliver"]
         args    = concat(["-${var.canary.mode}", "-project-id=${var.project_id}", "-project-number=${var.project_number}", "-infisical-project=${var.canary.infisical_project}", "-infisical-identity=${var.canary.infisical_identity}", "-source-version=${var.canary.source_version}"], var.canary.mode == "execute" ? ["-source-id=${var.canary.source_id}"] : [])
-        resources { limits = { cpu = "1", memory = "256Mi" } }
+        resources { limits = { cpu = "1", memory = "512Mi" } }
       }
     }
   }
