@@ -17,10 +17,11 @@ import (
 
 // Dependencies holds already composed adapters; no request can switch providers.
 type Dependencies struct {
-	Auth       ledger.Authenticator
-	Operations ledger.Operations
-	Ready      func(context.Context) error
-	Close      func()
+	Auth        ledger.Authenticator
+	Operations  ledger.Operations
+	Connections ConnectionOperations
+	Ready       func(context.Context) error
+	Close       func()
 }
 
 // Server owns bounded HTTP lifecycle and distinguishes liveness from dependency readiness.
@@ -63,7 +64,12 @@ func New(c Config, d Dependencies) (*Server, error) {
 		if d.Auth == nil || d.Operations == nil || d.Ready == nil {
 			return nil, errConfiguration
 		}
-		h, err := ledger.BrowserBoundary(c.Origin, ledger.Handler(d.Auth, d.Operations))
+		application := http.NewServeMux()
+		application.Handle("/v1/", ledger.Handler(d.Auth, d.Operations))
+		if d.Connections != nil {
+			mountConnections(application, d.Auth, d.Connections)
+		}
+		h, err := ledger.BrowserBoundary(c.Origin, application)
 		if err != nil {
 			return nil, errConfiguration
 		}

@@ -46,13 +46,13 @@ consolidation remain explicitly deferred under #59.
 
 ## Generated acquisition and review slice
 
-PR #99 is merged. Next tasks are #100 scoped sync SQL/publication, #101 enrollment
-and credential lifecycle, #102 exact decoding/acquisition runner, #103 verified
-webhooks/catch-up and #104 connections UI. #70 owns contract reconciliation;
-#7 retains private worker transport. Native GitHub dependencies determine dispatch.
-Current parallel implementation is the SQL boundary, standalone lossless decoder,
-and private observer transport; enrollment and the complete connected UI remain
-dependent work. See [sync foundations](../runbooks/sync-foundations.md).
+PR #99 and #105 are merged. The current parallel build implements #101 connection
+state/service and #102 acquisition against those foundations. Root composes the
+authenticated HTTP and real SQL enrollment-to-review proof; see
+[connection and acquisition](../runbooks/provider-acquisition.md). #103 verified
+webhooks/catch-up and #104 connections UI remain next product work. #7 retains
+hosted worker composition, and #88 separately qualifies provider/secret delivery.
+Native GitHub dependencies determine dispatch; local proof does not activate Plaid.
 
 Owner direction: no user-prepared CSV is required. #97 loads 3,000 generated
 transactions across fictional LLCs through private staging and the real import

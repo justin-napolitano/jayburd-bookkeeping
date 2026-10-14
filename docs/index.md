@@ -80,9 +80,11 @@ Use the [corpus and execution guide](../tests/corpus/README.md),
 
 ## Next action
 
-The next parallel build is [sync foundations](runbooks/sync-foundations.md).
-Read [runtime boundaries](contracts/provider-runtime-boundaries.md) before the
-provider proposal: SQL, exact decoding and private transport are distinct gates.
+PR #105 merged the [sync foundations](runbooks/sync-foundations.md). The current
+parallel build is [connection and acquisition](runbooks/provider-acquisition.md):
+[connection SQL](contracts/connection-sql.md), [service](contracts/connection-service.md),
+[HTTP](contracts/connection-http.md) and [runner](contracts/acquisition-runner.md).
+Enrollment, acquisition, connected UI and hosted qualification are distinct gates.
 
 Review the [first application evidence](runbooks/first-app.md), then complete the
 managed identity and deployment gates before connecting live accounts. JB-001 remains open for a real

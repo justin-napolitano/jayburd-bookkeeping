@@ -32,3 +32,8 @@ Provider-source compatibility adds `correction_hold`, zero-valued source evidenc
 and optional bounded `provider_exceptions` on review detail. Posted source amounts
 remain historical; exceptions expose revision references separately. These read
 extensions do not add a provider connection or acquisition endpoint.
+
+Optional connection operations are specified in OpenAPI and
+[the HTTP contract](../docs/contracts/connection-http.md). The normal managed server
+leaves their dependency absent. They require explicit composition and connection
+grants; generated types do not mean Plaid/Infisical or the connections UI is enabled.
