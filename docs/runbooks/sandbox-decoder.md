@@ -3,11 +3,12 @@
 
 ## Status and boundary
 
-Issue #118. Existing keys authenticated in hosted execution
-`jayburd-dev-sandbox-probe-k6cd9`; initial decoding blocked and Item cleanup
-succeeded. The old generic reason cannot establish its exact cause. This branch
-fixes a source-confirmed transaction_code compatibility gap and adds redacted
-classifications. No provider payloads or credentials were inspected.
+Issue #118 decoder blocker resolved by hosted execution
+`jayburd-dev-sandbox-probe-g6wfc`: authentication PASS, initial sync PASS (one page,
+six changes), repeat delta PASS (one page, zero changes), cleanup PASS. Overall
+receipt remains PARTIAL: historical completeness, interactive Link, application
+SQL import, pending transitions and real signed webhook delivery remain unqualified
+under #88. No provider payloads or credential values were inspected.
 
 ## Stage ledger
 
@@ -24,11 +25,10 @@ TestProbeFailuresStayPartialOrBlocked. Fixtures are synthetic and network-free.
 
 ## Remaining work
 
-The #120 worker was built, deployed and tested; initial sync still blocks.
-Keep #118 open. The second retest identified cursor progress as the blocker;
-the readiness correction is merged; current blocker is unknown_field. Merge the
-public-schema compatibility change below and retest its published image.
-Interactive Link, SQL ingestion and webhook qualification remain under #88.
+Continue #88 with the reviewed Link/session association path and application
+acquisition-to-review persistence, then dynamic pending transitions and signed
+webhook delivery. Historical completeness was not established by this smoke run.
+Six decoded changes are not six posted journals or verified accounting balances.
 
 ## PR handoff
 
@@ -88,3 +88,20 @@ probe. Keep #118 open; this execution is diagnostic evidence, not successful syn
 
 Next: merge schema compatibility change, publish/deploy and rerun the authorized
 probe. Keep #118 open. All raw provider data and credentials remain uninspected.
+
+## Successful hosted smoke — 2026-10-14
+
+- [Build 38648733412](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38648733412): all validation/image jobs PASS, commit 4e0c192595f2f50ced65d4fe66c9b270e0fab5a2.
+- Worker digest: sha256:caf1001dc84b0850f5bf08b0e79e15d2f563e03860cd63207ad7a53fe2540b07.
+- Terraform apply PASS. Verified deployed digest, dedicated identity, credential
+  pins 1/1 and retries zero. Delivery remains lookup-only; no write grant restored.
+- [Invocation 38650337250](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38650337250) submitted jayburd-dev-sandbox-probe-g6wfc.
+- Cloud Run succeeded at 2026-10-14T22:52:26Z. Receipt: authentication PASS;
+  initial sync exact_decode_complete, one page/six changes; repeat sync
+  empty_delta_observed, one page/zero changes; cleanup removal_acknowledged PASS.
+- Overall PARTIAL: historical_readiness reports history_not_complete; four
+  application qualification checks remain blocked/application_proof_required.
+- This resolves the decoder rejection observed in #118. It does not establish
+  the exact unknown field present in earlier private responses or live-bank readiness.
+
+PASS: make check test build, git diff --check and staged runbook gate.
