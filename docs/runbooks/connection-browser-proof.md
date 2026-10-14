@@ -23,7 +23,9 @@ The fixture injects memory-only Link/exchange/manifest/secret dependencies and t
 real acquisition HTTP adapter with a synthetic RoundTripper. It preserves original
 0.10 and 0.20 lexemes for two purchases dated 2026-10-13. A single scoped,
 origin/auth/body-bounded `POST /__proof/acquire` with `{}` runs the fixed acquisition
-claim and returns status, changed_count, fetch_count and exchange_count. It accepts
+claim and returns status, changed_count, fetch_count, exchange_count and scoped
+journal_count (decimal string). Counters use atomics and the in-memory secret store
+serializes reads/writes, independently of sequential browser behavior. It accepts
 no caller-selected entity, source, credentials or provider payload. Repeated trigger
 calls reuse the claim and must not refetch. The separate explicit fixture-owner
 source review grant precedes acquisition; product binding does not self-grant review.

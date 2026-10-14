@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ const connectionProofWorker = "10000000-0000-4000-8000-000000000020"
 const connectionProofClaim = "10000000-0000-4000-8000-000000000030"
 
 // connectionProofProvider supplies verified fictional Link/account results and counts external mutations.
-type connectionProofProvider struct{ exchanges int }
+type connectionProofProvider struct{ exchanges atomic.Int64 }
 
 // CreateLink returns an ephemeral synthetic value and fixed bounded expiry.
 func (*connectionProofProvider) CreateLink(context.Context, connections.LinkRequest) (connections.LinkResult, error) {
@@ -52,7 +53,7 @@ func (*connectionProofProvider) VerifySession(_ context.Context, link, public co
 
 // Exchange counts the side effect so replay cannot be mistaken for success.
 func (p *connectionProofProvider) Exchange(context.Context, connections.Secret) (connections.ExchangeResult, error) {
-	p.exchanges++
+	p.exchanges.Add(1)
 	return connections.ExchangeResult{ItemID: "synthetic-flow-item", AccessToken: connections.NewSecret("synthetic-access")}, nil
 }
 
@@ -74,12 +75,15 @@ func (*connectionProofProvider) Remove(context.Context, connections.Secret) erro
 
 // connectionProofSecrets retains only this test's synthetic token in memory behind the production interface.
 type connectionProofSecrets struct {
+	mu            sync.Mutex
 	stored        connections.StoredCredential
 	writes, reads int
 }
 
 // Put requires immutable reference identity and exact synthetic replay.
 func (s *connectionProofSecrets) Put(_ context.Context, r connections.CredentialReference, token connections.Secret) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.writes > 0 && (s.stored.Reference != r || s.stored.Token != token) {
 		return errors.New("conflict")
 	}
@@ -90,6 +94,8 @@ func (s *connectionProofSecrets) Put(_ context.Context, r connections.Credential
 
 // Read returns only the exact immutable version requested.
 func (s *connectionProofSecrets) Read(_ context.Context, r connections.CredentialReference) (connections.StoredCredential, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.reads++
 	if s.writes == 0 || s.stored.Reference != r {
 		return connections.StoredCredential{}, errors.New("missing")
@@ -99,6 +105,8 @@ func (s *connectionProofSecrets) Read(_ context.Context, r connections.Credentia
 
 // Resolve checks the same stored reference before furnishing fictional runner credentials.
 func (s *connectionProofSecrets) Resolve(_ context.Context, r acquisition.CredentialReference) (acquisition.ProviderCredentials, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	stored := s.stored.Reference
 	if s.writes == 0 || stored.ReferenceID != r.ReferenceID || stored.Version != r.Version || stored.ItemID != r.ItemID || stored.Environment != r.Environment {
 		return acquisition.ProviderCredentials{}, errors.New("denied")
@@ -109,11 +117,11 @@ func (s *connectionProofSecrets) Resolve(_ context.Context, r acquisition.Creden
 }
 
 // connectionProofTransport intercepts the pinned production adapter; no request reaches Plaid.
-type connectionProofTransport struct{ calls int }
+type connectionProofTransport struct{ calls atomic.Int64 }
 
 // RoundTrip verifies account filtering and serves exact original decimal bytes.
 func (p *connectionProofTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	p.calls++
+	p.calls.Add(1)
 	if r.URL.String() != "https://sandbox.plaid.com/transactions/sync" || r.Header.Get("Plaid-Version") != "2020-09-14" {
 		return nil, errors.New("wrong destination")
 	}
@@ -247,8 +255,13 @@ func (f *connectionBrowserFixture) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		writeProblem(w, 500, "proof_failed")
 		return
 	}
+	var journals string
+	if err = f.admin.QueryRow(ctx, `SELECT count(*)::text FROM ledger.journal_entry WHERE entity_id=$1 AND book_id=$2`, connectionProofEntity, connectionProofBook).Scan(&journals); err != nil {
+		writeProblem(w, 500, "proof_failed")
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"status": result.Status, "changed_count": result.ChangedCount, "fetch_count": f.transport.calls, "exchange_count": f.provider.exchanges})
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": result.Status, "changed_count": result.ChangedCount, "fetch_count": f.transport.calls.Load(), "exchange_count": f.provider.exchanges.Load(), "journal_count": journals})
 }
 
 // wrap installs the synthetic trigger behind the same origin boundary, only in this test executable.
