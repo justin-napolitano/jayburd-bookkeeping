@@ -65,3 +65,25 @@ No hosted availability or production qualification claim.
 
 Issue #7; no schema or financial API changes. Integrate this bounded host with the
 coordinator acquisition transport tests; do not mount an arbitrary public handler.
+
+## Independent dispatch regression followup
+
+Coordinator additionally assigned the isolated
+`internal/syncdispatch/fairness_sql_integration_test.go` after peer review found
+candidate starvation. `TestDeliveryCandidateFairness` creates 30 earlier UUID
+operations under one binding: 15 future retries and 15 healthy running leases,
+plus a later ready operation. It requires the real publisher SQL candidate call
+(limit 25) to return only the ready operation. Fixtures retain constraints and
+triggers; no provider calls or trigger bypasses. Separate SQL-author tests own
+the exact first-claim deadline and derived-lease takeover regressions.
+
+Reviewed SQL fix uses one timestamp for first claim/deadline and excludes future
+retry waits, healthy outer/inner leases and recently accepted task deliveries from
+candidate slots. Root owns the migration, harness and merged proof. Borrowed
+migration15/checksum/harness are uncommitted local validation inputs only.
+
+Followup evidence: actual PostgreSQL dispatch proof PASS including the new fairness
+case (`/private/tmp/jayburd-dispatch-fairness.log`); `make check test build` PASS
+again including all-package race tests. The first fixture attempt failed on an
+ambiguous UUID/text SQL parameter; explicit UUID casting fixed the fixture before
+the successful full proof. These results qualify synthetic SQL behavior only.
