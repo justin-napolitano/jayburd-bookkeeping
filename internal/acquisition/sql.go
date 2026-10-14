@@ -19,7 +19,7 @@ type SQLRepository struct{ DB Beginner }
 
 const syncRoleQuery = `SELECT session_user=current_user AND r.rolcanlogin AND NOT(r.rolsuper OR r.rolbypassrls OR r.rolcreaterole OR r.rolcreatedb OR r.rolreplication)
 AND pg_has_role(r.oid,'bookkeeping_sync','USAGE')
-AND NOT EXISTS(SELECT FROM pg_roles p WHERE (p.rolsuper OR p.rolbypassrls OR p.rolcreaterole OR p.rolcreatedb OR p.rolreplication OR p.rolname IN ('bookkeeping_owner','bookkeeping_api','bookkeeping_identity_operator','bookkeeping_publisher','bookkeeping_observer','bookkeeping_migrator','cloudsqlsuperuser')) AND pg_has_role(r.oid,p.oid,'MEMBER'))
+AND NOT EXISTS(SELECT FROM pg_roles p WHERE (p.rolsuper OR p.rolbypassrls OR p.rolcreaterole OR p.rolcreatedb OR p.rolreplication OR p.rolname IN ('bookkeeping_owner','bookkeeping_api','bookkeeping_identity_operator','bookkeeping_webhook','bookkeeping_publisher','bookkeeping_observer','bookkeeping_migrator','cloudsqlsuperuser')) AND pg_has_role(r.oid,p.oid,'MEMBER'))
 AND NOT EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','deployment') AND c.relkind IN ('r','p','v','m','S') AND has_table_privilege(r.oid,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'))
 FROM pg_roles r WHERE r.rolname=session_user`
 

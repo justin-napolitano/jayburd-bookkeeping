@@ -80,12 +80,13 @@ Use the [corpus and execution guide](../tests/corpus/README.md),
 
 ## Next action
 
-PR #106 merged [connection and acquisition](runbooks/provider-acquisition.md) on
-the [sync foundations](runbooks/sync-foundations.md). Current #104 work adds the
-[connections workspace](runbooks/connection-workspace.md) against:
-[connection SQL](contracts/connection-sql.md), [service](contracts/connection-service.md),
-[HTTP](contracts/connection-http.md) and [runner](contracts/acquisition-runner.md).
-Enrollment, acquisition, connected UI and hosted qualification are distinct gates.
+PR #107 merged the connections workspace. Current #103/#104 work adds
+[connection operations](runbooks/connection-operations.md): durable discovery,
+account sync controls and verified webhook/catch-up intent. Read
+[operations SQL](contracts/connection-operations-sql.md),
+[webhooks](contracts/provider-webhooks.md), [status UI](contracts/connection-status-ui.md)
+and [connection HTTP](contracts/connection-http.md) before changing shared wire.
+Hosted worker/secret composition and Sandbox qualification remain separate gates.
 
 Review the [first application evidence](runbooks/first-app.md), then complete the
 managed identity and deployment gates before connecting live accounts. JB-001 remains open for a real

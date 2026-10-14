@@ -82,6 +82,21 @@ func (s *connectionStub) Disconnect(_ context.Context, scope connections.Scope, 
 	return s.record(scope, "disconnect")
 }
 
+// Attempts records authenticated discovery without handoff secrets.
+func (s *connectionStub) Attempts(_ context.Context, scope connections.Scope, _ int, _ *string) (json.RawMessage, error) {
+	return s.record(scope, "attempts")
+}
+
+// StreamStatus records a safe current publication read.
+func (s *connectionStub) StreamStatus(_ context.Context, scope connections.Scope, _ string) (json.RawMessage, error) {
+	return s.record(scope, "status")
+}
+
+// OperateStream records a pinned single-stream control.
+func (s *connectionStub) OperateStream(_ context.Context, scope connections.Scope, _, _ string, _ connections.StreamOperation) (json.RawMessage, error) {
+	return s.record(scope, "operate")
+}
+
 // connectionTestServer composes the production origin, admission and route boundaries.
 func connectionTestServer(t *testing.T, ops ConnectionOperations) *Server {
 	t.Helper()
@@ -118,6 +133,9 @@ func TestConnectionHTTPBoundary(t *testing.T) {
 		{"POST", "/connection-attempts/" + connectionAttempt + "/reconcile", `{}`, "reconcile"},
 		{"POST", "/connection-attempts/" + connectionAttempt + "/bindings", `{"consent_grants":true,"bindings":[]}`, "bind"},
 		{"GET", "/connections", "", "list"},
+		{"GET", "/connection-attempts?limit=100&before=" + connectionAttempt, "", "attempts"},
+		{"GET", "/connections/streams/" + connectionAttempt + "/status", "", "status"},
+		{"POST", "/connections/streams/" + connectionAttempt + "/operations", `{"action":"request","expected_item_generation":"1","expected_binding_revision":"1","expected_stream_revision":"1"}`, "operate"},
 		{"POST", "/connections/streams/" + connectionAttempt + "/disconnect", `{"expected_binding_revision":"1"}`, "disconnect"},
 	} {
 		before := ops.calls
@@ -156,6 +174,12 @@ func TestConnectionHTTPFailures(t *testing.T) {
 		{"origin", "POST", "/connection-attempts", `{}`, 403, func(r *http.Request) { r.Header.Set("Origin", "https://foreign.invalid") }},
 		{"double auth", "POST", "/connection-attempts", `{}`, 401, func(r *http.Request) { r.Header.Add("Authorization", "Bearer synthetic") }},
 		{"query", "GET", "/connections?secret=synthetic", "", 400, nil},
+		{"discovery duplicate", "GET", "/connection-attempts?limit=1&limit=2", "", 400, nil},
+		{"discovery unknown", "GET", "/connection-attempts?actor=other", "", 400, nil},
+		{"discovery overflow", "GET", "/connection-attempts?limit=101", "", 400, nil},
+		{"discovery malformed escape", "GET", "/connection-attempts?before=%xx", "", 400, nil},
+		{"discovery empty cursor", "GET", "/connection-attempts?before=", "", 400, nil},
+		{"discovery no auth", "GET", "/connection-attempts", "", 401, func(r *http.Request) { r.Header.Del("Authorization") }},
 		{"head", "HEAD", "/connections", "", 405, nil},
 		{"get body", "GET", "/connections", `{}`, 400, nil},
 		{"missing key", "POST", "/connection-attempts", `{}`, 400, func(r *http.Request) { r.Header.Del("Idempotency-Key") }},
