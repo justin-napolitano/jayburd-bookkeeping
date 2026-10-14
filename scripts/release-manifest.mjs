@@ -8,10 +8,11 @@ function keys(value, names) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).sort().join(',') !== [...names].sort().join(',')) throw new Error('Release rejected');
 }
 // Validate only public identifiers and fixed Sandbox policy before generating any Terraform input.
+// Hosted Link does not require ordinary-SDK enablement; retain its explicit boolean in the digest.
 export function validateConnections(c, projectNumber, releaseExpiry, now) {
   if (c === null) return;
   keys(c, ['infisical_origin','infisical_project','infisical_identity','link_events_qualified','client_id_version','client_secret_version','consent_expires_at']);
-  if (!['https://us.infisical.com','https://eu.infisical.com','https://app.infisical.com'].includes(c.infisical_origin) || c.link_events_qualified !== true) throw new Error('Release rejected');
+  if (!['https://us.infisical.com','https://eu.infisical.com','https://app.infisical.com'].includes(c.infisical_origin) || typeof c.link_events_qualified !== 'boolean') throw new Error('Release rejected');
   for (const id of [c.infisical_project,c.infisical_identity]) if (typeof id !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(id) || id === '00000000-0000-0000-0000-000000000000') throw new Error('Release rejected');
   for (const [key, name] of [['client_id_version','client-id'],['client_secret_version','client-secret']]) {
     const prefix = `projects/${projectNumber}/secrets/jayburd-dev-bank-sync-${name}/versions/`;

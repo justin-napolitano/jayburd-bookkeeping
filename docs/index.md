@@ -114,3 +114,6 @@ from actual provider qualification.
 
 - [Hosted Sandbox probe](runbooks/hosted-sandbox-probe.md): credential delivery,
   disposable API-created Item test, and explicit hosted evidence limits.
+
+- [Sandbox Hosted Link enrollment](runbooks/hosted-link-enrollment.md): explicit
+  session completion, account binding and synthetic application journey evidence.

@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"regexp"
 	"sort"
 	"strconv"
@@ -185,10 +186,14 @@ func (s *Service) Begin(parent context.Context, scope Scope, key string, input B
 		if !secretValid(link.Token) || !link.ExpiresAt.After(time.Now()) {
 			return out, failed("invalid_metadata")
 		}
+		if link.HostedURL.value != "" && !validHostedURL(link.HostedURL.value) {
+			return out, failed("invalid_metadata")
+		}
 		_, e = s.privateCall(ctx, scope, c.AttemptID, "record_link_session", scope.Actor, scope.Entity, scope.Book, c.AttemptID, c.Nonce, jsonText(map[string]any{"link_token_sha256": hash(link.Token.value), "expires_at": link.ExpiresAt.UTC().Format(time.RFC3339)}))
 		if e != nil {
 			return out, e
 		}
+		out.HostedLinkURL = link.HostedURL.value
 		out.LinkToken = link.Token.value
 		out.ExpiresAt = link.ExpiresAt.UTC().Format(time.RFC3339)
 	}
@@ -216,6 +221,38 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 	}
 	if support, ok := s.provider.(interface{ SupportsMode(string) bool }); ok && !support.SupportsMode(before.Mode) {
 		return nil, failed("unsupported_connection_mode")
+	}
+	// Hosted completion resolves public material only after current scoped SQL authority.
+	// A completed/recovery attempt must never perform another provider lookup or exchange.
+	if before.Mode == "new" && input.PublicToken == "" {
+		if input.Nonce != before.Nonce || input.LinkToken == "" || value(before.LinkHash) != hash(input.LinkToken) {
+			return nil, failed("connection_conflict")
+		}
+		if before.State != "link_ready" {
+			return s.Attempt(ctx, scope, id)
+		}
+		expiry, _ := time.Parse(time.RFC3339, before.ExpiresAt)
+		if !expiry.After(time.Now()) {
+			return nil, failed("stale_connection")
+		}
+		resolver, ok := s.provider.(interface {
+			CompletedPublicToken(context.Context, Secret) (Secret, error)
+		})
+		if !ok {
+			return nil, failed("unsupported_connection_mode")
+		}
+		token, err := resolver.CompletedPublicToken(ctx, NewSecret(input.LinkToken))
+		if err != nil {
+			var failure *Failure
+			if errors.As(err, &failure) && failure.Code == "link_session_pending" {
+				return s.Attempt(ctx, scope, id)
+			}
+			return nil, failed("temporarily_unavailable")
+		}
+		if !secretValid(token) {
+			return nil, failed("invalid_metadata")
+		}
+		input.PublicToken = token.value
 	}
 	var lh, ph *string
 	if input.LinkToken != "" {

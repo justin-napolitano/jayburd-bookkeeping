@@ -22,10 +22,11 @@ type BeginRequest struct {
 
 // BeginResult contains an ephemeral browser handoff. Do not persist or log it.
 type BeginResult struct {
-	Attempt   json.RawMessage `json:"attempt"`
-	Nonce     string          `json:"nonce"`
-	LinkToken string          `json:"link_token,omitempty"`
-	ExpiresAt string          `json:"expires_at,omitempty"`
+	Attempt       json.RawMessage `json:"attempt"`
+	Nonce         string          `json:"nonce"`
+	LinkToken     string          `json:"link_token,omitempty"`
+	HostedLinkURL string          `json:"hosted_link_url,omitempty"`
+	ExpiresAt     string          `json:"expires_at,omitempty"`
 }
 
 // ExecuteRequest carries memory-only Link return material; rotate/remove need only nonce.
@@ -125,6 +126,7 @@ type LinkRequest struct {
 
 // LinkResult is an ephemeral provider token with a bounded lifetime.
 type LinkResult struct {
+	HostedURL Secret // Transient provider URL; never log or persist.
 	Token     Secret
 	ExpiresAt time.Time
 }

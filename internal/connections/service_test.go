@@ -182,7 +182,7 @@ func (p *fakeProvider) touch(op string) error {
 
 // CreateLink returns a synthetic ephemeral token only.
 func (p *fakeProvider) CreateLink(context.Context, LinkRequest) (LinkResult, error) {
-	return LinkResult{NewSecret("synthetic-link"), time.Now().Add(time.Hour)}, p.touch("link")
+	return LinkResult{Token: NewSecret("synthetic-link"), ExpiresAt: time.Now().Add(time.Hour)}, p.touch("link")
 }
 
 // VerifySession injects association success or failure without trusting browser metadata.
@@ -478,7 +478,7 @@ func TestProviderPrivacyRetention(t *testing.T) {
 		t.Fatal("JSON secret leak")
 	}
 
-	for _, input := range []any{BeginResult{LinkToken: "synthetic-private", Nonce: "synthetic-private"}, ExecuteRequest{LinkToken: "synthetic-private", PublicToken: "synthetic-private"}} {
+	for _, input := range []any{BeginResult{HostedLinkURL: "synthetic-private", LinkToken: "synthetic-private", Nonce: "synthetic-private"}, ExecuteRequest{LinkToken: "synthetic-private", PublicToken: "synthetic-private"}} {
 		if strings.Contains(fmt.Sprintf("%v %#v", input, input), "synthetic-private") {
 			t.Fatal("handoff diagnostic leak")
 		}
@@ -505,6 +505,70 @@ func TestConnectionUnknownItemMutation(t *testing.T) {
 			code(t, e, "credential_recovery_required")
 			if count(p.calls, mode) != 1 || store.writes != 0 {
 				t.Fatal("ambiguous Item mutation repeated")
+			}
+		})
+	}
+}
+
+// hostedProvider models only server completion; ordinary provider tests retain their SDK contract.
+type hostedProvider struct {
+	*fakeProvider
+	checks  int
+	pending bool
+}
+
+// CompletedPublicToken never exchanges and exposes delayed provider completion deterministically.
+func (p *hostedProvider) CompletedPublicToken(context.Context, Secret) (Secret, error) {
+	p.checks++
+	if p.pending {
+		return Secret{}, failed("link_session_pending")
+	}
+	return NewSecret("synthetic-public"), nil
+}
+
+// TestHostedCompletionClaimBoundary protects pending, scoped authority and replay before provider I/O.
+func TestHostedCompletionClaimBoundary(t *testing.T) {
+	s, r, p, _ := fixture()
+	input := begin(t, s)
+	input.PublicToken = ""
+	hosted := &hostedProvider{fakeProvider: p, pending: true}
+	s.provider = hosted
+	raw, e := s.Execute(context.Background(), scope, attemptID, input)
+	if e != nil || !strings.Contains(string(raw), "link_ready") || r.claimed {
+		t.Fatal("pending consumed claim", e)
+	}
+	hosted.pending = false
+	if _, e = s.Execute(context.Background(), scope, attemptID, input); e != nil {
+		t.Fatal(e)
+	}
+	if !r.claimed || count(p.calls, "exchange") != 1 {
+		t.Fatal("missing single exchange")
+	}
+	if _, e = s.Execute(context.Background(), scope, attemptID, input); e != nil {
+		t.Fatal(e)
+	}
+	if hosted.checks != 2 || count(p.calls, "exchange") != 1 {
+		t.Fatal("replay repeated provider work")
+	}
+	for _, tc := range []string{"nonce", "hash", "expired", "denied"} {
+		t.Run(tc, func(t *testing.T) {
+			s, r, p, _ := fixture()
+			in := begin(t, s)
+			in.PublicToken = ""
+			hosted := &hostedProvider{fakeProvider: p}
+			s.provider = hosted
+			switch tc {
+			case "nonce":
+				in.Nonce = actorID
+			case "hash":
+				in.LinkToken = "other"
+			case "expired":
+				r.c.ExpiresAt = time.Now().Add(-time.Minute).Format(time.RFC3339)
+			case "denied":
+				r.denied = true
+			}
+			if _, e := s.Execute(context.Background(), scope, attemptID, in); e == nil || hosted.checks != 0 || r.claimed {
+				t.Fatal("invalid authority reached provider")
 			}
 		})
 	}
