@@ -271,3 +271,16 @@ requires owner profile/standards/consent/retention decisions; #63/#7 work record
 lease/outbox and handler implementation; #56/#62 credential/identity interfaces;
 #8 source/draft/matching SQL/API; #50/#52 connection/review UI; #13 provider/cutover
 approval. No DDL or adapter should begin by assuming these proposed interfaces exist.
+
+## Implemented follow-on contracts
+
+The proposal above is historical design context. Migrations 12–14 and owned
+adapters implement bounded subsets; current authority lives in
+[sync SQL](provider-sync-sql.md), [connection SQL](connection-sql.md),
+[operations SQL](connection-operations-sql.md), [acquisition](acquisition-runner.md)
+and [verified webhooks](provider-webhooks.md). Use their named executed evidence,
+not this proposal's future-test table, to assess readiness. The #103 verifier
+normalizes equivalent ECDSA signatures for receipt identity after standard
+signature verification; exact original body bytes still determine its digest.
+Transport dispatch, timed scheduling and actual Sandbox/live acceptance remain
+separate gates. No posted journal follows from a notification or sync request.

@@ -333,3 +333,5 @@ ISO exchange conformance.
   explicit bindings and recovery. No additional provider behavior or conformance claim.
   [Combined evidence](../runbooks/connection-workspace.md) separates injected UI and
   real PostgreSQL proof from live Link, credential-store and hosted qualification.
+
+- [Connection operations source application](plaid-ingestion-sources.md#connection-operations-review--2026-10-13): refreshed official webhook signature/key and sync-notification sections; distinguishes provider requirements from local replay, cache and transaction policies. Signed synthetic proofs do not qualify hosted delivery or actual institution behavior.

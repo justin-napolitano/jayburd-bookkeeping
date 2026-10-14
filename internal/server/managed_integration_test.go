@@ -55,6 +55,7 @@ func TestRuntimeReadiness(t *testing.T) {
 		{"identity_operator", "GRANT bookkeeping_identity_operator TO synthetic_server", "REVOKE bookkeeping_identity_operator FROM synthetic_server"},
 		{"publisher_role", "GRANT bookkeeping_publisher TO synthetic_server", "REVOKE bookkeeping_publisher FROM synthetic_server"},
 		{"observer_role", "GRANT bookkeeping_observer TO synthetic_server", "REVOKE bookkeeping_observer FROM synthetic_server"},
+		{"webhook_role", "GRANT bookkeeping_webhook TO synthetic_server", "REVOKE bookkeeping_webhook FROM synthetic_server"},
 		{"sync_role", "GRANT bookkeeping_sync TO synthetic_server", "REVOKE bookkeeping_sync FROM synthetic_server"},
 		{"missing_recovery_register", "REVOKE EXECUTE ON FUNCTION ledger.register_command(uuid,text,uuid,text) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.register_command(uuid,text,uuid,text) TO bookkeeping_api"},
 		{"missing_recovery_pending", "REVOKE EXECUTE ON FUNCTION ledger.pending_command(uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.pending_command(uuid) TO bookkeeping_api"},

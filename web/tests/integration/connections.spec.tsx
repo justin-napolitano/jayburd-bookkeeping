@@ -15,9 +15,25 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     name: "Connect account",
     exact: true,
   });
+  // Lose the exchange response after its commit: reload must discover recovery without a saved UUID.
+  let exchangeDropped = false;
+  await page.route("**/connection-attempts/*/execute", async route => {
+    if (exchangeDropped) return route.continue();
+    const response = await route.fetch();
+    expect(response.ok()).toBe(true);
+    exchangeDropped = true;
+    await route.abort("failed");
+  });
   await expect(connect).toBeEnabled();
   await connect.focus();
   await page.keyboard.press("Enter");
+  await expect.poll(() => exchangeDropped).toBe(true);
+  await component.unmount();
+  component = await mount(<ConnectionsHarness />);
+  await page.getByLabel("Entity and book").selectOption(scope);
+  await page.getByRole("button", {name:"Connections",exact:true}).click();
+  await expect(page.getByRole("button", {name:"Connect account",exact:true})).toBeDisabled();
+  await page.getByRole("button", {name:/^Review attempt /}).click();
   await expect(
     page.getByRole("group", { name: "Review verified account bindings" }),
   ).toBeVisible();
@@ -32,6 +48,36 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page.getByRole("button", { name: "Confirm selected bindings" }).click();
   const review = page.getByRole("button", { name: /^Review transactions for/ });
   await expect(review).toBeVisible();
+  await page.getByRole("button", {name:/^View sync status for/}).click();
+  const status = page.getByRole("region", {name:"Account sync status"});
+  await expect(status).toContainText("None recorded");
+  await expect(status).toContainText("Unknown");
+  await page.getByRole("button", {name:"Pause account sync",exact:true}).click();
+  await page.getByRole("button", {name:"Confirm pause",exact:true}).click();
+  await expect(status).toContainText("Account acquisition: paused");
+  await page.getByRole("button", {name:"Resume account sync",exact:true}).click();
+  await page.getByRole("button", {name:"Confirm resume",exact:true}).click();
+  await expect(status).toContainText("Account acquisition: active");
+  // Resolve an unknown manual-control commit with the original request and key.
+  let operationDropped = false;
+  let firstKey = "";
+  let firstBody = "";
+  await page.route("**/connections/streams/*/operations", async route => {
+    const key = route.request().headers()["idempotency-key"];
+    const body = route.request().postData() ?? "";
+    if (operationDropped) {
+      expect(key).toBe(firstKey); expect(body).toBe(firstBody);
+      return route.continue();
+    }
+    firstKey = key; firstBody = body;
+    const response = await route.fetch(); expect(response.ok()).toBe(true);
+    operationDropped = true; await route.abort("failed");
+  });
+  await page.getByRole("button", {name:"Request sync now",exact:true}).click();
+  await page.getByRole("button", {name:"Confirm sync request",exact:true}).click();
+  await page.getByRole("button", {name:"Resolve saved request",exact:true}).click();
+  await expect(status).toContainText("Sync work is queued");
+  await expect(status).toContainText("None recorded");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: info.outputPath("connections-mobile.png"),
