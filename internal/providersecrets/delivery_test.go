@@ -1,0 +1,239 @@
+package providersecrets
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"hash/crc32"
+	"net/http"
+	"strconv"
+	"strings"
+	"sync"
+	"testing"
+)
+
+// deliveryCloud accepts only the narrow delivery protocol, with in-memory durable intents.
+type deliveryCloud struct {
+	storage fakeCloud
+	mu      sync.Mutex
+	writes  int
+	failure string
+}
+
+// RoundTrip rejects destination reads/listing and verifies source selectors and payload integrity.
+func (f *deliveryCloud) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.URL.Host == "storage.googleapis.com" {
+		return f.storage.RoundTrip(r)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if r.URL.Host == "us.infisical.com" {
+		if strings.HasSuffix(r.URL.Path, "/login") {
+			return response(200, map[string]any{"accessToken": "synthetic-auth", "tokenType": "Bearer", "expiresIn": 900}), nil
+		}
+		q := r.URL.Query()
+		if r.Method != "GET" || q.Get("includeImports") != "false" || q.Get("expandSecretReferences") != "false" || q.Get("version") != "7" || q.Get("secretPath") != "/" || q.Get("projectId") != sourceProject || q.Get("environment") != "dev" {
+			return response(400, nil), nil
+		}
+		if f.failure == "denied" {
+			return response(403, map[string]string{"message": "private-vendor-diagnostic"}), nil
+		}
+		key := strings.TrimPrefix(r.URL.Path, "/api/v4/secrets/")
+		if f.failure == "source" {
+			key = "WRONG"
+		}
+		return response(200, map[string]any{"secret": map[string]any{"id": "00000000-0000-4000-8000-000000000009", "workspace": sourceProject, "environment": "dev", "secretKey": key, "version": 7, "secretValue": "fictional-canary"}}), nil
+	}
+	if r.URL.Host != "secretmanager.googleapis.com" || r.Method != "POST" || !strings.HasSuffix(r.URL.Path, "/secrets/jayburd-dev-bank-sync-client-id:addVersion") {
+		return nil, errors.New("forbidden endpoint")
+	}
+	var body struct {
+		Payload struct{ Data, DataCrc32c string }
+	}
+	if json.NewDecoder(r.Body).Decode(&body) != nil {
+		return response(400, nil), nil
+	}
+	b, e := base64.StdEncoding.DecodeString(body.Payload.Data)
+	if e != nil || string(b) != "fictional-canary" || body.Payload.DataCrc32c != strconv.FormatUint(uint64(crc32.Checksum(b, crc32.MakeTable(crc32.Castagnoli))), 10) {
+		return response(400, nil), nil
+	}
+	f.writes++
+	if f.failure == "lost" {
+		return nil, errors.New("private-vendor-diagnostic")
+	}
+	name := "projects/" + project + "/secrets/jayburd-dev-bank-sync-client-id/versions/23"
+	if f.failure == "response" {
+		name = "projects/wrong-project/secrets/other/versions/23"
+	}
+	return response(200, map[string]string{"name": name, "state": "ENABLED"}), nil
+}
+
+// newDeliveryProof constructs exclusively fictional transports; no default network is available.
+func newDeliveryProof(t *testing.T, failure string) (*Delivery, *deliveryCloud, DeliveryRequest) {
+	t.Helper()
+	f := &deliveryCloud{failure: failure, storage: fakeCloud{objects: map[string][]byte{}}}
+	g, e := NewGCSRegistry(GCSConfig{Bucket: "synthetic-registry", Prefix: "delivery-v1", Tokens: tokens{}, Transport: f})
+	if e != nil {
+		t.Fatal(e)
+	}
+	d, e := NewDelivery(DeliveryConfig{Source: StoreConfig{InfisicalOrigin: "https://us.infisical.com", ProjectID: sourceProject, Environment: "dev", IdentityID: identity, IdentityTokens: tokens{}, Transport: f}, Destination: GCPConfig{ProjectID: project, Tokens: tokens{}, Transport: f}}, g)
+	if e != nil {
+		t.Fatal(e)
+	}
+	return d, f, DeliveryRequest{"PLAID_CLIENT_ID", "00000000-0000-4000-8000-000000000009", "7"}
+}
+
+// TestDeliveryCanary proves exact source selection, CRC-protected write and metadata-only replay.
+func TestDeliveryCanary(t *testing.T) {
+	d, f, q := newDeliveryProof(t, "")
+	first, e := d.Deliver(context.Background(), q)
+	if e != nil || !strings.HasSuffix(first.GCPVersion, "/23") {
+		t.Fatalf("receipt: %v", e)
+	}
+	second, e := d.Deliver(context.Background(), q)
+	if e != nil || first != second || f.writes != 1 {
+		t.Fatal("replay changed delivery")
+	}
+	q.SourceID = "00000000-0000-4000-8000-000000000008"
+	if _, e = d.Deliver(context.Background(), q); code(e) != "secret_delivery_conflict" {
+		t.Fatal("conflicting source accepted")
+	}
+}
+
+// TestDeliveryFailures proves denial, mismatches and ambiguous acknowledgements never cause retries.
+func TestDeliveryFailures(t *testing.T) {
+	for _, mode := range []string{"denied", "source", "lost", "response"} {
+		t.Run(mode, func(t *testing.T) {
+			d, f, q := newDeliveryProof(t, mode)
+			for i := 0; i < 2; i++ {
+				_, e := d.Deliver(context.Background(), q)
+				if e == nil || strings.Contains(e.Error(), "private") {
+					t.Fatal("failure not redacted")
+				}
+			}
+			want := 0
+			if mode == "lost" || mode == "response" {
+				want = 1
+			}
+			if f.writes != want {
+				t.Fatal("unexpected write count")
+			}
+		})
+	}
+}
+
+// TestDeliveryConcurrent reserves the destination once across overlapping invocations.
+func TestDeliveryConcurrent(t *testing.T) {
+	d, f, q := newDeliveryProof(t, "")
+	var wg sync.WaitGroup
+	for i := 0; i < 12; i++ {
+		wg.Add(1)
+		go func() { defer wg.Done(); _, _ = d.Deliver(context.Background(), q) }()
+	}
+	wg.Wait()
+	if f.writes != 1 {
+		t.Fatal("concurrent duplicate")
+	}
+}
+
+// TestDeliveryAllowlist rejects traversal, arbitrary destinations and nonnumeric source versions.
+func TestDeliveryAllowlist(t *testing.T) {
+	d, _, q := newDeliveryProof(t, "")
+	for _, key := range []string{"OTHER", "../PLAID_SECRET", "slot-08", "slot-000"} {
+		q.Key = key
+		if _, _, e := d.target(q); e == nil {
+			t.Fatal("invalid key accepted")
+		}
+	}
+	for _, key := range []string{"PLAID_CLIENT_ID", "PLAID_SECRET", "slot-00", "slot-07"} {
+		q.Key = key
+		if _, _, e := d.target(q); e != nil {
+			t.Fatal(e)
+		}
+	}
+	q.SourceVersion = "latest"
+	if _, _, e := d.target(q); e == nil {
+		t.Fatal("alias accepted")
+	}
+}
+
+// TestDeliveryLostRegistryAcknowledgement distinguishes an uncertain intent from a recoverable receipt.
+func TestDeliveryLostRegistryAcknowledgement(t *testing.T) {
+	for _, part := range []string{"intent.json", "receipt.json"} {
+		t.Run(part, func(t *testing.T) {
+			d, f, q := newDeliveryProof(t, "")
+			lost := false
+			d.registry.http = client(transportFunc(func(r *http.Request) (*http.Response, error) {
+				result, e := f.RoundTrip(r)
+				if !lost && r.Method == "POST" && strings.HasSuffix(r.URL.Query().Get("name"), part) {
+					lost = true
+					return nil, errors.New("synthetic lost acknowledgement")
+				}
+				return result, e
+			}))
+			if _, e := d.Deliver(context.Background(), q); code(e) != "secret_delivery_pending" {
+				t.Fatal("unknown acknowledgement accepted")
+			}
+			_, e := d.Deliver(context.Background(), q)
+			if part == "intent.json" {
+				if code(e) != "secret_delivery_pending" || f.writes != 0 {
+					t.Fatal("unknown intent authorized write")
+				}
+			} else if e != nil || f.writes != 1 {
+				t.Fatal("durable receipt recovery failed")
+			}
+		})
+	}
+}
+
+// TestDeliveryTamperedReceipt denies a wrong destination even when the object key is correct.
+func TestDeliveryTamperedReceipt(t *testing.T) {
+	d, f, q := newDeliveryProof(t, "")
+	if _, e := d.Deliver(context.Background(), q); e != nil {
+		t.Fatal(e)
+	}
+	for k, b := range f.storage.objects {
+		if strings.HasSuffix(k, "receipt.json") {
+			var receipt DeliveryReceipt
+			_ = json.Unmarshal(b, &receipt)
+			receipt.GCPVersion = "projects/" + project + "/secrets/other/versions/23"
+			f.storage.objects[k], _ = json.Marshal(receipt)
+		}
+	}
+	if _, e := d.Deliver(context.Background(), q); code(e) != "secret_delivery_conflict" || f.writes != 1 {
+		t.Fatal("tampered receipt accepted")
+	}
+}
+
+// TestDeliverySlotNeverReused prevents another source version from overwriting a reserved dynamic slot.
+func TestDeliverySlotNeverReused(t *testing.T) {
+	d, f, q := newDeliveryProof(t, "")
+	q.Key = "slot-00"
+	writes := 0
+	transport := transportFunc(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Host == "us.infisical.com" && !strings.HasSuffix(r.URL.Path, "/login") {
+			if r.URL.Query().Get("secretPath") != "/bank-sync" {
+				t.Fatal("wrong dynamic folder")
+			}
+			return response(200, map[string]any{"secret": map[string]any{"id": q.SourceID, "workspace": sourceProject, "environment": "dev", "secretKey": "slot-00", "version": 7, "secretValue": "fictional-envelope"}}), nil
+		}
+		if r.URL.Host == "secretmanager.googleapis.com" {
+			if r.Method != "POST" || !strings.HasSuffix(r.URL.Path, "/jayburd-dev-bank-sync-slot-00:addVersion") {
+				t.Fatal("unexpected dynamic operation")
+			}
+			writes++
+			return response(200, map[string]string{"name": "projects/" + project + "/secrets/jayburd-dev-bank-sync-slot-00/versions/31", "state": "ENABLED"}), nil
+		}
+		return f.RoundTrip(r)
+	})
+	d.source.http = client(transport)
+	d.destination.http = client(transport)
+	if _, e := d.Deliver(context.Background(), q); e != nil {
+		t.Fatal(e)
+	}
+	q.SourceVersion = "8"
+	if _, e := d.Deliver(context.Background(), q); code(e) != "secret_delivery_conflict" || writes != 1 {
+		t.Fatal("dynamic slot reused")
+	}
+}
