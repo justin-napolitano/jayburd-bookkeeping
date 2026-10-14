@@ -405,3 +405,9 @@ ISO exchange conformance.
   Item removal; used for memory-only probe setup and bounded cleanup.
 - [Probe contract](../contracts/hosted-sandbox-probe.md) records applicability,
   implementation limits and named tests. Source review is not hosted API evidence.
+
+### Plaid decoder compatibility refresh
+
+The [Plaid source register](plaid-ingestion-sources.md) records the 2026-10-14
+PI01 review of nullable transaction classification and its bounded inert mapping.
+This supports issue #118's synthetic regression, not full Sandbox qualification.

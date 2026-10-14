@@ -102,3 +102,16 @@ Owner authorized a [hosted probe](hosted-sandbox-probe.md) that creates a dispos
 Sandbox Item via API. It reuses the diagnostic core but does not alter the pipe-fed
 command or count that API bypass as real Link qualification. No already-linked
 access token is required for this separate smoke runner.
+
+## Redacted decoder classifications — 2026-10-14
+
+Issue #118 preserves the receipt profile and blocked status, but refines decoder
+failure reasons to `decoder_` plus these closed codes: limit_exceeded,
+invalid_expectation, invalid_json, duplicate_key, invalid_number, invalid_cursor,
+invalid_field, unknown_enum, account_mismatch, unsupported_account,
+duplicate_identity, invalid_identity, invalid_lineage, invalid_date,
+unsupported_currency, amount_out_of_range, unknown_field. Anything else remains
+`decoder_rejected`. Never include error text, field names, values or raw pages.
+Rejected pages do not increment counts. `TestDecoderReasonRedaction` verifies
+wrapped classifications, arbitrary error suppression and receipt redaction;
+`TestProbeFailuresStayPartialOrBlocked` verifies actual decoder propagation.

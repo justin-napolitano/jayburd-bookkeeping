@@ -311,3 +311,29 @@ func assertQuantity(t *testing.T, r plaid.Transaction) {
 		t.Fatal("source readiness changed")
 	}
 }
+
+// TestPlaidTransactionCode accepts documented inert classification without changing money or scope.
+func TestPlaidTransactionCode(t *testing.T) {
+	for _, value := range []string{`null`, `"purchase"`, `"future_classification"`} {
+		raw := page(strings.Replace(row("9007199254740993.01", "USD"), `"name":`, `"transaction_code":`+value+`,"name":`, 1), "", "")
+		p, err := plaid.DecodePage(raw, expected())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if p.Added[0].Amount != "9007199254740993.01" || p.Added[0].Direction != "outflow" {
+			t.Fatal("classification changed money")
+		}
+		if !bytes.Contains(p.Added[0].Raw, []byte(`"transaction_code":`+value)) {
+			t.Fatal("source evidence lost")
+		}
+		wire, _ := json.Marshal(p)
+		if bytes.Contains(wire, []byte("transaction_code")) {
+			t.Fatal("inert classification mapped")
+		}
+		rejected(t, bytes.Replace(raw, []byte("Account-A"), []byte("Other-A"), 1), expected())
+		rejected(t, bytes.Replace(raw, []byte("9007199254740993.01"), []byte("1.001"), 1), expected())
+	}
+	for _, value := range []string{`42`, `{}`, `true`, `"` + strings.Repeat("x", 257) + `"`} {
+		rejected(t, page(strings.Replace(row("1", "USD"), `"name":`, `"transaction_code":`+value+`,"name":`, 1), "", ""), expected())
+	}
+}
