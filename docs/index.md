@@ -106,3 +106,7 @@ Hosted integration: [delivery evidence](runbooks/hosted-sandbox.md),
 [worker composition](contracts/hosted-workers.md), [durable evidence](contracts/hosted-evidence.md),
 [provider vault](contracts/provider-vault.md), [optional API composition](contracts/hosted-connections.md),
 and [Sandbox diagnostic boundary](contracts/plaid-sandbox-qualification.md).
+
+Application promotion now requires [explicit connection configuration](contracts/connection-release.md);
+[delivery evidence](runbooks/connection-release.md) distinguishes reviewed metadata
+from actual provider qualification.

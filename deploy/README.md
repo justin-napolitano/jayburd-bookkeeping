@@ -46,7 +46,7 @@ Publish a complete successful build via `build-images.yml`. Create a PR adding
 
 | Field | Value |
 | --- | --- |
-| `schemaVersion` | `1` |
+| `schemaVersion` | `2` for promote/rollback (migration/verify stay `1`) |
 | `project`, `projectNumber` | Explicit project matching GitHub public variables |
 | `operation` | `promote` or `rollback` |
 | `build` | Object: `run`, `attempt` as decimal strings; `commit` as 40-character SHA |
@@ -54,6 +54,7 @@ Publish a complete successful build via `build-images.yml`. Create a PR adding
 | `firebaseApiKey` | Public browser identifier; never Admin credentials |
 | `evidence` | Object: `bootstrap`, `identity`, `secrets`, `compatibility`; each a reviewed issue-comment URL in this repository |
 | `expiresAt` | UTC date-time later than dispatch, at most seven days ahead |
+| `connections` | Required: explicit `null` disables enrollment; complete reviewed metadata enables Sandbox composition |
 | `previousDeployment` | `null` for promote; successful prior deployment run ID string for rollback |
 
 Evidence comments record named checks, reviewer and redacted outcomes. The owner
@@ -84,3 +85,21 @@ it does not replace hosted acceptance or relax the current closure gates.
 After transport smoke, complete real sign-in/MFA, entity/revocation denials and
 synthetic posting/recovery with owner-controlled access. A green transport receipt
 is not bookkeeping or identity acceptance. See the [living ledger](../docs/runbooks/gcp-delivery.md).
+
+## Explicit connection policy
+
+Runtime release schemaVersion2 requires `connections` even when disabled. Legacy
+runtime v1 and omitted settings are rejected before cloud authentication; the
+committed migration-only v1 candidate remains unchanged. See the
+[connection release contract](../docs/contracts/connection-release.md) for exact
+metadata fields, immutable numeric resource names and expiry bounds. No secret
+values belong in this object. The existing identity/Infisical/database closure gates
+still apply; approval metadata is not provider qualification.
+
+The generated Terraform file carries the exact reviewed object or null. Transport
+receipts retain its deterministic approved-policy digest, not the identifiers or a
+claim that provider functionality was observed. Rollback requires that digest to
+match the prior successful receipt. Legacy receipts without it cannot establish
+configuration-preserving rollback. Expired or changed policy requires a separately
+reviewed forward promotion, not silently renewed consent. Worker deployment remains
+owner-operated and is not enabled by this application release change.
