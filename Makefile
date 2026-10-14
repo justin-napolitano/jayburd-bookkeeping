@@ -18,6 +18,7 @@ build:
 	go build -trimpath -o bin/api ./cmd/api
 	go build -trimpath -o bin/migrate ./cmd/migrate
 	go build -trimpath -o bin/worker ./cmd/worker
+	go build -trimpath -o bin/deliver ./cmd/deliver
 	go build -trimpath -o bin/sandbox-qualify ./cmd/sandbox-qualify
 
 web-check:

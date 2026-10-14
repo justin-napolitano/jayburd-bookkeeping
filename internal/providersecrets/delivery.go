@@ -56,6 +56,8 @@ func (d *Delivery) target(q DeliveryRequest) (string, string, error) {
 	}
 	folder, suffix := "/", ""
 	switch q.Key {
+	case "JAYBURD_DELIVERY_CANARY":
+		suffix = "canary"
 	case "PLAID_CLIENT_ID":
 		suffix = "client-id"
 	case "PLAID_SECRET":
