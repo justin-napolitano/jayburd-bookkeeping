@@ -30,6 +30,11 @@ existing local demo; all temporary source substitutions were restored.
 No SQL changes. No actual owner-state migration, deployment, SDK/provider session,
 secret propagation, managed OIDC, queue delivery or account readiness is proven.
 
+GitHub CI BLOCKED before job startup: Seed run38576025919 and Infrastructure
+run38576025610 report account payment failure or spending-limit exhaustion.
+GitGuardian passed. Owner must resolve Billing & plans and rerun the checks;
+local evidence does not replace required GitHub checks.
+
 ## Remaining work
 
 Owner bootstrap/adoption follows the [operator guide](../../deploy/WORKERS.md).
@@ -39,7 +44,7 @@ release stays paused; this is not queue-drain or measured scale evidence.
 
 ## PR handoff
 
-Ready for stacked PR review against #111; merge #111 first, then retarget to main.
+PR #112 is stacked against #111; merge #111 first, then retarget to main.
 Preserve all existing issue gates. No SQL migration or automatic scheduling
 activation is part of this change. Existing worker deployments require the owner
 state handoff documented in the worker contract before adopting this split.
