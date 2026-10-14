@@ -23,7 +23,12 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var proof = flag.Bool("sync-dispatch-proof", false, "Use only the disposable internal registry database")
+// init registers the shared opt-in flag independently of external test package initialization order.
+func init() {
+	if flag.Lookup("sync-dispatch-proof") == nil {
+		flag.Bool("sync-dispatch-proof", false, "Use only the disposable internal registry database")
+	}
+}
 
 const entity = "00000000-0000-4000-8000-000000000002"
 const book = "00000000-0000-4000-8000-000000000003"
@@ -36,7 +41,7 @@ const currency = "00000000-0000-4000-8000-000000000005"
 // connect uses only the runner's private synthetic trust network, never an inherited DSN.
 func connect(t testing.TB, db, user string) *pgx.Conn {
 	t.Helper()
-	if !*proof {
+	if flag.Lookup("sync-dispatch-proof").Value.String() != "true" {
 		t.Skip("use scripts/test-sync-dispatch.sh")
 	}
 	c, e := pgx.Connect(context.Background(), fmt.Sprintf("host=database port=5432 user=%s dbname=%s sslmode=disable connect_timeout=5", user, db))

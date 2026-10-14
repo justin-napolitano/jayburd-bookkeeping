@@ -14,8 +14,10 @@ import (
 )
 
 const (
-	PublisherPath = "/internal/observer/publish"
-	ConsumerPath  = "/internal/observer/consume"
+	PublisherPath            = "/internal/observer/publish"
+	ConsumerPath             = "/internal/observer/consume"
+	AcquisitionPublisherPath = "/internal/acquisition/publish"
+	AcquisitionConsumerPath  = "/internal/acquisition/consume"
 )
 
 var serviceEmail = regexp.MustCompile(`^[a-z][a-z0-9-]{4,28}[a-z0-9]@[a-z][a-z0-9-]{4,28}[a-z0-9]\.iam\.gserviceaccount\.com$`)
@@ -54,6 +56,8 @@ type workerHTTP struct {
 	publisher Ticker
 	consumer  WakeupHandler
 	slots     chan struct{}
+	path      string
+	budget    time.Duration
 }
 
 // NewPublisherHTTP mounts only the fixed publisher route; it loads no credentials.
@@ -61,7 +65,7 @@ func NewPublisherHTTP(p Ticker, v TokenVerifier, policy CallerPolicy) (http.Hand
 	if p == nil || !validPolicy(v, policy) {
 		return nil, reject()
 	}
-	return &workerHTTP{verifier: v, policy: policy, publisher: p, slots: make(chan struct{}, 1)}, nil
+	return &workerHTTP{verifier: v, policy: policy, publisher: p, slots: make(chan struct{}, 1), path: PublisherPath, budget: 60 * time.Second}, nil
 }
 
 // NewConsumerHTTP mounts only the fixed consumer route; callers cannot select scope.
@@ -69,7 +73,23 @@ func NewConsumerHTTP(c WakeupHandler, v TokenVerifier, policy CallerPolicy) (htt
 	if c == nil || !validPolicy(v, policy) {
 		return nil, reject()
 	}
-	return &workerHTTP{verifier: v, policy: policy, consumer: c, slots: make(chan struct{}, 1)}, nil
+	return &workerHTTP{verifier: v, policy: policy, consumer: c, slots: make(chan struct{}, 1), path: ConsumerPath, budget: 60 * time.Second}, nil
+}
+
+// NewAcquisitionPublisherHTTP selects only the reviewed acquisition dispatch route.
+func NewAcquisitionPublisherHTTP(p Ticker, v TokenVerifier, policy CallerPolicy) (http.Handler, error) {
+	if p == nil || !validPolicy(v, policy) {
+		return nil, reject()
+	}
+	return &workerHTTP{verifier: v, policy: policy, publisher: p, slots: make(chan struct{}, 1), path: AcquisitionPublisherPath, budget: 80 * time.Second}, nil
+}
+
+// NewAcquisitionConsumerHTTP reserves claim and settle time around the bounded acquisition runner.
+func NewAcquisitionConsumerHTTP(c WakeupHandler, v TokenVerifier, policy CallerPolicy) (http.Handler, error) {
+	if c == nil || !validPolicy(v, policy) {
+		return nil, reject()
+	}
+	return &workerHTTP{verifier: v, policy: policy, consumer: c, slots: make(chan struct{}, 1), path: AcquisitionConsumerPath, budget: 80 * time.Second}, nil
 }
 
 // runURL limits this first transport to canonical managed Cloud Run destinations.
@@ -108,7 +128,7 @@ func (h *workerHTTP) authorize(ctx context.Context, r *http.Request) bool {
 func (h *workerHTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), h.budget)
 	defer cancel()
 	select {
 	case h.slots <- struct{}{}:
@@ -121,10 +141,7 @@ func (h *workerHTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		workerProblem(w, 401)
 		return
 	}
-	path := ConsumerPath
-	if h.publisher != nil {
-		path = PublisherPath
-	}
+	path := h.path
 	if r.URL.Path != path || r.URL.RawPath != "" || r.URL.RawQuery != "" || r.URL.ForceQuery {
 		workerProblem(w, 404)
 		return

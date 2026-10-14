@@ -42,7 +42,7 @@ the fixed timeout values and fail-closed error vocabulary are project policy.
 Chosen over default http.Serve (unbounded server defaults) or TimeoutHandler (does
 not supply lifecycle draining). No financial message is introduced, so ISO 20022
 mapping is not applicable; existing acquisition contracts retain that responsibility.
-Coordinator adds this annotated source record to shared bibliography links.
+The annotated source record is linked from the shared bibliography.
 
 ## Current evidence
 
