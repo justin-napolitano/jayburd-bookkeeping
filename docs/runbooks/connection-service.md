@@ -3,7 +3,7 @@
 
 ## Status and boundary
 
-Stage: approved contract and interface implementation, #101.
+Stage: bounded implementation and synthetic lifecycle proof, #101.
 
 Owned paths: internal/connections and this contract/runbook. Migration13 belongs
 to the SQL lane; server/OpenAPI and integration commands belong to coordinator.
@@ -14,15 +14,34 @@ Reviewed provider Link/Items/Accounts sections and existing runtime/ingestion
 contracts. Defined exact scope, explicit account binding, one-shot remote effects,
 manifest-before-secret sequencing and fixed diagnostic boundaries.
 
+- Interface commit `6cbf03b` froze requests before coordinator HTTP implementation.
+- Implemented service, restricted SQL adapter and opt-in fixed Sandbox HTTP adapter.
+- Added independent HTTP wire/association/consent bounds and lifecycle fault tests.
+- Composed real SQL with service for activation, revoked actor, lost secret reply,
+  lost actual claim COMMIT reply, two-account reconnect/rotation/removal and local
+  account disconnect. Provider and secret store remain original synthetic adapters.
+
 ## Current evidence
 
-Interface and contract reviewed by coordinator; `make check test build` PASS for early interface stage. Service files remain unstaged while lifecycle proof is built.
+`make check test build` PASS and focused race suite PASS. The disposable proof
+passed 18 top-level groups: six service/PostgreSQL groups and twelve unit/HTTP
+groups, plus their named subtests. Disposable PostgreSQL
+proof log: `/private/tmp/jayburd-connection-service-proof.log`; focused unit/HTTP
+log: `/private/tmp/jayburd-connections-unit.log`; default gates:
+`/private/tmp/jayburd-connection-default.log`. No provider network was used.
+The coordinator's `test-connection-service.sh` harness uses
+`connection_service_template` and `-connection-service-proof`; migration13 is
+integrated separately from the SQL lane, never committed from this branch.
 
 ## Remaining work
 
-Validation pending implementation. No provider calls, secrets, cloud mutation or
-live bookkeeping approval. Infisical adapter and Hosted Link qualification remain
-separate gates; synthetic injected stores do not prove hosted secret durability.
+No real provider calls, secrets, cloud mutation or live bookkeeping approval.
+Concrete reconnect is rejected before effects pending verified update-session
+qualification. Infisical dynamic writer permissions, synchronization acknowledgement
+and version visibility remain separate design/qualification gates. Unknown exchange,
+rotation, missing secret and ambiguous removal deliberately remain unresolved.
+Synthetic injected stores do not prove hosted secret durability. Coordinator is
+integrating the SQL lane's additional current Item-generation context guard.
 
 ## PR handoff
 

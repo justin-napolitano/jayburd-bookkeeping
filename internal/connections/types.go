@@ -35,6 +35,18 @@ type ExecuteRequest struct {
 	PublicToken string `json:"public_token,omitempty"`
 }
 
+// String prevents diagnostic formatting from exposing browser handoff material.
+func (BeginResult) String() string { return "[connection handoff redacted]" }
+
+// GoString prevents structured diagnostic formatting from exposing handoff material.
+func (BeginResult) GoString() string { return "[connection handoff redacted]" }
+
+// String prevents request diagnostics from exposing Link/public tokens or nonce.
+func (ExecuteRequest) String() string { return "[connection request redacted]" }
+
+// GoString prevents detailed request diagnostics from exposing temporary tokens.
+func (ExecuteRequest) GoString() string { return "[connection request redacted]" }
+
 // Binding requires explicit account, currency, source and evidence selection.
 type Binding struct {
 	AccountID               string  `json:"account_id"`
@@ -66,6 +78,15 @@ func (Secret) GoString() string { return "[redacted]" }
 
 // MarshalJSON rejects accidental credential serialization.
 func (Secret) MarshalJSON() ([]byte, error) { return nil, errors.New("secret_serialization_forbidden") }
+
+// WithValue explicitly exposes plaintext only to a trusted credential adapter callback.
+// The callback must not log or persist the value outside the approved secret store.
+func (s Secret) WithValue(use func(string) error) error {
+	if use == nil {
+		return failed("configuration_error")
+	}
+	return use(s.value)
+}
 
 // CredentialReference names one immutable version, scoped to an expected provider Item.
 type CredentialReference struct{ ReferenceID, Version, ItemID, Environment string }
