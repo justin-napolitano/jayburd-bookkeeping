@@ -1,0 +1,267 @@
+//go:build integration
+
+package server
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"io"
+	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/acquisition"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/staging"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
+)
+
+var appProofConnections = flag.Bool("app-proof-connections", false, "Inject fictional connection and acquisition dependencies only in disposable browser proof")
+
+const connectionProofActor = "00000000-0000-4000-8000-000000000001"
+const connectionProofCurrency = "00000000-0000-4000-8000-000000000002"
+const connectionProofEntity = "10000000-0000-4000-8000-000000000002"
+const connectionProofBook = "10000000-0000-4000-8000-000000000003"
+const connectionProofBank = "10000000-0000-4000-8000-000000000011"
+const connectionProofExpense = "10000000-0000-4000-8000-000000000012"
+const connectionProofWorker = "10000000-0000-4000-8000-000000000020"
+const connectionProofClaim = "10000000-0000-4000-8000-000000000030"
+
+// connectionProofProvider supplies verified fictional Link/account results and counts external mutations.
+type connectionProofProvider struct{ exchanges int }
+
+// CreateLink returns an ephemeral synthetic value and fixed bounded expiry.
+func (*connectionProofProvider) CreateLink(context.Context, connections.LinkRequest) (connections.LinkResult, error) {
+	return connections.LinkResult{Token: connections.NewSecret("synthetic-link"), ExpiresAt: time.Now().Add(5 * time.Minute)}, nil
+}
+
+// VerifySession binds only the known synthetic session and public token.
+func (*connectionProofProvider) VerifySession(_ context.Context, link, public connections.Secret, expectedItem string) error {
+	if expectedItem != "" || link != connections.NewSecret("synthetic-link") || public != connections.NewSecret("synthetic-public") {
+		return errors.New("unverified")
+	}
+	return nil
+}
+
+// Exchange counts the side effect so replay cannot be mistaken for success.
+func (p *connectionProofProvider) Exchange(context.Context, connections.Secret) (connections.ExchangeResult, error) {
+	p.exchanges++
+	return connections.ExchangeResult{ItemID: "synthetic-flow-item", AccessToken: connections.NewSecret("synthetic-access")}, nil
+}
+
+// Manifest returns only server-verified account identity; there are no client-supplied balances.
+func (*connectionProofProvider) Manifest(context.Context, connections.Secret) (connections.Manifest, error) {
+	code := "USD"
+	return connections.Manifest{ItemID: "synthetic-flow-item", Accounts: []connections.Account{{AccountID: "synthetic-flow-account", Type: "depository", Currency: &code}}, ConsentExpiresAt: "2099-01-01T00:00:00Z"}, nil
+}
+
+// Rotate is deliberately unavailable in this enrollment-to-review scenario.
+func (*connectionProofProvider) Rotate(context.Context, connections.Secret) (connections.ExchangeResult, error) {
+	return connections.ExchangeResult{}, errors.New("not in scenario")
+}
+
+// Remove is deliberately unavailable; disconnect must never call it.
+func (*connectionProofProvider) Remove(context.Context, connections.Secret) error {
+	return errors.New("not in scenario")
+}
+
+// connectionProofSecrets retains only this test's synthetic token in memory behind the production interface.
+type connectionProofSecrets struct {
+	stored        connections.StoredCredential
+	writes, reads int
+}
+
+// Put requires immutable reference identity and exact synthetic replay.
+func (s *connectionProofSecrets) Put(_ context.Context, r connections.CredentialReference, token connections.Secret) error {
+	if s.writes > 0 && (s.stored.Reference != r || s.stored.Token != token) {
+		return errors.New("conflict")
+	}
+	s.stored = connections.StoredCredential{Reference: r, Token: token}
+	s.writes++
+	return nil
+}
+
+// Read returns only the exact immutable version requested.
+func (s *connectionProofSecrets) Read(_ context.Context, r connections.CredentialReference) (connections.StoredCredential, error) {
+	s.reads++
+	if s.writes == 0 || s.stored.Reference != r {
+		return connections.StoredCredential{}, errors.New("missing")
+	}
+	return s.stored, nil
+}
+
+// Resolve checks the same stored reference before furnishing fictional runner credentials.
+func (s *connectionProofSecrets) Resolve(_ context.Context, r acquisition.CredentialReference) (acquisition.ProviderCredentials, error) {
+	stored := s.stored.Reference
+	if s.writes == 0 || stored.ReferenceID != r.ReferenceID || stored.Version != r.Version || stored.ItemID != r.ItemID || stored.Environment != r.Environment {
+		return acquisition.ProviderCredentials{}, errors.New("denied")
+	}
+	credentials := acquisition.ProviderCredentials{ClientID: "synthetic-client", Secret: "synthetic-secret"}
+	err := s.stored.Token.WithValue(func(value string) error { credentials.AccessToken = value; return nil })
+	return credentials, err
+}
+
+// connectionProofTransport intercepts the pinned production adapter; no request reaches Plaid.
+type connectionProofTransport struct{ calls int }
+
+// RoundTrip verifies account filtering and serves exact original decimal bytes.
+func (p *connectionProofTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	p.calls++
+	if r.URL.String() != "https://sandbox.plaid.com/transactions/sync" || r.Header.Get("Plaid-Version") != "2020-09-14" {
+		return nil, errors.New("wrong destination")
+	}
+	raw, e := io.ReadAll(r.Body)
+	if e != nil {
+		return nil, e
+	}
+	var request struct {
+		Options struct {
+			AccountID string `json:"account_id"`
+		} `json:"options"`
+	}
+	if json.Unmarshal(raw, &request) != nil || request.Options.AccountID != "synthetic-flow-account" {
+		return nil, errors.New("wrong scope")
+	}
+	body := `{"accounts":[{"account_id":"synthetic-flow-account","type":"depository"}],"added":[{"account_id":"synthetic-flow-account","transaction_id":"synthetic-cent-a","amount":0.10,"iso_currency_code":"USD","unofficial_currency_code":null,"date":"2026-10-13","pending":false,"pending_transaction_id":null,"name":"Fictional purchase A"},{"account_id":"synthetic-flow-account","transaction_id":"synthetic-cent-b","amount":0.20,"iso_currency_code":"USD","unofficial_currency_code":null,"date":"2026-10-13","pending":false,"pending_transaction_id":null,"name":"Fictional purchase B"}],"modified":[],"removed":[],"next_cursor":"synthetic-cursor","has_more":false,"transactions_update_status":"HISTORICAL_UPDATE_COMPLETE","request_id":"synthetic-request"}`
+	return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
+}
+
+// connectionBrowserFixture owns only disposable test dependencies and serializes its trigger.
+type connectionBrowserFixture struct {
+	mu        sync.Mutex
+	service   *connections.Service
+	runner    *acquisition.Runner
+	admin     *pgx.Conn
+	provider  *connectionProofProvider
+	transport *connectionProofTransport
+}
+
+// bootstrapConnectionBrowser installs fictional mandates independently of browser enrollment.
+func bootstrapConnectionBrowser(t *testing.T, ctx context.Context, admin *pgx.Conn, pool *pgxpool.Pool) *connectionBrowserFixture {
+	t.Helper()
+	_, err := admin.Exec(ctx, `
+ CREATE ROLE synthetic_connection_sync LOGIN IN ROLE bookkeeping_sync;
+ INSERT INTO ledger.principal(principal_id,issuer,subject) VALUES('10000000-0000-4000-8000-000000000020','synthetic','connection-browser-worker');
+ INSERT INTO ledger.entity(entity_id,name,kind) VALUES('10000000-0000-4000-8000-000000000002','Fictional Connection Proof LLC','legal');
+ INSERT INTO ledger.book(entity_id,book_id,name) VALUES('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','Connection proof / USD');
+ INSERT INTO ledger.membership(entity_id,principal_id,permission) SELECT '10000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', unnest(ARRAY['read','import','prepare','post']);
+ INSERT INTO ledger.membership(entity_id,principal_id,permission) SELECT '10000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000020', unnest(ARRAY['read','import']);
+ INSERT INTO ledger.book_policy VALUES('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000004','2026-01-01','2027-01-01','00000000-0000-4000-8000-000000000002','accrual','UTC',2,'half_even','synthetic-reviewed-spot-v1','00000000-0000-4000-8000-000000000001',clock_timestamp());
+ INSERT INTO ledger.period(entity_id,book_id,period_id,starts_on,ends_before) VALUES('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000006','2026-01-01','2027-01-01');
+ INSERT INTO ledger.account VALUES('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000011','1000','Fictional connection bank','asset','debit',true,'2026-01-01',NULL),('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000012','5000','Fictional connection expenses','expense','debit',false,'2026-01-01',NULL);
+ `)
+	if err != nil {
+		t.Fatal("synthetic connection setup failed", err)
+	}
+	if _, err = demoOwnerCall(ctx, admin, `SELECT integration.set_connect_permission($1,$2,$3,$1,'browser-connect',true)`, connectionProofActor, connectionProofEntity, connectionProofBook); err != nil {
+		t.Fatal("connection mandate failed", err)
+	}
+	workerRaw := `{"service_principal_id":"` + connectionProofWorker + `","worker_login":"synthetic_connection_sync","enabled":true}`
+	if _, err = demoOwnerCall(ctx, admin, `SELECT integration.set_connection_worker($1,$2,$3,'browser-worker',$4)`, connectionProofActor, connectionProofEntity, connectionProofBook, workerRaw); err != nil {
+		t.Fatal("worker mandate failed", err)
+	}
+	workerPool, err := pgxpool.New(ctx, "host=database port=5432 user=synthetic_connection_sync dbname=app_proof sslmode=disable connect_timeout=5 pool_max_conns=2")
+	if err != nil {
+		t.Fatal("synthetic worker unavailable")
+	}
+	t.Cleanup(workerPool.Close)
+	root := t.TempDir()
+	if os.Chmod(root, 0700) != nil {
+		t.Fatal("private evidence setup failed")
+	}
+	disk, err := staging.Open(root)
+	if err != nil {
+		t.Fatal("private evidence unavailable")
+	}
+	t.Cleanup(func() { disk.Close() })
+	evidence, err := acquisition.NewLocalEvidence(disk)
+	if err != nil {
+		t.Fatal("evidence composition failed")
+	}
+	provider, store, transport := &connectionProofProvider{}, &connectionProofSecrets{}, &connectionProofTransport{}
+	client, err := acquisition.NewPlaidHTTP(transport)
+	if err != nil {
+		t.Fatal("synthetic provider composition failed")
+	}
+	runner, err := acquisition.New(workerPool, client, store, evidence)
+	if err != nil {
+		t.Fatal("synthetic runner composition failed")
+	}
+	return &connectionBrowserFixture{service: connections.New(pool, provider, store), runner: runner, admin: admin, provider: provider, transport: transport}
+}
+
+// ServeHTTP triggers only the single fictional binding; it accepts no caller scope or provider data.
+func (f *connectionBrowserFixture) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	if r.URL.Path != "/__proof/acquire" || r.Method != http.MethodPost || r.URL.RawQuery != "" {
+		writeProblem(w, 404, "not_found")
+		return
+	}
+	if r.Header.Get("Authorization") != "Bearer synthetic.browser.proof" {
+		writeProblem(w, 401, "unauthenticated")
+		return
+	}
+	if r.Header.Get("Content-Type") != "application/json" {
+		writeProblem(w, 400, "invalid_request")
+		return
+	}
+	raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 64))
+	if err != nil || strings.TrimSpace(string(raw)) != "{}" {
+		writeProblem(w, 400, "invalid_request")
+		return
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+	var stream, source, revision string
+	err = f.admin.QueryRow(ctx, `SELECT s.stream_id::text,s.source_account_id::text,a.binding_revision::text FROM integration.sync_stream s JOIN banking.source_account a USING(entity_id,book_id,source_account_id) WHERE s.entity_id=$1 AND s.book_id=$2`, connectionProofEntity, connectionProofBook).Scan(&stream, &source, &revision)
+	if err != nil {
+		writeProblem(w, 409, "binding_required")
+		return
+	}
+	// Explicit test-owner review grant is separate from the product's connection binding grants.
+	var granted bool
+	err = f.admin.QueryRow(ctx, `SELECT EXISTS(SELECT FROM banking.source_permission WHERE entity_id=$1 AND book_id=$2 AND source_account_id=$3 AND principal_id=$4 AND capability='review' AND revoked_at IS NULL)`, connectionProofEntity, connectionProofBook, source, connectionProofActor).Scan(&granted)
+	if err != nil {
+		writeProblem(w, 500, "proof_failed")
+		return
+	}
+	if !granted {
+		body, _ := json.Marshal(map[string]any{"expected_binding_revision": revision, "principal_id": connectionProofActor, "enabled": true})
+		_, err = demoOwnerCall(ctx, f.admin, `SELECT banking.set_source_review_permission($1,$2,$3,$4,'browser-review',$5)`, connectionProofActor, connectionProofEntity, connectionProofBook, source, string(body))
+		if err != nil {
+			writeProblem(w, 500, "proof_failed")
+			return
+		}
+	}
+	result, err := f.runner.Run(ctx, acquisition.Scope{EntityID: connectionProofEntity, BookID: connectionProofBook, StreamID: stream}, connectionProofClaim)
+	if err != nil {
+		writeProblem(w, 500, "proof_failed")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": result.Status, "changed_count": result.ChangedCount, "fetch_count": f.transport.calls, "exchange_count": f.provider.exchanges})
+}
+
+// wrap installs the synthetic trigger behind the same origin boundary, only in this test executable.
+func (f *connectionBrowserFixture) wrap(product http.Handler) http.Handler {
+	boundary, err := ledger.BrowserBoundary("http://localhost:39083", f)
+	if err != nil {
+		panic("fixed proof origin invalid")
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/__proof/") {
+			boundary.ServeHTTP(w, r)
+			return
+		}
+		product.ServeHTTP(w, r)
+	})
+}
