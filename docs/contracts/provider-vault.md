@@ -65,9 +65,11 @@ approval. Preflight performs no source mutation or provider request.
 API service identity may perform this writer capability only through SQL-authorized
 connection operations. Its Infisical identity is exact-service-account scoped,
 create/read-only for the selected dev folder/keys, TTL at most 900 seconds. It has
-no Google secret write permission. Infisical's separate sync identity may add
+no Google secret write permission. The separate delivery identity may add
 versions only to precreated destinations; deletion is disabled, key schema is fixed,
-and sync IAM must be qualified without project-wide secret administrator permission.
+and delivery IAM must be qualified without project-wide secret administrator permission.
+The [owned delivery adapter](scoped-delivery.md) supersedes the native-sync assumption;
+its hosted composition and canary qualification remain pending.
 Direct Infisical acquisition reads and dynamic destination creation are not selected.
 
 ## Primary source review
