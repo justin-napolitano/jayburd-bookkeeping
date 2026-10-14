@@ -3,11 +3,13 @@
 
 ## Status and boundary
 
-Stacked on PR #113 for #11. Implements a canary-only command, image packaging,
-Terraform job/identity and owner-only workflow. No hosted apply or secret retrieval.
+PRs #113/#114 merged for #11. Implements a canary-only command, image packaging,
+Terraform job/identity and owner-only workflow. See hosted checkpoint below.
 [Contract](../contracts/delivery-job.md); [Terraform setup](../../infra/gcp/delivery/README.md).
 
 ## Stage ledger
+
+Initial implementation evidence (superseded by hosted checkpoint where noted):
 
 - Verified current GCP job listing: only `jayburd-dev-migrate`; delivery job absent.
 - Reused metadata identity and one-shot adapter; separated canary from Plaid values.
@@ -44,9 +46,9 @@ Owner reports GCP ID Token Auth corrected; exact delivery SA email and TTL/max T
 900 configured. Identity should have Viewer only on the isolated canary project,
 and No Access on the original bookkeeping project. No actual identity login verified.
 
-1. Merge/build reviewed worker image and bootstrap this isolated Terraform root.
-2. Set `canary` to that image and the metadata above, omitting `source_id` and using
-   default `mode="lookup"`. Enable owner invocation only after reviewing the job.
+1. COMPLETE: reviewed image built and isolated Terraform root provisioned.
+2. COMPLETE: `canary` uses that image and metadata above, omitting `source_id` with
+   `mode="lookup"`; scoped owner invocation enabled.
 3. Run the manual workflow once. Lookup requests `viewSecretValue=false`, with
    imports/expansion disabled, and prints only validated `source_id` and
    `source_version` JSON. It performs no GCP secret or registry calls. Read those
@@ -62,7 +64,7 @@ and No Access on the original bookkeeping project. No actual identity login veri
 
 No SQL/API/frontend changes. Initial job cannot read or write Plaid destinations. Parent #113 CI is fully green.
 The existing native Infisical connection is not the machine identity needed here.
-Actual bootstrap, identity enrollment and hosted canary remain pending.
+Bootstrap is complete; hosted lookup outcome and subsequent canary delivery remain separate gates.
 
 ## Metadata lookup stage
 
@@ -71,3 +73,12 @@ Tests cover success, denied access, wrong key/version/project/folder and malform
 only selected metadata fields can be serialized. CLI rejects mixed modes and no-ID
 execution. PASS: updated `make check test build`, `make infra-test` (including all eight
 delivery runs), and `git diff --check`. No live lookup or cloud execution yet.
+
+## Hosted bootstrap checkpoint — 2026-10-14
+
+- PASS: image run `38617498600`, main `47e8a415bd2d454e6da8cbdfa3c5c1b6db02d2fb`; worker container and vulnerability gates passed.
+- PASS: missing workers state bucket created by a targeted apply through the existing foundation backend, prefix `foundation`. Delivery backend initialized with prefix `delivery`; no competing local state owner.
+- GCP rejected 256 MiB for this execution mode. Corrected to its required 512 MiB; `bounded_canary_job` now asserts the limit.
+- PASS: delivery Terraform apply completed; lookup job and scoped identities provisioned. No destination version-adder grant in lookup mode.
+- PASS: owner workflow `38623665528` submitted execution `jayburd-dev-delivery-canary-kdchm`. Execution result pending; submission is not authentication proof.
+- PASS: `make check test build`. `make infra-test` passed all roots, including eight delivery runs. No real bank connection or canary value delivery.

@@ -42,6 +42,10 @@ run "bounded_canary_job" {
     condition     = google_cloud_run_v2_job.canary[0].template[0].task_count == 1 && google_cloud_run_v2_job.canary[0].template[0].parallelism == 1 && google_cloud_run_v2_job.canary[0].template[0].template[0].max_retries == 0 && google_cloud_run_v2_job.canary[0].template[0].template[0].timeout == "60s" && google_cloud_run_v2_job.canary[0].template[0].template[0].containers[0].command == tolist(["/deliver"])
     error_message = "Canary must be one bounded task, with no platform retry."
   }
+  assert {
+    condition     = google_cloud_run_v2_job.canary[0].template[0].template[0].containers[0].resources[0].limits["memory"] == "512Mi"
+    error_message = "Cloud Run jobs require at least 512 MiB with one CPU."
+  }
 }
 run "reject_unpinned_image_and_alias" {
   command = plan
