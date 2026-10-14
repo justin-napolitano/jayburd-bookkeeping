@@ -17,17 +17,28 @@ files and tests. No live provider, credentials, cloud or migration changes.
 
 ## Current evidence
 
-Implemented SQL transaction adapter, cursor runner, pinned HTTP transport and durable
-local evidence. `go test ./internal/acquisition -count=1` passed with synthetic
-loopback HTTP: exact large USD/JPY/KWD/exponent amounts, complete mutation restart,
-commit-loss model, revoked authority, immutable concurrent evidence and redaction.
-This first handoff does not claim actual PostgreSQL runner proof; that follows next.
+- `make check test build` passed: vet, race tests, migration file checks and builds.
+- `bash scripts/test-acquisition.sh` passed against final SQL13 from3590875:
+  13groups and9subtests, including five actual PostgreSQL groups. Real restricted
+  sessions commit before injected claim/page/completion response loss; replay reads
+  existing evidence/receipts without duplicate fetch or observations. Unknown claim
+  reaches no provider. Complete mutation restart and original claim replay passed.
+- PostgreSQL assertions cover large exact USD cents, revoked completion access,
+  post-fetch revocation, lease expiry, cancelled caller, API/mixed-role denial,
+  no journal/outbox effects. Network and credential callbacks assert no active SQL
+  transaction. Original HTTP fixtures separately exercise JPY/KWD/exponent amounts.
+- SQL unit faults cover08007/40003 ambiguity without replay and bounded40001/40P01
+  retries. Filesystem tests cover two-chunk2MiB exact bytes, concurrency, interruption,
+  cross-scope reads and deletion tombstones. Redaction and Retry-After tests passed.
+- Temporary SQL13 and harness copies were used for proof only; sole SQL author and
+  coordinator own those files. No provider credentials, cloud or real data used.
 
 ## Remaining work
 
-Prove the implemented adapters together through disposable PostgreSQL, including
-actual committed response loss and revoked authority. Run default gates. Hosted encrypted storage, durable
-retry scheduler, actual provider qualification and deployment remain separate gates.
+Hosted encrypted storage/retention, durable retry scheduling, real provider
+qualification, HTTP wakeup/service deployment and operational load tests remain
+separate gates. This runner is callable and composition-tested locally; it is not a
+hosted bank connector. Cancellation depends on injected components honoring context.
 
 ## PR handoff
 
