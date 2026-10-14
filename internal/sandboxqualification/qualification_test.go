@@ -110,6 +110,8 @@ func TestProbeFailuresStayPartialOrBlocked(t *testing.T) {
 	cases := []struct{ name, body, reason string }{
 		{"mismatch", page("C1", false, strings.Replace(transaction, "Account-A", "Other-A", 1)), "decoder_account_mismatch"},
 		{"duplicate", strings.Replace(page("C1", false, ""), `"has_more":false`, `"has_more":false,"has_more":true`, 1), "decoder_duplicate_key"},
+		{"cursor encoding", page("private.cursor", false, ""), "decoder_invalid_cursor_encoding"},
+		{"cursor progress", page("", false, ""), "decoder_invalid_cursor_progress"},
 		{"readiness", strings.Replace(page("", false, ""), "HISTORICAL_UPDATE_COMPLETE", "NOT_READY", 1), "provider_not_ready"},
 		{"cycle", page("C1", true, ""), "cursor_not_progressing"},
 	}
@@ -194,7 +196,7 @@ func TestAggregateBudgets(t *testing.T) {
 
 // TestDecoderReasonRedaction verifies wrapped codes and arbitrary errors cannot leak values.
 func TestDecoderReasonRedaction(t *testing.T) {
-	for _, code := range []string{"limit_exceeded", "invalid_expectation", "invalid_json", "duplicate_key", "invalid_number", "invalid_cursor", "invalid_field", "unknown_enum", "account_mismatch", "unsupported_account", "duplicate_identity", "invalid_identity", "invalid_lineage", "invalid_date", "unsupported_currency", "amount_out_of_range", "unknown_field"} {
+	for _, code := range []string{"limit_exceeded", "invalid_expectation", "invalid_json", "duplicate_key", "invalid_number", "invalid_cursor", "invalid_cursor_encoding", "invalid_cursor_progress", "invalid_field", "unknown_enum", "account_mismatch", "unsupported_account", "duplicate_identity", "invalid_identity", "invalid_lineage", "invalid_date", "unsupported_currency", "amount_out_of_range", "unknown_field"} {
 		if decoderReason(fmt.Errorf("private wrapper: %w", &plaid.Error{Code: code})) != "decoder_"+code {
 			t.Fatal("classification missing")
 		}
