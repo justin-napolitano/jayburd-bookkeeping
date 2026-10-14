@@ -46,6 +46,14 @@ consolidation remain explicitly deferred under #59.
 
 ## Generated acquisition and review slice
 
+PR #99 is merged. Next tasks are #100 scoped sync SQL/publication, #101 enrollment
+and credential lifecycle, #102 exact decoding/acquisition runner, #103 verified
+webhooks/catch-up and #104 connections UI. #70 owns contract reconciliation;
+#7 retains private worker transport. Native GitHub dependencies determine dispatch.
+Current parallel implementation is the SQL boundary, standalone lossless decoder,
+and private observer transport; enrollment and the complete connected UI remain
+dependent work. See [sync foundations](../runbooks/sync-foundations.md).
+
 Owner direction: no user-prepared CSV is required. #97 loads 3,000 generated
 transactions across fictional LLCs through private staging and the real import
 authority. #96 supplies scoped review/category drafts and atomic source-linked

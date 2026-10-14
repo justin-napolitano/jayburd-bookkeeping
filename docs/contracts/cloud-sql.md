@@ -49,6 +49,11 @@ the restricted migrator still has no CREATEROLE privilege. This does not provisi
 worker IAM logins, observer bindings or service permissions. Those remain a
 separate hosted-worker enrollment gate. API readiness rejects worker-role membership.
 
+Migration 12 additionally requires safe NOLOGIN `bookkeeping_sync`. The reviewed
+bootstrap now precreates it without enrolling any worker or granting API membership.
+Rerun that bootstrap through the existing owner-operated procedure before a hosted
+migration12 rollout; this delivery does not perform that rollout or retrieve secrets.
+
 Owner uses [bootstrap SQL](../../db/bootstrap/cloud-sql.sql) with existing API and
 migrator IAM role identifiers. Administrator must own the database/schema and have
 CREATEROLE plus sufficient authority to alter the two logins; this authority is

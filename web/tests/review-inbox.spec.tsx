@@ -1,5 +1,40 @@
 import { test, expect } from "@playwright/experimental-ct-react";
 import { ReviewInboxHarness } from "./ReviewInboxHarness";
+
+// A changed bank source must not visually replace the original posted evidence.
+test("posted source changes show separate revision references without draft actions", async ({ mount, page }, info) => {
+  const requests: string[] = [];
+  await page.route("**/v1/entities/e/books/b/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    requests.push(`${route.request().method()} ${path}`);
+    const posted = { ...row, state: "posted", journal_id: "j" };
+    const value = path.endsWith("/sources") ? {
+      items: [{ source_account_id: "s", display_name: "Fictional checking", currency: "USD", state: "active" }],
+    } : path.endsWith("/review-items") ? {
+      source_account_id: "s", source_revision: "5", items: [posted], next_cursor: null,
+    } : {
+      ...posted, source_account_id: "s", source_revision: "5", binding_revision: "1",
+      book_revision: "4", ledger_account_id: "cash", blockers: [], draft: null,
+      provider_exceptions: { total_count: "1", truncated: false, items: [{
+        exception_id: "x", kind: "modified", previous_revision: "1", current_revision: "2",
+        observation_id: "o", created_at: "2026-01-05T00:00:00Z",
+      }] },
+    };
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(value) });
+  });
+  await mount(<ReviewInboxHarness />);
+  await page.getByLabel("Source account").selectOption("s");
+  await page.getByLabel("Review status").selectOption("posted");
+  await page.getByRole("button", { name: "Review Synthetic supplies" }).click();
+  await expect(page.getByRole("region", { name: "Source changes after posting" })).toBeVisible();
+  await expect(page.getByText("Source modified: revision 1 → 2")).toBeVisible();
+  await expect(page.getByRole("button", { name: "View posted journal" })).toBeVisible();
+  await expect(page.getByLabel("Category account")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Review posting command" })).toHaveCount(0);
+  expect(requests.every((request) => request.startsWith("GET ") && !request.endsWith("/categories"))).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: info.outputPath("source-exception-mobile.png"), fullPage: true });
+});
 // Fixed independent fixtures test UI/request semantics, not SQL accounting correctness.
 const row = {
   review_id: "r",
