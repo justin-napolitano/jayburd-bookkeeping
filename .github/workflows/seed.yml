@@ -58,6 +58,8 @@ jobs:
         run: make connection-service-test
       - name: Synthetic provider acquisition composition proof
         run: make acquisition-test
+      - name: Durable acquisition dispatch and retry proof
+        run: make sync-dispatch-test
       - name: Enrollment through acquisition and review proof
         run: make provider-flow-test
       - name: Build and prove isolated health-only API container

@@ -1,3 +1,18 @@
+# Acquisition delivery build
+
+This branch is stacked on open PR #108 (`8f64a78`); #107 is merged. It adds
+SQL-owned acquisition dispatch, a bounded Go publisher/consumer adapter, isolated
+HTTP/queue profile and an injected worker server lifecycle. Current evidence and
+remaining checks: [dispatch delivery](runbooks/acquisition-dispatch.md).
+
+Hosted composition is still required: worker executables and dependency wiring,
+queue/Scheduler/IAM Terraform, scoped Infisical credential writes/propagation,
+Link/reconnect hosting and real OIDC/queue qualification. Then run explicitly
+authorized #88 Plaid Sandbox qualification; #90 separately gates live accounts.
+Sync alone never posts journals. #89 owns measured scaling evidence.
+
+The following snapshot describes the predecessor delivery.
+
 # Current connection operations build
 
 PR #107 is merged. #103/#104 now add unfinished-attempt discovery after reload,

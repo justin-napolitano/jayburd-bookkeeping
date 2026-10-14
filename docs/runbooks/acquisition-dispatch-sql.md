@@ -31,8 +31,8 @@ Migrations 1–14 remain unchanged. No provider, secret or cloud call was perfor
 
 ## Remaining work
 
-Coordinator integrates Go adapter/HTTP target profile 2, independent fairness proof,
-shared version/role fixtures and broader migration/ledger/app regression gates.
+Coordinator integration, HTTP target profile 2, fairness and dependent database
+regressions passed; see the [delivery evidence](acquisition-dispatch.md).
 Cloud provisioning, publisher scheduling and live adapter qualification are not
 proven here. Quarantine reset requires a separate explicit operator contract.
 

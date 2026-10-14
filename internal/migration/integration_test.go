@@ -132,10 +132,10 @@ func TestMigrationStatus(t *testing.T) {
 	}
 	for _, scenario := range []struct{ bad, restore string }{
 		{`UPDATE deployment.schema_migrations SET dirty=true`, `UPDATE deployment.schema_migrations SET dirty=false`},
-		// Provider enrollment requires migration thirteen; older and newer metadata must fail closed.
-		{`UPDATE deployment.schema_migrations SET version=13`, `UPDATE deployment.schema_migrations SET version=14`},
-		{`UPDATE deployment.schema_migrations SET version=15`, `UPDATE deployment.schema_migrations SET version=14`},
-		{`DELETE FROM deployment.schema_migrations`, `INSERT INTO deployment.schema_migrations VALUES(14,false)`},
+		// Acquisition dispatch requires migration fifteen; older and newer metadata must fail closed.
+		{`UPDATE deployment.schema_migrations SET version=14`, `UPDATE deployment.schema_migrations SET version=15`},
+		{`UPDATE deployment.schema_migrations SET version=16`, `UPDATE deployment.schema_migrations SET version=15`},
+		{`DELETE FROM deployment.schema_migrations`, `INSERT INTO deployment.schema_migrations VALUES(15,false)`},
 		{`INSERT INTO deployment.migration_artifact VALUES('extra.sql',repeat('a',64),now())`, `DELETE FROM deployment.migration_artifact WHERE filename='extra.sql'`},
 		{`CREATE TEMP TABLE saved_artifact AS SELECT * FROM deployment.migration_artifact WHERE filename='000001_ledger.up.sql'; DELETE FROM deployment.migration_artifact WHERE filename='000001_ledger.up.sql'`, `INSERT INTO deployment.migration_artifact SELECT * FROM saved_artifact; DROP TABLE saved_artifact`},
 		{`UPDATE deployment.migration_artifact SET sha256=repeat('a',64) WHERE filename='000001_ledger.up.sql'`, `UPDATE deployment.migration_artifact SET sha256='d9ae8fa5ff9715241de5cb52c63f7f6972baa9bab2083b0d92cb82ce7931e255' WHERE filename='000001_ledger.up.sql'`},

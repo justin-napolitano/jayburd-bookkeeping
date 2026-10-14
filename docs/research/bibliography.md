@@ -335,3 +335,5 @@ ISO exchange conformance.
   real PostgreSQL proof from live Link, credential-store and hosted qualification.
 
 - [Connection operations source application](plaid-ingestion-sources.md#connection-operations-review--2026-10-13): refreshed official webhook signature/key and sync-notification sections; distinguishes provider requirements from local replay, cache and transaction policies. Signed synthetic proofs do not qualify hosted delivery or actual institution behavior.
+
+- [Acquisition delivery and HTTP host review](background-work-sources.md#bw06--acquisition-delivery-and-host-review): refreshed official Cloud Tasks/Cloud Run timing and Go server lifecycle sections; distinguishes local fencing policy and loopback evidence from hosted qualification.

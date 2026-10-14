@@ -40,13 +40,13 @@ acceptance is claimed.
 
 ## Remaining work
 
-Root repeats the integrated proof against final SQL15 and validates fixed HTTP/task
-profiles. Actual cloud delivery/OIDC and provider qualification remain separate gates.
+Final SQL15 and private HTTP/task composition passed in the
+[coordinator delivery proof](acquisition-dispatch.md). Actual cloud delivery/OIDC and provider qualification remain separate gates.
 
 ## PR handoff
 
 Initial implementation handoff: unit/race/default gates passed; actual PostgreSQL
-proof passed against provisional migration15; root must repeat against final integrated SQL. Owned paths are internal/syncdispatch (excluding SQL author's
+proof passed against provisional and final integrated migration15. Owned paths are internal/syncdispatch (excluding SQL author's
 SQL integration file), this runbook and the corresponding contract.
 
 - Follow-up stage: real delayed retry and redispatch proof passed without changing
