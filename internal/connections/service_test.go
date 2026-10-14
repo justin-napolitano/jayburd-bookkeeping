@@ -36,11 +36,19 @@ type memoryRepo struct {
 	calls        []string
 	failOp       string
 	claimUnknown bool
+	contextReads int
+	staleAt      int
 }
 
 // call models fixed operation sequencing for unit tests, not SQL authority.
 func (r *memoryRepo) call(_ context.Context, op string, args ...any) (json.RawMessage, error) {
 	r.calls = append(r.calls, op)
+	if op == "connection_context" {
+		r.contextReads++
+		if r.staleAt > 0 && r.contextReads == r.staleAt {
+			return nil, failed("stale_connection")
+		}
+	}
 	if r.denied {
 		return nil, failed("not_found")
 	}
@@ -119,6 +127,36 @@ func (r *memoryRepo) call(_ context.Context, op string, args ...any) (json.RawMe
 		return encode(map[string]any{"state": "disconnected"}), nil
 	}
 	return encode(c), nil
+}
+
+// TestConnectionStaleContextStopsIO rejects generation changes before the next provider or secret operation.
+func TestConnectionStaleContextStopsIO(t *testing.T) {
+	for _, at := range []int{2, 3, 4, 5} {
+		t.Run(fmt.Sprint(at), func(t *testing.T) {
+			s, r, p, store := fixture()
+			input := begin(t, s)
+			r.contextReads = 0
+			r.staleAt = at
+			_, e := s.Execute(context.Background(), scope, attemptID, input)
+			code(t, e, "stale_connection")
+			exchanges, manifests, writes := 0, 0, 0
+			if at >= 3 {
+				exchanges = 1
+			}
+			if at >= 4 {
+				manifests = 1
+			}
+			if at >= 5 {
+				writes = 1
+			}
+			if count(p.calls, "verify") != 1 || count(p.calls, "exchange") != exchanges || count(p.calls, "manifest") != manifests || store.writes != writes || store.reads != 0 {
+				t.Fatal("stale context permitted another external operation")
+			}
+			if r.c.State == "binding_review" || r.c.State == "active" {
+				t.Fatal("stale context published reference")
+			}
+		})
+	}
 }
 
 type fakeProvider struct {
