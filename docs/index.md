@@ -111,3 +111,6 @@ and [Sandbox diagnostic boundary](contracts/plaid-sandbox-qualification.md).
 Application promotion now requires [explicit connection configuration](contracts/connection-release.md);
 [delivery evidence](runbooks/connection-release.md) distinguishes reviewed metadata
 from actual provider qualification.
+
+- [Hosted Sandbox probe](runbooks/hosted-sandbox-probe.md): credential delivery,
+  disposable API-created Item test, and explicit hosted evidence limits.

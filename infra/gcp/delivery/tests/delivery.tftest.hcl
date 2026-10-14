@@ -90,3 +90,38 @@ run "lookup_needs_no_source_id_or_write_grant" {
     error_message = "Metadata discovery requires neither a secret ID nor destination write authority."
   }
 }
+run "provider_lookup_has_no_write_authority" {
+  command = plan
+  variables {
+    canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "PLAID_SECRET" }
+  }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.provider_delivery) == 0 && length(google_secret_manager_secret_iam_member.add_canary) == 0
+    error_message = "Lookup cannot grant write permissions."
+  }
+}
+run "provider_delivery_is_one_key_only" {
+  command = plan
+  variables {
+    canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_id = "00000000-0000-4000-8000-000000000003", source_version = "1", key = "PLAID_SECRET", mode = "execute" }
+  }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.add_canary) == 0 && google_secret_manager_secret_iam_member.provider_delivery[0].secret_id == "jayburd-dev-bank-sync-client-secret" && google_secret_manager_secret_iam_member.provider_delivery[0].role == "roles/secretmanager.secretVersionAdder"
+    error_message = "Delivery may write only the selected static destination."
+  }
+}
+run "sandbox_probe_is_bounded_and_read_only" {
+  command = plan
+  variables {
+    sandbox_probe = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", client_id_version = "1", client_secret_version = "2" }
+  }
+  assert {
+    condition     = google_cloud_run_v2_job.sandbox_probe[0].template[0].task_count == 1 && google_cloud_run_v2_job.sandbox_probe[0].template[0].template[0].max_retries == 0 && length(google_secret_manager_secret_iam_member.sandbox_read) == 2 && alltrue([for g in google_secret_manager_secret_iam_member.sandbox_read : g.role == "roles/secretmanager.secretAccessor"]) && length(google_cloud_run_v2_job_iam_member.sandbox_invoke) == 0
+    error_message = "Probe must be one task with no retries and exactly two read-only grants; invocation remains disabled by default."
+  }
+}
+run "reject_probe_alias" {
+  command = plan
+  variables { sandbox_probe = { image = "worker:latest", client_id_version = "latest", client_secret_version = "1" } }
+  expect_failures = [var.sandbox_probe]
+}

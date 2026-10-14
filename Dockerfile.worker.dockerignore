@@ -15,3 +15,6 @@
 **/.env.*
 **/*.secret*
 **/*private*key*
+
+!cmd/sandbox-probe/
+!cmd/sandbox-probe/**
