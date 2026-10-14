@@ -26,7 +26,8 @@ TestProbeFailuresStayPartialOrBlocked. Fixtures are synthetic and network-free.
 
 The #120 worker was built, deployed and tested; initial sync still blocks.
 Keep #118 open. The second retest identified cursor progress as the blocker;
-merge the readiness correction below and retest its published image.
+the readiness correction is merged; current blocker is unknown_field. Merge the
+public-schema compatibility change below and retest its published image.
 Interactive Link, SQL ingestion and webhook qualification remain under #88.
 
 ## PR handoff
@@ -68,3 +69,22 @@ and [diagnostic contract](../contracts/plaid-sandbox-qualification.md).
 
 Next: merge readiness correction, publish/deploy its image and repeat the authorized
 probe. Keep #118 open; this execution is diagnostic evidence, not successful sync.
+
+## Readiness retest and public-schema review — 2026-10-14
+
+- [Build 38641168793](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38641168793): all validation/image jobs PASS, commit 09215afc45cacfb9d8bdeda58d627b476bd0aef3.
+- Worker digest: sha256:dc5582f1f39d7393108d35151e6a3f9444ed01b5d4089426c8a0e9e7ab4b73a2.
+- Terraform apply PASS; prior manual deployment reconciled. Verified image,
+  dedicated identity, pins 1/1 and retries zero. Delivery remains lookup-only.
+- [Invocation 38642580248](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38642580248) submitted jayburd-dev-sandbox-probe-r295g.
+- Receipt: authentication PASS; initial sync BLOCKED decoder_unknown_field,
+  zero decoded pages/changes; cleanup PASS. No successful sync or SQL import.
+- Reviewed the complete direct public schema field inventory (PI11). Added two
+  inert enrichment fields and exact numeric/null running balance retention, per
+  owner direction to retain all reviewed fields for future use. No ledger mapping. The actual unknown field is not exposed by the receipt.
+- PASS: make check test build and git diff --check. TestPlaidReviewedEnrichment
+  and TestPlaidFullPublicSchemaFixture cover exact retention and all declared
+  direct fields: 8 response, 13 account, 33 transaction, 2 removal fields.
+
+Next: merge schema compatibility change, publish/deploy and rerun the authorized
+probe. Keep #118 open. All raw provider data and credentials remain uninspected.

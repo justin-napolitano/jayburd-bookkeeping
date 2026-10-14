@@ -177,9 +177,28 @@ func decode(raw []byte, e Expected) (Page, error) {
 
 // transaction maps sign/date/state without assigning an accounting date, category or posting permission.
 func transaction(raw []byte, e Expected) (Transaction, error) {
-	f, err := object(raw, "account_id transaction_id amount iso_currency_code unofficial_currency_code date authorized_date datetime authorized_datetime pending pending_transaction_id name merchant_name original_description account_owner check_number location payment_meta payment_channel transaction_type personal_finance_category personal_finance_category_icon_url merchant_entity_id merchant_category_code logo_url website counterparties category category_id transaction_code")
+	f, err := object(raw, "account_id transaction_id amount iso_currency_code unofficial_currency_code date authorized_date datetime authorized_datetime pending pending_transaction_id name merchant_name original_description account_owner check_number location payment_meta payment_channel transaction_type personal_finance_category personal_finance_category_icon_url merchant_entity_id merchant_category_code logo_url website counterparties category category_id transaction_code business_finance_category client_customization running_balance")
 	if err != nil {
 		return Transaction{}, err
+	}
+	// Preserve provider balance numbers only in raw evidence; never convert them to float or ledger state.
+	if balance, present := f["running_balance"]; present {
+		value := bytes.TrimSpace(balance)
+		if !bytes.Equal(value, []byte("null")) {
+			var number json.Number
+			if len(value) == 0 || !(value[0] == '-' || value[0] >= '0' && value[0] <= '9') || json.Unmarshal(value, &number) != nil {
+				return Transaction{}, fail("invalid_field")
+			}
+		}
+	}
+	// Reviewed enrichment stays private and inert; malformed scalar/array forms fail closed.
+	for _, key := range []string{"business_finance_category", "client_customization"} {
+		if value, present := f[key]; present && !bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+			var metadata map[string]json.RawMessage
+			if json.Unmarshal(value, &metadata) != nil || metadata == nil {
+				return Transaction{}, fail("invalid_field")
+			}
+		}
 	}
 	// Provider classification is inert evidence, never a ledger category or direction.
 	if _, err = nullableText(f, "transaction_code", 256); err != nil {
