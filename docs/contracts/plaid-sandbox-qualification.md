@@ -108,6 +108,7 @@ access token is required for this separate smoke runner.
 Issue #118 preserves the receipt profile and blocked status, but refines decoder
 failure reasons to `decoder_` plus these closed codes: limit_exceeded,
 invalid_expectation, invalid_json, duplicate_key, invalid_number, invalid_cursor,
+invalid_cursor_encoding, invalid_cursor_progress,
 invalid_field, unknown_enum, account_mismatch, unsupported_account,
 duplicate_identity, invalid_identity, invalid_lineage, invalid_date,
 unsupported_currency, amount_out_of_range, unknown_field. Anything else remains
@@ -115,3 +116,8 @@ unsupported_currency, amount_out_of_range, unknown_field. Anything else remains
 Rejected pages do not increment counts. `TestDecoderReasonRedaction` verifies
 wrapped classifications, arbitrary error suppression and receipt redaction;
 `TestProbeFailuresStayPartialOrBlocked` verifies actual decoder propagation.
+
+The cursor subcodes distinguish unsupported cursor encoding from empty-cursor
+progress/readiness inconsistency. They contain no cursor characters or lengths.
+The legacy invalid_cursor classification stays recognized for compatibility.
+No acceptance rule is relaxed by this diagnostic refinement.

@@ -129,3 +129,14 @@ the earlier hosted rejection. Rejecting the documented field prevents valid
 pages; accepting every unknown field would remove the material-schema boundary.
 `TestPlaidTransactionCode` verifies the narrow alternative, exact cents, raw
 retention, omitted normalized mapping, invalid types and account isolation.
+
+## Cursor diagnostic refinement — 2026-10-14
+
+Hosted retest after #120 returned decoder_invalid_cursor. PI01's request cursor
+section still documents an upper bound of 256 base64 characters; its response
+next_cursor section permits empty text when transactions are not yet available.
+Update status describes the Item. We cannot infer from the old error whether
+encoding or our empty-progress rule rejected this response. Keep both rules
+unchanged and classify them as invalid_cursor_encoding or invalid_cursor_progress.
+TestProbeFailuresStayPartialOrBlocked exercises both through the probe. No raw
+cursor, length or provider status is added to the receipt.

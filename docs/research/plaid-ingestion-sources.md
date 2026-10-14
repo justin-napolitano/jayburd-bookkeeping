@@ -64,3 +64,9 @@ bounded inert metadata is a project interpretation; it cannot assign accounting
 meaning. See the [decoder contract](../contracts/plaid-decoder.md) and
 [regression evidence](../runbooks/sandbox-decoder.md). This selected-field review
 is not a complete response-schema audit or proof of the hosted failure cause.
+
+PI01 follow-up: reviewed request cursor, response next_cursor and Item update
+status after the hosted cursor rejection. The request documents 256 base64
+characters; an empty response cursor signals unavailable transactions. The old
+combined error does not identify which local predicate failed. Preserve validation
+and separate fixed error classifications before choosing a compatibility change.

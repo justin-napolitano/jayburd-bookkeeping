@@ -62,7 +62,7 @@ func decode(raw []byte, e Expected) (Page, error) {
 		return p, err
 	}
 	if !validCursor(p.NextCursor) {
-		return p, fail("invalid_cursor")
+		return p, fail("invalid_cursor_encoding")
 	}
 	if err = json.Unmarshal(v["has_more"], &p.HasMore); err != nil || string(v["has_more"]) == "null" || v["has_more"] == nil {
 		return p, fail("invalid_field")
@@ -123,7 +123,7 @@ func decode(raw []byte, e Expected) (Page, error) {
 		return p, fail("account_mismatch")
 	}
 	if p.NextCursor == "" && (p.HasMore || total > 0 || p.UpdateStatus == "INITIAL_UPDATE_COMPLETE" || p.UpdateStatus == "HISTORICAL_UPDATE_COMPLETE") {
-		return p, fail("invalid_cursor")
+		return p, fail("invalid_cursor_progress")
 	}
 	p.Added = make([]Transaction, 0, len(added))
 	p.Modified = make([]Transaction, 0, len(modified))
