@@ -3,7 +3,7 @@
 
 ## Status and boundary
 
-Issue #7, DISPATCH-GO-7: local Go publisher/consumer foundation under implementation.
+Issue #7, DISPATCH-GO-7: local Go publisher/consumer foundation implemented and tested with provisional SQL15.
 No live provider, cloud deployment, scheduler or financial posting is enabled.
 Root owns HTTP/transport composition and proof harness; the SQL lane owns migration15.
 
@@ -22,17 +22,32 @@ Root owns HTTP/transport composition and proof harness; the SQL lane owns migrat
 
 `go test -race ./internal/syncdispatch` and `make check test build` pass using pinned
 Go1.26.9. The default suite required loopback-listener sandbox escalation; no
-external provider was called. Logs: `/private/tmp/jayburd-dispatch-default.log`. Actual SQL15/Runner
-composition proof remains pending; no hosted acceptance is claimed.
+external provider was called. Logs: `/private/tmp/jayburd-dispatch-default.log`. Actual SQL15/Runner composition now passes: eleven groups, nine subtests including
+three real PostgreSQL groups. Real acquisition uses restricted logins, pinned HTTP
+with injected synthetic responses and private durable staging. Evidence covers:
+
+- Exact `9007199254740993.01`, cursor C1, one source observation, no journals/outbox.
+- Actual completion and settlement commits with lost replies; duplicate delivery
+  makes no second provider request. Current revoked authority denies receipt replay.
+- Actual unknown delivery claim performs zero provider calls and creates no sync set.
+- HTTP429 Retry-After3600 creates retry_wait and generation2 atomically before ack;
+  old delivery cannot bypass the delay. Fixture-controlled eligibility advance lets
+  generation2 complete with exactly one source observation and no journal.
+
+Proof log: `/private/tmp/jayburd-sync-dispatch-go-proof.log`. Root owns the final
+SQL15 integration rerun and private HTTP/Cloud Tasks composition proof. No hosted
+acceptance is claimed.
 
 ## Remaining work
 
-Compose disposable PostgreSQL and the real injected acquisition runner after SQL15
-is available. Validate receipt-loss replay, current revocation, duplicate delivery,
-retry handoff and no journals. Root separately validates fixed HTTP/task profiles.
+Root repeats the integrated proof against final SQL15 and validates fixed HTTP/task
+profiles. Actual cloud delivery/OIDC and provider qualification remain separate gates.
 
 ## PR handoff
 
 Initial implementation handoff: unit/race/default gates passed; actual PostgreSQL
-proof explicitly remains pending migration15. Owned paths are internal/syncdispatch (excluding SQL author's
+proof passed against provisional migration15; root must repeat against final integrated SQL. Owned paths are internal/syncdispatch (excluding SQL author's
 SQL integration file), this runbook and the corresponding contract.
+
+- Follow-up stage: real delayed retry and redispatch proof passed without changing
+  production Go; initial core handoff was `6985353`.
