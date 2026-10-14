@@ -26,3 +26,18 @@ Terraform never executes the job. Manual workflow **Run development delivery can
 submits it without overrides and does not claim it passed. Do not dispatch while
 an earlier execution is running; do not delete intents to retry uncertain delivery.
 The existing Plaid containers and their pending Terraform adoption are separate.
+
+## Sandbox credentials and probe
+
+`canary.key` defaults to `JAYBURD_DELIVERY_CANARY`; it also accepts only
+`PLAID_CLIENT_ID` or `PLAID_SECRET`. Lookup has no destination write grant.
+Execute grants version-adder only on the selected destination; existing provider
+containers remain owned by their original Terraform root. Supply reviewed source
+ID/version separately for each key. The resource/job name is retained to preserve
+state ownership; it no longer implies canary-only arguments.
+
+Optional `sandbox_probe={image,client_id_version,client_secret_version}` creates a
+separate managed identity and bounded job reading those exact GCP numeric versions.
+After apply, the owner workflow input `job=sandbox-probe` invokes that job without
+argument overrides. No source-project access is granted automatically.
+See [probe runbook](../../../docs/runbooks/hosted-sandbox-probe.md).

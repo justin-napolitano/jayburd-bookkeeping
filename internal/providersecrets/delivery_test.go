@@ -299,3 +299,29 @@ func TestCanaryMetadataLookup(t *testing.T) {
 		})
 	}
 }
+
+// TestRootLookupAllowlist prevents caller-controlled paths or dynamic slots from becoming credential discovery.
+func TestRootLookupAllowlist(t *testing.T) {
+	for _, key := range []string{"PLAID_CLIENT_ID", "PLAID_SECRET", "slot-00", "../PLAID_SECRET", "OTHER"} {
+		d, _, _ := newDeliveryProof(t, "")
+		calls := 0
+		d.source.http = client(transportFunc(func(r *http.Request) (*http.Response, error) {
+			calls++
+			if strings.HasSuffix(r.URL.Path, "/login") {
+				return response(200, map[string]any{"accessToken": "synthetic-auth", "tokenType": "Bearer", "expiresIn": 900}), nil
+			}
+			if r.URL.Path != "/api/v4/secrets/"+key || r.URL.Query().Get("viewSecretValue") != "false" {
+				t.Fatal("unsafe query")
+			}
+			return response(200, map[string]any{"secret": map[string]any{"id": "00000000-0000-4000-8000-000000000009", "workspace": sourceProject, "environment": "dev", "secretKey": key, "version": 1}}), nil
+		}))
+		_, err := d.LookupRoot(context.Background(), key, "1")
+		allowed := key == "PLAID_CLIENT_ID" || key == "PLAID_SECRET"
+		if allowed && (err != nil || calls != 2) {
+			t.Fatal("valid root key rejected")
+		}
+		if !allowed && (err == nil || calls != 0) {
+			t.Fatal("unapproved key contacted source")
+		}
+	}
+}
