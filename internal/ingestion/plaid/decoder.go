@@ -176,8 +176,12 @@ func decode(raw []byte, e Expected) (Page, error) {
 
 // transaction maps sign/date/state without assigning an accounting date, category or posting permission.
 func transaction(raw []byte, e Expected) (Transaction, error) {
-	f, err := object(raw, "account_id transaction_id amount iso_currency_code unofficial_currency_code date authorized_date datetime authorized_datetime pending pending_transaction_id name merchant_name original_description account_owner check_number location payment_meta payment_channel transaction_type personal_finance_category personal_finance_category_icon_url merchant_entity_id merchant_category_code logo_url website counterparties category category_id")
+	f, err := object(raw, "account_id transaction_id amount iso_currency_code unofficial_currency_code date authorized_date datetime authorized_datetime pending pending_transaction_id name merchant_name original_description account_owner check_number location payment_meta payment_channel transaction_type personal_finance_category personal_finance_category_icon_url merchant_entity_id merchant_category_code logo_url website counterparties category category_id transaction_code")
 	if err != nil {
+		return Transaction{}, err
+	}
+	// Provider classification is inert evidence, never a ledger category or direction.
+	if _, err = nullableText(f, "transaction_code", 256); err != nil {
 		return Transaction{}, err
 	}
 	t := Transaction{}
