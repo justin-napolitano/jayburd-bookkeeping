@@ -17,6 +17,8 @@ build:
 	go build -trimpath -o bin/corpus ./cmd/corpus
 	go build -trimpath -o bin/api ./cmd/api
 	go build -trimpath -o bin/migrate ./cmd/migrate
+	go build -trimpath -o bin/worker ./cmd/worker
+	go build -trimpath -o bin/sandbox-qualify ./cmd/sandbox-qualify
 
 web-check:
 	npm --prefix web run api:check
@@ -132,3 +134,10 @@ webhook-test:
 .PHONY: sync-dispatch-test
 sync-dispatch-test:
 	bash scripts/test-sync-dispatch.sh
+
+.PHONY: worker-bootstrap-test sandbox-qualification-test
+worker-bootstrap-test:
+	bash scripts/test-worker-bootstrap.sh
+
+sandbox-qualification-test:
+	bash scripts/test-sandbox-qualification.sh

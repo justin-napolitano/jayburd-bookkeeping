@@ -1,22 +1,28 @@
 #!/usr/bin/env bash
-# Validate an explicitly supplied local candidate without networking, mounts or credentials.
+# Build the allowlisted candidate or validate an exact existing image; runtime checks have no network.
 set -euo pipefail
-if [[ $# != 2 || "$1" != '--image' || ! "$2" =~ ^[a-zA-Z0-9][a-zA-Z0-9._/:@-]+$ ]]; then
-  echo 'usage: test-worker-container.sh --image IMAGE' >&2
-  exit 2
-fi
-candidate="$2"
-candidate_id="$(docker image inspect --format '{{.Id}}' "$candidate")"
-[[ "$candidate_id" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 1
+cd "$(dirname "$0")/.."
+owned_image=0
+candidate=""
+case "${1:-}" in
+  "") [[ $# == 0 ]] || exit 2; candidate="jayburd-worker-proof-$$-$(date +%s):local"; owned_image=1 ;;
+  --image) [[ $# == 2 && "$2" =~ ^[a-zA-Z0-9][a-zA-Z0-9._/:@-]+$ ]] || exit 2; candidate="$2" ;;
+  *) echo 'usage: test-worker-container.sh [--image IMAGE]' >&2; exit 2 ;;
+esac
 work_dir="$(mktemp -d)"
 cleanup() {
   for cid_file in "$work_dir"/*.cid; do
     [[ -f "$cid_file" ]] || continue
     docker rm -f "$(cat "$cid_file")" >/dev/null 2>&1 || true
   done
+  if [[ "$owned_image" == 1 ]]; then docker image rm "$candidate" >/dev/null 2>&1 || true; fi
   rm -rf "$work_dir"
 }
 trap cleanup EXIT
+trap 'exit 130' INT TERM
+if [[ "$owned_image" == 1 ]]; then docker build --file Dockerfile.worker --tag "$candidate" .; fi
+candidate_id="$(docker image inspect --format '{{.Id}}' "$candidate")"
+[[ "$candidate_id" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 1
 # Each rejected startup must stop itself, emit only the fixed diagnostic and access no network.
 check_rejected() {
   local case_name="$1"

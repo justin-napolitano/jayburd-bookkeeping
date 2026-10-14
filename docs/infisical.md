@@ -80,11 +80,15 @@ receive names and PASS/FAIL evidence only. Default local and PR checks stay offl
 
 ## Dynamic provider credentials
 
-The connection service adds an injected immutable-version `SecretStore` contract,
-not a deployed credential writer. Its synthetic proofs require exact reference,
-version, Item and environment readback before activation; uncertain writes remain
-in recovery. The existing read-only runtime/sync policy does not authorize dynamic
-Plaid token writes. Before #88 activation, review a separately scoped Infisical
-writer, propagation acknowledgement, immutable version addressing and visibility
-to the GCP reader. No direct-read alternate path or broad runtime write permission
-is introduced. See [connection service](contracts/connection-service.md).
+The [provider vault contract](contracts/provider-vault.md) now specifies and
+implements a separately scoped API writer through Infisical GCP ID Token Auth.
+This is the reviewed exception for connection creation/recovery, not an acquisition
+reader fallback. Acquisition still reads only exact Google Secret Manager versions.
+Eight precreated, never-reused development slots and immutable private GCS mappings
+bind logical credential identity to independently verified destination versions.
+
+The [hosted API composition](contracts/hosted-connections.md) remains explicitly
+opt-in and Sandbox-only. Synthetic tests prove one-shot writes, uncertain-response
+recovery and mismatch denial; no Infisical project, IAM, sync or hosted secret
+acceptance is claimed. See the [delivery runbook](runbooks/hosted-sandbox.md) for
+current evidence and owner configuration prerequisites.

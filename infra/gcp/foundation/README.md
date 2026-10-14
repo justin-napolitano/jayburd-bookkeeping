@@ -2,9 +2,10 @@
 
 ## Implemented boundary
 
-Foundation source defines APIs, nine separated identities, three private
+Foundation source defines APIs, nine separated identities, four private
 versioned state buckets, immutable image storage, independently disabled build and
-deployment federation and project-scoped USD 50 budget alerts. The runtime bucket,
+deployment federation and project-scoped USD 50 budget alerts. The dedicated
+workers-state bucket is a new unapplied owner-bootstrap addition without deployer access. The runtime bucket,
 deployment grants and identity lookup role are new unapplied #27 additions. No application, database, queue, secret
 value or service-account key is created. Development foundation was applied on
 2026-10-12; [bootstrap evidence](../../../docs/runbooks/gcp-delivery.md) records scope and limits.

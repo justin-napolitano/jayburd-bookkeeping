@@ -125,7 +125,8 @@ not demonstrate authorization. Direct-table probes use zero-row reads.
 
 Maximum planned demand including overlapping API/publisher/consumer revisions is
 28 runtime connections, plus two migrator and five administrative = 35 below the
-configured 50. Publisher/consumer pools are future #7 work. Live shared-core login
+configured 50. The [hosted platform](hosted-platform.md) now composes two-connection acquisition
+worker pools and separately reviewed login bootstrap; deployed acceptance remains #7. Live shared-core login
 latency, actual pool recovery, backup restore/PITR, exact restored journal totals
 and replay remain #26/#12 cloud evidence. Restore into a separate temporary instance;
 never replace/delete the original automatically. Record recovery time/data-loss

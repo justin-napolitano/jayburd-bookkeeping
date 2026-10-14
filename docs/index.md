@@ -80,13 +80,12 @@ Use the [corpus and execution guide](../tests/corpus/README.md),
 
 ## Next action
 
-PR #107 merged the connections workspace. Current #103/#104 work adds
-[connection operations](runbooks/connection-operations.md): durable discovery,
-account sync controls and verified webhook/catch-up intent. Read
-[operations SQL](contracts/connection-operations-sql.md),
-[webhooks](contracts/provider-webhooks.md), [status UI](contracts/connection-status-ui.md)
-and [connection HTTP](contracts/connection-http.md) before changing shared wire.
-Hosted worker/secret composition and Sandbox qualification remain separate gates.
+Hosted acquisition is implemented for review on top of merged PR #109. Read the [hosted delivery runbook](runbooks/hosted-sandbox.md) and
+[platform contract](contracts/hosted-platform.md) for tested behavior and remaining
+activation steps. Worker/IAM and provider adapters have synthetic evidence;
+Infisical account configuration, real hosted acceptance and full Plaid Sandbox
+qualification remain open in #7/#11/#88. Automated worker promotion and real Link
+UI/reconnect are explicit follow-ups. No production account activation.
 
 Review the [first application evidence](runbooks/first-app.md), then complete the
 managed identity and deployment gates before connecting live accounts. JB-001 remains open for a real
@@ -102,3 +101,8 @@ the [delivery evidence ledger](runbooks/gcp-delivery.md).
 - [Cloud Run rollout contract](contracts/cloud-run-rollout.md) and [release review instructions](../deploy/README.md).
 
 Acquisition delivery: [SQL ownership](contracts/acquisition-dispatch-sql.md), [Go runtime](contracts/acquisition-dispatch-runtime.md), [transport profile](contracts/acquisition-transport.md), [delivery runbook](runbooks/acquisition-dispatch.md), and [bounded HTTP host](runbooks/worker-host.md).
+
+Hosted integration: [delivery evidence](runbooks/hosted-sandbox.md),
+[worker composition](contracts/hosted-workers.md), [durable evidence](contracts/hosted-evidence.md),
+[provider vault](contracts/provider-vault.md), [optional API composition](contracts/hosted-connections.md),
+and [Sandbox diagnostic boundary](contracts/plaid-sandbox-qualification.md).
