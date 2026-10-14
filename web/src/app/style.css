@@ -477,10 +477,13 @@ footer {
   }
   .book-nav {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* Equal tracks must shrink below label width across platform font metrics. */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .book-nav button {
-    white-space: nowrap;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
