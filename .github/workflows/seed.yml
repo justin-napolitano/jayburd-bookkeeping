@@ -39,7 +39,7 @@ jobs:
       - name: Prove isolated PostgreSQL migrations
         run: make migration-test
       - name: Prove restricted cloud migration roles on disposable PostgreSQL
-        run: make cloud-sql-test
+        run: make cloud-sql-test worker-bootstrap-test
       - name: Prove transactional ledger on disposable PostgreSQL
         run: make ledger-test
       - name: Prove receipt-only observer on disposable PostgreSQL
@@ -66,6 +66,10 @@ jobs:
         run: bash scripts/test-api-container.sh
       - name: Build and verify inert non-root migration image
         run: bash scripts/test-migrator-container.sh
+      - name: Prove isolated fail-closed worker container
+        run: bash scripts/test-worker-container.sh
+      - name: Prove Sandbox diagnostic defaults to offline
+        run: bash scripts/test-sandbox-qualification.sh
       - name: Lint workflow definitions
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 .github/workflows/*.yml
       - name: Check reachable dependency vulnerabilities

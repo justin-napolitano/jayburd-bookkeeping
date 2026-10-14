@@ -23,3 +23,11 @@ test('containerd manifest identity works when Buildx omits a configuration diges
  assert.equal(receipt(input, metadata, [image]).configDigest, null);
  assert.throws(() => receipt({...input, imageID: 'sha256:' + 'd'.repeat(64)}, metadata, [image]));
 });
+
+// Worker publication retains candidate-only semantics and exact repository binding.
+test('worker candidate is independently identified and cannot use an API digest', () => {
+ const worker = {...input, component:'worker'};
+ assert.equal(receipt(worker, build, [image.replace('/api@','/worker@')]).deployable, false);
+ assert.throws(() => receipt(worker, build, [image]));
+ assert.throws(() => receipt({...worker, component:'unknown'}, build, [image]));
+});

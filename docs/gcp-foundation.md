@@ -88,3 +88,13 @@ Observed seven-day spend, synthetic restore timing, backlog latency and the 1,00
 proof belong to #12. Project and billing metadata are now established and #5 is closed in GitHub.
 Application auth, actual trust-denial tests, cost measurements and recovery
 acceptance remain separate cloud evidence gates.
+
+## Acquisition bootstrap state
+
+The hosted acquisition slice adds a fourth private versioned state bucket,
+`PROJECT-jayburd-dev-workers-state`, for the owner-operated workers root. The
+application deployer's existing runtime-state grant does not cover it. Apply the
+reviewed foundation addition before installing that backend; a prefix in the shared
+runtime bucket is not a substitute for IAM separation. Mocked tests verify the
+configuration; this change has not provisioned the bucket. See the
+[hosted platform boundary](contracts/hosted-platform.md).

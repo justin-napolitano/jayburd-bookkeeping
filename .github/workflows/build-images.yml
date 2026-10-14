@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        component: [api, migrate, web]
+        component: [api, migrate, web, worker]
     env:
       PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       PROJECT_NUMBER: ${{ vars.GCP_PROJECT_NUMBER }}
@@ -57,6 +57,7 @@ jobs:
             api) bash scripts/test-api-container.sh --image "$IMAGE_ID" ;;
             migrate) bash scripts/test-migrator-container.sh --image "$IMAGE_ID" ;;
             web) bash scripts/test-web-container.sh --image "$IMAGE_ID" ;;
+            worker) bash scripts/test-worker-container.sh --image "$IMAGE_ID" ;;
             *) exit 1 ;;
           esac
       - name: Block high and critical image vulnerabilities

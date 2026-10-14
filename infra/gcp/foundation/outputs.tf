@@ -1,6 +1,6 @@
 # These outputs are identifiers only; agents must not retrieve Terraform state or plans.
 output "state_bucket_names" {
-  description = "Separate foundation/database/runtime state destinations for owner-operated backend setup."
+  description = "Separate foundation/database/runtime/worker-bootstrap state destinations for owner-operated backend setup."
   value       = { for key, bucket in google_storage_bucket.state : key => bucket.name }
 }
 output "service_account_names" {
