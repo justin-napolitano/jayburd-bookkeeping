@@ -278,7 +278,7 @@ func decoderReason(err error) string {
 	if errors.As(err, &decoded) && decoded != nil {
 		switch decoded.Code {
 		case "limit_exceeded", "invalid_expectation", "invalid_json", "duplicate_key",
-			"invalid_number", "invalid_cursor", "invalid_field", "unknown_enum",
+			"invalid_number", "invalid_cursor", "invalid_cursor_encoding", "invalid_cursor_progress", "invalid_field", "unknown_enum",
 			"account_mismatch", "unsupported_account", "duplicate_identity",
 			"invalid_identity", "invalid_lineage", "invalid_date", "unsupported_currency",
 			"amount_out_of_range", "unknown_field":
