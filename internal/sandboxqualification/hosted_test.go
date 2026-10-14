@@ -11,9 +11,10 @@ import (
 
 // TestHostedScopeAndCleanup proves fixed-host calls, cleanup and no credential/provider output.
 func TestHostedScopeAndCleanup(t *testing.T) {
-	for _, broken := range []string{"", "exchange", "accounts", "sync", "cleanup"} {
+	for _, broken := range []string{"", "exchange", "accounts", "sync", "cleanup", "readiness"} {
 		t.Run(broken, func(t *testing.T) {
 			paths := []string{}
+			syncs := 0
 			tr := fakeTransport(func(req *http.Request) (*http.Response, error) {
 				if req.URL.Host != "sandbox.plaid.com" || req.URL.Scheme != "https" {
 					t.Fatal("non-Sandbox request")
@@ -36,7 +37,11 @@ func TestHostedScopeAndCleanup(t *testing.T) {
 						status = 500
 					}
 				case "/transactions/sync":
+					syncs++
 					body = `{"accounts":[],"added":[],"modified":[],"removed":[],"next_cursor":"C1","has_more":false,"request_id":"private","transactions_update_status":"HISTORICAL_UPDATE_COMPLETE"}`
+					if broken == "readiness" && syncs == 1 {
+						body = strings.Replace(body, `"next_cursor":"C1"`, `"next_cursor":""`, 1)
+					}
 					if broken == "sync" {
 						status = 500
 					}
@@ -76,6 +81,9 @@ func TestHostedScopeAndCleanup(t *testing.T) {
 				}
 			} else if removes != 1 {
 				t.Fatal("missing cleanup")
+			}
+			if broken == "readiness" && (r.Status != "partial" || syncs != 3) {
+				t.Fatal("readiness did not retry once then complete initial and repeat sync")
 			}
 			if broken == "" && r.Status != "partial" {
 				t.Fatalf("unexpected status: %s", r.Status)

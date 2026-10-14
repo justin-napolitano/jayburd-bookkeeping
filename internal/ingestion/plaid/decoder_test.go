@@ -337,3 +337,23 @@ func TestPlaidTransactionCode(t *testing.T) {
 		rejected(t, page(strings.Replace(row("1", "USD"), `"name":`, `"transaction_code":`+value+`,"name":`, 1), "", ""), expected())
 	}
 }
+
+// TestPlaidEmptyAccountReadiness separates Item update status from account cursor availability.
+func TestPlaidEmptyAccountReadiness(t *testing.T) {
+	for _, status := range []string{"NOT_READY", "TRANSACTIONS_UPDATE_STATUS_UNKNOWN", "INITIAL_UPDATE_COMPLETE", "HISTORICAL_UPDATE_COMPLETE"} {
+		raw := strings.Replace(string(page("", "", "")), "Y3Vyc29y", "", 1)
+		raw = strings.Replace(raw, "HISTORICAL_UPDATE_COMPLETE", status, 1)
+		got, err := plaid.DecodePage([]byte(raw), expected())
+		if err != nil || got.NextCursor != "" || got.UpdateStatus != status {
+			t.Fatal("empty account readiness rejected", err)
+		}
+		rejected(t, []byte(strings.Replace(raw, `"has_more":false`, `"has_more":true`, 1)), expected())
+		for _, group := range []string{"added", "modified", "removed"} {
+			change := row("1", "USD")
+			if group == "removed" {
+				change = `{"account_id":"Account-A","transaction_id":"Removed-A"}`
+			}
+			rejected(t, []byte(strings.Replace(raw, `"`+group+`":[]`, `"`+group+`":[`+change+`]`, 1)), expected())
+		}
+	}
+}

@@ -122,7 +122,8 @@ func decode(raw []byte, e Expected) (Page, error) {
 	if (len(added)+len(modified) > 0) && len(accounts) != 1 {
 		return p, fail("account_mismatch")
 	}
-	if p.NextCursor == "" && (p.HasMore || total > 0 || p.UpdateStatus == "INITIAL_UPDATE_COMPLETE" || p.UpdateStatus == "HISTORICAL_UPDATE_COMPLETE") {
+	// Item-wide readiness does not establish cursor availability for this filtered account.
+	if p.NextCursor == "" && (p.HasMore || total > 0) {
 		return p, fail("invalid_cursor_progress")
 	}
 	p.Added = make([]Transaction, 0, len(added))

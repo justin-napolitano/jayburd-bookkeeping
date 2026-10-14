@@ -25,8 +25,8 @@ TestProbeFailuresStayPartialOrBlocked. Fixtures are synthetic and network-free.
 ## Remaining work
 
 The #120 worker was built, deployed and tested; initial sync still blocks.
-Keep #118 open. Merge this diagnostic refinement, publish its worker image and
-rerun the authorized probe to distinguish cursor encoding from empty progress.
+Keep #118 open. The second retest identified cursor progress as the blocker;
+merge the readiness correction below and retest its published image.
 Interactive Link, SQL ingestion and webhook qualification remain under #88.
 
 ## PR handoff
@@ -48,3 +48,23 @@ and [diagnostic contract](../contracts/plaid-sandbox-qualification.md).
 - Zero decoded pages is not evidence of an empty account. No SQL imports occurred.
 - Refined the two cursor predicates into separate redacted error codes without
   changing acceptance. Synthetic tests cover both; `make check test build` and diff checks PASS.
+
+## Hosted cursor diagnosis and readiness correction — 2026-10-14
+
+- [Build 38637872109](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38637872109): PASS for merged commit 309f19d961c9cb86fdc61a2083d1bcc1f5c87be2.
+- Worker digest: sha256:15b10c0a7ed68c47464fec440684014874f3c44b588bb3f65350eed8b82dd88f.
+- Terraform twice failed during metadata refresh with a network socket error.
+  Applied the same desired image using gcloud jobs update; verified image, identity,
+  pins 1/1 and retries zero. Desired Terraform input matches; state reconciliation
+  remains pending restored metadata access. No IAM or secret value changes.
+- [Invocation 38639677554](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38639677554) submitted jayburd-dev-sandbox-probe-k4z8f.
+- Actual receipt: authentication PASS, initial sync BLOCKED
+  decoder_invalid_cursor_progress, zero decoded pages/changes, cleanup PASS.
+- Narrow source-backed correction: empty no-change/no-more account snapshots reach
+  existing bounded readiness polling regardless of Item status. Cursor required for
+  changes or further pages. Full hosted sync is not yet proven.
+- PASS: make check test build and git diff --check; named regression tests are in the
+  [decoder contract](../contracts/plaid-decoder.md).
+
+Next: merge readiness correction, publish/deploy its image and repeat the authorized
+probe. Keep #118 open; this execution is diagnostic evidence, not successful sync.
