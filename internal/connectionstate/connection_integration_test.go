@@ -543,10 +543,16 @@ func TestConnectionMalformedContainers(t *testing.T) {
 // A competing lifecycle reservation invalidates private I/O metadata, not authorized public history.
 func TestConnectionPrivateContextFenceAndExclusiveClaim(t *testing.T) {
 	c, db, a, _ := connected(t)
+	// Expiry is prepared before unresolved lifecycle claims; the fresh-enrollment guard stays intact.
+	fresh := begin(t, db, "new-expired", "new", nil, nil, nil)
+	exec(t, c, "UPDATE integration.connection_attempt SET expires_at=clock_timestamp()-interval '1 second' WHERE attempt_id=$1", fresh["attempt_id"])
+	_, e := invoke(t, db, "synthetic_runtime", "SELECT integration.connection_context($1,$2,$3,$4)::text", actor, entity, book, fresh["attempt_id"])
+	requireCode(t, e, "P2703")
+	call(t, db, "synthetic_runtime", "SELECT integration.get_connection_attempt($1,$2,$3,$4)::text", actor, entity, book, fresh["attempt_id"])
 	first := itemIntent(t, c, db, "rotate-first", "rotate", a["sync_item_id"])
 	second := itemIntent(t, c, db, "remove-second", "remove", a["sync_item_id"])
 	first = claim(t, db, first)
-	_, e := invoke(t, db, "synthetic_runtime", "SELECT integration.connection_context($1,$2,$3,$4)::text", actor, entity, book, second["attempt_id"])
+	_, e = invoke(t, db, "synthetic_runtime", "SELECT integration.connection_context($1,$2,$3,$4)::text", actor, entity, book, second["attempt_id"])
 	requireCode(t, e, "P2703")
 	call(t, db, "synthetic_runtime", "SELECT integration.get_connection_attempt($1,$2,$3,$4)::text", actor, entity, book, second["attempt_id"])
 	_, e = invoke(t, db, "synthetic_runtime", "SELECT integration.claim_connection($1,$2,$3,$4,$5,$6)::text", actor, entity, book, second["attempt_id"], second["nonce"], raw(map[string]any{"link_token_sha256": nil, "public_token_sha256": nil}))
@@ -564,9 +570,5 @@ func TestConnectionPrivateContextFenceAndExclusiveClaim(t *testing.T) {
 	_, e = invoke(t, db, "synthetic_runtime", "SELECT integration.connection_context($1,$2,$3,$4)::text", actor, entity, book, first["attempt_id"])
 	requireCode(t, e, "P2703")
 	call(t, db, "synthetic_runtime", "SELECT integration.get_connection_attempt($1,$2,$3,$4)::text", actor, entity, book, first["attempt_id"])
-	fresh := begin(t, db, "new-expired", "new", nil, nil, nil)
-	exec(t, c, "UPDATE integration.connection_attempt SET expires_at=clock_timestamp()-interval '1 second' WHERE attempt_id=$1", fresh["attempt_id"])
-	_, e = invoke(t, db, "synthetic_runtime", "SELECT integration.connection_context($1,$2,$3,$4)::text", actor, entity, book, fresh["attempt_id"])
-	requireCode(t, e, "P2703")
-	call(t, db, "synthetic_runtime", "SELECT integration.get_connection_attempt($1,$2,$3,$4)::text", actor, entity, book, fresh["attempt_id"])
+
 }

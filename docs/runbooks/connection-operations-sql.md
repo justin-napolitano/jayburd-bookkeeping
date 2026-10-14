@@ -57,3 +57,14 @@ commit; final named evidence recorded here.
 Expiry boundary proof preserves old paused Item/reference history while allowing a new
 attempt only for known expired binding_review; expired unknown claims remain blocked.
 Concurrent fresh Begin proves exactly one attempt wins and one receives P2804.
+
+## Follow-up: existing lifecycle fixture ordering
+
+The combined regression exposed an older test that created a fresh new enrollment
+after deliberately leaving a rotation claim unresolved. Migration 14 correctly
+rejects that sequence. The fixture now prepares and expires the unrelated unclaimed
+attempt before starting the competing lifecycle claims. All private-context expiry,
+public-history readability and exclusive-claim assertions remain unchanged; no
+production guard is relaxed. Existing connection-state PostgreSQL proof PASS: 12 top-level groups and 5 named
+subtests against migrations 1–14. Log: `/private/tmp/jayburd-connection-ops-legacy-proof.log`.
+This fixture-only adjustment does not change the final migration checksum.
