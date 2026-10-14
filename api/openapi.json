@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Jayburd Ledger Contract",
-    "version": "0.9.0-review",
+    "version": "0.10.0-review",
     "description": "Implemented ledger, reporting and source review contract. Synthetic development policy only; no live-use approval. SQL owns semantics. Internal operations are not registered ISO financial messages.",
     "contact": {
       "name": "Jayburd contract review",
@@ -2713,7 +2713,529 @@
           }
         }
       }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts": {
+      "post": {
+        "operationId": "beginConnection",
+        "summary": "beginConnection",
+        "description": "Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionBeginResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionBeginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}": {
+      "get": {
+        "operationId": "getConnectionAttempt",
+        "summary": "getConnectionAttempt",
+        "description": "Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionAttempt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/execute": {
+      "post": {
+        "operationId": "executeConnection",
+        "summary": "executeConnection",
+        "description": "Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionAttempt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionExecuteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/reconcile": {
+      "post": {
+        "operationId": "reconcileConnection",
+        "summary": "reconcileConnection",
+        "description": "Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionAttempt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionReconcileRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/bindings": {
+      "post": {
+        "operationId": "bindConnection",
+        "summary": "bindConnection",
+        "description": "Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionBindingResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionBindingRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connections": {
+      "get": {
+        "operationId": "listConnections",
+        "summary": "listConnections",
+        "description": "Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connections/streams/{stream_id}/disconnect": {
+      "post": {
+        "operationId": "disconnectConnectionStream",
+        "summary": "disconnectConnectionStream",
+        "description": "Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionDisconnectResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionDisconnectRequest"
+              }
+            }
+          }
+        }
+      }
     }
+
   },
   "components": {
     "securitySchemes": {
@@ -5145,7 +5667,581 @@
           "accounting_date",
           "description"
         ]
+      },
+      "ConnectionManifest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "accounts": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "account_id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "depository",
+                    "credit",
+                    "loan",
+                    "investment",
+                    "other"
+                  ]
+                },
+                "iso_currency_code": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[A-Z]{3}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "account_id",
+                "type",
+                "iso_currency_code"
+              ]
+            }
+          },
+          "consent_expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "item_id",
+          "accounts",
+          "consent_expires_at"
+        ]
+      },
+      "ConnectionAttempt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "new",
+              "reconnect",
+              "rotate",
+              "remove"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "link_pending",
+              "link_ready",
+              "exchange_claimed",
+              "credential_pending",
+              "binding_review",
+              "active",
+              "credential_recovery_required",
+              "disconnect_pending",
+              "disconnected"
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sync_item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manifest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectionManifest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "streams": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "stream_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "source_account_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "namespace_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "binding_revision": {
+                  "$ref": "#/components/schemas/Revision"
+                },
+                "overlap_review_required": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "stream_id",
+                "source_account_id",
+                "namespace_id",
+                "binding_revision",
+                "overlap_review_required"
+              ]
+            }
+          }
+        },
+        "required": [
+          "attempt_id",
+          "entity_id",
+          "book_id",
+          "mode",
+          "state",
+          "expires_at",
+          "sync_item_id",
+          "manifest"
+        ]
+      },
+      "ConnectionBeginRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "new",
+              "reconnect",
+              "rotate",
+              "remove"
+            ]
+          },
+          "sync_item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected_generation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Revision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "approved_stream_ids": {
+            "type": "array",
+            "maxItems": 25,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "mode",
+          "sync_item_id",
+          "expected_generation",
+          "approved_stream_ids"
+        ]
+      },
+      "ConnectionBeginResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "attempt": {
+            "$ref": "#/components/schemas/ConnectionAttempt"
+          },
+          "nonce": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "link_token": {
+            "type": "string",
+            "maxLength": 4096,
+            "description": "Ephemeral handoff; memory only, never browser persistence."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "attempt",
+          "nonce"
+        ]
+      },
+      "ConnectionExecuteRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "nonce": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "link_token": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "public_token": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "nonce"
+        ]
+      },
+      "ConnectionBindingRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "consent_grants": {
+            "type": "boolean",
+            "const": true
+          },
+          "bindings": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 25,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "account_id": {
+                  "type": "string"
+                },
+                "ledger_account_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "currency_version_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "source_account_id": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expected_binding_revision": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Revision"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "binding_date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "binding_evidence_ref": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "required": [
+                "account_id",
+                "ledger_account_id",
+                "currency_version_id",
+                "source_account_id",
+                "expected_binding_revision",
+                "binding_date",
+                "binding_evidence_ref"
+              ]
+            }
+          }
+        },
+        "required": [
+          "consent_grants",
+          "bindings"
+        ]
+      },
+      "ConnectionBindingResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "new",
+              "reconnect",
+              "rotate",
+              "remove"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "link_pending",
+              "link_ready",
+              "exchange_claimed",
+              "credential_pending",
+              "binding_review",
+              "active",
+              "credential_recovery_required",
+              "disconnect_pending",
+              "disconnected"
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sync_item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manifest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectionManifest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "streams": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "stream_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "source_account_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "namespace_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "binding_revision": {
+                  "$ref": "#/components/schemas/Revision"
+                },
+                "overlap_review_required": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "stream_id",
+                "source_account_id",
+                "namespace_id",
+                "binding_revision",
+                "overlap_review_required"
+              ]
+            }
+          }
+        },
+        "required": [
+          "attempt_id",
+          "entity_id",
+          "book_id",
+          "mode",
+          "state",
+          "expires_at",
+          "sync_item_id",
+          "manifest",
+          "streams"
+        ]
+      },
+      "ConnectionList": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "sync_item_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "item_id": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "paused",
+                    "disconnected",
+                    "credential_recovery_required",
+                    "disconnect_pending",
+                    "reauthorization_required"
+                  ]
+                },
+                "item_generation": {
+                  "$ref": "#/components/schemas/Revision"
+                },
+                "accounts": {
+                  "type": "array",
+                  "maxItems": 25,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "stream_id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "account_id": {
+                        "type": "string"
+                      },
+                      "source_account_id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "state": {
+                        "type": "string",
+                        "enum": [
+                          "active",
+                          "disconnected"
+                        ]
+                      },
+                      "binding_revision": {
+                        "$ref": "#/components/schemas/Revision"
+                      }
+                    },
+                    "required": [
+                      "stream_id",
+                      "account_id",
+                      "source_account_id",
+                      "state",
+                      "binding_revision"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "sync_item_id",
+                "item_id",
+                "state",
+                "item_generation",
+                "accounts"
+              ]
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ConnectionDisconnectRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expected_binding_revision": {
+            "$ref": "#/components/schemas/Revision"
+          }
+        },
+        "required": [
+          "expected_binding_revision"
+        ]
+      },
+      "ConnectionDisconnectResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "stream_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "const": "disconnected"
+          }
+        },
+        "required": [
+          "stream_id",
+          "state"
+        ]
+      },
+      "ConnectionReconcileRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
       }
+
     },
     "responses": {
       "Problem400": {

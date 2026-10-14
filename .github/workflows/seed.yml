@@ -50,6 +50,14 @@ jobs:
         run: make import-service-test
       - name: Fenced synthetic provider publication proof
         run: make sync-state-test
+      - name: Scoped synthetic connection lifecycle proof
+        run: make connection-state-test
+      - name: Synthetic enrollment service composition proof
+        run: make connection-service-test
+      - name: Synthetic provider acquisition composition proof
+        run: make acquisition-test
+      - name: Enrollment through acquisition and review proof
+        run: make provider-flow-test
       - name: Build and prove isolated health-only API container
         run: bash scripts/test-api-container.sh
       - name: Build and verify inert non-root migration image

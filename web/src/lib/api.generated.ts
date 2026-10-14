@@ -532,6 +532,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * beginConnection
+         * @description Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.
+         */
+        post: operations["beginConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * getConnectionAttempt
+         * @description Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.
+         */
+        get: operations["getConnectionAttempt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * executeConnection
+         * @description Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.
+         */
+        post: operations["executeConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * reconcileConnection
+         * @description Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.
+         */
+        post: operations["reconcileConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/bindings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * bindConnection
+         * @description Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.
+         */
+        post: operations["bindConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * listConnections
+         * @description Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.
+         */
+        get: operations["listConnections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/connections/streams/{stream_id}/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * disconnectConnectionStream
+         * @description Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.
+         */
+        post: operations["disconnectConnectionStream"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1193,6 +1333,138 @@ export interface components {
             accounting_date: string;
             description: string;
         };
+        ConnectionManifest: {
+            item_id: string;
+            accounts: {
+                account_id: string;
+                /** @enum {string} */
+                type: "depository" | "credit" | "loan" | "investment" | "other";
+                iso_currency_code: string | null;
+            }[];
+            /** Format: date-time */
+            consent_expires_at: string;
+        };
+        ConnectionAttempt: {
+            /** Format: uuid */
+            attempt_id: string;
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            /** @enum {string} */
+            mode: "new" | "reconnect" | "rotate" | "remove";
+            /** @enum {string} */
+            state: "link_pending" | "link_ready" | "exchange_claimed" | "credential_pending" | "binding_review" | "active" | "credential_recovery_required" | "disconnect_pending" | "disconnected";
+            /** Format: date-time */
+            expires_at: string;
+            sync_item_id: string | null;
+            manifest: components["schemas"]["ConnectionManifest"] | null;
+            streams?: {
+                /** Format: uuid */
+                stream_id: string;
+                /** Format: uuid */
+                source_account_id: string;
+                /** Format: uuid */
+                namespace_id: string;
+                binding_revision: components["schemas"]["Revision"];
+                overlap_review_required: boolean;
+            }[];
+        };
+        ConnectionBeginRequest: {
+            /** @enum {string} */
+            mode: "new" | "reconnect" | "rotate" | "remove";
+            sync_item_id: string | null;
+            expected_generation: components["schemas"]["Revision"] | null;
+            approved_stream_ids: string[];
+        };
+        ConnectionBeginResult: {
+            attempt: components["schemas"]["ConnectionAttempt"];
+            /** Format: uuid */
+            nonce: string;
+            /** @description Ephemeral handoff; memory only, never browser persistence. */
+            link_token?: string;
+            /** Format: date-time */
+            expires_at?: string;
+        };
+        ConnectionExecuteRequest: {
+            /** Format: uuid */
+            nonce: string;
+            link_token?: string;
+            public_token?: string;
+        };
+        ConnectionBindingRequest: {
+            /** @constant */
+            consent_grants: true;
+            bindings: {
+                account_id: string;
+                /** Format: uuid */
+                ledger_account_id: string;
+                /** Format: uuid */
+                currency_version_id: string;
+                source_account_id: string | null;
+                expected_binding_revision: components["schemas"]["Revision"] | null;
+                /** Format: date */
+                binding_date: string;
+                /** Format: uuid */
+                binding_evidence_ref: string;
+            }[];
+        };
+        ConnectionBindingResult: {
+            /** Format: uuid */
+            attempt_id: string;
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            /** @enum {string} */
+            mode: "new" | "reconnect" | "rotate" | "remove";
+            /** @enum {string} */
+            state: "link_pending" | "link_ready" | "exchange_claimed" | "credential_pending" | "binding_review" | "active" | "credential_recovery_required" | "disconnect_pending" | "disconnected";
+            /** Format: date-time */
+            expires_at: string;
+            sync_item_id: string | null;
+            manifest: components["schemas"]["ConnectionManifest"] | null;
+            streams: {
+                /** Format: uuid */
+                stream_id: string;
+                /** Format: uuid */
+                source_account_id: string;
+                /** Format: uuid */
+                namespace_id: string;
+                binding_revision: components["schemas"]["Revision"];
+                overlap_review_required: boolean;
+            }[];
+        };
+        ConnectionList: {
+            items: {
+                /** Format: uuid */
+                sync_item_id: string;
+                item_id: string;
+                /** @enum {string} */
+                state: "active" | "paused" | "disconnected" | "credential_recovery_required" | "disconnect_pending" | "reauthorization_required";
+                item_generation: components["schemas"]["Revision"];
+                accounts: {
+                    /** Format: uuid */
+                    stream_id: string;
+                    account_id: string;
+                    /** Format: uuid */
+                    source_account_id: string;
+                    /** @enum {string} */
+                    state: "active" | "disconnected";
+                    binding_revision: components["schemas"]["Revision"];
+                }[];
+            }[];
+        };
+        ConnectionDisconnectRequest: {
+            expected_binding_revision: components["schemas"]["Revision"];
+        };
+        ConnectionDisconnectResult: {
+            /** Format: uuid */
+            stream_id: string;
+            /** @constant */
+            state: "disconnected";
+        };
+        ConnectionReconcileRequest: Record<string, never>;
     };
     responses: {
         /** @description Malformed request or missing required header. */
@@ -2356,6 +2628,268 @@ export interface operations {
                 };
             };
             /** @description Safe failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    beginConnection: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionBeginRequest"];
+            };
+        };
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionBeginResult"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getConnectionAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionAttempt"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    executeConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionExecuteRequest"];
+            };
+        };
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionAttempt"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    reconcileConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionReconcileRequest"];
+            };
+        };
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionAttempt"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    bindConnection: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                entity_id: string;
+                book_id: string;
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionBindingRequest"];
+            };
+        };
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionBindingResult"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listConnections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionList"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    disconnectConnectionStream: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                entity_id: string;
+                book_id: string;
+                stream_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionDisconnectRequest"];
+            };
+        };
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionDisconnectResult"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
             default: {
                 headers: {
                     [name: string]: unknown;
