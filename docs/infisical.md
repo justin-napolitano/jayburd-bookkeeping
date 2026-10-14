@@ -77,3 +77,14 @@ receive names and PASS/FAIL evidence only. Default local and PR checks stay offl
 - [GCP impersonation connection](https://infisical.com/docs/integrations/app-connections/gcp)
 - [GCP sync options](https://infisical.com/docs/integrations/secret-syncs/gcp-secret-manager)
 - [GitHub OIDC and immutable subjects](https://infisical.com/docs/documentation/platform/identities/oidc-auth/github)
+
+## Dynamic provider credentials
+
+The connection service adds an injected immutable-version `SecretStore` contract,
+not a deployed credential writer. Its synthetic proofs require exact reference,
+version, Item and environment readback before activation; uncertain writes remain
+in recovery. The existing read-only runtime/sync policy does not authorize dynamic
+Plaid token writes. Before #88 activation, review a separately scoped Infisical
+writer, propagation acknowledgement, immutable version addressing and visibility
+to the GCP reader. No direct-read alternate path or broad runtime write permission
+is introduced. See [connection service](contracts/connection-service.md).

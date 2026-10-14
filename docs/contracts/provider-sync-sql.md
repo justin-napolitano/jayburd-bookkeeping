@@ -1,5 +1,11 @@
 # Provider synchronization SQL
 
+Migration 13 extends this merged foundation through the
+[connection lifecycle contract](connection-sql.md): provider-first binding,
+credential references, individual account disconnect, and scoped worker context
+and receipt recovery. Read that extension with this record; the original migration
+12 enrollment remains an owner-only synthetic fixture boundary.
+
 ## Decision and applicability
 
 Migration 12 implements the approved **synthetic acquisition foundation** for

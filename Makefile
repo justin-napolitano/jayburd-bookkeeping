@@ -102,3 +102,18 @@ import-service-test:
 .PHONY: sync-state-test
 sync-state-test:
 	bash scripts/test-sync-state.sh
+
+.PHONY: connection-state-test acquisition-test
+connection-state-test:
+	bash scripts/test-connection-state.sh
+
+acquisition-test:
+	bash scripts/test-acquisition.sh
+
+.PHONY: connection-service-test
+connection-service-test:
+	bash scripts/test-connection-service.sh
+
+.PHONY: provider-flow-test
+provider-flow-test:
+	bash scripts/test-provider-flow.sh

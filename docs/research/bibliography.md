@@ -2,6 +2,15 @@
 
 ## Purpose and reading order
 
+- [Connection lifecycle](../contracts/connection-sql.md), [service](../contracts/connection-service.md)
+  and [HTTP boundary](../contracts/connection-http.md): PI05–PI10 distinguish verified
+  Link/account evidence, one-shot remote mutations and local credential recovery.
+  Dynamic Infisical writes and update-mode association remain qualification limits.
+- [Acquisition runner](../contracts/acquisition-runner.md): PI01/PI02/PI08 guide
+  account-filtered pagination, whole-loop restart and explicit API versioning.
+  Durable local evidence and current SQL authority are project decisions with
+  synthetic fault tests, not provider or cloud guarantees.
+
 The [sync implementation boundary](../contracts/provider-runtime-boundaries.md)
 records refreshed Plaid pagination/account-filter sections and PostgreSQL17
 isolation/function-privilege sections. It distinguishes vendor mechanisms from
