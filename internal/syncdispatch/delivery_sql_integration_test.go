@@ -422,3 +422,12 @@ func TestDeliveryAuthorityAndImmutableReceipts(t *testing.T) {
 	_, e = invoke(t, db, "synthetic_runtime", "SELECT integration.sync_delivery_claim($1,1,$2)::text", op, holder)
 	requireCode(t, e, "42501")
 }
+
+// TestDeliveryNullStateConstraints rejects partial lease, age and terminal metadata.
+func TestDeliveryNullStateConstraints(t *testing.T) {
+	c, _, _, op := delivery(t)
+	for _, assignment := range []string{"first_claimed_at=clock_timestamp()", "deadline_at=clock_timestamp()", "run_holder='00000000-0000-4000-8000-000000000091'", "run_lease_until=clock_timestamp()", "claim_binding_revision=1", "finished_at=clock_timestamp()", "terminal_code='completed'"} {
+		_, e := c.Exec(context.Background(), "UPDATE integration.sync_delivery_operation SET "+assignment+" WHERE operation_id=$1", op)
+		requireCode(t, e, "23514")
+	}
+}

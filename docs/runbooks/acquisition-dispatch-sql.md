@@ -44,3 +44,10 @@ separate acquisition and queue generations and inspect both restart leases.
 
 The age bound prevents new dispatch/execution; it does not timestamp publication.
 An already committed completion remains authoritative when discovered after cutoff.
+
+Follow-up review tightens SQL CHECK constraints to reject partially null execution,
+age and terminal metadata; the named null-state negative test verifies seven invalid
+owner fixture updates cannot bypass PostgreSQL's three-valued CHECK semantics.
+Follow-up evidence: all 8 actual PostgreSQL groups PASS, including the new seven-case
+null-state constraint test; `make check` PASS. Prior default test/build evidence
+remains applicable (this follow-up changes only DDL and its synthetic proof).
