@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { connectionConfigDigest } from './release-manifest.mjs';
 // Anonymous probes test deployment transport only: they never obtain or synthesize a user/service credential.
 export async function smoke(m, transport=fetch) {
   const web=`https://jayburd-dev-web-${m.projectNumber}.us-central1.run.app`;
@@ -14,7 +15,8 @@ export async function smoke(m, transport=fetch) {
   await check(`${web}/api/auth-config`,200);
   await check(web,200);
   return {schemaVersion:1,status:'transport-smoke-passed',project:m.project,images:m.images,operation:m.operation,
-    limitations:['No real MFA/entity/revocation proof.','No atomic multi-service rollout or automatic rollback.']};
+    approvedConnectionConfigSHA256:connectionConfigDigest(m.connections),
+    limitations:['No real MFA/entity/revocation proof.','Connection digest records approved policy, not provider or observed runtime qualification.','No atomic multi-service rollout or automatic rollback.']};
 }
 // Bind the receipt to the observed ready revision, immutable image and sole full-traffic target.
 export function validateRevisions(m, observed) {
