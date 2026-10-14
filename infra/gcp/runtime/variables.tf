@@ -52,7 +52,6 @@ variable "connections" {
   default = null
   validation {
     condition = var.connections == null ? true : (
-      var.connections.link_events_qualified &&
       contains(["https://us.infisical.com", "https://eu.infisical.com", "https://app.infisical.com"], var.connections.infisical_origin) &&
       alltrue([for id in [var.connections.infisical_project, var.connections.infisical_identity] : can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", id)) && id != "00000000-0000-0000-0000-000000000000"]) &&
       can(regex("^projects/${var.project_number}/secrets/jayburd-dev-bank-sync-client-id/versions/[1-9][0-9]{0,18}$", var.connections.client_id_version)) &&
@@ -60,6 +59,6 @@ variable "connections" {
       alltrue([for version in [var.connections.client_id_version, var.connections.client_secret_version] : try(tonumber(reverse(split("/", version))[0]) <= 9223372036854775807, false)]) &&
       can(formatdate("YYYY-MM-DD", var.connections.consent_expires_at))
     )
-    error_message = "Connections require reviewed Link events, approved Infisical metadata and exact numeric static secret versions."
+    error_message = "Connections require approved Infisical metadata and exact numeric static secret versions."
   }
 }

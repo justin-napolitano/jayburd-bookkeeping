@@ -6129,6 +6129,12 @@
           "expires_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "hosted_link_url": {
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^https://secure\\.plaid\\.com/hl/[A-Za-z0-9_-]+$",
+            "description": "Sandbox Hosted Link handoff; memory only. Open explicitly with noreferrer; keep this tab open."
           }
         },
         "required": [
@@ -6150,7 +6156,8 @@
           },
           "public_token": {
             "type": "string",
-            "maxLength": 4096
+            "maxLength": 4096,
+            "description": "Omit for Hosted Link completion; server resolves the unique completed session before claiming exchange. Pending returns unchanged link_ready attempt."
           }
         },
         "required": [

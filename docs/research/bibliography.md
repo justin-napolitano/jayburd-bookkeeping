@@ -415,3 +415,9 @@ This supports issue #118's synthetic regression, not full Sandbox qualification.
 PI11 in the [Plaid source register](plaid-ingestion-sources.md) adds a pinned
 public OpenAPI review of the complete direct sync-response field inventory,
 including inherited transaction fields omitted from rendered documentation.
+
+### Sandbox Hosted Link completion
+
+[Enrollment decision and source review](../contracts/hosted-link-enrollment.md)
+records reviewed official Link API and Hosted Link creation/completion sections,
+SDK tradeoffs and the distinction between synthetic proof and hosted qualification.

@@ -36,11 +36,25 @@ const connectionProofWorker = "10000000-0000-4000-8000-000000000020"
 const connectionProofClaim = "10000000-0000-4000-8000-000000000030"
 
 // connectionProofProvider supplies verified fictional Link/account results and counts external mutations.
-type connectionProofProvider struct{ exchanges atomic.Int64 }
+type connectionProofProvider struct {
+	exchanges   atomic.Int64
+	completions atomic.Int64
+}
 
 // CreateLink returns an ephemeral synthetic value and fixed bounded expiry.
 func (*connectionProofProvider) CreateLink(context.Context, connections.LinkRequest) (connections.LinkResult, error) {
-	return connections.LinkResult{Token: connections.NewSecret("synthetic-link"), ExpiresAt: time.Now().Add(5 * time.Minute)}, nil
+	return connections.LinkResult{HostedURL: connections.NewSecret("https://secure.plaid.com/hl/synthetic"), Token: connections.NewSecret("synthetic-link"), ExpiresAt: time.Now().Add(5 * time.Minute)}, nil
+}
+
+// CompletedPublicToken provides one pending check before a fictional hosted completion.
+func (p *connectionProofProvider) CompletedPublicToken(_ context.Context, link connections.Secret) (connections.Secret, error) {
+	if link != connections.NewSecret("synthetic-link") {
+		return connections.Secret{}, errors.New("unverified")
+	}
+	if p.completions.Add(1) == 1 {
+		return connections.Secret{}, &connections.Failure{Code: "link_session_pending"}
+	}
+	return connections.NewSecret("synthetic-public"), nil
 }
 
 // VerifySession binds only the known synthetic session and public token.

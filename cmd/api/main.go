@@ -21,7 +21,7 @@ func main() {
 	flag.CommandLine.SetOutput(io.Discard)
 	var enrollment connectionruntime.Config
 	flag.BoolVar(&enrollment.Enabled, "connections-enabled", false, "explicitly enable Sandbox connection composition")
-	flag.BoolVar(&enrollment.LinkEventsQualified, "plaid-link-events-qualified", false, "operator verified ordinary Link event enablement")
+	flag.BoolVar(&enrollment.LinkEventsQualified, "plaid-link-events-qualified", false, "ordinary SDK account metadata; not required by Sandbox Hosted Link")
 	flag.StringVar(&enrollment.ProjectNumber, "provider-project-number", "", "canonical Secret Manager project number")
 	flag.StringVar(&enrollment.InfisicalOrigin, "infisical-origin", "", "approved Infisical HTTPS origin")
 	flag.StringVar(&enrollment.InfisicalProject, "infisical-project", "", "explicit Infisical project UUID")

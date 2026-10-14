@@ -805,3 +805,94 @@ it("TestConnectionsDiscovery keeps expired unknown claimed work blocking enrollm
   ).toBe(true);
   expect(screen.queryByText(/Binding review expired;/)).toBeNull();
 });
+
+// Hosted navigation is explicit, memory-only and independent of SDK callbacks.
+it("Hosted completion stays pending, then exposes verified binding review", async () => {
+  let checks = 0;
+  const api = vi.fn(async (path: string, body?: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.endsWith("/execute")) {
+      expect(JSON.parse(body!)).toEqual({
+        nonce: id(9),
+        link_token: "synthetic-link",
+      });
+      return ++checks === 1
+        ? attempt
+        : { ...attempt, state: "binding_review", manifest };
+    }
+    return {
+      attempt,
+      nonce: id(9),
+      link_token: "synthetic-link",
+      expires_at: attempt.expires_at,
+      hosted_link_url: "https://secure.plaid.com/hl/synthetic",
+    };
+  }) as unknown as API;
+  const link = { open: vi.fn() };
+  render(<Connections {...props(api)} link={link} />);
+  await screen.findByText("No connected Items in this book.");
+  fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+  const anchor = await screen.findByRole("link", {
+    name: "Open Plaid Sandbox",
+  });
+  expect(anchor.getAttribute("rel")).toBe("noopener noreferrer");
+  expect(anchor.getAttribute("referrerpolicy")).toBe("no-referrer");
+  expect(link.open).not.toHaveBeenCalled();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Check bank setup completion" }),
+  );
+  await screen.findByText(/Plaid has not reported completion yet/);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Check bank setup completion" }),
+  );
+  await screen.findByRole("group", {
+    name: "Review verified account bindings",
+  });
+  expect(screen.queryByRole("link", { name: "Open Plaid Sandbox" })).toBeNull();
+  expect(checks).toBe(2);
+});
+
+// Invalid navigation and unknown exchange outcomes must never retain a runnable handoff.
+it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
+  "Hosted handoff clears on %s",
+  async (scenario) => {
+    const api = vi.fn(async (path: string) => {
+      if (path.endsWith("/connections")) return { items: [] };
+      if (path.endsWith("/execute")) throw new APIError(0, true);
+      return {
+        attempt,
+        nonce: id(9),
+        link_token: "synthetic-link",
+        expires_at: attempt.expires_at,
+        hosted_link_url:
+          scenario === "unsafe URL"
+            ? "https://evil.test/hl/token"
+            : "https://secure.plaid.com/hl/synthetic",
+      };
+    }) as unknown as API;
+    const p = { ...props(api), link: { open: vi.fn() } };
+    const view = render(<Connections {...p} />);
+    await screen.findByText("No connected Items in this book.");
+    fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+    if (scenario === "unsafe URL") await screen.findByRole("alert");
+    else {
+      await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+      if (scenario === "scope change")
+        view.rerender(<Connections {...p} locked />);
+      else if (scenario === "cancel")
+        fireEvent.click(
+          screen.getByRole("button", { name: "Cancel bank setup" }),
+        );
+      else {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Check bank setup completion" }),
+        );
+        await screen.findByRole("alert");
+      }
+    }
+    expect(
+      screen.queryByRole("link", { name: "Open Plaid Sandbox" }),
+    ).toBeNull();
+    expect(p.link.open).not.toHaveBeenCalled();
+  },
+);
