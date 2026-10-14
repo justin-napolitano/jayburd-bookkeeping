@@ -2,6 +2,12 @@
 
 ## Purpose and reading order
 
+[Explicit connection release policy](../contracts/connection-release.md) reviews
+HashiCorp variable defaults/assignment precedence and Cloud Run revision management
+(selected official sections,2026-10-14). These explain the omitted-input reset and
+configuration capture; manifest versioning/digest policy is our design inference.
+No hosted state or provider readiness was established by this source review.
+
 Hosted/Sandbox source review (2026-10-14):
 
 - [Hosted workers](../contracts/hosted-workers.md): selected Cloud Run metadata

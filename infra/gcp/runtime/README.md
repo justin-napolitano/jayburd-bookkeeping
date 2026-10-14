@@ -24,9 +24,10 @@ claim established by this Terraform setting.
 
 This metadata adds no IAM, provider calls or secret values. The worker foundation's
 secret containers, registry, identity permissions and Infisical propagation must be
-qualified separately. The current release manifest/workflow does **not** expose
-this object and cannot enable connections; changing that delivery path requires
-separate owner review. No apply was performed for this implementation.
+qualified separately. Runtime release schemaVersion2 now requires this object or explicit null and
+passes it through unchanged. Omission cannot silently reset an owner opt-in; an
+explicit null remains an approved disable operation. See the
+[release contract](../../../docs/contracts/connection-release.md). No apply was performed for this implementation.
 
 **Promotion reset warning:** the current application deployment workflow omits
 `connections`. Applying that workflow supplies its null default and removes any
