@@ -112,6 +112,7 @@ function ConnectionWorkspace({
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [attempts, setAttempts] = useState<AttemptPage | null>(null);
   const [expiredAttempt, setExpiredAttempt] = useState(false);
+  const [bindingExpired, setBindingExpired] = useState(false);
   const [status, setStatus] = useState<StreamStatus | null>(null);
   const [statusAccount, setStatusAccount] = useState("");
   const [operation, setOperation] = useState<StreamAction | null>(null);
@@ -222,7 +223,11 @@ function ConnectionWorkspace({
       throw Error("response");
     page.items.forEach((a) => {
       checkedAttempt(a);
-      if (typeof a.expired_unclaimed !== "boolean") throw Error("response");
+      if (
+        typeof a.expired_unclaimed !== "boolean" ||
+        typeof a.binding_expired !== "boolean"
+      )
+        throw Error("response");
     });
     return page;
   };
@@ -322,17 +327,21 @@ function ConnectionWorkspace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api]);
   // Inspect does not recreate Link or replay exchange after uncertainty.
-  const inspect = (id: string, expired = false) =>
+  const inspect = (id: string, expired = false, bindingExpiry = false) =>
     run(async () => {
       const current = life.current;
       setAttempt(null);
-      setExpiredAttempt(expired);
+      const discovered = attempts?.items.find((a) => a.attempt_id === id);
+      setExpiredAttempt(discovered?.expired_unclaimed ?? expired);
+      setBindingExpired(discovered?.binding_expired ?? bindingExpiry);
       setSelection({});
       setConsent(false);
       const value = await api<Attempt>(`${base}/connection-attempts/${id}`);
       if (!current.live) return;
       setAttempt(checkedAttempt(value, id));
       setInspectID(id);
+      // Recheck discovery before releasing an earlier local enrollment latch.
+      if (discovered?.binding_expired ?? bindingExpiry) await readList();
     });
   // Only this fresh, in-memory Begin reply may authorize a single Link handoff.
   const start = () =>
@@ -349,6 +358,7 @@ function ConnectionWorkspace({
         return;
       setEnrollmentStarted(true);
       setExpiredAttempt(false);
+      setBindingExpired(false);
       setAttempt(null);
       setSelection({});
       setConsent(false);
@@ -457,7 +467,13 @@ function ConnectionWorkspace({
   // Build only an explicit new-source mapping; SQL checks all current grants and pins.
   const bind = () =>
     run(async () => {
-      if (!attempt || attempt.state !== "binding_review" || !consent || pending)
+      if (
+        !attempt ||
+        bindingExpired ||
+        attempt.state !== "binding_review" ||
+        !consent ||
+        pending
+      )
         return;
       const bindings: Binding["bindings"] = Object.entries(selection)
         .filter(([, v]) => v.ledger && v.currency)
@@ -578,13 +594,19 @@ function ConnectionWorkspace({
               {attempts.items.map((a) => (
                 <li key={a.attempt_id}>
                   {a.mode} —{" "}
-                  {a.expired_unclaimed
-                    ? "expired before claim"
-                    : a.state.replaceAll("_", " ")}{" "}
+                  {a.binding_expired
+                    ? "binding review expired"
+                    : a.expired_unclaimed
+                      ? "expired before claim"
+                      : a.state.replaceAll("_", " ")}{" "}
                   <button
                     disabled={mutable}
                     onClick={() =>
-                      void inspect(a.attempt_id, a.expired_unclaimed)
+                      void inspect(
+                        a.attempt_id,
+                        a.expired_unclaimed,
+                        a.binding_expired,
+                      )
                     }
                   >
                     Review attempt {a.attempt_id}
@@ -805,6 +827,13 @@ function ConnectionWorkspace({
           <p>Attempt ID: {attempt.attempt_id}</p>
           <p>Historical attempt status: {attempt.state.replaceAll("_", " ")}</p>
           <p>Handoff expires: {attempt.expires_at}</p>
+          {bindingExpired && (
+            <p>
+              Binding review expired; start a fresh connection. The known
+              credential history is retained and its provider exchange must not
+              be replayed.
+            </p>
+          )}
           {expiredAttempt && (
             <p>
               Expired before claim. This attempt cannot be replayed; a new
@@ -846,6 +875,7 @@ function ConnectionWorkspace({
             Reconcile recorded credential
           </button>
           {!expiredAttempt &&
+            !bindingExpired &&
             attempt.state === "binding_review" &&
             attempt.mode === "new" &&
             attempt.manifest && (

@@ -37,12 +37,17 @@ explicit confirmation and the exact original idempotency key on uncertain replie
 ## Frozen wire
 
 GET `connection-attempts?limit=100&before=UUID` (before optional) returns
-`{items:[ConnectionAttempt + expired_unclaimed:boolean],next_cursor:UUID|null,
+`{items:[ConnectionAttempt + expired_unclaimed:boolean + binding_expired:boolean],next_cursor:UUID|null,
 unfinished_count:string}`. SQL calculates unfinished_count across all pages;
 zero permits a new Begin after successful discovery, and SQL also blocks a fresh
 Begin if unfinished work exists. Each page is bounded at100 and current permissions
 apply on every read. Expired unclaimed rows are inspected without replay; claimed
 uncertain work is never treated as expired authorization for another exchange.
+Known `binding_review` publication whose handoff expired has binding_expired:true;
+it is excluded from unfinished_count, keeps credential history and its paused Item,
+and cannot be bound through the expired attempt. The UI labels it distinctly and
+hides binding controls. Inspection rechecks discovery before clearing any local
+enrollment latch; a concurrent unknown attempt still blocks a fresh Begin.
 
 GET `connections/streams/{stream}/status` returns stream/source/Item identifiers,
 stream state/revision, Item state/generation, binding revision, requested/completed generations,
