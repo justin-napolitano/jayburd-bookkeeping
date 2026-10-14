@@ -6,6 +6,8 @@
 !cmd/
 !cmd/worker/
 !cmd/worker/*.go
+!cmd/deliver/
+!cmd/deliver/*.go
 !internal/
 !internal/**/
 !internal/**/*.go

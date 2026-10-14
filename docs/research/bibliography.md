@@ -388,3 +388,11 @@ ISO exchange conformance.
   Google addVersion REST contract. Reviewed relevant functions/sections; establishes
   native-sync permission mismatch and supports one-shot writes. Hosted version, IAM
   and real propagation remain unverified.
+
+- [Controlled canary job sources](../contracts/delivery-job.md#sources-alternatives-and-evidence):
+  Google provider v8.6.0 job schema and Infisical GCP ID Token Auth guide, reviewed
+  for workload identity and bounded execution; hosted qualification remains separate.
+
+- [Canary metadata lookup](../contracts/delivery-job.md): reviewed Infisical Retrieve
+  query parameters for value-disabled exact-version discovery. Synthetic tests
+  validate output minimization; actual project authentication remains unverified.
