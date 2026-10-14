@@ -13,6 +13,9 @@ recovery/status fields before implementation. Root froze single-stream operation
 independent stream revisions and authenticated paginated attempt discovery.
 Implemented first-page discovery before Begin, paginated inspection, honest status,
 explicit stream operation confirmation and exact same-key uncertain-result recovery.
+Added server-owned binding_expired discovery flag: expired known publication hides
+binding controls and refreshes discovery before permitting a fresh enrollment.
+Unknown claimed expiry still blocks, without inferred remote rollback.
 Historical operation receipts are followed by a fresh status read; numeric generations
 remain strings with exact BigInt consistency checks, never floating point.
 
@@ -39,3 +42,6 @@ No real provider, secrets, cloud writes or concrete reconnect qualification.
 ## PR handoff
 
 Coordinator integrates shared contracts and the full browser/API/SQL evidence.
+
+Follow-up evidence: focused 24 Connections tests and type checking verify expired
+known binding versus expired unknown exchange; coordinator reruns shared gates.

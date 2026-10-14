@@ -469,6 +469,7 @@ it("TestConnectionsScopeAndRecovery discovers unfinished attempts after reload",
                 state: "credential_recovery_required",
                 manifest,
                 expired_unclaimed: false,
+                binding_expired: false,
               },
             ],
             next_cursor: null,
@@ -527,7 +528,9 @@ it("TestConnectionsDiscovery shows expired unclaimed without replay and paginate
     if (path.includes("before=")) return emptyAttempts;
     if (path.includes("/connection-attempts?"))
       return {
-        items: [{ ...attempt, expired_unclaimed: true }],
+        items: [
+          { ...attempt, expired_unclaimed: true, binding_expired: false },
+        ],
         next_cursor: id(5),
         unfinished_count: "0",
       };
@@ -732,4 +735,73 @@ it("TestConnectionsStreamStatus revocation clears discovery and blocks new enrol
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
+});
+
+// Known expired publication is distinct from an unknown remote outcome and never replays exchange.
+it("TestConnectionsDiscovery permits fresh enrollment after expired binding inspection", async () => {
+  const expired = {
+    ...attempt,
+    state: "binding_review",
+    manifest,
+    expires_at: "2000-01-01T00:00:00Z",
+    expired_unclaimed: false,
+    binding_expired: true,
+  };
+  const api = vi.fn(async (path: string) =>
+    path.endsWith("/connections")
+      ? listing
+      : path.includes("/connection-attempts?")
+        ? { items: [expired], next_cursor: null, unfinished_count: "0" }
+        : expired,
+  ) as unknown as API;
+  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: `Review attempt ${id(5)}` }),
+  );
+  await screen.findByText(/Binding review expired; start a fresh connection/);
+  await waitFor(() =>
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Connect account",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false),
+  );
+  expect(
+    screen.queryByRole("group", { name: "Review verified account bindings" }),
+  ).toBeNull();
+  expect(screen.queryByText(/Expired before claim\. This attempt/)).toBeNull();
+  expect(vi.mocked(api).mock.calls.some(([p]) => p.endsWith("/execute"))).toBe(
+    false,
+  );
+});
+it("TestConnectionsDiscovery keeps expired unknown claimed work blocking enrollment", async () => {
+  const unknown = {
+    ...attempt,
+    state: "exchange_claimed",
+    expires_at: "2000-01-01T00:00:00Z",
+    expired_unclaimed: false,
+    binding_expired: false,
+  };
+  const api = vi.fn(async (path: string) =>
+    path.endsWith("/connections")
+      ? listing
+      : path.includes("/connection-attempts?")
+        ? { items: [unknown], next_cursor: null, unfinished_count: "1" }
+        : unknown,
+  ) as unknown as API;
+  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: `Review attempt ${id(5)}` }),
+  );
+  await screen.findByText("Historical attempt status: exchange claimed");
+  expect(
+    (
+      screen.getByRole("button", {
+        name: "Connect account",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+  expect(screen.queryByText(/Binding review expired;/)).toBeNull();
 });
