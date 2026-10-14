@@ -89,8 +89,8 @@ verification_name, verification_insights, persistent_account_id, apy,
 holder_category. Inert values preserve arbitrary bounded nested JSON (including
 unknown nested fields) but contribute no mapped meaning; global duplicate-key,
 depth and numeric checks still apply. Account balances are not ledger balances.
-`running_balance` is intentionally not allowlisted: its financial meaning needs
-separate review. This narrower profile may quarantine valid new provider fields.
+`running_balance` accepts null or a JSON number retained only in raw evidence;
+its exact lexeme is never converted to float or treated as a ledger balance. This narrower profile may quarantine valid new provider fields.
 
 ## Standards and refreshed primary sources
 
@@ -156,3 +156,27 @@ three change groups/has_more without a cursor; TestHostedScopeAndCleanup covers
 one initial wait followed by sync, repeat delta and single Item cleanup.
 The hosted progress code identifies the branch but does not expose which
 predicate fired; this documented contract correction still requires hosted proof.
+
+## Public schema compatibility review — 2026-10-14
+
+PI11 reviewed every direct field in TransactionsSyncResponse, AccountBase,
+Transaction (including TransactionBase through allOf) and RemovedTransaction at
+public schema commit 325e2e192bcb422df708029bafe9d950c94df2fd. Root, account and
+removed allowlists cover their declared fields. Three remaining transaction fields
+needed explicit disposition: business_finance_category and client_customization
+are optional null/object enrichment retained only as private raw evidence;
+running_balance accepts null or a JSON number. Owner explicitly approved retaining
+all reviewed fields on 2026-10-14. Global numeric lexical/depth/byte bounds remain;
+balance strings, objects, arrays and booleans reject. Exact source number bytes
+remain private evidence, with no currency conversion, rounding or ledger mapping. This does not infer ledger
+categories, identities or balances from enrichment. Unknown new field names still
+reject, as do scalar/array enrichment values. Existing nested JSON bounds apply.
+
+TestPlaidReviewedEnrichment covers both enrichment forms, exact cents, account
+isolation, no normalized metadata leakage, exact balance lexemes beyond float
+precision, malformed balance types and unknown fields.
+TestPlaidFullPublicSchemaFixture uses fictional values for all declared direct
+fields: 8 response, 13 account, 33 transaction, 2 removal fields.
+Public schema compatibility does not prove which field a private hosted page
+contained; a successful hosted sync remains required. Proprietary API and ISO
+applicability are unchanged; no financial message or accounting policy is added.

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -110,7 +111,7 @@ func TestPlaidMaterialSchema(t *testing.T) {
 	good := string(page(row("12", "USD"), "", ""))
 	cases := map[string]string{
 		"top unknown":            strings.Replace(good, `"accounts":`, `"future_money":5,"accounts":`, 1),
-		"row unknown":            strings.Replace(good, `"amount":12`, `"running_balance":20,"amount":12`, 1),
+		"row unknown":            strings.Replace(good, `"amount":12`, `"unreviewed_balance":20,"amount":12`, 1),
 		"account mismatch":       strings.Replace(good, `"account_id":"Account-A"`, `"account_id":"Other"`, 1),
 		"row account mismatch":   string(page(strings.Replace(row("12", "USD"), "Account-A", "Other", 1), "", "")),
 		"removed mismatch":       string(page("", "", `{"account_id":"Other","transaction_id":"Removed"}`)),
@@ -355,5 +356,52 @@ func TestPlaidEmptyAccountReadiness(t *testing.T) {
 			}
 			rejected(t, []byte(strings.Replace(raw, `"`+group+`":[]`, `"`+group+`":[`+change+`]`, 1)), expected())
 		}
+	}
+}
+
+// TestPlaidReviewedEnrichment keeps every reviewed field inert and preserves exact provider balance numbers.
+func TestPlaidReviewedEnrichment(t *testing.T) {
+	for _, metadata := range []string{
+		`"business_finance_category":null,"client_customization":null,"running_balance":null,`,
+		`"business_finance_category":null,"client_customization":null,"running_balance":9007199254740993.0100,`,
+		`"business_finance_category":null,"client_customization":null,"running_balance":-1.255e2,`,
+		`"business_finance_category":{"primary":"SYNTHETIC","detailed":"SYNTHETIC_SUPPLIES","confidence_level":"UNKNOWN"},"client_customization":{"custom_entity_id":"fictional-merchant"},"running_balance":null,`,
+	} {
+		raw := page(strings.Replace(row("9007199254740993.01", "USD"), `"name":`, metadata+`"name":`, 1), "", "")
+		p, err := plaid.DecodePage(raw, expected())
+		if err != nil || len(p.Added) != 1 {
+			t.Fatal("documented enrichment rejected", err)
+		}
+		if p.Added[0].Amount != "9007199254740993.01" || p.Added[0].Direction != "outflow" {
+			t.Fatal("enrichment changed money")
+		}
+		if !bytes.Contains(p.Added[0].Raw, []byte(metadata)) {
+			t.Fatal("provider balance or enrichment bytes changed")
+		}
+		wire, _ := json.Marshal(p)
+		for _, key := range []string{"business_finance_category", "client_customization", "running_balance"} {
+			if bytes.Contains(wire, []byte(key)) || !bytes.Contains(p.Added[0].Raw, []byte(key)) {
+				t.Fatal("inert mapping or raw retention changed")
+			}
+		}
+		rejected(t, bytes.Replace(raw, []byte("Account-A"), []byte("Other-A"), 1), expected())
+	}
+	for _, fragment := range []string{`"running_balance":"12.34",`, `"running_balance":{},`, `"running_balance":true,`, `"client_customization":[],`, `"business_finance_category":true,`, `"new_material_field":null,`} {
+		rejected(t, page(strings.Replace(row("1", "USD"), `"name":`, fragment+`"name":`, 1), "", ""), expected())
+	}
+}
+
+// TestPlaidFullPublicSchemaFixture exercises every direct field in pinned PI11 using fictional data.
+func TestPlaidFullPublicSchemaFixture(t *testing.T) {
+	raw, err := os.ReadFile("testdata/complete-public-schema.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := plaid.DecodePage(raw, expected())
+	if err != nil || len(p.Added) != 1 || len(p.Removed) != 1 {
+		t.Fatal("complete public schema rejected", err)
+	}
+	if p.Added[0].Amount != "42" || !bytes.Contains(p.Added[0].Raw, []byte("9007199254740993")) {
+		t.Fatal("source quantity changed")
 	}
 }

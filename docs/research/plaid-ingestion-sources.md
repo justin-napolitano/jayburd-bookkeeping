@@ -75,3 +75,21 @@ The subsequent progress-only failure prompted the narrow account-readiness
 interpretation in the [decoder contract](../contracts/plaid-decoder.md): Item
 completion is not filtered-account cursor availability. No raw response was
 inspected; whether that specific predicate caused the failure remains unproven.
+
+## PI11 — public OpenAPI response review, 2026-10-14
+
+[Plaid public schema, pinned commit](https://github.com/plaid/plaid-openapi/blob/325e2e192bcb422df708029bafe9d950c94df2fd/2020-09-14.yml),
+API 2020-09-14. Reviewed all direct fields of TransactionsSyncResponse, AccountBase,
+RemovedTransaction, Transaction and inherited TransactionBase; also the referenced
+BusinessFinanceCategory and ClientCustomization definitions. This is a public
+specification, not a provider response. Those enrichment fields and running_balance
+appear in the schema even where hidden from rendered docs. The balance description
+warns that provider balances may not reconcile across endpoints.
+
+Owner-approved mapping: null/object enrichment and null/numeric running balance
+remain private inert evidence. Preserve exact balance lexemes without floating
+point or accounting interpretation; reject malformed types. Blanket unknown-field
+acceptance would conceal new financial meaning. See the
+[decoder contract](../contracts/plaid-decoder.md) for validation evidence.
+Limits: no complete nested-schema validation, no private payload inspection, no
+claim that this is the specific field seen in the hosted rejection.
