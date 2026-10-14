@@ -16,7 +16,10 @@ After Infisical setup and a reviewed worker build, supply `canary` containing:
 
 - `image`: full worker image digest from the successful reviewed image build.
 - `infisical_project`, `infisical_identity`: actual UUID metadata.
-- `source_id`, `source_version`: exact canary source UUID and numeric version.
+- `source_version`: exact numeric canary version; owner confirmed `1`.
+- `mode`: defaults to `lookup`, requires no `source_id` and installs no destination
+  write permission. Review lookup ID/version output before setting `mode="execute"`
+  and the returned exact `source_id`. Execution remains a separate manual action.
 
 Then explicitly enable `enable_github_canary` to permit owner-only workflow invocation.
 Terraform never executes the job. Manual workflow **Run development delivery canary**

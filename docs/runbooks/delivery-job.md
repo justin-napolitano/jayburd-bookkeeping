@@ -13,7 +13,7 @@ Terraform job/identity and owner-only workflow. No hosted apply or secret retrie
 - Reused metadata identity and one-shot adapter; separated canary from Plaid values.
 - Added private receipt storage, add-only destination IAM and disabled federation.
 - Focused command/adapter tests and initial five mocked Terraform checks passed.
-- PASS: `make check test build`, all infrastructure mock tests including seven new
+- PASS: `make check test build`, all infrastructure mock tests including eight new
   delivery runs, focused command/adapter race tests and actionlint.
 - Full local Dockerfile build BLOCKED by dependency-proxy certificate trust at
   `go mod download`; TLS verification remains enabled. Separate offline Linux
@@ -29,30 +29,45 @@ No end-to-end environment connection is claimed.
 
 ## Remaining work
 
-1. Merge parent/this PR, build the worker image through the existing image workflow,
-   and review its successful image receipt/digest. Bootstrap this isolated Terraform
-   root with `canary=null` and GitHub federation disabled.
-2. In Infisical organization Access Control → Machine Identities, create
-   `jayburd-dev-delivery`, remove Universal Auth and choose **GCP ID Token Auth**.
-   Set allowed service-account email to
-   `jayburd-dev-delivery@jayburd-bookkeeping-dev.iam.gserviceaccount.com`,
-   TTL/max TTL 900 seconds. Add it to project `jayburd-bookkeeping` with read access
-   only to Development root key `JAYBURD_DELIVERY_CANARY`. No create/edit/delete/list
-   permission. Verify the environment slug is `dev`; if plan scope cannot enforce
-   exact-key access, stop and review isolation rather than grant whole-root access.
-3. Owner creates that canary with a fictional value, separately from Plaid keys,
-   and supplies only identity ID, source ID and exact version metadata. Infisical
-   project ID is `775ef885-a687-4792-9463-180bbf9eee13`, origin app.infisical.com.
-4. Configure the reviewed image and metadata in Terraform, then explicitly enable
-   the execution identity. No secret values enter Terraform or GitHub inputs.
-5. Dispatch **Run development delivery canary** once from main. Inspect the Cloud Run
-   execution and fixed status log. Submission is not success. Independently verify
-   the owner-known canary through an authorized owner process; agents receive only
-   PASS/PARTIAL/BLOCKED and numeric metadata. Test denied access, rotation, revocation
-   and recovery before expanding to Plaid credentials. Unknown intent stays blocked.
+Owner selected a separate Infisical project after the hosted UI gated folder grants
+behind a paid plan. This supersedes the original root-key scoped-grant instructions.
+
+| Binding | Owner-supplied metadata |
+| --- | --- |
+| Canary project slug | `jayburd-delivery-canary-jy-om` |
+| Canary project ID | `83f8487f-3c31-42d0-ae16-f04dbf8092f2` |
+| Machine identity | `8d510558-6b96-44c0-b25f-ce73ff7e4d74` |
+| Environment / path / key | `dev` / `/` / `JAYBURD_DELIVERY_CANARY` |
+| Source version | `1` confirmed by owner screenshot |
+
+Owner reports GCP ID Token Auth corrected; exact delivery SA email and TTL/max TTL
+900 configured. Identity should have Viewer only on the isolated canary project,
+and No Access on the original bookkeeping project. No actual identity login verified.
+
+1. Merge/build reviewed worker image and bootstrap this isolated Terraform root.
+2. Set `canary` to that image and the metadata above, omitting `source_id` and using
+   default `mode="lookup"`. Enable owner invocation only after reviewing the job.
+3. Run the manual workflow once. Lookup requests `viewSecretValue=false`, with
+   imports/expansion disabled, and prints only validated `source_id` and
+   `source_version` JSON. It performs no GCP secret or registry calls. Read those
+   selected log fields; do not dump provider responses, tokens or process environments.
+4. Review the identifiers, then configure `mode="execute"` and exact `source_id`.
+   Terraform adds the canary-only version-adder grant only in execute mode.
+   Invoke separately to deliver the synthetic canary. No automatic lookup-to-write.
+5. Independently verify the owner-known canary. Submission/lookup/acknowledgement are
+   distinct evidence; rotation, revocation, denied access and recovery remain gates.
+   Unknown intent stays blocked. No Plaid credential activation.
 
 ## PR handoff
 
 No SQL/API/frontend changes. Initial job cannot read or write Plaid destinations. Parent #113 CI is fully green.
 The existing native Infisical connection is not the machine identity needed here.
 Actual bootstrap, identity enrollment and hosted canary remain pending.
+
+## Metadata lookup stage
+
+Added value-disabled exact-version lookup and strict ID/namespace/version validation.
+Tests cover success, denied access, wrong key/version/project/folder and malformed ID;
+only selected metadata fields can be serialized. CLI rejects mixed modes and no-ID
+execution. PASS: updated `make check test build`, `make infra-test` (including all eight
+delivery runs), and `git diff --check`. No live lookup or cloud execution yet.

@@ -22,12 +22,14 @@ variable "region" {
 }
 variable "canary" {
   description = "Reviewed public metadata only. Null provisions identity/storage but no executable job."
-  type        = object({ image = string, infisical_project = string, infisical_identity = string, source_id = string, source_version = string })
+  type        = object({ image = string, infisical_project = string, infisical_identity = string, source_id = optional(string), source_version = string, mode = optional(string, "lookup") })
   default     = null
   validation {
     condition = var.canary == null ? true : (
       can(regex("^us-central1-docker[.]pkg[.]dev/${var.project_id}/jayburd-dev/worker@sha256:[a-f0-9]{64}$", var.canary.image)) &&
-      alltrue([for id in [var.canary.infisical_project, var.canary.infisical_identity, var.canary.source_id] : can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", id)) && id != "00000000-0000-0000-0000-000000000000"]) &&
+      alltrue([for id in [var.canary.infisical_project, var.canary.infisical_identity] : can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", id)) && id != "00000000-0000-0000-0000-000000000000"]) &&
+      contains(["lookup", "execute"], var.canary.mode) &&
+      (var.canary.mode == "lookup" ? var.canary.source_id == null : try(can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", var.canary.source_id)) && var.canary.source_id != "00000000-0000-0000-0000-000000000000", false)) &&
       can(regex("^[1-9][0-9]{0,18}$", var.canary.source_version)) && try(tonumber(var.canary.source_version) <= 9223372036854775807, false)
     )
     error_message = "Pinned reviewed worker image, source identity and exact numeric source version required."

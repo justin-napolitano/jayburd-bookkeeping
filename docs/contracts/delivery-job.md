@@ -10,8 +10,12 @@ canary must pass before widening job scope to the adapter's existing mappings.
 It is not a financial message; ISO 20022 is not applicable.
 
 `cmd/deliver` shares the existing digest-pinned worker image, with `/deliver` as
-an explicit entrypoint override. Missing configuration rejects before authentication;
-`-check` validates metadata offline, and only `-execute` invokes managed identity.
+an explicit entrypoint override. The source is the owner-selected isolated canary project, keeping Viewer scope
+away from Plaid. Missing configuration rejects before authentication;
+`-check` validates metadata offline. `-lookup` authenticates for an exact-key,
+exact-version request with `viewSecretValue=false`, imports and expansion disabled;
+it prints only validated ID/version fields and makes no registry/destination calls.
+Only `-execute` permits delivery and requires an explicitly supplied source ID.
 SIGTERM cancels the bounded operation. Logs contain fixed status text only. An
 acknowledgement is not independent payload verification or current authorization.
 
@@ -24,13 +28,15 @@ One task, parallelism one, retry count zero and a 60-second platform timeout bou
 execution. Concurrent executions still rely on the adapter's durable intent fence.
 
 The Infisical identity uses GCP ID Token Auth with the exact delivery service-account
-email, read-only root canary access, and token TTL/max TTL at most 900 seconds.
+email, Viewer access only to the isolated canary project, and token TTL/max TTL at most 900 seconds.
 It is separate from both the native App Connection and the application writer.
 No static keys, personal token or GitHub secret retrieval is needed.
 
 ## Controlled invocation
 
-Default `canary=null` creates no executable job. GitHub federation is disabled by
+Default `canary=null` creates no executable job. A configured job defaults to lookup
+mode with no destination write grant; execute mode adds only the canary version-adder
+grant after an explicit metadata review. GitHub federation is disabled by
 default and cannot be enabled without reviewed canary metadata. The manual workflow
 is bound to repository/owner/actor IDs, main and its exact workflow_ref. Its separate
 runner can get/run only the canary job; it has no overrides, job update, actAs,
@@ -61,5 +67,11 @@ capabilities. Neither is selected. Runtime IAM propagation and Infisical plan sc
 remain uncertain until actual qualification.
 
 Acceptance: `TestExecutionGate`, `TestExecuteRedaction`, providersecrets canary tests,
-seven mocked `delivery.tftest.hcl` runs, and candidate container rejection checks.
+eight mocked `delivery.tftest.hcl` runs, and candidate container rejection checks.
 See the [living runbook](../runbooks/delivery-job.md) for executed evidence and limits.
+
+Metadata source review (2026-10-14): [Infisical Retrieve query parameters](https://infisical.com/docs/api-reference/endpoints/secrets/read)
+document `viewSecretValue=false`, exact `version`, disabled reference expansion and
+imports. Reviewed those sections, not a hosted response. Unknown response fields
+are discarded and never printed; this does not claim the provider cannot return
+unexpected fields. Lookup success establishes metadata/auth access only.
