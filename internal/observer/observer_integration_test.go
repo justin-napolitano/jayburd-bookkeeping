@@ -652,7 +652,7 @@ func TestObserverExactPrivileges(t *testing.T) {
 	c, db, _ := fixture(t)
 	id := discover(t, c, db)
 	for _, role := range []string{"bookkeeping_publisher", "bookkeeping_observer"} {
-		allowed := []string{"observe_discover", "observe_candidates", "observe_dispatch_claim", "observe_dispatch_result", "observe_recover"}
+		allowed := []string{"observe_discover", "observe_candidates", "observe_dispatch_claim", "observe_dispatch_result", "observe_recover", "sync_delivery_discover", "sync_delivery_candidates", "sync_delivery_dispatch_claim", "sync_delivery_dispatch_result", "sync_delivery_recover"}
 		if role == "bookkeeping_observer" {
 			allowed = []string{"observe_claim", "observe_heartbeat", "observe_finish", "observe_fail"}
 		}

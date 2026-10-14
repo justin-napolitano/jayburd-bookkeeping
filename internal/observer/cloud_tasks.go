@@ -3,7 +3,9 @@ package observer
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -25,26 +27,38 @@ type QueueConfig struct{ Project, Location, Queue, ConsumerURL, Audience, Servic
 
 // CloudTasksTransport makes one bounded REST create call, with no internal retries.
 type CloudTasksTransport struct {
-	config QueueConfig
-	parent string
-	tokens AccessTokenProvider
-	client *http.Client
+	config        QueueConfig
+	parent        string
+	tokens        AccessTokenProvider
+	client        *http.Client
+	targetVersion int
+	deadline      string
 }
 
 // NewCloudTasksTransport validates routing and injects credentials without retrieving them.
 func NewCloudTasksTransport(c QueueConfig, tokens AccessTokenProvider, transport http.RoundTripper) (*CloudTasksTransport, error) {
+	return newCloudTasksTransport(c, tokens, transport, ConsumerPath, 1, "65s")
+}
+
+// NewAcquisitionCloudTasksTransport fixes the acquisition route and disjoint task-name profile.
+func NewAcquisitionCloudTasksTransport(c QueueConfig, tokens AccessTokenProvider, transport http.RoundTripper) (*CloudTasksTransport, error) {
+	return newCloudTasksTransport(c, tokens, transport, AcquisitionConsumerPath, 2, "85s")
+}
+
+// newCloudTasksTransport shares transport checks only; exported constructors fix each supported profile.
+func newCloudTasksTransport(c QueueConfig, tokens AccessTokenProvider, transport http.RoundTripper, path string, version int, deadline string) (*CloudTasksTransport, error) {
 	target, ok := runURL(c.ConsumerURL)
 	audience, aok := runURL(c.Audience)
-	if tokens == nil || transport == nil || !ok || !aok || target.Path != ConsumerPath || (audience.Path != "" && audience.Path != "/") || target.Host != audience.Host || !projectID.MatchString(c.Project) || !locationID.MatchString(c.Location) || !queueID.MatchString(c.Queue) || !serviceEmail.MatchString(c.ServiceAccount) || !strings.HasSuffix(c.ServiceAccount, "@"+c.Project+".iam.gserviceaccount.com") {
+	if tokens == nil || transport == nil || !ok || !aok || target.Path != path || (audience.Path != "" && audience.Path != "/") || target.Host != audience.Host || !projectID.MatchString(c.Project) || !locationID.MatchString(c.Location) || !queueID.MatchString(c.Queue) || !serviceEmail.MatchString(c.ServiceAccount) || !strings.HasSuffix(c.ServiceAccount, "@"+c.Project+".iam.gserviceaccount.com") {
 		return nil, reject()
 	}
-	return &CloudTasksTransport{c, "projects/" + c.Project + "/locations/" + c.Location + "/queues/" + c.Queue, tokens, &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: noRedirect}}, nil
+	return &CloudTasksTransport{c, "projects/" + c.Project + "/locations/" + c.Location + "/queues/" + c.Queue, tokens, &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: noRedirect}, version, deadline}, nil
 }
 
 // Enqueue validates the stable identity before credentials and keeps uncertainty distinct from completion.
 func (t *CloudTasksTransport) Enqueue(parent context.Context, task Task) (EnqueueResult, error) {
 	w, e := ParseWakeup(task.Body)
-	if e != nil || task.TargetVersion != 1 || task.Name != taskName(w.OperationID, w.DispatchGeneration) {
+	if e != nil || task.TargetVersion != t.targetVersion || task.Name != transportTaskName(w.OperationID, w.DispatchGeneration, t.targetVersion) {
 		return "", reject()
 	}
 	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
@@ -64,7 +78,7 @@ func (t *CloudTasksTransport) Enqueue(parent context.Context, task Task) (Enqueu
 	}
 	name := t.parent + "/tasks/" + task.Name
 	raw, _ := json.Marshal(map[string]any{"responseView": "BASIC", "task": map[string]any{
-		"name": name, "dispatchDeadline": "65s", "httpRequest": map[string]any{
+		"name": name, "dispatchDeadline": t.deadline, "httpRequest": map[string]any{
 			"url": t.config.ConsumerURL, "httpMethod": "POST", "headers": map[string]string{"Content-Type": "application/json"}, "body": task.Body,
 			"oidcToken": map[string]string{"serviceAccountEmail": t.config.ServiceAccount, "audience": t.config.Audience},
 		},
@@ -112,4 +126,9 @@ func (t *CloudTasksTransport) Enqueue(parent context.Context, task Task) (Enqueu
 		return Transient, nil
 	}
 	return Accepted, nil
+}
+
+// transportTaskName binds operation identity to the fixed target profile, never provider data.
+func transportTaskName(id string, generation int64, version int) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%s|%d|%d", id, generation, version))))
 }

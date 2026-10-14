@@ -35,7 +35,7 @@ Google Cloud REST **v2**, [Task resource](https://docs.cloud.google.com/tasks/do
 `dispatchDeadline`, schedule/attempt fields reviewed. HTTP deadlines have bounded
 supported values; request timeout does not guarantee worker processing stops.
 **Inference:** resource fence and commit predicate must survive duplicate handlers;
-our60/90-second budgets are project proposals, not recommended universal settings.
+our handler/lease budgets are project policies, not recommended universal settings.
 
 ## BW03 — Enqueue identity and authenticated delivery
 
@@ -78,3 +78,23 @@ Individual ISO message definitions were not exhaustively reviewed. Bibliography
 R03–R05 remain currency/audit research authority; no normative audit fields or
 new currency recognition policy derived here. Financial provider adapters must
 resolve their own required profile/mapping gates under the standards contract.
+
+## BW06 — Acquisition delivery and host review
+
+Refreshed BW02–BW04 on 2026-10-13 for acquisition dispatch: at-least-once
+transport, task-name tombstones and cancellation cannot establish SQL completion.
+The [acquisition transport profile](../contracts/acquisition-transport.md) selects
+separate immutable routes and deadlines. The 80-second HTTP / 85-second task /
+90-second server bounds are local policy, leaving room for a 60-second provider
+attempt and committed settlement. They are not provider service guarantees.
+
+Google Cloud, [Cloud Run request timeout](https://docs.cloud.google.com/run/docs/configuring/request-timeout),
+request timeout behavior reviewed: a timed-out request does not terminate its
+container. Inference: SQL fences and cooperative cancellation remain necessary.
+
+Go, [net/http Server](https://pkg.go.dev/net/http#Server), Serve, Shutdown and Close
+reviewed with pinned Go 1.26.9 source for the [host proof](../runbooks/worker-host.md).
+Shutdown waits for active connections; Close does not forcibly stop arbitrary Go
+handler code. Inference: injected handlers, request-context cancellation, bounded
+drain and fixed errors form a reusable lifecycle boundary. This is local synthetic
+proof, not Cloud Run termination or deployed IAM evidence.
