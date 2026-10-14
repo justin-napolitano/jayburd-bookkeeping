@@ -18,6 +18,7 @@ resource "google_secret_manager_secret" "canary" {
   lifecycle { prevent_destroy = true }
 }
 resource "google_secret_manager_secret_iam_member" "add_canary" {
+  count     = var.canary == null ? 0 : (var.canary.mode == "execute" ? 1 : 0)
   project   = var.project_id
   secret_id = google_secret_manager_secret.canary.secret_id
   role      = "roles/secretmanager.secretVersionAdder"
@@ -67,7 +68,7 @@ resource "google_cloud_run_v2_job" "canary" {
       containers {
         image   = var.canary.image
         command = ["/deliver"]
-        args    = ["-execute", "-project-id=${var.project_id}", "-project-number=${var.project_number}", "-infisical-project=${var.canary.infisical_project}", "-infisical-identity=${var.canary.infisical_identity}", "-source-id=${var.canary.source_id}", "-source-version=${var.canary.source_version}"]
+        args    = concat(["-${var.canary.mode}", "-project-id=${var.project_id}", "-project-number=${var.project_number}", "-infisical-project=${var.canary.infisical_project}", "-infisical-identity=${var.canary.infisical_identity}", "-source-version=${var.canary.source_version}"], var.canary.mode == "execute" ? ["-source-id=${var.canary.source_id}"] : [])
         resources { limits = { cpu = "1", memory = "256Mi" } }
       }
     }

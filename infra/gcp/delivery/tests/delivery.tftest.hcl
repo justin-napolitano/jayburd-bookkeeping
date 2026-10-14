@@ -10,7 +10,7 @@ variables {
 run "default_has_no_job" {
   command = plan
   assert {
-    condition     = length(google_cloud_run_v2_job.canary) == 0 && google_secret_manager_secret_iam_member.add_canary.role == "roles/secretmanager.secretVersionAdder"
+    condition     = length(google_cloud_run_v2_job.canary) == 0 && length(google_secret_manager_secret_iam_member.add_canary) == 0
     error_message = "No executable job by default; destination permission must be add-only."
   }
   assert {
@@ -33,6 +33,7 @@ run "bounded_canary_job" {
       image              = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       infisical_project  = "00000000-0000-4000-8000-000000000001"
       infisical_identity = "00000000-0000-4000-8000-000000000002"
+      mode               = "execute"
       source_id          = "00000000-0000-4000-8000-000000000003"
       source_version     = "7"
     }
@@ -69,4 +70,19 @@ run "reject_execution_without_job" {
   command = plan
   variables { enable_github_canary = true }
   expect_failures = [var.enable_github_canary]
+}
+run "lookup_needs_no_source_id_or_write_grant" {
+  command = plan
+  variables {
+    canary = {
+      image              = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      infisical_project  = "00000000-0000-4000-8000-000000000001"
+      infisical_identity = "00000000-0000-4000-8000-000000000002"
+      source_version     = "1"
+    }
+  }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.add_canary) == 0 && contains(google_cloud_run_v2_job.canary[0].template[0].template[0].containers[0].args, "-lookup") && !anytrue([for a in google_cloud_run_v2_job.canary[0].template[0].template[0].containers[0].args : startswith(a, "-source-id=")])
+    error_message = "Metadata discovery requires neither a secret ID nor destination write authority."
+  }
 }
