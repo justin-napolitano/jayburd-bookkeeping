@@ -1,3 +1,20 @@
+# Current delivery — 2026-10-14
+
+Managed Plaid Link loading and controlled paused-worker promotion are implemented
+for review; see [current evidence](runbooks/link-worker-delivery.md) and
+[worker operator steps](../deploy/WORKERS.md). The browser adapter loads only after
+explicit setup, and tokens remain in memory. Worker release uses a separate
+identity/state with no bootstrap IAM or secret administration.
+
+Synthetic frontend, release and browser/API/PostgreSQL checks passed. Owner
+infrastructure setup, Infisical propagation, actual Link Events association and
+hosted OIDC/queue evidence remain acceptance gates in #7/#11/#88. Reconnect and
+OAuth return are not implemented by this slice. #90 gates live accounts and #89
+measured scaling. Sync alone never posts journals.
+
+The snapshots below are historical; use the linked living evidence for current
+implementation and remaining work.
+
 # Acquisition delivery build
 
 This branch is stacked on open PR #108 (`8f64a78`); #107 is merged. It adds
