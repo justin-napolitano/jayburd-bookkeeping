@@ -9,6 +9,10 @@ variables {
   }
 }
 run "runtime_boundaries" {
+  assert {
+    condition     = length(local.connection_args) == 0 && length(google_cloud_run_v2_service.api.template[0].containers[0].args) == 6
+    error_message = "Default deployment must not enable connections or add any connection metadata flags."
+  }
   command = plan
   assert {
     condition     = !google_cloud_run_v2_service.api.invoker_iam_disabled && google_cloud_run_v2_service_iam_binding.api.members == toset(["serviceAccount:jayburd-dev-frontend@jayburd-synthetic-test.iam.gserviceaccount.com"]) && google_cloud_run_v2_service_iam_binding.web.members == toset(["allUsers"])
@@ -36,4 +40,59 @@ run "reject_missing_identity" {
   command = plan
   variables { firebase_api_key = "" }
   expect_failures = [var.firebase_api_key]
+}
+
+run "enabled_connection_metadata" {
+  command = plan
+  variables {
+    connections = {
+      infisical_origin      = "https://us.infisical.com"
+      infisical_project     = "11111111-1111-4111-8111-111111111111"
+      infisical_identity    = "22222222-2222-4222-8222-222222222222"
+      link_events_qualified = true
+      client_id_version     = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1"
+      client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2"
+      consent_expires_at    = timeadd(timestamp(), "24h")
+    }
+  }
+  assert {
+    condition     = length(local.connection_args) == 12 && alltrue([for arg in local.connection_args : contains(google_cloud_run_v2_service.api.template[0].containers[0].args, arg)]) && contains(local.connection_args, "-provider-registry-bucket=jayburd-synthetic-test-jayburd-dev-credential-registry") && contains(local.connection_args, "-infisical-environment=dev") && contains(local.connection_args, "-provider-registry-prefix=provider-credentials-v1") && contains(local.connection_args, "-plaid-link-events-qualified")
+    error_message = "Enabled metadata must produce the complete fixed Sandbox API profile."
+  }
+}
+
+run "reject_unqualified_link" {
+  command = plan
+  variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { link_events_qualified = false }) }
+  expect_failures = [var.connections]
+}
+
+run "reject_foreign_static_version" {
+  command = plan
+  variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { client_id_version = "projects/999999999999/secrets/jayburd-dev-bank-sync-client-id/versions/1" }) }
+  expect_failures = [var.connections]
+}
+
+run "reject_alias_version" {
+  command = plan
+  variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/latest" }) }
+  expect_failures = [var.connections]
+}
+
+run "reject_zero_identity" {
+  command = plan
+  variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { infisical_identity = "00000000-0000-0000-0000-000000000000" }) }
+  expect_failures = [var.connections]
+}
+
+run "reject_expired_consent" {
+  command = plan
+  variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { consent_expires_at = "2000-01-01T00:00:00Z" }) }
+  expect_failures = [google_cloud_run_v2_service.api]
+}
+
+run "reject_unbounded_consent" {
+  command = plan
+  variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { consent_expires_at = "2099-01-01T00:00:00Z" }) }
+  expect_failures = [google_cloud_run_v2_service.api]
 }

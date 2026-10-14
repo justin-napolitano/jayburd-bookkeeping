@@ -24,7 +24,8 @@ Focused connectionruntime race tests and API command build PASS. Tests prove dis
 and invalid settings never touch dependencies; enabled startup reads exactly two
 numeric versions with CRC32C and no DB transaction, Infisical identity login, writer
 mutation or Plaid request. Failure tests cover canceled startup, wrong version,
-transport diagnostics and invalid secret payload. Final default gates pending.
+transport diagnostics and invalid secret payload. `make check test build` PASS
+after recopying the worker author's corrected dependency; no borrowed changes staged.
 Dependencies providersecrets/workerruntime and clouddb changes were copied locally
 for compilation and remain outside this commit; coordinator owns their integration.
 
@@ -63,3 +64,21 @@ No migration or financial contract changes. Integrate after providersecrets and
 workerruntime, including UUID audience support. Add canonical project number and the
 explicit identifier flags through the coordinator's reviewed deployment workflow;
 do not enable from defaults. Primary source selection is recorded in the contract.
+
+## Optional runtime metadata stage
+
+Added null-default `connections` metadata to the runtime Terraform module without
+changing release manifests/workflows. Exact static resource names, UUIDs, approved
+origins and explicit Link qualification are validated; derived flags use only the
+fixed dev environment/registry namespace. Plan-time expiry must be future within
+30 days; runtime repeats the check. Mocked cases cover disabled and complete enabled
+arguments, unqualified Link, foreign/alias versions, zero identity, expired and
+unbounded consent. No cloud apply, provider traffic or secret retrieval occurred.
+
+Final metadata evidence: clean temporary module copy, pinned Google8.6.0 filesystem
+mirror and empty environment; `terraform test` PASS10 cases, 0 failed. No backend,
+state or owner variable files copied. Initial full infrastructure script stopped on
+registry DNS after foundation8 passed; the owned runtime module was then tested
+successfully with the cached provider. Terraform fmt and git diff checks PASS.
+Logs: `/private/tmp/jayburd-connection-runtime-proof.log` and
+`/private/tmp/jayburd-hosted-connections-default.log`.
