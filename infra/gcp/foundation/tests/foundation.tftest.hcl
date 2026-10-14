@@ -16,7 +16,7 @@ run "secure_foundation_defaults" {
     error_message = "All state buckets must be private, versioned and non-destructive."
   }
   assert {
-    condition     = google_storage_bucket.state["foundation"].name != google_storage_bucket.state["application"].name && google_storage_bucket_iam_member.application_state.bucket == google_storage_bucket.state["runtime"].name
+    condition     = google_storage_bucket.state["foundation"].name != google_storage_bucket.state["application"].name && google_storage_bucket.state["workers"].name != google_storage_bucket_iam_member.application_state.bucket && length(google_storage_bucket.state) == 4 && google_storage_bucket_iam_member.application_state.bucket == google_storage_bucket.state["runtime"].name
     error_message = "Deployer access must be limited to the runtime state bucket."
   }
   assert {

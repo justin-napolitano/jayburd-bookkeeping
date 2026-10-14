@@ -31,7 +31,7 @@ resource "google_project_service" "foundation" {
 
 # Separate buckets prevent an application deployer from changing bootstrap state.
 resource "google_storage_bucket" "state" {
-  for_each                    = toset(["foundation", "application", "runtime"])
+  for_each                    = toset(["foundation", "application", "runtime", "workers"])
   project                     = var.project_id
   name                        = "${var.project_id}-jayburd-dev-${each.key}-state"
   location                    = var.region

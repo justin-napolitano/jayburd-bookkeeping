@@ -6,7 +6,7 @@ const digest = /^sha256:[a-f0-9]{64}$/;
 export function receipt(input, build, repositories) {
   const { project, component, commit, run, attempt, imageID } = input;
   if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(project) ||
-      !['api', 'migrate', 'web'].includes(component) || !/^[a-f0-9]{40}$/.test(commit) ||
+      !['api', 'migrate', 'web', 'worker'].includes(component) || !/^[a-f0-9]{40}$/.test(commit) ||
       !/^[0-9]+$/.test(run) || !/^[0-9]+$/.test(attempt) || !digest.test(imageID)) throw new Error('Invalid build identity');
   // Docker's classic store uses a configuration ID; containerd may expose the manifest/index ID.
   const builtIDs = [build['containerimage.config.digest'], build['containerimage.digest']].filter(value => digest.test(value));

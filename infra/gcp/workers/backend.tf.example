@@ -1,0 +1,8 @@
+# Owner installs only after the reviewed foundation workers-state bucket addition.
+# Existing application deployer has no grant on this dedicated bootstrap state bucket.
+# Initialize with -backend-config="bucket=PROJECT_ID-jayburd-dev-workers-state"
+# and -backend-config="prefix=workers". Never use runtime-state as a substitute.
+# Mocked validation uses init -backend=false; no backend is installed by this example.
+terraform {
+  backend "gcs" {}
+}

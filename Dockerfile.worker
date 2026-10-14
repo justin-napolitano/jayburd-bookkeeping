@@ -1,0 +1,16 @@
+# Explicit source-only copies prevent credentials or runtime evidence entering image layers.
+FROM golang:1.26.9-alpine@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY internal/ ./internal/
+COPY cmd/worker/ ./cmd/worker/
+RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /worker ./cmd/worker
+FROM scratch
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /worker /worker
+USER 65532:65532
+EXPOSE 8080
+ENTRYPOINT ["/worker"]
+# Mode and nonsecret binding identifiers must be explicitly supplied by reviewed deployment config.
+CMD ["-listen=0.0.0.0:8080"]
