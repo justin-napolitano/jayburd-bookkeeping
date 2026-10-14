@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/staging"
 	"io"
 	"net"
@@ -90,11 +91,23 @@ func TestAppIntegrationServer(t *testing.T) {
 			t.Fatal("synthetic demo seed rejected", err)
 		}
 	}
-	app, err := New(Config{Mode: "managed", Listen: "0.0.0.0:8080", Origin: "http://localhost:39083", Project: "synthetic-browser-proof", DatabaseURL: "synthetic-injected-test-pool"}, Dependencies{Auth: appProofAuth{}, Operations: &ledger.Service{DB: pool}, Ready: func(ctx context.Context) error { return runtimeReady(ctx, pool) }})
+	var connectionFixture *connectionBrowserFixture
+	var connectionService *connections.Service
+	if *appProofConnections {
+		if *appProofDemo {
+			t.Fatal("proof fixture modes are exclusive")
+		}
+		connectionFixture = bootstrapConnectionBrowser(t, ctx, admin, pool)
+		connectionService = connectionFixture.service
+	}
+	app, err := New(Config{Mode: "managed", Listen: "0.0.0.0:8080", Origin: "http://localhost:39083", Project: "synthetic-browser-proof", DatabaseURL: "synthetic-injected-test-pool"}, Dependencies{Connections: connectionService, Auth: appProofAuth{}, Operations: &ledger.Service{DB: pool}, Ready: func(ctx context.Context) error { return runtimeReady(ctx, pool) }})
 	if err != nil {
 		t.Fatal("synthetic server composition rejected")
 	}
 	handler := app.HTTP.Handler
+	if connectionFixture != nil {
+		handler = connectionFixture.wrap(handler)
+	}
 	if acquisition != nil {
 		demoHandler, e := ledger.BrowserBoundary("http://localhost:39083", acquisition)
 		if e != nil {

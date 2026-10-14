@@ -46,11 +46,13 @@ consolidation remain explicitly deferred under #59.
 
 ## Generated acquisition and review slice
 
-PR #99 and #105 are merged. The current parallel build implements #101 connection
-state/service and #102 acquisition against those foundations. Root composes the
-authenticated HTTP and real SQL enrollment-to-review proof; see
+PR #99, #105 and #106 are merged. #101 connection state/service and #102 acquisition
+have synthetic backend evidence. The current #104 slice adds connection management
+and source-review navigation against those contracts; see
 [connection and acquisition](../runbooks/provider-acquisition.md). #103 verified
-webhooks/catch-up and #104 connections UI remain next product work. #7 retains
+webhooks/catch-up and the remaining #104 discovery/status/wakeup contracts stay open.
+The [connections workspace](../runbooks/connection-workspace.md) records UI evidence
+and the full browser qualification boundary. #7 retains
 hosted worker composition, and #88 separately qualifies provider/secret delivery.
 Native GitHub dependencies determine dispatch; local proof does not activate Plaid.
 

@@ -2,8 +2,8 @@
 
 ## Decision
 
-Continue small Go/PostgreSQL delivery slices. PR #105 is merged (`9fd0669`). This delivery implements the #101 enrollment
-and #102 acquisition backend with synthetic qualification. Implemented local behavior is distinct
+Continue small Go/PostgreSQL delivery slices. PR #106 is merged (`6c6b546`) with synthetic enrollment/acquisition evidence.
+This delivery adds the supported #104 connections workspace. Implemented local behavior is distinct
 from hosted proof and approval to keep official books.
 
 | Area | Evidence and remaining boundary |
@@ -13,7 +13,7 @@ from hosted proof and approval to keep official books.
 | Financial review | Trial balance, account general ledger, balance sheet, P&L, comparisons, journal detail and internal CSV: [review tools](runbooks/report-review-tools.md). |
 | Synthetic demonstrations | Real browser/Go/PostgreSQL posting; 1,000-posting proof passed. Full 5,000/10,000 runs remain unproved: [demo evidence](runbooks/synthetic-demo.md). |
 | Background work | Restricted observer SQL and recovery tests are merged: [foundation evidence](runbooks/ingestion-foundations.md). Merged #105 adds private HTTP and injected Cloud Tasks transport with real PostgreSQL replay tests: [transport evidence](runbooks/observer-transport.md). Hosted executable, queue and OIDC qualification remain pending. |
-| Ingestion | Generated acquisition and category review/source-linked posting are merged: [populated demo](runbooks/populated-demo.md). Merged #105 adds fenced provider publication and exact Plaid decoding. This delivery adds scoped enrollment and a restartable acquisition runner: [delivery evidence](runbooks/provider-acquisition.md). Hosted composition, connection UI, webhook ingress and real provider qualification remain open. |
+| Ingestion | Generated acquisition and category review/source-linked posting are merged: [populated demo](runbooks/populated-demo.md). Merged #105 adds fenced provider publication and exact Plaid decoding. Merged #106 adds scoped enrollment and a restartable acquisition runner: [delivery evidence](runbooks/provider-acquisition.md). Hosted composition, connection UI, webhook ingress and real provider qualification remain open. |
 | Hosted application | Read-only Cloud Run service listing across regions returned no services in `jayburd-bookkeeping-dev` on 2026-10-13. No hosted frontend URL is available from that check. |
 
 ## Review the frontend
@@ -38,6 +38,14 @@ ledger validation.
 The merged workspace supplies runtime navigation. Data remains synthetic; connected-bank
 feeds and consolidated multi-entity reports are not implied. Review the [workspace
 evidence](runbooks/book-workspace.md) for named tests and current limitations.
+
+## Connections workspace
+
+The **Connections** tab lists scoped accounts, opens their transaction review and
+confirms account-only disconnect. An injected Link adapter enables enrollment and
+explicit verified account binding. Default startup has no adapter and shows setup
+unavailable. [Evidence and remaining contracts](runbooks/connection-workspace.md)
+distinguish this UI from working real bank connectivity.
 
 ## Next delivery
 

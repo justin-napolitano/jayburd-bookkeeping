@@ -241,3 +241,55 @@ describe("source review bridge", () => {
     ).toBe("same-draft");
   });
 });
+
+/** These seven routes carry connection intent only; SQL remains the authorization authority. */
+describe('connection bridge routes', () => {
+ const id='00000000-0000-4000-8000-0000000000ab';
+ const base=`/v1/entities/${id}/books/${id}`;
+ const routes=[
+  ['POST','/connection-attempts',true],
+  ['GET',`/connection-attempts/${id}`,false],
+  ['POST',`/connection-attempts/${id}/execute`,false],
+  ['POST',`/connection-attempts/${id}/reconcile`,false],
+  ['POST',`/connection-attempts/${id}/bindings`,true],
+  ['GET','/connections',false],
+  ['POST',`/connections/streams/${id}/disconnect`,true],
+ ] as const;
+ it.each(routes)('allows only reviewed %s %s with required operation identity', async(method,suffix,key)=>{
+  const fetcher=transport();
+  const headers:Record<string,string>={'Content-Type':'application/json'};
+  if(key) headers['Idempotency-Key']='synthetic-connection';
+  const response=await createBridge(fetcher,()=>env)(request(base+suffix,headers,method==='POST'?'{}':undefined));
+  expect(response.status).toBe(200);
+  expect(fetcher.mock.calls[1][0]).toBe(env.BOOKKEEPING_API_ORIGIN+base+suffix);
+  expect(fetcher.mock.calls[1][1]?.method).toBe(method);
+  if(key){const denied=vi.fn<typeof fetch>();expect((await createBridge(denied,()=>env)(request(base+suffix,{'Content-Type':'application/json'},'{}'))).status).toBe(400);expect(denied).not.toHaveBeenCalled();}
+ });
+ it.each(routes)('rejects wrong method or query before metadata for %s %s',async(method,suffix)=>{
+  for(const [path,verb] of [[base+suffix,method==='GET'?'POST':'GET'],[base+suffix+'?cursor=secret',method],[base+suffix+'?',method],[base+suffix,'HEAD'],[base+suffix,'DELETE']]){
+   const fetcher=vi.fn<typeof fetch>();
+   const input=new Request(env.BOOKKEEPING_PUBLIC_ORIGIN+path,{method:verb,headers:{Authorization:bearer,Origin:env.BOOKKEEPING_PUBLIC_ORIGIN,'Content-Type':'application/json','Idempotency-Key':'synthetic'}});
+   expect((await createBridge(fetcher,()=>env)(input)).status).toBe(404);expect(fetcher).not.toHaveBeenCalled();
+  }
+ });
+ it.each(['/connection-attempts/'+id+'/exchange','/connections/plaid','/connections/streams/'+id+'/sync','/connection-attempts/%30'+id.slice(1),'/connection-attempts/'+id.toUpperCase(),'/connection-attempts/'+id+'/execute%2f'])('rejects unreviewed or encoded suffix %s',async suffix=>{
+  const fetcher=vi.fn<typeof fetch>();expect((await createBridge(fetcher,()=>env)(request(base+suffix,{'Content-Type':'application/json','Idempotency-Key':'synthetic'},'{}'))).status).toBe(404);expect(fetcher).not.toHaveBeenCalled();
+ });
+ it('forwards transient handoff bytes once without caching, retries or diagnostic leakage',async()=>{
+  const body='{"nonce":"'+id+'","link_token":"synthetic-link","public_token":"synthetic-public"}';
+  const fetcher=transport(new Response('synthetic-public',{status:503}));
+  const result=await createBridge(fetcher,()=>env)(request(base+`/connection-attempts/${id}/execute`,{'Content-Type':'application/json','Cookie':'synthetic-cookie'},body));
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(new TextDecoder().decode(fetcher.mock.calls[1][1]?.body as Uint8Array)).toBe(body);
+  expect(fetcher.mock.calls[1][1]?.cache).toBe('no-store');
+  expect(new Headers(fetcher.mock.calls[1][1]?.headers).has('Cookie')).toBe(false);
+  expect(result.status).toBe(503);expect(await result.text()).not.toContain('synthetic-public');
+  expect(result.headers.get('Cache-Control')).toBe('no-store');
+ });
+ it('bounds handoff bytes and denies missing identity before backend or metadata access',async()=>{
+  for(const [body,authorization,status] of [['x'.repeat((32<<10)+1),bearer,413],['{}','',401]] as const){
+   const fetcher=vi.fn<typeof fetch>();
+   expect((await createBridge(fetcher,()=>env)(request(base+`/connection-attempts/${id}/execute`,{'Content-Type':'application/json',Authorization:authorization},body))).status).toBe(status);expect(fetcher).not.toHaveBeenCalled();
+  }
+ });
+});

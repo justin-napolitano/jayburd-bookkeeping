@@ -11,6 +11,7 @@ import { createAPI } from "./api";
 import type { Book, Entity, Workspace, RegisterCommand } from "./types";
 import { useCommands } from "./commands";
 import { CommandPanel } from "./CommandPanel";
+import type { ConnectionLink } from "./Connections";
 import { BookWorkspace } from "./BookWorkspace";
 // UI account drafts carry strings unchanged to the authoritative setup transaction.
 type AccountDraft = {
@@ -50,9 +51,11 @@ const blankLine = (): LineDraft => ({
 export function Bookkeeping({
   getToken,
   rejectSession,
+  connectionLink,
 }: {
   getToken: () => Promise<string>;
   rejectSession: () => void;
+  connectionLink?: ConnectionLink;
 }) {
   const api = useMemo(
     () => createAPI(getToken, rejectSession),
@@ -160,6 +163,7 @@ export function Bookkeeping({
           {...selected}
           currencies={workspace?.currencies ?? []}
           api={api}
+          connectionLink={connectionLink}
           prepare={recovery.prepare}
           locked={locked}
           denied={() => {

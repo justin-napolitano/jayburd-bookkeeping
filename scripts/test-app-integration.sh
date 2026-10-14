@@ -3,7 +3,8 @@
 set -euo pipefail
 demo=false
 demo_test=false
-case "${1:-}" in --demo) demo=true ;; --demo-test) demo=true; demo_test=true ;; '') ;; *) echo 'Usage: test-app-integration.sh [--demo|--demo-test]' >&2; exit 1 ;; esac
+connections_test=false
+case "${1:-}" in --connections) connections_test=true ;; --demo) demo=true ;; --demo-test) demo=true; demo_test=true ;; '') ;; *) echo 'Usage: test-app-integration.sh [--demo|--demo-test|--connections]' >&2; exit 1 ;; esac
 proof_timeout=600s
 if [[ "$demo" == true ]]; then proof_timeout=0; fi
 cd "$(dirname "$0")/.."
@@ -59,7 +60,7 @@ docker cp "$proof_dir/app.test" "$proof_id:/proof/app.test"
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/app.test "$POSTGRES_IMAGE" -demo-acquisition-proof -test.run='^TestDemoAcquisitionPostgres$' -test.v -test.timeout=180s
 docker run -d --name "$proof_id-api" --network "$proof_id" \
  --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/app.test \
- "$POSTGRES_IMAGE" -app-proof -app-proof-demo="$demo" -app-proof-marker="$proof_id" -test.run='^TestAppIntegrationServer$' -test.timeout="$proof_timeout" >/dev/null
+ "$POSTGRES_IMAGE" -app-proof -app-proof-demo="$demo" -app-proof-connections="$connections_test" -app-proof-marker="$proof_id" -test.run='^TestAppIntegrationServer$' -test.timeout="$proof_timeout" >/dev/null
 api_created=1
 # Raw HTTP bridge makes daemon location irrelevant; no database socket is exposed.
 go test -c -tags integration -o "$proof_dir/bridge.test" ./internal/server
@@ -110,6 +111,15 @@ for ((i=0;i<60;i++)); do
  sleep 1
 done
 [[ "$ready" == 1 ]] || { cat "$proof_dir/next.log"; exit 1; }
+if [[ "$connections_test" == true ]]; then
+ (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-connections.config.ts)
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.journal_entry')" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.review_posting')" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.source_observation')" == 2 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM integration.outbox_message')" == 1 ]]
+ echo 'PASS: synthetic connection enrollment → acquisition → review → explicit posting and recovery'
+ exit 0
+fi
 # The ordinary auth provider remains unconfigured; only the test component injects a fictional token.
 (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-integration.config.ts)
 [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.journal_entry')" == 1 ]]

@@ -80,8 +80,9 @@ Use the [corpus and execution guide](../tests/corpus/README.md),
 
 ## Next action
 
-PR #105 merged the [sync foundations](runbooks/sync-foundations.md). The current
-parallel build is [connection and acquisition](runbooks/provider-acquisition.md):
+PR #106 merged [connection and acquisition](runbooks/provider-acquisition.md) on
+the [sync foundations](runbooks/sync-foundations.md). Current #104 work adds the
+[connections workspace](runbooks/connection-workspace.md) against:
 [connection SQL](contracts/connection-sql.md), [service](contracts/connection-service.md),
 [HTTP](contracts/connection-http.md) and [runner](contracts/acquisition-runner.md).
 Enrollment, acquisition, connected UI and hosted qualification are distinct gates.

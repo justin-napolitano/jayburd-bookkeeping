@@ -145,38 +145,70 @@ async function choose() {
   await screen.findByLabelText("Category account");
 }
 // Provider changes retain posted history; held and zero-valued source rows cannot prepare journals.
-it.each(["correction_hold", "posted"])("keeps %s source changes outside the draft workflow", async (state) => {
-  const { api, props } = fixture();
-  const original = api.getMockImplementation()!;
-  api.mockImplementation(async (path: string) => {
-    if (path.endsWith("/review-items/r")) return {
-      ...detail, state, direction: state === "correction_hold" ? "zero" : "outflow",
-      amount: state === "correction_hold" ? "0" : row.amount,
-      blockers: state === "correction_hold" ? ["provider_correction_required"] : [],
-      provider_exceptions: state === "posted" ? {
-        total_count: "101", truncated: true,
-        items: [{ exception_id: "x", kind: "modified", previous_revision: "1", current_revision: "2", observation_id: "o", created_at: "2026-01-05T00:00:00Z" }],
-      } : undefined,
-    };
-    return original(path);
-  });
-  render(<ReviewInbox {...props} />);
-  await screen.findByRole("option", { name: /Checking/ });
-  fireEvent.change(screen.getByLabelText("Source account"), { target: { value: "s" } });
-  fireEvent.click(await screen.findByRole("button", { name: "Review Synthetic supplies" }));
-  if (state === "posted") {
-    await screen.findByRole("region", { name: "Source changes after posting" });
-    expect(screen.getByText(/original evidence are unchanged/)).toBeTruthy();
-    expect(screen.getByText(/Showing the latest 100/)).toBeTruthy();
-    expect(screen.getAllByText(/9007199254740993.01/).length).toBeGreaterThan(0);
-  } else {
-    await screen.findByText(/Review blocked: provider_correction_required/);
-  }
-  expect(screen.queryByLabelText("Category account")).toBeNull();
-  expect(screen.queryByRole("button", { name: "Review posting command" })).toBeNull();
-  expect(api.mock.calls.some(([path]) => path.endsWith("/categories"))).toBe(false);
-  expect(props.prepare).not.toHaveBeenCalled();
-});
+it.each(["correction_hold", "posted"])(
+  "keeps %s source changes outside the draft workflow",
+  async (state) => {
+    const { api, props } = fixture();
+    const original = api.getMockImplementation()!;
+    api.mockImplementation(async (path: string) => {
+      if (path.endsWith("/review-items/r"))
+        return {
+          ...detail,
+          state,
+          direction: state === "correction_hold" ? "zero" : "outflow",
+          amount: state === "correction_hold" ? "0" : row.amount,
+          blockers:
+            state === "correction_hold" ? ["provider_correction_required"] : [],
+          provider_exceptions:
+            state === "posted"
+              ? {
+                  total_count: "101",
+                  truncated: true,
+                  items: [
+                    {
+                      exception_id: "x",
+                      kind: "modified",
+                      previous_revision: "1",
+                      current_revision: "2",
+                      observation_id: "o",
+                      created_at: "2026-01-05T00:00:00Z",
+                    },
+                  ],
+                }
+              : undefined,
+        };
+      return original(path);
+    });
+    render(<ReviewInbox {...props} />);
+    await screen.findByRole("option", { name: /Checking/ });
+    fireEvent.change(screen.getByLabelText("Source account"), {
+      target: { value: "s" },
+    });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Review Synthetic supplies" }),
+    );
+    if (state === "posted") {
+      await screen.findByRole("region", {
+        name: "Source changes after posting",
+      });
+      expect(screen.getByText(/original evidence are unchanged/)).toBeTruthy();
+      expect(screen.getByText(/Showing the latest 100/)).toBeTruthy();
+      expect(screen.getAllByText(/9007199254740993.01/).length).toBeGreaterThan(
+        0,
+      );
+    } else {
+      await screen.findByText(/Review blocked: provider_correction_required/);
+    }
+    expect(screen.queryByLabelText("Category account")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Review posting command" }),
+    ).toBeNull();
+    expect(api.mock.calls.some(([path]) => path.endsWith("/categories"))).toBe(
+      false,
+    );
+    expect(props.prepare).not.toHaveBeenCalled();
+  },
+);
 it("keeps source review exact and creates a draft before handing off explicit posting", async () => {
   const { api, props } = fixture();
   render(<ReviewInbox {...props} />);
@@ -411,4 +443,66 @@ it("reads the posted journal itself with current scope and no mutation", async (
     [`${base}/journals/journal`],
   ]);
   expect(api.mock.calls.every((c) => c.length === 1)).toBe(true);
+});
+
+// Connection navigation is a preference, not permission to read an arbitrary source.
+it("connection handoff selects only a currently authorized source", async () => {
+  const { api, props } = fixture();
+  render(<ReviewInbox {...props} initialSource="s" />);
+  await screen.findByRole("button", { name: "Review Synthetic supplies" });
+  expect(screen.getByLabelText("Source account")).toHaveProperty("value", "s");
+  expect(
+    api.mock.calls.some(([path]) => path.includes("source_account_id=s")),
+  ).toBe(true);
+});
+
+// A stale or revoked connection-to-source reference never triggers a source read.
+it("connection handoff rejects sources absent from the current authorized list", async () => {
+  const { api, props } = fixture();
+  render(<ReviewInbox {...props} initialSource="revoked-source" />);
+  await screen.findByRole("option", { name: /Checking/ });
+  expect(screen.getByLabelText("Source account")).toHaveProperty("value", "");
+  expect(api.mock.calls.some(([path]) => path.includes("/review-items"))).toBe(
+    false,
+  );
+});
+
+// A quick filter change must not invalidate an outstanding source-discovery response.
+it("locks filters until connection source discovery finishes", async () => {
+  const { props } = fixture();
+  let resolve!: (value: unknown) => void;
+  const api = vi.fn((path: string) =>
+    path.endsWith("/sources")
+      ? new Promise((r) => {
+          resolve = r;
+        })
+      : Promise.resolve({
+          source_account_id: "s",
+          source_revision: "1",
+          items: [],
+          next_cursor: null,
+        }),
+  );
+  render(<ReviewInbox {...props} api={api as API} initialSource="s" />);
+  expect(screen.getByLabelText("Review status")).toHaveProperty(
+    "disabled",
+    true,
+  );
+  resolve({
+    items: [
+      {
+        source_account_id: "s",
+        display_name: "Checking",
+        currency: "USD",
+        state: "active",
+      },
+    ],
+  });
+  await waitFor(() =>
+    expect(screen.getByLabelText("Review status")).toHaveProperty(
+      "disabled",
+      false,
+    ),
+  );
+  expect(screen.getByLabelText("Source account")).toHaveProperty("value", "s");
 });
