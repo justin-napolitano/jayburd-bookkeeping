@@ -60,7 +60,7 @@ expect_failure() {
   if bash "$root/scripts/deploy-workers.sh" "$scratch/release" > "$scratch/output" 2>&1; then
     echo "FAIL: accepted $FAIL_STEP"; exit 1
   fi
-  if rg -q 'synthetic-private-provider-diagnostic|PASS:' "$scratch/output"; then
+  if grep -Eq 'synthetic-private-provider-diagnostic|PASS:' "$scratch/output"; then
     echo 'FAIL: private diagnostics or success escaped a failed rollout'; exit 1
   fi
   [[ $(cat "$scratch/output") == "$1" ]]
@@ -93,7 +93,7 @@ for(const call of calls.slice(5,7)) {
   assert.doesNotMatch(call,/\.env|\.message/);
 }
 JS
-  rg -q '^PASS: worker runtime applied;' "$scratch/output"
+  grep -Eq '^PASS: worker runtime applied;' "$scratch/output"
 done
 for FAIL_STEP in active foreign; do
   export FAIL_STEP

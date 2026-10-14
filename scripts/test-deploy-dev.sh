@@ -51,7 +51,7 @@ for FAIL_STEP in 'migration plan' 'migration apply' job readback; do
  export FAIL_STEP
  : > "$TEST_LOG"
  if bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null 2>&1; then exit 1; fi
- if rg -q 'chdir=infra/gcp/runtime' "$TEST_LOG"; then echo 'FAIL: runtime changed after migration failure'; exit 1; fi
+ if grep -Eq 'chdir=infra/gcp/runtime' "$TEST_LOG"; then echo 'FAIL: runtime changed after migration failure'; exit 1; fi
 done
 export FAIL_STEP='runtime apply'
 if bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null 2>&1; then exit 1; fi
@@ -60,7 +60,7 @@ export FAIL_STEP=''
 node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));m.operation="migrate";fs.writeFileSync(p,JSON.stringify(m));' "$scratch/release/approved.json"
 : > "$TEST_LOG"
 bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null
-if rg -q 'chdir=infra/gcp/runtime|run services' "$TEST_LOG"; then echo 'FAIL: migration-only touched services'; exit 1; fi
+if grep -Eq 'chdir=infra/gcp/runtime|run services' "$TEST_LOG"; then echo 'FAIL: migration-only touched services'; exit 1; fi
 node --input-type=module - "$TEST_LOG" "$scratch/release/migration.json" <<'JS'
 import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
 assert.equal(readFileSync(process.argv[2],'utf8').trim().split('\n').length,5);
@@ -72,7 +72,7 @@ if bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null 2>&1; then e
 node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));m.spec.template.spec.containers[0].args[0]="-action=status";fs.writeFileSync(p,JSON.stringify(m));' "$TEST_EXECUTION"
 : > "$TEST_LOG"
 bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null
-if rg -q 'chdir=infra/gcp/runtime|run services' "$TEST_LOG"; then echo 'FAIL: verification touched services'; exit 1; fi
+if grep -Eq 'chdir=infra/gcp/runtime|run services' "$TEST_LOG"; then echo 'FAIL: verification touched services'; exit 1; fi
 node -e 'const fs=require("fs"),assert=require("assert/strict");assert.equal(JSON.parse(fs.readFileSync(process.argv[1])).status,"migration-verification-passed");' "$scratch/release/migration.json"
 # Completed-but-wrong execution must fail acceptance, not emit a new success receipt.
 node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));m.spec.template.spec.containers[0].image="wrong";fs.writeFileSync(p,JSON.stringify(m));' "$TEST_EXECUTION"
@@ -80,7 +80,7 @@ if bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null 2>&1; then e
 printf '%s\n' '{"project":"jayburd-synthetic-test","operation":"rollback"}' > "$scratch/release/approved.json"
 : > "$TEST_LOG"
 bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null
-if rg -q 'migration|jobs execute' "$TEST_LOG"; then echo 'FAIL: rollback touched migration'; exit 1; fi
+if grep -Eq 'migration|jobs execute' "$TEST_LOG"; then echo 'FAIL: rollback touched migration'; exit 1; fi
 export GITHUB_EVENT_NAME=pull_request
 if bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null 2>&1; then exit 1; fi
 echo 'PASS: migration-only isolation, exact execution, stop on failures, rollback without SQL, non-dispatch rejection.'
