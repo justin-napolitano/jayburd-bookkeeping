@@ -380,3 +380,19 @@ ISO exchange conformance.
 - [Connection operations source application](plaid-ingestion-sources.md#connection-operations-review--2026-10-13): refreshed official webhook signature/key and sync-notification sections; distinguishes provider requirements from local replay, cache and transaction policies. Signed synthetic proofs do not qualify hosted delivery or actual institution behavior.
 
 - [Acquisition delivery and HTTP host review](background-work-sources.md#bw06--acquisition-delivery-and-host-review): refreshed official Cloud Tasks/Cloud Run timing and Go server lifecycle sections; distinguishes local fencing policy and loopback evidence from hosted qualification.
+
+## Allowlisted credential delivery — 2026-10-14
+
+- [Source review and alternatives](../contracts/scoped-delivery.md#sources-and-alternatives):
+  pinned Infisical upstream sync implementation, exact-key retrieve REST API, and
+  Google addVersion REST contract. Reviewed relevant functions/sections; establishes
+  native-sync permission mismatch and supports one-shot writes. Hosted version, IAM
+  and real propagation remain unverified.
+
+- [Controlled canary job sources](../contracts/delivery-job.md#sources-alternatives-and-evidence):
+  Google provider v8.6.0 job schema and Infisical GCP ID Token Auth guide, reviewed
+  for workload identity and bounded execution; hosted qualification remains separate.
+
+- [Canary metadata lookup](../contracts/delivery-job.md): reviewed Infisical Retrieve
+  query parameters for value-disabled exact-version discovery. Synthetic tests
+  validate output minimization; actual project authentication remains unverified.

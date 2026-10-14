@@ -15,19 +15,21 @@ owner's Infisical organization. Record its actual ID, generated slug and cloud
 region after creation. GitHub-linked login authenticates the human, not workflows.
 
 Create environments `dev`, `staging`, `prod`, with component folders `/api`,
-`/bank-sync`, `/import-export`. Keep root empty; create no dummy credentials.
+`/bank-sync`, `/import-export`. Owner override (2026-10-14): existing Plaid keys remain at root.
+The [allowlisted delivery contract](contracts/scoped-delivery.md) maps only the
+two selected root keys; do not enable a root-wide native sync.
 Use owner-only access initially. Runtime access is read-only per component and
 environment. If the account cannot enforce this scope, split projects; do not
 compensate with broad access. Confirm plan capabilities before enabling identities.
 
-Current status: private GitHub repository exists; Infisical account was reported
-created by the owner. No project, identity, folder, sync or secret has been verified
-or created by this seed. The session browser is unavailable. Local CLI is installed;
-its authentication store has not been accessed.
+Current setup and resource-adoption evidence is in the
+[delivery runbook](runbooks/scoped-delivery.md). The GCP connection worked per owner
+report; secret propagation is not yet qualified. Repository is now public.
+Native sync is blocked by its upstream destination-read requirements.
 
 ## Cloud integration: JB-005 and JB-013
 
-Use Infisical Cloud's GCP service-account impersonation connection, with a dedicated
+Historical native-sync candidate: Infisical Cloud's GCP service-account impersonation connection, with a dedicated
 sync service account per environment. Resolve the region-specific Infisical
 principal from official setup instructions; grant impersonation only on that
 account. Respect the documented organization-ID suffix for its name. Review exact
@@ -35,7 +37,9 @@ sync permissions against pre-created destination secrets; never grant project
 Owner or distribute service-account keys. Terraform owns containers/IAM, while
 Infisical owns values and versions. No secret values in Terraform inputs/state.
 
-Scope each sync to one component folder and environment. Use a unique destination
+Native sync remains disabled. The following are historical qualification requirements,
+not instructions to enable the incompatible native adapter. Scope each sync to one
+component folder and environment. Use a unique destination
 prefix such as `jayburd-dev-api-`; configure manual initial sync and disable
 destination deletion. Review the initial-sync behavior before enabling it: the
 overwrite option can delete unrelated destination secrets. Never import existing
