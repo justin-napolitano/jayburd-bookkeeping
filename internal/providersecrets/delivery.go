@@ -56,6 +56,8 @@ func (d *Delivery) target(q DeliveryRequest) (string, string, error) {
 	}
 	folder, suffix := "/", ""
 	switch q.Key {
+	case "JAYBURD_DELIVERY_CANARY":
+		suffix = "canary"
 	case "PLAID_CLIENT_ID":
 		suffix = "client-id"
 	case "PLAID_SECRET":
@@ -146,4 +148,43 @@ func (d *Delivery) receipt(expected, actual DeliveryReceipt) (DeliveryReceipt, e
 	}
 	actual.GCPVersion = version
 	return actual, nil
+}
+
+// CanaryMetadata exposes only validated identifiers, never source response bodies or values.
+type CanaryMetadata struct {
+	SourceID      string `json:"source_id"`
+	SourceVersion string `json:"source_version"`
+}
+
+// LookupCanary requests one exact canary version with value retrieval/imports/expansion disabled.
+// It performs no GCP or registry operation and does not authorize a subsequent delivery.
+func (d *Delivery) LookupCanary(ctx context.Context, version string) (CanaryMetadata, error) {
+	if !positive(version) {
+		return CanaryMetadata{}, fail("secret_reference_invalid")
+	}
+	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	defer cancel()
+	token, e := d.source.auth(ctx)
+	if e != nil {
+		return CanaryMetadata{}, e
+	}
+	q := url.Values{"projectId": {d.source.config.ProjectID}, "environment": {"dev"}, "secretPath": {"/"}, "version": {version}, "type": {"shared"}, "viewSecretValue": {"false"}, "includeImports": {"false"}, "expandSecretReferences": {"false"}}
+	raw, _, e := request(ctx, d.source.http, "GET", d.source.config.InfisicalOrigin+"/api/v4/secrets/JAYBURD_DELIVERY_CANARY?"+q.Encode(), token, "", nil)
+	if e != nil {
+		return CanaryMetadata{}, e
+	}
+	var result struct {
+		Secret struct {
+			ID, Workspace, Environment, SecretKey, SecretPath string
+			Version                                           json.Number
+		}
+	}
+	if e = strict(raw, &result); e != nil {
+		return CanaryMetadata{}, e
+	}
+	s := result.Secret
+	if !uuid.MatchString(s.ID) || s.ID == "00000000-0000-0000-0000-000000000000" || s.Workspace != d.source.config.ProjectID || s.Environment != "dev" || s.SecretKey != "JAYBURD_DELIVERY_CANARY" || string(s.Version) != version || (s.SecretPath != "" && s.SecretPath != "/") {
+		return CanaryMetadata{}, fail("secret_source_mismatch")
+	}
+	return CanaryMetadata{SourceID: s.ID, SourceVersion: version}, nil
 }

@@ -45,7 +45,7 @@ func (f *deliveryCloud) RoundTrip(r *http.Request) (*http.Response, error) {
 		}
 		return response(200, map[string]any{"secret": map[string]any{"id": "00000000-0000-4000-8000-000000000009", "workspace": sourceProject, "environment": "dev", "secretKey": key, "version": 7, "secretValue": "fictional-canary"}}), nil
 	}
-	if r.URL.Host != "secretmanager.googleapis.com" || r.Method != "POST" || !strings.HasSuffix(r.URL.Path, "/secrets/jayburd-dev-bank-sync-client-id:addVersion") {
+	if r.URL.Host != "secretmanager.googleapis.com" || r.Method != "POST" || (!strings.HasSuffix(r.URL.Path, "/secrets/jayburd-dev-bank-sync-client-id:addVersion") && !strings.HasSuffix(r.URL.Path, "/secrets/jayburd-dev-bank-sync-canary:addVersion")) {
 		return nil, errors.New("forbidden endpoint")
 	}
 	var body struct {
@@ -62,7 +62,7 @@ func (f *deliveryCloud) RoundTrip(r *http.Request) (*http.Response, error) {
 	if f.failure == "lost" {
 		return nil, errors.New("private-vendor-diagnostic")
 	}
-	name := "projects/" + project + "/secrets/jayburd-dev-bank-sync-client-id/versions/23"
+	name := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/v1/"), ":addVersion") + "/versions/23"
 	if f.failure == "response" {
 		name = "projects/wrong-project/secrets/other/versions/23"
 	}
@@ -146,7 +146,7 @@ func TestDeliveryAllowlist(t *testing.T) {
 			t.Fatal("invalid key accepted")
 		}
 	}
-	for _, key := range []string{"PLAID_CLIENT_ID", "PLAID_SECRET", "slot-00", "slot-07"} {
+	for _, key := range []string{"PLAID_CLIENT_ID", "PLAID_SECRET", "JAYBURD_DELIVERY_CANARY", "slot-00", "slot-07"} {
 		q.Key = key
 		if _, _, e := d.target(q); e != nil {
 			t.Fatal(e)
@@ -235,5 +235,67 @@ func TestDeliverySlotNeverReused(t *testing.T) {
 	q.SourceVersion = "8"
 	if _, e := d.Deliver(context.Background(), q); code(e) != "secret_delivery_conflict" || writes != 1 {
 		t.Fatal("dynamic slot reused")
+	}
+}
+
+// TestDeliveryCanaryDestinationIsSeparate proves the job key cannot resolve to a Plaid destination.
+func TestDeliveryCanaryDestinationIsSeparate(t *testing.T) {
+	d, f, q := newDeliveryProof(t, "")
+	q.Key = "JAYBURD_DELIVERY_CANARY"
+	receipt, e := d.Deliver(context.Background(), q)
+	if e != nil || !strings.HasSuffix(receipt.Destination, "/jayburd-dev-bank-sync-canary") || f.writes != 1 {
+		t.Fatal("canary destination mismatch", e)
+	}
+}
+
+// TestCanaryMetadataLookup proves exact-key, value-disabled lookup has no destination/storage calls.
+func TestCanaryMetadataLookup(t *testing.T) {
+	for _, mode := range []string{"ok", "denied", "wrong-key", "wrong-version", "wrong-project", "wrong-folder", "bad-id"} {
+		t.Run(mode, func(t *testing.T) {
+			d, _, _ := newDeliveryProof(t, "")
+			calls := 0
+			d.source.http = client(transportFunc(func(r *http.Request) (*http.Response, error) {
+				calls++
+				if r.URL.Host != "us.infisical.com" {
+					t.Fatal("unexpected destination")
+				}
+				if strings.HasSuffix(r.URL.Path, "/login") {
+					return response(200, map[string]any{"accessToken": "synthetic-auth", "tokenType": "Bearer", "expiresIn": 900}), nil
+				}
+				q := r.URL.Query()
+				if r.Method != "GET" || r.URL.Path != "/api/v4/secrets/JAYBURD_DELIVERY_CANARY" || q.Get("viewSecretValue") != "false" || q.Get("expandSecretReferences") != "false" || q.Get("includeImports") != "false" || q.Get("version") != "1" || q.Get("secretPath") != "/" || q.Get("projectId") != sourceProject || q.Get("environment") != "dev" {
+					t.Fatal("unsafe lookup")
+				}
+				if mode == "denied" {
+					return response(403, map[string]string{"message": "private-diagnostic"}), nil
+				}
+				fields := map[string]any{"id": "00000000-0000-4000-8000-000000000009", "workspace": sourceProject, "environment": "dev", "secretKey": "JAYBURD_DELIVERY_CANARY", "secretPath": "/", "version": 1, "secretComment": "private-comment", "secretValue": "unexpected-private-field"}
+				switch mode {
+				case "wrong-key":
+					fields["secretKey"] = "PLAID_SECRET"
+				case "wrong-version":
+					fields["version"] = 2
+				case "wrong-project":
+					fields["workspace"] = identity
+				case "wrong-folder":
+					fields["secretPath"] = "/other"
+				case "bad-id":
+					fields["id"] = "not-an-id"
+				}
+				return response(200, map[string]any{"secret": fields}), nil
+			}))
+			m, e := d.LookupCanary(context.Background(), "1")
+			if mode == "ok" {
+				if e != nil || m.SourceVersion != "1" || calls != 2 {
+					t.Fatal("lookup failed", e)
+				}
+			} else if e == nil {
+				t.Fatal("mismatch accepted")
+			}
+			encoded, _ := json.Marshal(m)
+			if strings.Contains(string(encoded), "private") || (e != nil && strings.Contains(e.Error(), "private")) {
+				t.Fatal("unsafe output")
+			}
+		})
 	}
 }

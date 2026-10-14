@@ -1,0 +1,6 @@
+# Owner installs after confirming the owner-only workers bootstrap state bucket.
+# Initialize with bucket=PROJECT_ID-jayburd-dev-workers-state and prefix=delivery.
+# Never reuse prefix=workers or grant either job identity access to this bucket.
+terraform {
+  backend "gcs" {}
+}
