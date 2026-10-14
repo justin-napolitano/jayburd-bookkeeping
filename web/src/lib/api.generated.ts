@@ -1050,7 +1050,7 @@ export interface components {
             /** Format: uuid */
             review_id: string;
             /** @enum {string} */
-            state: "needs_review" | "overlap_hold" | "draft_ready" | "posted";
+            state: "needs_review" | "overlap_hold" | "correction_hold" | "draft_ready" | "posted";
             review_revision: components["schemas"]["Revision"];
             /** Format: date */
             booked_date: string;
@@ -1058,7 +1058,7 @@ export interface components {
             /** Format: uuid */
             currency_version_id: string;
             /** @enum {string} */
-            direction: "inflow" | "outflow";
+            direction: "inflow" | "outflow" | "zero";
             amount: string;
             description: string;
             /** Format: uuid */
@@ -1099,7 +1099,7 @@ export interface components {
             /** Format: date */
             booked_date: string;
             /** @enum {string} */
-            direction: "inflow" | "outflow";
+            direction: "inflow" | "outflow" | "zero";
             amount: string;
             description: string;
         };
@@ -1107,7 +1107,7 @@ export interface components {
             /** Format: uuid */
             review_id: string;
             /** @enum {string} */
-            state: "needs_review" | "overlap_hold" | "draft_ready" | "posted";
+            state: "needs_review" | "overlap_hold" | "correction_hold" | "draft_ready" | "posted";
             review_revision: components["schemas"]["Revision"];
             /** Format: date */
             booked_date: string;
@@ -1115,7 +1115,7 @@ export interface components {
             /** Format: uuid */
             currency_version_id: string;
             /** @enum {string} */
-            direction: "inflow" | "outflow";
+            direction: "inflow" | "outflow" | "zero";
             amount: string;
             description: string;
             /** Format: uuid */
@@ -1136,6 +1136,22 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             evidence: components["schemas"]["ReviewEvidence"][];
+            provider_exceptions?: {
+                total_count: components["schemas"]["Revision"];
+                truncated: boolean;
+                items: {
+                    /** Format: uuid */
+                    exception_id: string;
+                    /** @enum {string} */
+                    kind: "modified" | "removed";
+                    previous_revision: components["schemas"]["Revision"];
+                    current_revision: components["schemas"]["Revision"];
+                    /** Format: uuid */
+                    observation_id: string;
+                    /** Format: date-time */
+                    created_at: string;
+                }[];
+            };
         };
         ReviewCategories: {
             /** @constant */
@@ -2212,7 +2228,7 @@ export interface operations {
         parameters: {
             query: {
                 source_account_id: string;
-                state?: "needs_review" | "overlap_hold" | "draft_ready" | "posted";
+                state?: "needs_review" | "overlap_hold" | "correction_hold" | "draft_ready" | "posted";
                 limit?: number;
                 cursor?: string;
             };

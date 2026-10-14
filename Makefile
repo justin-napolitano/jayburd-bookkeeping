@@ -98,3 +98,7 @@ source-registry-test:
 .PHONY: import-service-test
 import-service-test:
 	bash scripts/test-import-service.sh
+
+.PHONY: sync-state-test
+sync-state-test:
+	bash scripts/test-sync-state.sh

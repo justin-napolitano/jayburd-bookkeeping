@@ -48,6 +48,8 @@ jobs:
         run: make source-registry-test
       - name: Synthetic staging through durable import service proof
         run: make import-service-test
+      - name: Fenced synthetic provider publication proof
+        run: make sync-state-test
       - name: Build and prove isolated health-only API container
         run: bash scripts/test-api-container.sh
       - name: Build and verify inert non-root migration image

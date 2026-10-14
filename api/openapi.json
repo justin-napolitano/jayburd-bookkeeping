@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Jayburd Ledger Contract",
-    "version": "0.8.0-review",
+    "version": "0.9.0-review",
     "description": "Implemented ledger, reporting and source review contract. Synthetic development policy only; no live-use approval. SQL owns semantics. Internal operations are not registered ISO financial messages.",
     "contact": {
       "name": "Jayburd contract review",
@@ -2469,6 +2469,7 @@
               "enum": [
                 "needs_review",
                 "overlap_hold",
+                "correction_hold",
                 "draft_ready",
                 "posted"
               ]
@@ -4609,6 +4610,7 @@
             "enum": [
               "needs_review",
               "overlap_hold",
+              "correction_hold",
               "draft_ready",
               "posted"
             ]
@@ -4632,7 +4634,8 @@
             "type": "string",
             "enum": [
               "inflow",
-              "outflow"
+              "outflow",
+              "zero"
             ]
           },
           "amount": {
@@ -4780,7 +4783,8 @@
             "type": "string",
             "enum": [
               "inflow",
-              "outflow"
+              "outflow",
+              "zero"
             ]
           },
           "amount": {
@@ -4817,6 +4821,7 @@
             "enum": [
               "needs_review",
               "overlap_hold",
+              "correction_hold",
               "draft_ready",
               "posted"
             ]
@@ -4840,7 +4845,8 @@
             "type": "string",
             "enum": [
               "inflow",
-              "outflow"
+              "outflow",
+              "zero"
             ]
           },
           "amount": {
@@ -4910,6 +4916,66 @@
             "items": {
               "$ref": "#/components/schemas/ReviewEvidence"
             }
+          },
+          "provider_exceptions": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "total_count": {
+                "$ref": "#/components/schemas/Revision"
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "items": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "exception_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "modified",
+                        "removed"
+                      ]
+                    },
+                    "previous_revision": {
+                      "$ref": "#/components/schemas/Revision"
+                    },
+                    "current_revision": {
+                      "$ref": "#/components/schemas/Revision"
+                    },
+                    "observation_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "exception_id",
+                    "kind",
+                    "previous_revision",
+                    "current_revision",
+                    "observation_id",
+                    "created_at"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "total_count",
+              "truncated",
+              "items"
+            ]
           }
         },
         "required": [
