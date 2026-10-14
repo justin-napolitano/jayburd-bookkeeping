@@ -16,7 +16,7 @@ run "secure_foundation_defaults" {
     error_message = "All state buckets must be private, versioned and non-destructive."
   }
   assert {
-    condition     = google_storage_bucket.state["foundation"].name != google_storage_bucket.state["application"].name && google_storage_bucket.state["workers"].name != google_storage_bucket_iam_member.application_state.bucket && length(google_storage_bucket.state) == 4 && google_storage_bucket_iam_member.application_state.bucket == google_storage_bucket.state["runtime"].name
+    condition     = google_storage_bucket.state["foundation"].name != google_storage_bucket.state["application"].name && google_storage_bucket.state["workers"].name != google_storage_bucket_iam_member.application_state.bucket && length(google_storage_bucket.state) == 5 && google_storage_bucket_iam_member.application_state.bucket == google_storage_bucket.state["runtime"].name
     error_message = "Deployer access must be limited to the runtime state bucket."
   }
   assert {
@@ -24,7 +24,7 @@ run "secure_foundation_defaults" {
     error_message = "Builder needs scoped immutable image publication, not project administration."
   }
   assert {
-    condition     = length(google_service_account.component) == 9 && google_billing_budget.development.amount[0].specified_amount[0].units == "50" && google_billing_budget.development.budget_filter[0].projects == toset(["projects/123456789012"])
+    condition     = length(google_service_account.component) == 10 && google_billing_budget.development.amount[0].specified_amount[0].units == "50" && google_billing_budget.development.budget_filter[0].projects == toset(["projects/123456789012"])
     error_message = "Separate all component identities and scope the $50 budget to this project."
   }
   assert {
@@ -87,4 +87,25 @@ run "deploy_enable_does_not_enable_builder" {
     condition     = !google_iam_workload_identity_pool.deployment.disabled && !google_iam_workload_identity_pool_provider.deployment.disabled && google_iam_workload_identity_pool.github.disabled
     error_message = "Owner controls the two federation pools independently."
   }
+}
+
+run "worker_release_isolated_by_default" {
+  command = plan
+  assert {
+    condition     = google_iam_workload_identity_pool.worker_deployment.disabled && google_iam_workload_identity_pool_provider.worker_deployment.disabled && google_iam_workload_identity_pool.worker_deployment.workload_identity_pool_id != google_iam_workload_identity_pool.deployment.workload_identity_pool_id
+    error_message = "Worker tokens must not inherit application deployer trust."
+  }
+  assert {
+    condition     = google_storage_bucket_iam_member.worker_runtime_state.bucket == google_storage_bucket.state["worker-runtime"].name && google_storage_bucket_iam_member.worker_runtime_state.bucket != google_storage_bucket.state["workers"].name
+    error_message = "CI must never receive bootstrap state access."
+  }
+  assert {
+    condition     = google_iam_workload_identity_pool_provider.worker_deployment.attribute_condition == "assertion.actor_id == '55423093' && assertion.event_name == 'workflow_dispatch' && assertion.ref == 'refs/heads/main' && assertion.repository_id == '1414515318' && assertion.repository_owner_id == '55423093' && assertion.workflow_ref == 'justin-napolitano/jayburd-bookkeeping/.github/workflows/deploy-workers.yml@refs/heads/main'"
+    error_message = "Worker federation requires the exact owner-dispatched main workflow."
+  }
+}
+run "reject_noncanonical_project_number" {
+  command = plan
+  variables { project_number = "012345678901" }
+  expect_failures = [var.project_number]
 }

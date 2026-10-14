@@ -9,12 +9,12 @@ and Cloud Tasks. [Worker configuration](hosted-workers.md), [evidence storage](h
 their interfaces. No new accounting message or migration is introduced. Existing
 ISO mappings remain unchanged; infrastructure identifiers are not financial messages.
 
-The new workers Terraform root includes privileged bootstrap IAM and optional
-runtime resources. It is owner-operated until bootstrap/runtime promotion are
-separated and reviewed. Foundation adds a dedicated private workers-state bucket;
-application deployer access remains confined to runtime state. Build publication
-adds a tested worker candidate, not permission to apply bootstrap infrastructure.
-No new deployment federation or broad secret administrator grant is introduced.
+The [controlled release contract](worker-release.md) separates owner-operated
+workers bootstrap from the two-service worker-runtime root. Dedicated worker
+federation and state prevent routine CI from administering bootstrap IAM or secrets.
+Scheduler remains paused and owner-controlled. Build publication produces a tested
+candidate; exact-byte owner approval and existing closure gates govern deployment.
+Follow the contract's owner migration procedure before adopting existing services.
 
 ## SQL setup and activation order
 
@@ -46,12 +46,14 @@ configuration budget, not a measured capacity claim.
 
 `test-worker-bootstrap.sh` uses PostgreSQL17 and a non-superuser administrator to
 prove replay, inherited capability, SET/DDL denial and unsafe membership rejection.
-Mocked Terraform tests check exact IAM destinations, paused/default-disabled
-services, digest-pinned configuration and state separation. These do not prove
+Mocked Terraform tests check exact IAM destinations, paused scheduling,
+digest-pinned configuration and state separation. These do not prove
 Cloud SQL's administrator behavior, caller JWTs, Cloud Tasks delivery or secret sync.
 
 The [Sandbox diagnostic](plaid-sandbox-qualification.md) is opt-in and partial.
 Actual Link UI/association, dynamic pending-to-posted, webhook delivery, persisted
 cursor-to-review consistency and zero automatic journals still require hosted
 qualification. Application release configuration follows [explicit connection policy](connection-release.md).
-Frontend Link loading, reconnect support and automated worker promotion remain open; no production institution or official-book approval follows.
+[Browser Link loading](plaid-link-browser.md) and paused worker promotion are
+implemented for synthetic review. Reconnect support and real hosted qualification
+remain open; no production institution or official-book approval follows.

@@ -2,6 +2,24 @@
 
 ## Purpose and reading order
 
+[Plaid Link browser](../contracts/plaid-link-browser.md) reviews official Web SDK
+loading, callbacks and cleanup (selected sections, 2026-10-14). Use it to distinguish
+our memory/cancellation policy from real Link Events and institution qualification.
+[Worker release](../contracts/worker-release.md) records the owner-bootstrap/runtime
+split and narrow federation policy. The [operator guide](../../deploy/WORKERS.md)
+explains exact-byte promotion, evidence limits and compatible rollback.
+
+Worker receipt source review (2026-10-14, selected official reference sections):
+[Cloud Run ServiceStatus](https://docs.cloud.google.com/run/docs/reference/rest/v1/namespaces.services#ServiceStatus)
+defines observed generation, Ready and latest-created/latest-ready revisions;
+[TrafficTarget](https://docs.cloud.google.com/run/docs/reference/rest/v1/TrafficTarget)
+defines revision allocation and tagged routes;
+[Scheduler Job/State](https://docs.cloud.google.com/scheduler/docs/reference/rest/v1/projects.locations.jobs#State)
+distinguishes paused scheduling from disabled/error states and describes HTTP OIDC
+targets. Our receipt requires reconciled desired/ready generations, one exact-image
+100% target and paused exact Scheduler target. That is a project acceptance policy,
+not a claim of queue drain, IAM qualification or a provider transaction test.
+
 [Explicit connection release policy](../contracts/connection-release.md) reviews
 HashiCorp variable defaults/assignment precedence and Cloud Run revision management
 (selected official sections,2026-10-14). These explain the omitted-input reset and

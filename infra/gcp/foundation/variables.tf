@@ -10,7 +10,7 @@ variable "project_number" {
   description = "Verified numeric ID of the same project, required for federation and budget scope."
   type        = string
   validation {
-    condition     = can(regex("^[0-9]{6,20}$", var.project_number))
+    condition     = can(regex("^[1-9][0-9]{5,18}$", var.project_number)) && try(tonumber(var.project_number) <= 9223372036854775807, false)
     error_message = "Supply the verified project number."
   }
 }
@@ -39,6 +39,12 @@ variable "enable_github_build_identity" {
 
 variable "enable_github_deploy_identity" {
   description = "Owner opt-in after reviewing runtime rollout authority; separate from build federation."
+  type        = bool
+  default     = false
+}
+
+variable "enable_github_worker_deploy_identity" {
+  description = "Owner opt-in for the isolated, exact worker deployment workflow."
   type        = bool
   default     = false
 }

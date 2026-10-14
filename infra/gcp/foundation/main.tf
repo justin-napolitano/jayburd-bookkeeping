@@ -4,7 +4,7 @@ locals {
   owner_id      = "55423093"
   repository    = "justin-napolitano/jayburd-bookkeeping"
   labels        = { application = "jayburd", environment = "dev", managed_by = "terraform" }
-  identities    = toset(["builder", "deployer", "migrator", "api", "frontend", "publisher", "consumer", "scheduler", "task-invoker"])
+  identities    = toset(["builder", "deployer", "worker-deployer", "migrator", "api", "frontend", "publisher", "consumer", "scheduler", "task-invoker"])
   foundation_apis = toset([
     "artifactregistry.googleapis.com", "cloudbilling.googleapis.com", "cloudresourcemanager.googleapis.com",
     "billingbudgets.googleapis.com", "iam.googleapis.com", "run.googleapis.com",
@@ -31,7 +31,7 @@ resource "google_project_service" "foundation" {
 
 # Separate buckets prevent an application deployer from changing bootstrap state.
 resource "google_storage_bucket" "state" {
-  for_each                    = toset(["foundation", "application", "runtime", "workers"])
+  for_each                    = toset(["foundation", "application", "runtime", "workers", "worker-runtime"])
   project                     = var.project_id
   name                        = "${var.project_id}-jayburd-dev-${each.key}-state"
   location                    = var.region
@@ -185,4 +185,38 @@ resource "google_project_iam_member" "identity_lookup" {
   project = var.project_id
   role    = google_project_iam_custom_role.identity_lookup.name
   member  = "serviceAccount:${google_service_account.component["api"].email}"
+}
+
+# Dedicated worker federation cannot impersonate the broader application deployer.
+resource "google_iam_workload_identity_pool" "worker_deployment" {
+  project                   = var.project_id
+  workload_identity_pool_id = "jayburd-dev-worker-deploy"
+  disabled                  = !var.enable_github_worker_deploy_identity
+  depends_on                = [google_project_service.foundation]
+}
+resource "google_iam_workload_identity_pool_provider" "worker_deployment" {
+  project                            = var.project_id
+  workload_identity_pool_id          = google_iam_workload_identity_pool.worker_deployment.workload_identity_pool_id
+  workload_identity_pool_provider_id = "owner-worker-deploy"
+  disabled                           = !var.enable_github_worker_deploy_identity
+  attribute_mapping                  = { "google.subject" = "assertion.sub", "attribute.repository_id" = "assertion.repository_id" }
+  attribute_condition                = join(" && ", [for claim, value in merge(local.build_claims, { workflow_ref = "${local.repository}/.github/workflows/deploy-workers.yml@refs/heads/main" }) : "assertion.${claim} == '${value}'"])
+  oidc { issuer_uri = "https://token.actions.githubusercontent.com" }
+}
+resource "google_service_account_iam_member" "github_worker_deployer" {
+  service_account_id = google_service_account.component["worker-deployer"].name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/projects/${var.project_number}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.worker_deployment.workload_identity_pool_id}/attribute.repository_id/${local.repository_id}"
+}
+resource "google_storage_bucket_iam_member" "worker_runtime_state" {
+  bucket = google_storage_bucket.state["worker-runtime"].name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.component["worker-deployer"].email}"
+}
+resource "google_artifact_registry_repository_iam_member" "worker_deployer" {
+  project    = var.project_id
+  location   = var.region
+  repository = google_artifact_registry_repository.images.name
+  role       = "roles/artifactregistry.reader"
+  member     = "serviceAccount:${google_service_account.component["worker-deployer"].email}"
 }

@@ -101,5 +101,6 @@ receipts retain its deterministic approved-policy digest, not the identifiers or
 claim that provider functionality was observed. Rollback requires that digest to
 match the prior successful receipt. Legacy receipts without it cannot establish
 configuration-preserving rollback. Expired or changed policy requires a separately
-reviewed forward promotion, not silently renewed consent. Worker deployment remains
-owner-operated and is not enabled by this application release change.
+reviewed forward promotion, not silently renewed consent. Worker deployment uses
+the separate [paused worker release](WORKERS.md); application releases do not
+apply its root or activate acquisition.
