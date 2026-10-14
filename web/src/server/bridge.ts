@@ -7,8 +7,8 @@ const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const commandAction = new RegExp(`^/v1/commands/${uuid}/(?:execute|cancel|acknowledge)$`, 'i');
 const bookPath = `/v1/entities/${uuid}/books/${uuid}`;
 // Connection paths are case-sensitive canonical UUID routes, matching the Go boundary.
-const connectionRead = new RegExp(`^${bookPath}/(?:connections|connection-attempts/${uuid})$`);
-const connectionWrite = new RegExp(`^${bookPath}/(?:connection-attempts|connection-attempts/${uuid}/(?:execute|reconcile|bindings)|connections/streams/${uuid}/disconnect)$`);
+const connectionRead = new RegExp(`^${bookPath}/(?:connections|connection-attempts(?:/${uuid})?|connections/streams/${uuid}/status)$`);
+const connectionWrite = new RegExp(`^${bookPath}/(?:connection-attempts|connection-attempts/${uuid}/(?:execute|reconcile|bindings)|connections/streams/${uuid}/(?:disconnect|operations))$`);
 const connectionAction = new RegExp(`^${bookPath}/connection-attempts/${uuid}/(?:execute|reconcile)$`);
 const reportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)$`, 'i');
 
@@ -34,6 +34,19 @@ function configuration(env: Record<string, string | undefined>): BridgeConfig {
 /** Permit only currently implemented bookkeeping routes; deferred close/admin paths stay unavailable. */
 function allowed(url: URL, method: string): boolean {
   if (url.pathname.length + url.search.length > 4096) return false;
+  // Discovery permits only bounded, duplicate-free keyset parameters.
+  if (method === 'GET' && new RegExp(`^${bookPath}/connection-attempts$`).test(url.pathname)) {
+    if (url.hash || (url.href.includes('?') && !url.search) || /%(?![0-9a-f]{2})/i.test(url.search)) return false;
+    const seen = new Set<string>();
+    for (const [key, value] of url.searchParams) {
+      if (seen.has(key)) return false;
+      seen.add(key);
+      if (key === 'limit') { if (!/^[1-9][0-9]{0,2}$/.test(value) || Number(value) > 100) return false; }
+      else if (key === 'before') { if (!new RegExp(`^${uuid}$`).test(value) || value === '00000000-0000-0000-0000-000000000000') return false; }
+      else return false;
+    }
+    return true;
+  }
   if (connectionRead.test(url.pathname) || connectionWrite.test(url.pathname)) {
     return !url.href.includes('?') && !url.hash &&
       (method === 'GET' && connectionRead.test(url.pathname) || method === 'POST' && connectionWrite.test(url.pathname));

@@ -510,7 +510,7 @@ func TestSyncPrivileges(t *testing.T) {
 	c, db, _ := setup(t)
 	_, guardErr := c.Exec(context.Background(), "UPDATE integration.sync_stream SET account_id='rewritten'")
 	requireCode(t, guardErr, "P2602")
-	if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','banking','integration','reference') AND has_function_privilege('synthetic_sync',p.oid,'EXECUTE')`) != "7" {
+	if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','banking','integration','reference') AND has_function_privilege('synthetic_sync',p.oid,'EXECUTE')`) != "8" {
 		t.Fatal("unexpected worker execute privilege")
 	}
 	worker := connect(t, db, "synthetic_sync")

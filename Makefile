@@ -121,3 +121,10 @@ provider-flow-test:
 .PHONY: connection-browser-test
 connection-browser-test:
 	bash scripts/test-app-integration.sh --connections
+
+.PHONY: connection-ops-test webhook-test
+connection-ops-test:
+	bash scripts/test-connection-ops.sh
+
+webhook-test:
+	bash scripts/test-webhook.sh

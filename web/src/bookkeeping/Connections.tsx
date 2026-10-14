@@ -7,6 +7,11 @@ type Attempt = components["schemas"]["ConnectionAttempt"];
 type Listing = components["schemas"]["ConnectionList"];
 type Begin = components["schemas"]["ConnectionBeginResult"];
 type Binding = components["schemas"]["ConnectionBindingRequest"];
+// Public status and action shapes come only from the coordinator's frozen OpenAPI.
+type AttemptPage = components["schemas"]["ConnectionAttemptList"];
+type StreamStatus = components["schemas"]["ConnectionStreamStatus"];
+type StreamAction =
+  components["schemas"]["ConnectionStreamOperation"]["action"];
 // Only explicitly injected adapters handle transient Link tokens; no SDK loads here.
 export type ConnectionLink = {
   open(input: {
@@ -69,7 +74,7 @@ function validList(value: Listing): boolean {
             uuid.test(a.source_account_id) &&
             typeof a.account_id === "string" &&
             a.account_id.length <= 256 &&
-            ["active", "disconnected"].includes(a.state) &&
+            ["active", "paused", "disconnected"].includes(a.state) &&
             revision.test(a.binding_revision),
         ),
     )
@@ -105,6 +110,12 @@ function ConnectionWorkspace({
   const [enrollmentStarted, setEnrollmentStarted] = useState(false);
   const [list, setList] = useState<Listing | null>(null);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
+  const [attempts, setAttempts] = useState<AttemptPage | null>(null);
+  const [expiredAttempt, setExpiredAttempt] = useState(false);
+  const [bindingExpired, setBindingExpired] = useState(false);
+  const [status, setStatus] = useState<StreamStatus | null>(null);
+  const [statusAccount, setStatusAccount] = useState("");
+  const [operation, setOperation] = useState<StreamAction | null>(null);
   const [inspectID, setInspectID] = useState("");
   const [message, setMessage] = useState("");
   const [selection, setSelection] = useState<
@@ -119,8 +130,13 @@ function ConnectionWorkspace({
     path: string;
     body: string;
     key: string;
-    kind: "bind" | "disconnect";
+    kind: "bind" | "disconnect" | "stream";
     id: string;
+    scope?: {
+      stream_id: string;
+      source_account_id: string;
+      sync_item_id: string;
+    };
   } | null>(null);
   // Public attempt metadata is checked before it can select a mutation path.
   const checkedAttempt = (value: Attempt, id?: string): Attempt => {
@@ -161,6 +177,9 @@ function ConnectionWorkspace({
   const fail = (error: unknown) => {
     if (error instanceof APIError && [401, 403, 404].includes(error.status)) {
       setList(null);
+      setAttempts(null);
+      setStatus(null);
+      setOperation(null);
       setAttempt(null);
       setPending(null);
       setSelection({});
@@ -190,14 +209,112 @@ function ConnectionWorkspace({
       if (current.live) setBusy(false);
     }
   };
-  // List status has no financial balance or acquisition completeness implication.
+  // Authenticate both snapshots before offering enrollment; unfinished_count covers every page.
+  const checkAttempts = (page: AttemptPage) => {
+    if (
+      !page ||
+      !Array.isArray(page.items) ||
+      page.items.length > 100 ||
+      typeof page.unfinished_count !== "string" ||
+      !/^(0|[1-9][0-9]*)$/.test(page.unfinished_count) ||
+      (page.next_cursor !== null && !uuid.test(page.next_cursor)) ||
+      new Set(page.items.map((a) => a.attempt_id)).size !== page.items.length
+    )
+      throw Error("response");
+    page.items.forEach((a) => {
+      checkedAttempt(a);
+      if (
+        typeof a.expired_unclaimed !== "boolean" ||
+        typeof a.binding_expired !== "boolean"
+      )
+        throw Error("response");
+    });
+    return page;
+  };
   const readList = async () => {
     const current = life.current;
-    const value = await api<Listing>(`${base}/connections`);
+    setList(null);
+    setAttempts(null);
+    setStatus(null);
+    setOperation(null);
+    const [value, page] = await Promise.all([
+      api<Listing>(`${base}/connections`),
+      api<AttemptPage>(`${base}/connection-attempts?limit=100`),
+    ]);
     if (!current.live) return;
     if (!validList(value)) throw Error("response");
+    setAttempts(checkAttempts(page));
     setList(value);
+    if (page.unfinished_count === "0") setEnrollmentStarted(false);
   };
+  // A status is useful only for the exact currently selected Item/source/stream scope.
+  const checkedStatus = (
+    value: StreamStatus,
+    expected: {
+      stream_id: string;
+      source_account_id: string;
+      sync_item_id: string;
+    },
+  ) => {
+    if (
+      !value ||
+      value.stream_id !== expected.stream_id ||
+      value.source_account_id !== expected.source_account_id ||
+      value.sync_item_id !== expected.sync_item_id ||
+      !["active", "paused", "disconnected"].includes(value.state) ||
+      !itemStates.includes(value.item_state) ||
+      typeof value.stream_revision !== "string" ||
+      !revision.test(value.stream_revision) ||
+      typeof value.item_generation !== "string" ||
+      !revision.test(value.item_generation) ||
+      typeof value.binding_revision !== "string" ||
+      !revision.test(value.binding_revision) ||
+      typeof value.requested_generation !== "string" ||
+      !revision.test(value.requested_generation) ||
+      typeof value.completed_generation !== "string" ||
+      !/^(0|[1-9][0-9]*)$/.test(value.completed_generation) ||
+      BigInt(value.completed_generation) > BigInt(value.requested_generation) ||
+      typeof value.queued !== "boolean" ||
+      typeof value.lease_active !== "boolean" ||
+      value.provider_updated_at !== null ||
+      (value.last_completed_at !== null &&
+        !Number.isFinite(Date.parse(value.last_completed_at))) ||
+      ![
+        "TRANSACTIONS_UPDATE_STATUS_UNKNOWN",
+        "NOT_READY",
+        "INITIAL_UPDATE_COMPLETE",
+        "HISTORICAL_UPDATE_COMPLETE",
+      ].includes(value.readiness) ||
+      (value.last_error !== null &&
+        ![
+          "pagination_mutation",
+          "provider_failure",
+          "decoder_rejected",
+          "cancelled",
+          "item_changed",
+          "lease_expired",
+          "account_disconnected",
+          "account_paused",
+        ].includes(value.last_error))
+    )
+      throw Error("response");
+    return value;
+  };
+  const readStatus = (
+    account: Listing["items"][number]["accounts"][number],
+    itemID: string,
+  ) =>
+    run(async () => {
+      const current = life.current;
+      setStatus(null);
+      setOperation(null);
+      setStatusAccount(account.account_id);
+      const value = await api<StreamStatus>(
+        `${base}/connections/streams/${account.stream_id}/status`,
+      );
+      if (!current.live) return;
+      setStatus(checkedStatus(value, { ...account, sync_item_id: itemID }));
+    });
   useEffect(() => {
     const current = { live: true, flight: false, abort: new AbortController() };
     life.current = current;
@@ -210,16 +327,21 @@ function ConnectionWorkspace({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api]);
   // Inspect does not recreate Link or replay exchange after uncertainty.
-  const inspect = (id: string) =>
+  const inspect = (id: string, expired = false, bindingExpiry = false) =>
     run(async () => {
       const current = life.current;
       setAttempt(null);
+      const discovered = attempts?.items.find((a) => a.attempt_id === id);
+      setExpiredAttempt(discovered?.expired_unclaimed ?? expired);
+      setBindingExpired(discovered?.binding_expired ?? bindingExpiry);
       setSelection({});
       setConsent(false);
       const value = await api<Attempt>(`${base}/connection-attempts/${id}`);
       if (!current.live) return;
       setAttempt(checkedAttempt(value, id));
       setInspectID(id);
+      // Recheck discovery before releasing an earlier local enrollment latch.
+      if (discovered?.binding_expired ?? bindingExpiry) await readList();
     });
   // Only this fresh, in-memory Begin reply may authorize a single Link handoff.
   const start = () =>
@@ -227,12 +349,16 @@ function ConnectionWorkspace({
       const current = life.current;
       if (
         !link ||
+        !attempts ||
+        attempts.unfinished_count !== "0" ||
         pending ||
         (enrollmentStarted &&
           !["active", "disconnected"].includes(attempt?.state ?? ""))
       )
         return;
       setEnrollmentStarted(true);
+      setExpiredAttempt(false);
+      setBindingExpired(false);
       setAttempt(null);
       setSelection({});
       setConsent(false);
@@ -285,12 +411,17 @@ function ConnectionWorkspace({
   const submit = async (request: NonNullable<typeof pending>) => {
     const current = life.current;
     setPending(request);
-    let value: Attempt & { stream_id?: string; state: string };
+    let value: Attempt & StreamStatus;
     try {
       value = await api(request.path, request.body, request.key);
     } catch (error) {
-      if (current.live && error instanceof APIError && !error.uncertain)
+      if (current.live && error instanceof APIError && !error.uncertain) {
         setPending(null);
+        if (request.kind === "stream") {
+          setStatus(null);
+          setOperation(null);
+        }
+      }
       throw error;
     }
     if (!current.live) return;
@@ -311,16 +442,38 @@ function ConnectionWorkspace({
       setAttempt(a);
       setSelection({});
       setConsent(false);
+    } else if (request.kind === "stream") {
+      if (!request.scope) throw Error("response");
+      checkedStatus(value, request.scope);
     } else if (value.stream_id !== request.id || value.state !== "disconnected")
       throw Error("response");
     setPending(null);
     setDisconnect(null);
+    const receipt = request.kind === "stream" ? (value as StreamStatus) : null;
     await readList();
+    if (!current.live) return;
+    if (receipt) {
+      const fresh = await api<StreamStatus>(
+        `${base}/connections/streams/${request.id}/status`,
+      );
+      if (!current.live) return;
+      setStatus(checkedStatus(fresh, receipt));
+      setOperation(null);
+      setMessage(
+        "Operation recorded. A sync request is pending work, not confirmation of a provider pull or publication.",
+      );
+    }
   };
   // Build only an explicit new-source mapping; SQL checks all current grants and pins.
   const bind = () =>
     run(async () => {
-      if (!attempt || attempt.state !== "binding_review" || !consent || pending)
+      if (
+        !attempt ||
+        bindingExpired ||
+        attempt.state !== "binding_review" ||
+        !consent ||
+        pending
+      )
         return;
       const bindings: Binding["bindings"] = Object.entries(selection)
         .filter(([, v]) => v.ledger && v.currency)
@@ -365,6 +518,8 @@ function ConnectionWorkspace({
         disabled={
           mutable ||
           !link ||
+          !attempts ||
+          attempts.unfinished_count !== "0" ||
           (enrollmentStarted &&
             !["active", "disconnected"].includes(attempt?.state ?? ""))
         }
@@ -410,7 +565,13 @@ function ConnectionWorkspace({
                     Review transactions for {account.account_id}
                   </button>{" "}
                   <button
-                    disabled={mutable || account.state !== "active"}
+                    disabled={mutable}
+                    onClick={() => void readStatus(account, item.sync_item_id)}
+                  >
+                    View sync status for {account.account_id}
+                  </button>{" "}
+                  <button
+                    disabled={mutable || account.state === "disconnected"}
                     onClick={() => setDisconnect(account)}
                   >
                     Disconnect {account.account_id}
@@ -420,6 +581,174 @@ function ConnectionWorkspace({
             </ul>
           </article>
         ))
+      )}
+      <section aria-label="Connection recovery">
+        <h3>Connection recovery</h3>
+        {!attempts ? (
+          <p>Attempt discovery unavailable. New enrollment is disabled.</p>
+        ) : (
+          <>
+            <p>Unfinished attempts: {attempts.unfinished_count}</p>
+            {attempts.items.length === 0 && <p>No attempts on this page.</p>}
+            <ul>
+              {attempts.items.map((a) => (
+                <li key={a.attempt_id}>
+                  {a.mode} —{" "}
+                  {a.binding_expired
+                    ? "binding review expired"
+                    : a.expired_unclaimed
+                      ? "expired before claim"
+                      : a.state.replaceAll("_", " ")}{" "}
+                  <button
+                    disabled={mutable}
+                    onClick={() =>
+                      void inspect(
+                        a.attempt_id,
+                        a.expired_unclaimed,
+                        a.binding_expired,
+                      )
+                    }
+                  >
+                    Review attempt {a.attempt_id}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {attempts.next_cursor && (
+              <button
+                disabled={mutable}
+                onClick={() =>
+                  void run(async () => {
+                    const current = life.current;
+                    const cursor = attempts.next_cursor;
+                    const page = await api<AttemptPage>(
+                      `${base}/connection-attempts?limit=100&before=${cursor}`,
+                    );
+                    if (!current.live) return;
+                    const valid = checkAttempts(page);
+                    if (valid.next_cursor === cursor) throw Error("response");
+                    setAttempts(valid);
+                  })
+                }
+              >
+                Older connection attempts
+              </button>
+            )}
+          </>
+        )}
+      </section>
+      {status && (
+        <section aria-label="Account sync status">
+          <h3>Sync status for {statusAccount}</h3>
+          <p>
+            Account acquisition: {status.state}. Provider Item:{" "}
+            {status.item_state.replaceAll("_", " ")}.
+          </p>
+          <p>Readiness: {status.readiness.replaceAll("_", " ")}</p>
+          <p>
+            Requested generation {status.requested_generation}; completed
+            generation {status.completed_generation}.
+          </p>
+          <p>
+            {status.queued
+              ? "Sync work is queued."
+              : "No newer sync request is queued."}{" "}
+            {status.lease_active
+              ? "A worker lease is active; publication is not yet confirmed."
+              : "No active worker lease."}
+          </p>
+          <p>
+            Last complete publication:{" "}
+            {status.last_completed_at ?? "None recorded"}
+          </p>
+          <p>Last provider update: Unknown — this timestamp is not supplied.</p>
+          {status.last_error && (
+            <p>
+              Last acquisition outcome: {status.last_error.replaceAll("_", " ")}
+            </p>
+          )}
+          <p>
+            Acquisition does not post journals or prove that all bank history
+            has arrived.
+          </p>
+          <button
+            disabled={
+              mutable ||
+              status.state !== "active" ||
+              status.item_state !== "active"
+            }
+            onClick={() => setOperation("pause")}
+          >
+            Pause account sync
+          </button>{" "}
+          <button
+            disabled={
+              mutable ||
+              status.state !== "paused" ||
+              status.item_state !== "active"
+            }
+            onClick={() => setOperation("resume")}
+          >
+            Resume account sync
+          </button>{" "}
+          <button
+            disabled={
+              mutable ||
+              status.state !== "active" ||
+              status.item_state !== "active"
+            }
+            onClick={() => setOperation("request")}
+          >
+            Request sync now
+          </button>
+          {operation && (
+            <fieldset disabled={mutable}>
+              <legend>Confirm account sync operation</legend>
+              <p>
+                {operation === "request"
+                  ? "Request another acquisition"
+                  : operation === "pause"
+                    ? "Pause acquisition"
+                    : "Resume acquisition"}{" "}
+                for {statusAccount} only. Sibling accounts and posted journals
+                are unchanged.
+              </p>
+              <p>
+                Current Item generation {status.item_generation}; binding
+                revision {status.binding_revision}; stream revision{" "}
+                {status.stream_revision}.
+              </p>
+              <button
+                onClick={() =>
+                  void run(() =>
+                    submit({
+                      kind: "stream",
+                      id: status.stream_id,
+                      scope: {
+                        stream_id: status.stream_id,
+                        source_account_id: status.source_account_id,
+                        sync_item_id: status.sync_item_id,
+                      },
+                      path: `${base}/connections/streams/${status.stream_id}/operations`,
+                      body: JSON.stringify({
+                        action: operation,
+                        expected_item_generation: status.item_generation,
+                        expected_binding_revision: status.binding_revision,
+                        expected_stream_revision: status.stream_revision,
+                      }),
+                      key: crypto.randomUUID(),
+                    }),
+                  )
+                }
+              >
+                Confirm {operation === "request" ? "sync request" : operation}
+              </button>
+              <button onClick={() => setOperation(null)}>
+                Cancel sync operation
+              </button>
+            </fieldset>
+          )}
+        </section>
       )}
       {disconnect && (
         <fieldset disabled={mutable}>
@@ -452,8 +781,13 @@ function ConnectionWorkspace({
       {pending && (
         <div role="status">
           <p>
-            The {pending.kind === "bind" ? "binding" : "disconnect"} result is
-            unresolved. Retrying uses the same request and key.
+            The{" "}
+            {pending.kind === "bind"
+              ? "binding"
+              : pending.kind === "stream"
+                ? "stream operation"
+                : "disconnect"}{" "}
+            result is unresolved. Retrying uses the same request and key.
           </p>
           <button
             disabled={unavailable}
@@ -483,10 +817,9 @@ function ConnectionWorkspace({
         </button>
       </form>
       <p>
-        An unfinished enrollment must be inspected before starting another.
-        Attempts cannot yet be rediscovered after a lost browser session. Keep
-        the non-secret attempt ID for inspection. Pause, manual sync and
-        reconnect are not available here.
+        Unfinished enrollment is discovered after reload. Inspect and reconcile
+        it before another new connection. Expired unclaimed attempts cannot be
+        replayed. Reconnect remains unavailable.
       </p>
       {attempt && (
         <article>
@@ -494,6 +827,19 @@ function ConnectionWorkspace({
           <p>Attempt ID: {attempt.attempt_id}</p>
           <p>Historical attempt status: {attempt.state.replaceAll("_", " ")}</p>
           <p>Handoff expires: {attempt.expires_at}</p>
+          {bindingExpired && (
+            <p>
+              Binding review expired; start a fresh connection. The known
+              credential history is retained and its provider exchange must not
+              be replayed.
+            </p>
+          )}
+          {expiredAttempt && (
+            <p>
+              Expired before claim. This attempt cannot be replayed; a new
+              connection requires a fresh Link session.
+            </p>
+          )}
           {[
             "exchange_claimed",
             "credential_pending",
@@ -528,7 +874,9 @@ function ConnectionWorkspace({
           >
             Reconcile recorded credential
           </button>
-          {attempt.state === "binding_review" &&
+          {!expiredAttempt &&
+            !bindingExpired &&
+            attempt.state === "binding_review" &&
             attempt.mode === "new" &&
             attempt.manifest && (
               <form

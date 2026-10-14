@@ -35,3 +35,22 @@ require null-cursor new generations and overlap review.
 CSV remains an independent adapter into the same proposed source-observation core.
 No benchmark or bank coverage was measured. Revisit limits and stream selection
 when #13 qualifies an actual institution and #8 implements ingestion.
+
+## Connection operations review — 2026-10-13
+
+#103/#104 refreshed PI04 verification/key metadata and PI01 sync notification
+sections before implementation. Source requirements remain signature verification,
+five-minute freshness and exact-body digest. Our selected limits (64 KiB body,
+8 KiB token, 60-second future skew, bounded key cache and lookup admission),
+receipt identity and transaction/outbox design are local policies, not provider
+guarantees. Readiness notifications do not establish the time of the provider's
+last data update; public provider_updated_at remains null. Database publication
+time is separate. Signed fixtures verify protocol behavior without contacting Plaid.
+
+The chosen alternative to direct acquisition in a webhook request is durable
+generation intent with separate acquisition. It bounds the public request and
+retains a wakeup arriving during an in-flight fetch. Stream revision is separate
+from source binding revision so pausing acquisition does not change accounting
+mapping authority. SQL and full-stack acceptance are recorded in the
+[operations runbook](../runbooks/connection-operations.md); hosted routing and
+measured capacity remain qualification work.

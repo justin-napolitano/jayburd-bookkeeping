@@ -539,7 +539,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * listConnectionAttempts
+         * @description Authenticated connection operations. Current SQL authority and exact replay pins apply. Queued requests do not imply completed acquisition. See docs/contracts/connection-operations-sql.md.
+         */
+        get: operations["listConnectionAttempts"];
         put?: never;
         /**
          * beginConnection
@@ -666,6 +670,46 @@ export interface paths {
          * @description Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.
          */
         post: operations["disconnectConnectionStream"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/connections/streams/{stream_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * getConnectionStreamStatus
+         * @description Authenticated connection operations. Current SQL authority and exact replay pins apply. Queued requests do not imply completed acquisition. See docs/contracts/connection-operations-sql.md.
+         */
+        get: operations["getConnectionStreamStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/connections/streams/{stream_id}/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * operateConnectionStream
+         * @description Authenticated connection operations. Current SQL authority and exact replay pins apply. Queued requests do not imply completed acquisition. See docs/contracts/connection-operations-sql.md.
+         */
+        post: operations["operateConnectionStream"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1450,7 +1494,7 @@ export interface components {
                     /** Format: uuid */
                     source_account_id: string;
                     /** @enum {string} */
-                    state: "active" | "disconnected";
+                    state: "active" | "paused" | "disconnected";
                     binding_revision: components["schemas"]["Revision"];
                 }[];
             }[];
@@ -1465,6 +1509,71 @@ export interface components {
             state: "disconnected";
         };
         ConnectionReconcileRequest: Record<string, never>;
+        DiscoverableConnectionAttempt: {
+            /** Format: uuid */
+            attempt_id: string;
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            /** @enum {string} */
+            mode: "new" | "reconnect" | "rotate" | "remove";
+            /** @enum {string} */
+            state: "link_pending" | "link_ready" | "exchange_claimed" | "credential_pending" | "binding_review" | "active" | "credential_recovery_required" | "disconnect_pending" | "disconnected";
+            /** Format: date-time */
+            expires_at: string;
+            sync_item_id: string | null;
+            manifest: components["schemas"]["ConnectionManifest"] | null;
+            streams?: {
+                /** Format: uuid */
+                stream_id: string;
+                /** Format: uuid */
+                source_account_id: string;
+                /** Format: uuid */
+                namespace_id: string;
+                binding_revision: components["schemas"]["Revision"];
+                overlap_review_required: boolean;
+            }[];
+            expired_unclaimed: boolean;
+            binding_expired: boolean;
+        };
+        ConnectionAttemptList: {
+            items: components["schemas"]["DiscoverableConnectionAttempt"][];
+            next_cursor: string | null;
+            unfinished_count: string;
+        };
+        ConnectionStreamStatus: {
+            /** Format: uuid */
+            stream_id: string;
+            /** Format: uuid */
+            source_account_id: string;
+            /** Format: uuid */
+            sync_item_id: string;
+            item_generation: components["schemas"]["Revision"];
+            binding_revision: components["schemas"]["Revision"];
+            stream_revision: components["schemas"]["Revision"];
+            requested_generation: string;
+            completed_generation: string;
+            queued: boolean;
+            lease_active: boolean;
+            /** @enum {string} */
+            state: "active" | "paused" | "disconnected";
+            /** @enum {string} */
+            item_state: "active" | "paused" | "disconnected" | "credential_recovery_required" | "disconnect_pending" | "reauthorization_required";
+            last_completed_at: string | null;
+            /** @description Unknown: webhook receipt time is not provider data-update time. */
+            provider_updated_at: null;
+            /** @enum {string} */
+            readiness: "TRANSACTIONS_UPDATE_STATUS_UNKNOWN" | "NOT_READY" | "INITIAL_UPDATE_COMPLETE" | "HISTORICAL_UPDATE_COMPLETE";
+            last_error: ("pagination_mutation" | "provider_failure" | "decoder_rejected" | "cancelled" | "item_changed" | "lease_expired" | "account_disconnected" | "account_paused") | null;
+        };
+        ConnectionStreamOperation: {
+            /** @enum {string} */
+            action: "pause" | "resume" | "request";
+            expected_item_generation: components["schemas"]["Revision"];
+            expected_binding_revision: components["schemas"]["Revision"];
+            expected_stream_revision: components["schemas"]["Revision"];
+        };
     };
     responses: {
         /** @description Malformed request or missing required header. */
@@ -2638,6 +2747,42 @@ export interface operations {
             };
         };
     };
+    listConnectionAttempts: {
+        parameters: {
+            query?: {
+                limit?: number;
+                before?: string;
+            };
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionAttemptList"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     beginConnection: {
         parameters: {
             query?: never;
@@ -2887,6 +3032,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectionDisconnectResult"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getConnectionStreamStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+                stream_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionStreamStatus"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    operateConnectionStream: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                entity_id: string;
+                book_id: string;
+                stream_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionStreamOperation"];
+            };
+        };
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionStreamStatus"];
                 };
             };
             /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
