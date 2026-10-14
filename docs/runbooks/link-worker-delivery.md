@@ -30,10 +30,12 @@ existing local demo; all temporary source substitutions were restored.
 No SQL changes. No actual owner-state migration, deployment, SDK/provider session,
 secret propagation, managed OIDC, queue delivery or account readiness is proven.
 
-GitHub CI BLOCKED before job startup: Seed run38576025919 and Infrastructure
-run38576025610 report account payment failure or spending-limit exhaustion.
-GitGuardian passed. Owner must resolve Billing & plans and rerun the checks;
-local evidence does not replace required GitHub checks.
+Initial GitHub runs were blocked by account billing. After the owner made the
+repository public, reruns started successfully. Infrastructure attempt2 of
+run38581323364 exposed an undeclared ripgrep dependency in the shell release
+tests. Replaced those searches with portable extended grep, including older
+negative assertions that had silently skipped checks when ripgrep was missing.
+Local `make release-test` rerun passes; new GitHub results remain pending.
 
 ## Remaining work
 
