@@ -28,9 +28,11 @@ check_rejected() {
   local case_name="$1"
   shift
   local result=0
+  local entrypoint=()
+  if [[ "$case_name" == delivery-* ]]; then entrypoint=(--entrypoint /deliver); fi
   docker run --cidfile "$work_dir/$case_name.cid" --rm --pull=never --network=none --read-only --cap-drop=ALL \
     --security-opt=no-new-privileges:true --user=65532:65532 --pids-limit=64 \
-    --memory=128m --cpus=1 "$candidate_id" "$@" >"$work_dir/$case_name" 2>&1 &
+    --memory=128m --cpus=1 "${entrypoint[@]}" "$candidate_id" "$@" >"$work_dir/$case_name" 2>&1 &
   local run_pid=$!
   for ((i=0;i<40;i++)); do
     kill -0 "$run_pid" 2>/dev/null || break
@@ -42,11 +44,17 @@ check_rejected() {
   fi
   wait "$run_pid" || result=$?
   [[ "$result" == 1 ]] || { echo 'FAIL: worker did not reject configuration' >&2; exit 1; }
-  printf 'worker initialization or service failed\n' >"$work_dir/expected"
+  if [[ "$case_name" == delivery-* ]]; then
+    printf 'BLOCKED: delivery configuration\n' >"$work_dir/expected"
+  else
+    printf 'worker initialization or service failed\n' >"$work_dir/expected"
+  fi
   cmp -s "$work_dir/expected" "$work_dir/$case_name" || { echo 'FAIL: worker emitted unexpected diagnostics' >&2; exit 1; }
 }
 check_rejected default
 check_rejected invalid-mode -mode=invalid
 check_rejected missing-consumer -mode=consumer
 check_rejected secret-flag -password=synthetic-rejected-value
-printf 'PASS: worker candidate rejects four invalid configurations offline with fixed diagnostics.\n'
+check_rejected delivery-default
+check_rejected delivery-secret-flag -secret=synthetic-rejected-value
+printf 'PASS: worker and delivery commands reject six invalid configurations offline with fixed diagnostics.\n'

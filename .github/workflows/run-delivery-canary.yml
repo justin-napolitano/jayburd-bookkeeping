@@ -1,0 +1,37 @@
+name: Run development delivery canary
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dev-delivery-canary
+  cancel-in-progress: false
+jobs:
+  invoke:
+    if: github.ref == 'refs/heads/main' && github.actor_id == '55423093' && github.repository_id == '1414515318' && github.triggering_actor == 'justin-napolitano'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+        with:
+          version: '>= 500.0.0'
+      - id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/jayburd-dev-delivery/providers/owner-canary
+          service_account: jayburd-dev-delivery-runner@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_lifetime: 300s
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Submit the reviewed canary without overrides
+        env:
+          CLOUDSDK_AUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+        run: |
+          [[ "$PROJECT_ID" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]
+          gcloud run jobs execute jayburd-dev-delivery-canary --project="$PROJECT_ID" --region=us-central1 --async --quiet --format=none
+          echo 'SUBMITTED: this workflow does not attest execution success or secret propagation.'

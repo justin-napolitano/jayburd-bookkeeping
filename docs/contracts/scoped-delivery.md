@@ -11,6 +11,8 @@ This change implements a callable adapter, not a deployed job.
 Source mapping is fixed: root `PLAID_CLIENT_ID` and `PLAID_SECRET` map to
 `jayburd-dev-bank-sync-client-id` and `jayburd-dev-bank-sync-client-secret`.
 Eight `/bank-sync/slot-00` through `slot-07` keys map to corresponding destinations.
+A separate root `JAYBURD_DELIVERY_CANARY` maps only to the precreated canary
+destination. The [controlled job](delivery-job.md) initially accepts only this key.
 Original root values stay in place; references and whole-folder imports are disabled.
 Every invocation selects an exact positive source version and expected source ID.
 The configured project/environment and returned identity/version must match.
