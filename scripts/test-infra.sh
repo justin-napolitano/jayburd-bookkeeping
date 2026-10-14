@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 terraform_bin=$(command -v terraform)
 test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT
-for target in foundation application migration runtime identity; do
+for target in foundation application migration runtime identity workers; do
 mkdir -p "$test_root/$target/tests"
 for name in versions.tf variables.tf main.tf outputs.tf .terraform.lock.hcl; do
   cp "infra/gcp/$target/$name" "$test_root/$target/$name"

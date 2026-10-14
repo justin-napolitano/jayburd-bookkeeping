@@ -2,6 +2,25 @@
 
 ## Purpose and reading order
 
+Hosted/Sandbox source review (2026-10-14):
+
+- [Hosted workers](../contracts/hosted-workers.md): selected Cloud Run metadata
+  identity, Cloud SQL IAM login and container lifecycle references; understand
+  private caller binding and bounded pools. Synthetic checks do not prove hosted IAM.
+- [Provider vault](../contracts/provider-vault.md): Infisical v4 create/read,
+  GCP ID-token login and GCP sync options, plus Secret Manager numeric addressing
+  and CRC32C. Explains why source/logical/destination versions are independent.
+- [Hosted evidence](../contracts/hosted-evidence.md): GCS JSON v1 generation
+  preconditions, object reads and integrity metadata; selected sections support
+  create-only storage and generation-pinned reads, not application authorization.
+- [Sandbox qualification](../contracts/plaid-sandbox-qualification.md): official
+  Link, Transactions and Sandbox references SQ01–SQ05; distinguishes adapter
+  diagnostics, Link event association and complete hosted acceptance.
+
+Each linked record names selected sections, project inferences and access limits.
+No full ISO normative text, cloud account configuration or provider credential was
+reviewed in this pass.
+
 - [Connection lifecycle](../contracts/connection-sql.md), [service](../contracts/connection-service.md)
   and [HTTP boundary](../contracts/connection-http.md): PI05–PI10 distinguish verified
   Link/account evidence, one-shot remote mutations and local credential recovery.

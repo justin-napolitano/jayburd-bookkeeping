@@ -3,7 +3,7 @@
 ## Decision and scope
 
 Issue #27 first implementation slice, 2026-10-11: owner-triggered, main-only
-publication of tested API, migrator and standalone Next.js images. No deployment
+publication of tested API, migrator, worker and standalone Next.js images. No deployment
 is coupled to publication. Sources G14–G16 in the [register](../research/gcp-sources.md)
 support the packaging, metadata and authentication choices; live federation is unverified.
 
@@ -36,8 +36,9 @@ No Terraform state, secret-manager access or runtime impersonation is involved.
 Credential-free PR CI only builds/tests locally. Default commands never publish.
 
 Tags include commit, run and attempt, compatible with immutable registry tags.
-A failed matrix can leave a partial set of images; require all three same-run
-successful artifacts before considering any future release. Failed publication
+A failed matrix can leave a partial set of images; require the complete four-component build to succeed. The existing application
+release validator still consumes its three API/migrator/web receipts; the worker
+receipt is a separate candidate and does not authorize worker deployment. Failed publication
 never grants rollout authority. Artifacts expire after 30 days; retain an approved
 release receipt separately before this expiry. Old tagged candidates require a
 reviewed retention policy; current cleanup only deletes old untagged images.
@@ -68,3 +69,12 @@ No financial message or SQL contract changes; existing ISO assessments remain
 applicable. Acceptance: receipt integrity tests and isolated runtime proofs run
 in CI. Actual registry publication, IAM denial, real MFA, Infisical acceptance,
 serialized migration/rollout and compatible rollback remain #27 release gates.
+
+## Acquisition worker candidate
+
+`Dockerfile.worker` has an explicit allowlisted build context and a non-root scratch
+runtime. Its isolated container proof checks fail-closed startup without any cloud
+network. Real managed startup still needs reviewed metadata, Cloud SQL role grants,
+private callers and exact provider-store versions. The owner-operated workers root
+owns initial infrastructure; the application deployment identity receives no new
+bootstrap/secret authority. Automated worker promotion is not implemented here.
