@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { APIError, type API } from "./api";
+import { Connections, type ConnectionLink } from "./Connections";
 import { ReviewInbox } from "./ReviewInbox";
 import { currencyAt, formatAmount } from "./amount";
 import { Reports, type ReportContext, type ReportSelection } from "./Reports";
@@ -18,14 +19,15 @@ import type {
   RegisterCommand,
 } from "./types";
 
-// Navigation names reflect implemented reads and commands, never a bank feed.
+// Navigation exposes owned book operations; connection state never substitutes for balances.
 type View =
   | "Overview"
   | "Accounts"
   | "Account activity"
   | "Reports"
   | "New journal"
-  | "Review transactions";
+  | "Review transactions"
+  | "Connections";
 const views: View[] = [
   "Overview",
   "Accounts",
@@ -33,6 +35,7 @@ const views: View[] = [
   "Reports",
   "New journal",
   "Review transactions",
+  "Connections",
 ];
 
 // An explicit visible starting range comes from this book's period metadata.
@@ -61,6 +64,7 @@ export function BookWorkspace({
   denied,
   children,
   prepare,
+  connectionLink,
 }: {
   entity: Entity;
   book: Book;
@@ -70,7 +74,9 @@ export function BookWorkspace({
   denied: () => void;
   children: ReactNode;
   prepare?: (command: RegisterCommand) => void;
+  connectionLink?: ConnectionLink;
 }) {
+  const [reviewSource, setReviewSource] = useState("");
   const [view, setView] = useState<View>("Overview");
   const [context, setContext] = useState<ReportContext>(() =>
     initialContext(book),
@@ -142,6 +148,7 @@ export function BookWorkspace({
   }, [readBalances, view]);
   // Native buttons plus focused section headings make view changes keyboard-visible.
   const navigate = (next: View) => {
+    if (next === "Review transactions") setReviewSource("");
     setView(next);
     if (next === "Account activity")
       setSelection((s) => ({ key: s.key + 1, kind: "general-ledger" }));
@@ -342,8 +349,25 @@ export function BookWorkspace({
           onAccessDenied={() => deniedRef.current()}
         />
       </div>
+      {view === "Connections" && (
+        <Connections
+          api={api}
+          entity={entity}
+          book={book}
+          currencies={currencies}
+          locked={locked}
+          denied={denied}
+          link={connectionLink}
+          onReview={(source) => {
+            setReviewSource(source);
+            setView("Review transactions");
+            requestAnimationFrame(() => heading.current?.focus());
+          }}
+        />
+      )}
       {view === "Review transactions" && prepare && (
         <ReviewInbox
+          initialSource={reviewSource}
           api={api}
           entity={entity}
           book={book}
