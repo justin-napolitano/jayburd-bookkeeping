@@ -1,0 +1,76 @@
+{
+  "accounts": [
+    {
+      "account_id": "Account-A",
+      "balances": {
+        "iso_currency_code": "USD",
+        "current": 42,
+        "available": 42
+      },
+      "mask": null,
+      "name": "Synthetic Checking",
+      "official_name": null,
+      "type": "depository",
+      "subtype": null,
+      "verification_status": null,
+      "verification_name": null,
+      "verification_insights": null,
+      "persistent_account_id": null,
+      "apy": null,
+      "holder_category": null
+    }
+  ],
+  "added": [
+    {
+      "account_id": "Account-A",
+      "amount": 42,
+      "iso_currency_code": "USD",
+      "unofficial_currency_code": null,
+      "category": null,
+      "category_id": null,
+      "check_number": null,
+      "date": "2026-01-02",
+      "location": null,
+      "name": "Synthetic supplies",
+      "merchant_name": null,
+      "original_description": null,
+      "payment_meta": null,
+      "pending": false,
+      "pending_transaction_id": null,
+      "account_owner": null,
+      "transaction_id": "Txn-A",
+      "transaction_type": "special",
+      "logo_url": null,
+      "website": null,
+      "authorized_date": null,
+      "authorized_datetime": null,
+      "datetime": null,
+      "payment_channel": "other",
+      "personal_finance_category": null,
+      "business_finance_category": {
+        "primary": "SYNTHETIC",
+        "detailed": "SYNTHETIC_SUPPLIES"
+      },
+      "transaction_code": null,
+      "personal_finance_category_icon_url": null,
+      "counterparties": null,
+      "merchant_entity_id": null,
+      "merchant_category_code": null,
+      "running_balance": 9007199254740993,
+      "client_customization": {
+        "custom_entity_id": "fictional-merchant"
+      }
+    }
+  ],
+  "modified": [],
+  "removed": [
+    {
+      "account_id": "Account-A",
+      "transaction_id": "Removed-A"
+    }
+  ],
+  "next_cursor": "Y3Vyc29y",
+  "has_more": false,
+  "request_id": "synthetic",
+  "transactions_update_status": "HISTORICAL_UPDATE_COMPLETE"
+}
