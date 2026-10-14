@@ -254,7 +254,7 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 // realRunner uses real SQL and durable private staging with the production exact-money HTTP decoder.
-func realRunner(t *testing.T, db, lost string) (*acquisition.Runner, *lossPool, *int) {
+func realRunner(t *testing.T, db, lost string, transientFirst ...bool) (*acquisition.Runner, *lossPool, *int) {
 	t.Helper()
 	conn := connect(t, db, "synthetic_sync")
 	t.Cleanup(func() { conn.Close(context.Background()) })
@@ -276,6 +276,9 @@ func realRunner(t *testing.T, db, lost string) (*acquisition.Runner, *lossPool, 
 		options, _ := body["options"].(map[string]any)
 		if options["account_id"] != "Account-A" {
 			t.Error("missing account filter")
+		}
+		if len(transientFirst) > 0 && transientFirst[0] && calls == 1 {
+			return &http.Response{StatusCode: 429, Body: io.NopCloser(strings.NewReader(`{}`)), Header: http.Header{"Retry-After": []string{"3600"}}}, nil
 		}
 		page := `{"accounts":[{"account_id":"Account-A","type":"depository"}],"added":[{"account_id":"Account-A","transaction_id":"Txn-1","amount":9007199254740993.01,"iso_currency_code":"USD","unofficial_currency_code":null,"date":"2026-01-02","pending":false,"pending_transaction_id":null,"name":"Fictional supplies"}],"modified":[],"removed":[],"next_cursor":"C1","has_more":false,"request_id":"synthetic-request","transactions_update_status":"HISTORICAL_UPDATE_COMPLETE"}`
 		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(page)), Header: make(http.Header)}, nil
@@ -402,5 +405,42 @@ func TestDispatchRealUnknownClaim(t *testing.T) {
 	}
 	if got := value(t, owner, "SELECT count(*)::text FROM integration.sync_set"); got != "0" {
 		t.Fatal("unknown claim started acquisition")
+	}
+}
+
+// TestDispatchRealRetryHandoff preserves provider delay and commits the next dispatch before acknowledging this delivery.
+func TestDispatchRealRetryHandoff(t *testing.T) {
+	owner, db, binding := dispatchSetup(t)
+	first := relay(t, db, binding)
+	runner, _, calls := realRunner(t, db, "", true)
+	worker := connect(t, db, "synthetic_sync")
+	defer worker.Close(context.Background())
+	consumer, _ := NewConsumer(worker, runner)
+	if e := consumer.Handle(context.Background(), first); e != nil {
+		t.Fatal(e)
+	}
+	if *calls != 1 || value(t, owner, "SELECT count(*)::text FROM banking.source_observation") != "0" {
+		t.Fatal("transient response published source")
+	}
+	if value(t, owner, "SELECT (state='retry_wait' AND next_eligible_at>clock_timestamp()+interval '3590 seconds' AND dispatch_generation=2)::text FROM integration.sync_delivery_operation") != "true" {
+		t.Fatal("retry delay or new dispatch missing")
+	}
+	if value(t, owner, "SELECT count(*)::text FROM integration.sync_delivery_dispatch") != "2" {
+		t.Fatal("no durable next dispatch")
+	}
+	if e := consumer.Handle(context.Background(), first); e == nil || *calls != 1 {
+		t.Fatal("old delivery bypassed delay")
+	}
+	// Fixture owner advances only eligibility; this is not exposed by the runtime.
+	exec(t, owner, "UPDATE integration.sync_delivery_operation SET next_eligible_at=clock_timestamp()-interval '1 second'")
+	next := relay(t, db, binding)
+	if string(first) == string(next) {
+		t.Fatal("dispatch generation reused")
+	}
+	if e := consumer.Handle(context.Background(), next); e != nil {
+		t.Fatal(e)
+	}
+	if *calls != 2 || value(t, owner, "SELECT count(*)::text FROM banking.source_observation") != "1" || value(t, owner, "SELECT count(*)::text FROM ledger.journal_entry") != "0" {
+		t.Fatal("retry effects incorrect")
 	}
 }
