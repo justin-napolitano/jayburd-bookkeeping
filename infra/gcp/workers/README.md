@@ -1,26 +1,20 @@
-# Acquisition worker infrastructure
+# Acquisition worker bootstrap
 
-This root is **owner-operated infrastructure**, not a worker deployment workflow.
-It combines bootstrap IAM, precreated secret containers, private buckets, queue,
-SQL IAM users, and optional worker services. The existing application deployer is
-not authorized to apply it. No deployer permission is broadened here; image build
-receipts do not authorize promotion. A separately reviewed bootstrap/runtime split
-and state/IAM workflow is required before automated worker deployment.
+This root is owner-operated infrastructure: IAM, SQL identities, secret containers,
+private storage, queue, invocation bindings and always-paused Scheduler. Runtime
+services now belong to `../worker-runtime`, with separate state and deployment
+identity. Application and worker CI cannot apply this bootstrap state.
 
-Defaults provision no Cloud Run service or Scheduler job: `runtime = null` and
-`scheduler_enabled = false`. Supplying a digest-pinned runtime still leaves the
-scheduler paused. Activation additionally requires completed SQL role/bootstrap and
-publisher binding enrollment, exact credential versions/mappings, caller identity
-qualification, Infisical sync permissions/freshness, and Sandbox qualification.
-No secret values or service-account keys are Terraform inputs; only exact numeric
-version identifiers are supplied.
+Fresh bootstrap uses `worker_services_exist=false`. After runtime creates both
+services and the owner verifies Scheduler PAUSED, owner applies with that flag
+true to install exact invocation bindings. There is no scheduling activation flag.
+For existing deployments, retain true during the non-destructive state transfer.
 
-The owner may install `backend.tf.example` only after the reviewed foundation
-addition provisions `${project}-jayburd-dev-workers-state`, using prefix `workers`.
-This dedicated state bucket receives no existing application deployer grant. A
-prefix within the runtime-state bucket would not isolate bootstrap state because
-the deployer has bucket-wide ObjectAdmin there. Never initialize a backend or use
-real state for local tests. No apply was performed in this implementation.
+Read [worker release migration](../../../docs/contracts/worker-release.md) before
+applying this split. The removed block preserves existing services; owner imports
+them into dedicated worker-runtime state. Scheduler and invocation IAM remain at
+the same bootstrap addresses. Never perform automatic destroy/recreate adoption.
+Bootstrap backend remains `${project}-jayburd-dev-workers-state`, prefix `workers`.
 
 ## Identity and storage boundaries
 
@@ -58,6 +52,5 @@ terraform -chdir=infra/gcp/workers test
 
 Tests use `mock_provider "google"` and fictional project/service identities. They
 check infrastructure-only defaults, exact prefix IAM, immutable registry/tombstone
-permissions, finite secret containers, digest/version validation, private invocation,
-capacity/deadlines and paused scheduling. They prove configuration behavior, not
+permissions, finite secret containers, private invocation, narrow deployment grants and paused scheduling. They prove configuration behavior, not
 hosted IAM, actual storage deletion, Infisical behavior or provider access.

@@ -20,3 +20,7 @@ output "deploy_identity_provider" {
   description = "Independent disabled-by-default deployment provider; owner review required."
   value       = google_iam_workload_identity_pool_provider.deployment.name
 }
+
+output "worker_deploy_identity_provider" {
+  value = google_iam_workload_identity_pool_provider.worker_deployment.name
+}
