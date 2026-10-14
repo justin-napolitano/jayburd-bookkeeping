@@ -8,7 +8,9 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -25,6 +27,9 @@ type ConnectionOperations interface {
 	List(context.Context, connections.Scope) (json.RawMessage, error)
 	Bind(context.Context, connections.Scope, string, string, connections.BindingRequest) (json.RawMessage, error)
 	Disconnect(context.Context, connections.Scope, string, string, string) (json.RawMessage, error)
+	Attempts(context.Context, connections.Scope, int, *string) (json.RawMessage, error)
+	StreamStatus(context.Context, connections.Scope, string) (json.RawMessage, error)
+	OperateStream(context.Context, connections.Scope, string, string, connections.StreamOperation) (json.RawMessage, error)
 }
 
 var connectionUUID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
@@ -35,6 +40,9 @@ var connectionKey = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
 func mountConnections(mux *http.ServeMux, auth ledger.Authenticator, ops ConnectionOperations) {
 	base := "/v1/entities/{entity}/books/{book}"
 	for pattern, operation := range map[string]string{
+		"GET " + base + "/connection-attempts":                      "attempts",
+		"GET " + base + "/connections/streams/{stream}/status":      "status",
+		"POST " + base + "/connections/streams/{stream}/operations": "operate",
 		"POST " + base + "/connection-attempts":                     "begin",
 		"GET " + base + "/connection-attempts/{attempt}":            "attempt",
 		"POST " + base + "/connection-attempts/{attempt}/execute":   "execute",
@@ -64,7 +72,7 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 			return
 		}
 		scope := connections.Scope{Actor: actor, Entity: r.PathValue("entity"), Book: r.PathValue("book")}
-		if !connectionUUID.MatchString(scope.Entity) || !connectionUUID.MatchString(scope.Book) || r.URL.RawQuery != "" || r.URL.ForceQuery || r.URL.RawPath != "" {
+		if !connectionUUID.MatchString(scope.Entity) || !connectionUUID.MatchString(scope.Book) || (operation != "attempts" && r.URL.RawQuery != "") || r.URL.ForceQuery || r.URL.RawPath != "" {
 			fail(400, "invalid_request")
 			return
 		}
@@ -78,7 +86,7 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 			return
 		}
 		key := ""
-		if operation == "begin" || operation == "bind" || operation == "disconnect" {
+		if operation == "begin" || operation == "bind" || operation == "disconnect" || operation == "operate" {
 			keys := r.Header.Values("Idempotency-Key")
 			if len(keys) != 1 || !connectionKey.MatchString(keys[0]) {
 				fail(400, "invalid_request")
@@ -108,6 +116,22 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 		}
 		var result any
 		switch operation {
+		case "attempts":
+			limit, after, ok := connectionPage(r.URL.RawQuery)
+			if !ok {
+				fail(400, "invalid_request")
+				return
+			}
+			result, err = ops.Attempts(r.Context(), scope, limit, after)
+		case "status":
+			result, err = ops.StreamStatus(r.Context(), scope, stream)
+		case "operate":
+			var in connections.StreamOperation
+			if !decodeConnectionJSON(raw, &in) {
+				fail(400, "invalid_request")
+				return
+			}
+			result, err = ops.OperateStream(r.Context(), scope, stream, key, in)
 		case "begin":
 			var in connections.BeginRequest
 			if !decodeConnectionJSON(raw, &in) {
@@ -156,7 +180,7 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 				fail(500, "internal_error")
 				return
 			}
-			status := map[string]int{"invalid_request": 400, "permission_denied": 403, "not_found": 404, "connection_conflict": 409, "stale_connection": 409, "credential_recovery_required": 409, "connection_limit": 422, "unsupported_connection_mode": 422, "commit_unknown": 503, "temporarily_unavailable": 503}[f.Code]
+			status := map[string]int{"invalid_request": 400, "permission_denied": 403, "not_found": 404, "connection_conflict": 409, "stale_connection": 409, "credential_recovery_required": 409, "connection_operation_blocked": 409, "connection_limit": 422, "unsupported_connection_mode": 422, "commit_unknown": 503, "temporarily_unavailable": 503}[f.Code]
 			if status == 0 {
 				fail(500, "internal_error")
 				return
@@ -173,6 +197,41 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(encoded)
 	}
+}
+
+// connectionPage rejects ambiguous queries before the actor-scoped SQL discovery call.
+func connectionPage(raw string) (int, *string, bool) {
+	if len(raw) > 256 {
+		return 0, nil, false
+	}
+	q, err := url.ParseQuery(raw)
+	if err != nil {
+		return 0, nil, false
+	}
+	limit := 100
+	var after *string
+	for key, values := range q {
+		if len(values) != 1 {
+			return 0, nil, false
+		}
+		switch key {
+		case "limit":
+			n, e := strconv.Atoi(values[0])
+			if e != nil || n < 1 || n > 100 || strconv.Itoa(n) != values[0] {
+				return 0, nil, false
+			}
+			limit = n
+		case "before":
+			v := values[0]
+			if !connectionUUID.MatchString(v) || v == "00000000-0000-0000-0000-000000000000" {
+				return 0, nil, false
+			}
+			after = &v
+		default:
+			return 0, nil, false
+		}
+	}
+	return limit, after, true
 }
 
 // decodeConnectionJSON disallows unknown request fields after the duplicate-key scan.

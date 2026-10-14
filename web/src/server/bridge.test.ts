@@ -253,6 +253,9 @@ describe('connection bridge routes', () => {
   ['POST',`/connection-attempts/${id}/reconcile`,false],
   ['POST',`/connection-attempts/${id}/bindings`,true],
   ['GET','/connections',false],
+  ['GET','/connection-attempts?limit=100&before='+id,false],
+  ['GET',`/connections/streams/${id}/status`,false],
+  ['POST',`/connections/streams/${id}/operations`,true],
   ['POST',`/connections/streams/${id}/disconnect`,true],
  ] as const;
  it.each(routes)('allows only reviewed %s %s with required operation identity', async(method,suffix,key)=>{
@@ -266,13 +269,13 @@ describe('connection bridge routes', () => {
   if(key){const denied=vi.fn<typeof fetch>();expect((await createBridge(denied,()=>env)(request(base+suffix,{'Content-Type':'application/json'},'{}'))).status).toBe(400);expect(denied).not.toHaveBeenCalled();}
  });
  it.each(routes)('rejects wrong method or query before metadata for %s %s',async(method,suffix)=>{
-  for(const [path,verb] of [[base+suffix,method==='GET'?'POST':'GET'],[base+suffix+'?cursor=secret',method],[base+suffix+'?',method],[base+suffix,'HEAD'],[base+suffix,'DELETE']]){
+  for(const [path,verb] of [[base+suffix,method==='GET'?'POST':suffix==='/connection-attempts'?'PUT':'GET'],[base+suffix+'?cursor=secret',method],[base+suffix+'?',method],[base+suffix,'HEAD'],[base+suffix,'DELETE']]){
    const fetcher=vi.fn<typeof fetch>();
    const input=new Request(env.BOOKKEEPING_PUBLIC_ORIGIN+path,{method:verb,headers:{Authorization:bearer,Origin:env.BOOKKEEPING_PUBLIC_ORIGIN,'Content-Type':'application/json','Idempotency-Key':'synthetic'}});
    expect((await createBridge(fetcher,()=>env)(input)).status).toBe(404);expect(fetcher).not.toHaveBeenCalled();
   }
  });
- it.each(['/connection-attempts/'+id+'/exchange','/connections/plaid','/connections/streams/'+id+'/sync','/connection-attempts/%30'+id.slice(1),'/connection-attempts/'+id.toUpperCase(),'/connection-attempts/'+id+'/execute%2f'])('rejects unreviewed or encoded suffix %s',async suffix=>{
+ it.each(['/connection-attempts?limit=101','/connection-attempts?limit=1&limit=2','/connection-attempts?actor=other','/connection-attempts?before=','/connection-attempts?before=%xx','/connection-attempts/'+id+'/exchange','/connections/plaid','/connections/streams/'+id+'/sync','/connection-attempts/%30'+id.slice(1),'/connection-attempts/'+id.toUpperCase(),'/connection-attempts/'+id+'/execute%2f'])('rejects unreviewed or encoded suffix %s',async suffix=>{
   const fetcher=vi.fn<typeof fetch>();expect((await createBridge(fetcher,()=>env)(request(base+suffix,{'Content-Type':'application/json','Idempotency-Key':'synthetic'},'{}'))).status).toBe(404);expect(fetcher).not.toHaveBeenCalled();
  });
  it('forwards transient handoff bytes once without caching, retries or diagnostic leakage',async()=>{

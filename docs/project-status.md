@@ -1,3 +1,19 @@
+# Current connection operations build
+
+PR #107 is merged. #103/#104 now add unfinished-attempt discovery after reload,
+per-account pause/resume/manual sync controls, safe publication status and signed
+webhook/catch-up intent. Synthetic integration and regression gates passed; see the
+[operations runbook](runbooks/connection-operations.md) for current evidence.
+
+Before real bank data: complete #7 hosted worker/dispatch wiring, scoped Infisical
+writer and credential-version propagation, hosted Link/reconnect composition,
+#88 end-to-end Plaid Sandbox qualification and #90 explicit live-pilot approval.
+Acquisition never posts journals. Sync request, complete publication and reviewed
+posting remain separate operations; provider-update time is unknown unless backed
+by provider evidence. Scale is a measured #89 gate, not an assumed guarantee.
+
+The following historical snapshot describes the preceding delivery.
+
 # Project status — 2026-10-13
 
 ## Decision

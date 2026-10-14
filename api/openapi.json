@@ -2788,6 +2788,79 @@
             }
           }
         }
+      },
+      "get": {
+        "operationId": "listConnectionAttempts",
+        "summary": "listConnectionAttempts",
+        "description": "Authenticated connection operations. Current SQL authority and exact replay pins apply. Queued requests do not imply completed acquisition. See docs/contracts/connection-operations-sql.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionAttemptList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}": {
@@ -3234,8 +3307,158 @@
           }
         }
       }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connections/streams/{stream_id}/status": {
+      "get": {
+        "operationId": "getConnectionStreamStatus",
+        "summary": "getConnectionStreamStatus",
+        "description": "Authenticated connection operations. Current SQL authority and exact replay pins apply. Queued requests do not imply completed acquisition. See docs/contracts/connection-operations-sql.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionStreamStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connections/streams/{stream_id}/operations": {
+      "post": {
+        "operationId": "operateConnectionStream",
+        "summary": "operateConnectionStream",
+        "description": "Authenticated connection operations. Current SQL authority and exact replay pins apply. Queued requests do not imply completed acquisition. See docs/contracts/connection-operations-sql.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "stream_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionStreamStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionStreamOperation"
+              }
+            }
+          }
+        }
+      }
     }
-
   },
   "components": {
     "securitySchemes": {
@@ -6174,6 +6397,7 @@
                         "type": "string",
                         "enum": [
                           "active",
+                          "paused",
                           "disconnected"
                         ]
                       },
@@ -6240,8 +6464,310 @@
         "additionalProperties": false,
         "properties": {},
         "required": []
+      },
+      "DiscoverableConnectionAttempt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "new",
+              "reconnect",
+              "rotate",
+              "remove"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "link_pending",
+              "link_ready",
+              "exchange_claimed",
+              "credential_pending",
+              "binding_review",
+              "active",
+              "credential_recovery_required",
+              "disconnect_pending",
+              "disconnected"
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sync_item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manifest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectionManifest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "streams": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "stream_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "source_account_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "namespace_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "binding_revision": {
+                  "$ref": "#/components/schemas/Revision"
+                },
+                "overlap_review_required": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "stream_id",
+                "source_account_id",
+                "namespace_id",
+                "binding_revision",
+                "overlap_review_required"
+              ]
+            }
+          },
+          "expired_unclaimed": {
+            "type": "boolean"
+          },
+          "binding_expired": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "entity_id",
+          "book_id",
+          "mode",
+          "state",
+          "expires_at",
+          "sync_item_id",
+          "manifest",
+          "expired_unclaimed",
+          "binding_expired"
+        ]
+      },
+      "ConnectionAttemptList": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/DiscoverableConnectionAttempt"
+            }
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unfinished_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "unfinished_count"
+        ]
+      },
+      "ConnectionStreamStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "stream_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sync_item_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "item_generation": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "binding_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "stream_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "requested_generation": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "completed_generation": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "queued": {
+            "type": "boolean"
+          },
+          "lease_active": {
+            "type": "boolean"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused",
+              "disconnected"
+            ]
+          },
+          "item_state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused",
+              "disconnected",
+              "credential_recovery_required",
+              "disconnect_pending",
+              "reauthorization_required"
+            ]
+          },
+          "last_completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_updated_at": {
+            "type": "null",
+            "description": "Unknown: webhook receipt time is not provider data-update time."
+          },
+          "readiness": {
+            "type": "string",
+            "enum": [
+              "TRANSACTIONS_UPDATE_STATUS_UNKNOWN",
+              "NOT_READY",
+              "INITIAL_UPDATE_COMPLETE",
+              "HISTORICAL_UPDATE_COMPLETE"
+            ]
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pagination_mutation",
+                  "provider_failure",
+                  "decoder_rejected",
+                  "cancelled",
+                  "item_changed",
+                  "lease_expired",
+                  "account_disconnected",
+                  "account_paused"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "stream_id",
+          "source_account_id",
+          "sync_item_id",
+          "item_generation",
+          "binding_revision",
+          "stream_revision",
+          "requested_generation",
+          "completed_generation",
+          "queued",
+          "lease_active",
+          "state",
+          "item_state",
+          "last_completed_at",
+          "provider_updated_at",
+          "readiness",
+          "last_error"
+        ]
+      },
+      "ConnectionStreamOperation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "pause",
+              "resume",
+              "request"
+            ]
+          },
+          "expected_item_generation": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "expected_binding_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "expected_stream_revision": {
+            "$ref": "#/components/schemas/Revision"
+          }
+        },
+        "required": [
+          "action",
+          "expected_item_generation",
+          "expected_binding_revision",
+          "expected_stream_revision"
+        ]
       }
-
     },
     "responses": {
       "Problem400": {

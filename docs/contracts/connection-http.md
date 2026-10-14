@@ -21,6 +21,9 @@ Prefix `/v1/entities/{entity}/books/{book}`; IDs are canonical UUID strings.
 | Method / suffix | Service operation |
 | --- | --- |
 | POST `/connection-attempts` | Begin with mode and explicit affected-stream approval. |
+| GET `/connection-attempts` | Actor-scoped attempt discovery; optional limit 1–100 and before UUID. |
+| GET `/connections/streams/{stream}/status` | Safe current publication/status pins; unknown provider update stays null. |
+| POST `/connections/streams/{stream}/operations` | Explicit pause/resume/request with Item, binding and stream revision pins. |
 | GET `/connection-attempts/{attempt}` | Safe current attempt projection. |
 | POST `/connection-attempts/{attempt}/execute` | Memory-only nonce/Link/public-token handoff; one-shot provider mutation. |
 | POST `/connection-attempts/{attempt}/reconcile` | Empty object; resolve known credential state without repeating exchange. |
@@ -28,10 +31,10 @@ Prefix `/v1/entities/{entity}/books/{book}`; IDs are canonical UUID strings.
 | GET `/connections` | Bounded current connection list. |
 | POST `/connections/streams/{stream}/disconnect` | Expected binding revision; account-only local fencing. |
 
-Begin, bindings and disconnect require one `Idempotency-Key`, 1–128 characters in
+Begin, bindings, stream operations and disconnect require one `Idempotency-Key`, 1–128 characters in
 `[A-Za-z0-9._:-]`. Every POST requires exactly `application/json`, no content encoding,
 one UTF-8 object at most 32 KiB, no duplicate or unknown fields and nesting at most
-16. Query parameters, encoded alternative paths and GET bodies are rejected. HEAD
+16. Only attempt discovery accepts the named limit/before query parameters; duplicate, unknown or malformed values are rejected. Encoded alternative paths and GET bodies are rejected. HEAD
 cannot invoke reads. Authentication precedes body parsing or service access.
 
 Success is JSON with status 200 and `Cache-Control: no-store`. Begin alone returns
@@ -51,3 +54,14 @@ transport only. Named service/SQL proofs establish lifecycle behavior; the
 [delivery runbook](../runbooks/provider-acquisition.md) records actual results.
 A canceled request cannot undo remote exchange; durable recovery state must outlive
 its connection. No automatic posting, hosted availability or provider qualification.
+
+## Recovery and stream controls
+
+Migration 14 adds actor-scoped attempt discovery, an authoritative unfinished count,
+and a fresh-new-attempt guard while preserving exact-key replay. Expired unclaimed
+attempts remain inspectable without authority to execute their old handoff.
+Account-stream pause/resume has an independent revision so stale browser controls
+cannot undo a later lifecycle transition. Manual request queues durable intent; it
+does not call a provider or report completed acquisition. The exact returned
+status may be a replayed receipt; refresh status before issuing a new operation.
+See [SQL operations](connection-operations-sql.md) for current-grant checks.

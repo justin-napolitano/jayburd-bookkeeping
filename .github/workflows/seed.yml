@@ -52,6 +52,8 @@ jobs:
         run: make sync-state-test
       - name: Scoped synthetic connection lifecycle proof
         run: make connection-state-test
+      - name: Connection operations and signed webhook proof
+        run: make connection-ops-test webhook-test
       - name: Synthetic enrollment service composition proof
         run: make connection-service-test
       - name: Synthetic provider acquisition composition proof

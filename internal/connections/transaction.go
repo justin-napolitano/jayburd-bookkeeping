@@ -32,17 +32,19 @@ func sqlFailure(err error) error {
 	var p *pgconn.PgError
 	if errors.As(err, &p) {
 		switch p.Code {
-		case "P2700", "22P02", "22021":
+		case "P2700", "P2800", "22P02", "22021":
 			return failed("invalid_request")
-		case "P2701", "P2101", "P2102":
+		case "P2701", "P2801", "P2101", "P2102":
 			return failed("not_found")
-		case "P2702":
+		case "P2702", "P2802":
 			return failed("connection_conflict")
-		case "P2703":
+		case "P2703", "P2803":
 			return failed("stale_connection")
 		case "P2704":
 			return failed("credential_recovery_required")
-		case "P2705":
+		case "P2804":
+			return failed("connection_operation_blocked")
+		case "P2705", "P2805":
 			return failed("connection_limit")
 		}
 	}
@@ -122,6 +124,9 @@ func (r *sqlRepository) attempt(ctx context.Context, query string, args ...any) 
 
 // queries is a closed trusted-backend SQL surface; request strings never select SQL.
 var queries = map[string]string{
+	"list_connection_attempts":      "SELECT integration.list_connection_attempts($1,$2,$3,$4,$5)::text",
+	"connection_stream_status":      "SELECT integration.connection_stream_status($1,$2,$3,$4)::text",
+	"mutate_connection_stream":      "SELECT integration.mutate_connection_stream($1,$2,$3,$4,$5,$6)::text",
 	"begin_connection":              "SELECT integration.begin_connection($1,$2,$3,$4,$5)::text",
 	"record_link_session":           "SELECT integration.record_link_session($1,$2,$3,$4,$5,$6)::text",
 	"claim_connection":              "SELECT integration.claim_connection($1,$2,$3,$4,$5,$6)::text",
