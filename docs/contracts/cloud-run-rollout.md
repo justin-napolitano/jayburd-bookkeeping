@@ -51,6 +51,9 @@ restart loops. Migration has one task, zero retries, dedicated identity and a
 The workflow requires reviewed `deploy/dev-release.json` and its exact SHA256
 provided by the owner at manual dispatch. There is deliberately no enabled/sample
 release file. [Release instructions](../../deploy/README.md) define fields.
+Runtime manifests now use schemaVersion2 with mandatory explicit connection state;
+[connection release policy](connection-release.md) defines propagation and
+configuration-bound rollback. Migration/verify manifests remain schemaVersion1.
 Missing, expired, foreign-project, mutable-image, mixed-build and incomplete
 metadata fail before cloud authentication. Unsigned candidate receipts alone
 cannot approve release. Successful owner/main build metadata and all three

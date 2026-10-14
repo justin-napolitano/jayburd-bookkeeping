@@ -53,5 +53,5 @@ Cloud SQL's administrator behavior, caller JWTs, Cloud Tasks delivery or secret 
 The [Sandbox diagnostic](plaid-sandbox-qualification.md) is opt-in and partial.
 Actual Link UI/association, dynamic pending-to-posted, webhook delivery, persisted
 cursor-to-review consistency and zero automatic journals still require hosted
-qualification. Frontend Link loading, reconnect support and automated worker
-promotion remain open; no production institution or official-book approval follows.
+qualification. Application release configuration follows [explicit connection policy](connection-release.md).
+Frontend Link loading, reconnect support and automated worker promotion remain open; no production institution or official-book approval follows.
