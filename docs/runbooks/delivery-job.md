@@ -80,5 +80,17 @@ delivery runs), and `git diff --check`. No live lookup or cloud execution yet.
 - PASS: missing workers state bucket created by a targeted apply through the existing foundation backend, prefix `foundation`. Delivery backend initialized with prefix `delivery`; no competing local state owner.
 - GCP rejected 256 MiB for this execution mode. Corrected to its required 512 MiB; `bounded_canary_job` now asserts the limit.
 - PASS: delivery Terraform apply completed; lookup job and scoped identities provisioned. No destination version-adder grant in lookup mode.
-- PASS: owner workflow `38623665528` submitted execution `jayburd-dev-delivery-canary-kdchm`. Execution result pending; submission is not authentication proof.
-- PASS: `make check test build`. `make infra-test` passed all roots, including eight delivery runs. No real bank connection or canary value delivery.
+- PASS: owner workflow `38623665528` submitted execution `jayburd-dev-delivery-canary-kdchm`. Execution later succeeded; see hosted delivery checkpoint for selected metadata evidence.
+- PASS: `make check test build`. `make infra-test` passed all roots, including eight delivery runs. No real bank connection; the subsequent canary delivery is recorded below.
+
+## Hosted delivery checkpoint — 2026-10-14
+
+- PASS: metadata lookup execution `jayburd-dev-delivery-canary-kdchm` completed successfully; validated source ID `3ee9fbab-c01c-4c4e-ba40-ba6207e7a120`, version `1`. This establishes workload authentication and canary metadata access.
+- Owner authorized one fictional canary delivery. Applied execute mode with this exact ID/version and canary-only version-adder permission. Destination version listing was empty before invocation.
+- PASS: delivery workflow `38625292204` submitted execution `jayburd-dev-delivery-canary-dnm59`; one task succeeded and logged `PASS: canary delivery acknowledged; independent verification pending`. Metadata-only destination listing now shows version `1` enabled. No payload retrieved into agent context.
+- Independent owner verification of destination contents remains required; this is not Plaid connectivity evidence.
+
+Owner verification: in GCP Secret Manager, open `jayburd-dev-bank-sync-canary`,
+select version `1`, and compare its value privately with the fictional source.
+Report PASS or mismatch only; do not paste the value. Rotation, revocation and
+recovery qualification remain outstanding before Plaid activation.
