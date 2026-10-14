@@ -27,3 +27,10 @@ secret containers, registry, identity permissions and Infisical propagation must
 qualified separately. The current release manifest/workflow does **not** expose
 this object and cannot enable connections; changing that delivery path requires
 separate owner review. No apply was performed for this implementation.
+
+**Promotion reset warning:** the current application deployment workflow omits
+`connections`. Applying that workflow supplies its null default and removes any
+owner-configured opt-in flags from the API revision. Enrollment configuration does
+not persist through current promotion. Do not enable an out-of-band configuration
+expecting it to survive releases; review and implement explicit metadata delivery
+before relying on hosted enrollment.

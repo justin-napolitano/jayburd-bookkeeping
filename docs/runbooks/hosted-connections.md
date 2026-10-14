@@ -82,3 +82,17 @@ registry DNS after foundation8 passed; the owned runtime module was then tested
 successfully with the cached provider. Terraform fmt and git diff checks PASS.
 Logs: `/private/tmp/jayburd-connection-runtime-proof.log` and
 `/private/tmp/jayburd-hosted-connections-default.log`.
+
+## Numeric validation follow-up
+
+Aligned Terraform project numbers with canonical positive signed-int64 identifiers
+and bounded both static secret versions to int64 maximum. Added independent overflow,
+zero, leading-zero and exact-maximum test cases. README now explicitly warns that
+current promotion omits the object and therefore resets an owner opt-in to disabled.
+Reviewed integrated cmd/api composition read-only: startup failures close allocated
+transport/pool, server construction failure closes dependencies, and Server.Run closes
+its dependency wrapper after shutdown/listen failure. No bypass or cleanup blocker
+identified; no additional production changes made.
+Follow-up validation: clean-temp mocked runtime Terraform suite PASS16/0, including
+both int64 overflows and exact maximum acceptance. Terraform fmt and diff checks PASS.
+Go sources unchanged since the passing default gates above.
