@@ -111,7 +111,8 @@ func TestProbeFailuresStayPartialOrBlocked(t *testing.T) {
 		{"mismatch", page("C1", false, strings.Replace(transaction, "Account-A", "Other-A", 1)), "decoder_account_mismatch"},
 		{"duplicate", strings.Replace(page("C1", false, ""), `"has_more":false`, `"has_more":false,"has_more":true`, 1), "decoder_duplicate_key"},
 		{"cursor encoding", page("private.cursor", false, ""), "decoder_invalid_cursor_encoding"},
-		{"cursor progress", page("", false, ""), "decoder_invalid_cursor_progress"},
+		{"cursor progress", page("", true, ""), "decoder_invalid_cursor_progress"},
+		{"empty ready account", page("", false, ""), "provider_not_ready"},
 		{"readiness", strings.Replace(page("", false, ""), "HISTORICAL_UPDATE_COMPLETE", "NOT_READY", 1), "provider_not_ready"},
 		{"cycle", page("C1", true, ""), "cursor_not_progressing"},
 	}
