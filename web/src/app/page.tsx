@@ -1,6 +1,9 @@
 "use client";
 import { AuthProvider, LoginPanel, useAuth } from "../auth";
 import { Bookkeeping } from "../bookkeeping/Bookkeeping";
+import { createPlaidLink } from "../bookkeeping/plaidLink";
+// Inert until the user explicitly begins managed bank setup; demos inject their own adapter.
+const managedConnectionLink = createPlaidLink();
 // Session replacement unmounts every financial view and pending request.
 function Application() {
   const auth = useAuth();
@@ -28,14 +31,15 @@ function Application() {
             key={auth.sessionKey}
             getToken={auth.getToken}
             rejectSession={auth.rejectSession}
+            connectionLink={managedConnectionLink}
           />
         </>
       ) : (
         <LoginPanel />
       )}
       <footer>
-        Development bookkeeping · No bank connection · Live-use accounting
-        policy approval remains required.
+        Development bookkeeping · Bank setup requires configured Sandbox access
+        · Live-use accounting policy approval remains required.
       </footer>
     </main>
   );

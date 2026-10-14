@@ -84,8 +84,9 @@ Hosted acquisition is implemented for review on top of merged PR #109. Read the 
 [platform contract](contracts/hosted-platform.md) for tested behavior and remaining
 activation steps. Worker/IAM and provider adapters have synthetic evidence;
 Infisical account configuration, real hosted acceptance and full Plaid Sandbox
-qualification remain open in #7/#11/#88. Automated worker promotion and real Link
-UI/reconnect are explicit follow-ups. No production account activation.
+qualification remain open in #7/#11/#88. [Link and controlled worker delivery](runbooks/link-worker-delivery.md)
+adds the actual browser SDK adapter and paused worker promotion workflow for review.
+Qualified reconnect and hosted acceptance remain follow-ups. No production account activation.
 
 Review the [first application evidence](runbooks/first-app.md), then complete the
 managed identity and deployment gates before connecting live accounts. JB-001 remains open for a real

@@ -18,8 +18,8 @@ variables {
 run "infrastructure_only_defaults" {
   command = plan
   assert {
-    condition     = length(google_cloud_run_v2_service.worker) == 0 && length(google_cloud_scheduler_job.publisher) == 0 && !var.scheduler_enabled
-    error_message = "Default configuration must not deploy runtime or enable scheduling."
+    condition     = length(google_cloud_run_v2_service_iam_binding.worker) == 0 && google_cloud_scheduler_job.publisher[0].paused
+    error_message = "Bootstrap must keep scheduling paused and invocation unbound until owner confirmation."
   }
   assert {
     condition     = length(google_secret_manager_secret.provider) == 10 && length(google_secret_manager_secret_iam_member.infisical_sync) == 0
@@ -66,58 +66,6 @@ run "scoped_infisical_destination_writer" {
     error_message = "Infisical may add only versions in precreated containers, without project administrator access."
   }
 }
-run "runtime_is_private_bounded_and_paused" {
-  command = plan
-  variables {
-    runtime = {
-      image                 = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      binding_id            = "00000000-0000-4000-8000-000000000001"
-      client_id_version     = "7"
-      client_secret_version = "23"
-    }
-  }
-  assert {
-    condition     = length(google_cloud_run_v2_service.worker) == 2 && google_cloud_scheduler_job.publisher[0].paused && alltrue([for s in google_cloud_run_v2_service.worker : !s.invoker_iam_disabled && s.deletion_protection && s.template[0].max_instance_request_concurrency == 1 && s.template[0].timeout == "90s" && s.template[0].scaling[0].max_instance_count == 1])
-    error_message = "Runtime must retain IAM invocation, bounded capacity, deadline and paused scheduling."
-  }
-  assert {
-    condition     = contains(google_cloud_run_v2_service.worker["sync"].template[0].containers[0].args, "-project-number=123456789012") && contains(google_cloud_run_v2_service.worker["sync"].template[0].containers[0].args, "-credential-mapping-prefix=provider-credentials-v1") && contains(google_cloud_run_v2_service.worker["sync"].template[0].containers[0].args, "-plaid-client-id-version=projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/7") && contains(google_cloud_run_v2_service.worker["sync"].template[0].containers[0].args, "-plaid-client-secret-version=projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/23")
-    error_message = "Consumer uses canonical numeric resources and the frozen immutable mapping prefix."
-  }
-  assert {
-    condition     = google_cloud_run_v2_service_iam_binding.worker["publisher"].members == toset(["serviceAccount:jayburd-dev-scheduler@jayburd-synthetic-test.iam.gserviceaccount.com"]) && google_cloud_run_v2_service_iam_binding.worker["sync"].members == toset(["serviceAccount:jayburd-dev-task-invoker@jayburd-synthetic-test.iam.gserviceaccount.com"])
-    error_message = "No anonymous or cross-handler invocation authority."
-  }
-}
-run "reject_mutable_image" {
-  command = plan
-  variables {
-    runtime = {
-      image                 = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker:latest"
-      binding_id            = "00000000-0000-4000-8000-000000000001"
-      client_id_version     = "1"
-      client_secret_version = "1"
-    }
-  }
-  expect_failures = [var.runtime]
-}
-run "reject_alias_version" {
-  command = plan
-  variables {
-    runtime = {
-      image                 = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      binding_id            = "00000000-0000-4000-8000-000000000001"
-      client_id_version     = "latest"
-      client_secret_version = "1"
-    }
-  }
-  expect_failures = [var.runtime]
-}
-run "reject_scheduler_without_runtime" {
-  command = plan
-  variables { scheduler_enabled = true }
-  expect_failures = [var.scheduler_enabled]
-}
 run "reject_foreign_sync_identity" {
   command = plan
   variables { infisical_sync_service_account = "synthetic-sync@foreign-project.iam.gserviceaccount.com" }
@@ -133,15 +81,28 @@ run "reject_noncanonical_project_number" {
   variables { project_number = "012345678901" }
   expect_failures = [var.project_number]
 }
-run "reject_unbounded_version" {
+
+run "worker_release_has_no_activation_or_admin_authority" {
   command = plan
-  variables {
-    runtime = {
-      image                 = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      binding_id            = "00000000-0000-4000-8000-000000000001"
-      client_id_version     = "9223372036854775808"
-      client_secret_version = "1"
-    }
+  assert {
+    condition     = google_project_iam_custom_role.worker_release.permissions == toset(["run.services.create", "run.services.get", "run.services.update", "run.operations.get", "cloudscheduler.jobs.get"]) && toset(keys(google_service_account_iam_member.worker_release_act_as)) == toset(["publisher", "sync"])
+    error_message = "Release identity cannot mutate IAM, secrets, SQL, scheduler or delete services."
   }
-  expect_failures = [var.runtime]
+  assert {
+    condition     = google_project_iam_custom_role.worker_caller_read.permissions == toset(["iam.serviceAccounts.get"]) && toset(keys(google_service_account_iam_member.worker_caller_read)) == toset(["scheduler", "task-invoker"])
+    error_message = "Immutable caller ID lookup must not grant token creation or impersonation."
+  }
+}
+run "owner_installs_exact_invokers_after_services_exist" {
+  command = plan
+  variables { worker_services_exist = true }
+  assert {
+    condition     = google_cloud_run_v2_service_iam_binding.worker["publisher"].members == toset(["serviceAccount:jayburd-dev-scheduler@jayburd-synthetic-test.iam.gserviceaccount.com"]) && google_cloud_run_v2_service_iam_binding.worker["sync"].members == toset(["serviceAccount:jayburd-dev-task-invoker@jayburd-synthetic-test.iam.gserviceaccount.com"]) && google_cloud_scheduler_job.publisher[0].paused
+    error_message = "Owner binding must retain exact callers and paused scheduler."
+  }
+}
+run "reject_release_identity_as_secret_writer" {
+  command = plan
+  variables { infisical_sync_service_account = "jayburd-dev-worker-deployer@jayburd-synthetic-test.iam.gserviceaccount.com" }
+  expect_failures = [var.infisical_sync_service_account]
 }

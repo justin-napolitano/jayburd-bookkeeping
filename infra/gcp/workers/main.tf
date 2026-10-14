@@ -4,7 +4,7 @@ locals {
   runtime_accounts = { publisher = local.accounts.publisher, sync = google_service_account.sync.email }
   origins          = { for component in ["publisher", "sync"] : component => "https://jayburd-dev-acquisition-${component}-${var.project_number}.${var.region}.run.app" }
   containers       = toset(concat(["client-id", "client-secret"], [for i in range(8) : format("slot-%02d", i)]))
-  services         = var.runtime == null ? toset([]) : toset(["publisher", "sync"])
+  services         = var.worker_services_exist ? toset(["publisher", "sync"]) : toset([])
 }
 
 # Existing foundation owns API/publisher/scheduler/task-invoker identities. Acquisition has a separate SQL role.
@@ -221,97 +221,22 @@ resource "google_service_account_iam_member" "task_act_as" {
   member             = "serviceAccount:${local.accounts.publisher}"
 }
 
-resource "google_cloud_run_v2_service" "worker" {
-  for_each             = local.services
-  project              = var.project_id
-  name                 = "jayburd-dev-acquisition-${each.value}"
-  location             = var.region
-  labels               = local.labels
-  deletion_protection  = true
-  ingress              = "INGRESS_TRAFFIC_ALL"
-  invoker_iam_disabled = false
-  custom_audiences     = [local.origins[each.value]]
-  scaling {
-    min_instance_count = 0
-    max_instance_count = 1
-  }
-  template {
-    service_account                  = local.runtime_accounts[each.value]
-    timeout                          = "90s"
-    max_instance_request_concurrency = 1
-    scaling {
-      min_instance_count = 0
-      max_instance_count = 1
-    }
-    containers {
-      image = var.runtime.image
-      ports {
-        container_port = 8080
-      }
-      args = concat([
-        "-mode=${each.value == "publisher" ? "publisher" : "consumer"}", "-listen=0.0.0.0:8080",
-        "-cloud-sql-instance=${var.project_id}:${var.region}:jayburd-dev", "-caller-audience=${local.origins[each.value]}",
-        "-caller-email=${local.accounts[each.value == "publisher" ? "scheduler" : "task-invoker"]}",
-        "-caller-subject=${data.google_service_account.caller[each.value == "publisher" ? "scheduler" : "task-invoker"].unique_id}"
-        ], each.value == "publisher" ? [
-        "-binding-id=${var.runtime.binding_id}", "-queue-location=${var.region}", "-queue-name=${google_cloud_tasks_queue.acquisition.name}",
-        "-consumer-url=${local.origins.sync}/internal/acquisition/consume", "-consumer-audience=${local.origins.sync}", "-task-service-account=${local.accounts["task-invoker"]}"
-        ] : [
-        "-project-number=${var.project_number}",
-        "-credential-mapping-bucket=${google_storage_bucket.private["credential-registry"].name}", "-credential-mapping-prefix=provider-credentials-v1",
-        "-evidence-bucket=${google_storage_bucket.private["acquisition-evidence"].name}",
-        "-plaid-client-id-version=projects/${var.project_number}/secrets/jayburd-dev-bank-sync-client-id/versions/${var.runtime.client_id_version}",
-        "-plaid-client-secret-version=projects/${var.project_number}/secrets/jayburd-dev-bank-sync-client-secret/versions/${var.runtime.client_secret_version}"
-      ])
-      resources {
-        limits            = { cpu = "1", memory = "512Mi" }
-        cpu_idle          = true
-        startup_cpu_boost = false
-      }
-      startup_probe {
-        tcp_socket {
-          port = 8080
-        }
-        period_seconds    = 5
-        failure_threshold = 12
-      }
-    }
-  }
-  traffic {
-    type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
-    percent = 100
-  }
-  depends_on = [
-    google_project_iam_member.sql_client,
-    google_project_iam_member.sql_login,
-    google_sql_user.worker,
-    google_secret_manager_secret_iam_member.sync_reader,
-    google_storage_bucket_iam_member.evidence_raw,
-    google_storage_bucket_iam_member.evidence_tombstone,
-    google_storage_bucket_iam_member.registry_reader,
-    google_cloud_tasks_queue_iam_member.publisher,
-    google_service_account_iam_member.task_act_as
-  ]
-  lifecycle {
-    prevent_destroy = true
-  }
-}
 resource "google_cloud_run_v2_service_iam_binding" "worker" {
   for_each = local.services
   project  = var.project_id
   location = var.region
-  name     = google_cloud_run_v2_service.worker[each.value].name
+  name     = "jayburd-dev-acquisition-${each.value}"
   role     = "roles/run.invoker"
   members  = ["serviceAccount:${local.accounts[each.value == "publisher" ? "scheduler" : "task-invoker"]}"]
 }
 resource "google_cloud_scheduler_job" "publisher" {
-  count            = var.runtime == null ? 0 : 1
+  count            = 1
   project          = var.project_id
   name             = "jayburd-dev-acquisition-publisher"
   region           = var.region
   schedule         = "* * * * *"
   time_zone        = "Etc/UTC"
-  paused           = !var.scheduler_enabled
+  paused           = true
   attempt_deadline = "90s"
   retry_config {
     retry_count = 0
@@ -326,5 +251,43 @@ resource "google_cloud_scheduler_job" "publisher" {
       audience              = local.origins.publisher
     }
   }
-  depends_on = [google_project_service.worker, google_cloud_run_v2_service_iam_binding.worker]
+  depends_on = [google_project_service.worker]
+}
+
+# Owner migrates existing services to worker-runtime without destroying them.
+removed {
+  from = google_cloud_run_v2_service.worker
+  lifecycle { destroy = false }
+}
+
+# Bootstrap supplies deployment authority; routine CI cannot change these grants.
+resource "google_project_iam_custom_role" "worker_release" {
+  project     = var.project_id
+  role_id     = "jayburdWorkerRelease"
+  title       = "Jayburd bounded worker release"
+  permissions = ["run.services.create", "run.services.get", "run.services.update", "run.operations.get", "cloudscheduler.jobs.get"]
+  depends_on  = [google_project_service.worker]
+}
+resource "google_project_iam_member" "worker_release" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.worker_release.name
+  member  = "serviceAccount:jayburd-dev-worker-deployer@${var.project_id}.iam.gserviceaccount.com"
+}
+resource "google_service_account_iam_member" "worker_release_act_as" {
+  for_each           = local.runtime_accounts
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${each.value}"
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:jayburd-dev-worker-deployer@${var.project_id}.iam.gserviceaccount.com"
+}
+resource "google_project_iam_custom_role" "worker_caller_read" {
+  project     = var.project_id
+  role_id     = "jayburdWorkerCallerRead"
+  title       = "Jayburd worker caller immutable identity lookup"
+  permissions = ["iam.serviceAccounts.get"]
+}
+resource "google_service_account_iam_member" "worker_caller_read" {
+  for_each           = toset(["scheduler", "task-invoker"])
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.accounts[each.value]}"
+  role               = google_project_iam_custom_role.worker_caller_read.name
+  member             = "serviceAccount:jayburd-dev-worker-deployer@${var.project_id}.iam.gserviceaccount.com"
 }

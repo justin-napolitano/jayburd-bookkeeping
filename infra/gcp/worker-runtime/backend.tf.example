@@ -1,0 +1,4 @@
+# Owner initializes dedicated PROJECT_ID-jayburd-dev-worker-runtime-state, prefix worker-runtime.
+terraform {
+  backend "gcs" {}
+}
