@@ -60,7 +60,7 @@ Engineering bounds, not claims about all legal provider payloads:
   in metadata, transactions or tombstones rejects all data.
 - IDs are case-sensitive graphic ASCII 1–256 bytes. No URL interpretation or trim.
   Next cursor uses a bounded base64/base64url alphabet, max 256 bytes. Empty cursor
-  only for empty no-more initialization with NOT_READY or UNKNOWN update status.
+  only for empty no-more initialization, independently of Item update status.
 - Required boolean/pending fields cannot be null. Unknown update/payment-channel/
   transaction-type/account-type enums fail closed. Known UNKNOWN update status
   remains explicitly unknown and does not imply completion.
@@ -140,3 +140,19 @@ encoding or our empty-progress rule rejected this response. Keep both rules
 unchanged and classify them as invalid_cursor_encoding or invalid_cursor_progress.
 TestProbeFailuresStayPartialOrBlocked exercises both through the probe. No raw
 cursor, length or provider status is added to the receipt.
+
+## Account readiness correction — 2026-10-14
+
+PI01 describes transactions_update_status at Item scope, next_cursor as empty
+when transactions are unavailable, and account_id as a separate filtered stream.
+Therefore Item completion cannot by itself require a filtered account cursor.
+Accept empty cursor only with no changes and has_more=false for any known Item
+status. The diagnostic still reports provider_not_ready and never passes sync
+without a usable cursor. Unknown status, invalid cursor encoding, changes or
+has_more with an empty cursor still reject. This narrow interpretation avoids
+both declaring history complete and loosening cursor encoding constraints.
+TestPlaidEmptyAccountReadiness covers all four known statuses and rejects all
+three change groups/has_more without a cursor; TestHostedScopeAndCleanup covers
+one initial wait followed by sync, repeat delta and single Item cleanup.
+The hosted progress code identifies the branch but does not expose which
+predicate fired; this documented contract correction still requires hosted proof.

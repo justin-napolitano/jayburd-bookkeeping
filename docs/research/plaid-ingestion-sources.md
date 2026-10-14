@@ -70,3 +70,8 @@ status after the hosted cursor rejection. The request documents 256 base64
 characters; an empty response cursor signals unavailable transactions. The old
 combined error does not identify which local predicate failed. Preserve validation
 and separate fixed error classifications before choosing a compatibility change.
+
+The subsequent progress-only failure prompted the narrow account-readiness
+interpretation in the [decoder contract](../contracts/plaid-decoder.md): Item
+completion is not filtered-account cursor availability. No raw response was
+inspected; whether that specific predicate caused the failure remains unproven.
