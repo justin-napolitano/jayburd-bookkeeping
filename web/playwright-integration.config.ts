@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/experimental-ct-react";
 /** Test proxy forwards to production Next API bridge; it never invents API responses. */
 export default defineConfig({
   testDir: "./tests/integration",
+  testMatch: "app.spec.tsx",
   fullyParallel: false,
   workers: 1,
   timeout: 60000,

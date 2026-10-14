@@ -24,6 +24,7 @@ export type ReviewInboxProps = {
   currencies: Currency[];
   locked: boolean;
   active?: boolean;
+  initialSource?: string;
   prepare: (command: SourcePostCommand) => void;
   denied: () => void;
 };
@@ -31,7 +32,7 @@ export type ReviewInboxProps = {
 export function ReviewInbox(props: ReviewInboxProps) {
   return (
     <Inbox
-      key={`${props.entity.entity_id}/${props.book.book_id}/${props.book.book_revision}/${props.locked}/${props.active ?? true}`}
+      key={`${props.entity.entity_id}/${props.book.book_id}/${props.book.book_revision}/${props.locked}/${props.active ?? true}/${props.initialSource ?? ""}`}
       {...props}
     />
   );
@@ -44,6 +45,7 @@ function Inbox({
   currencies,
   locked,
   active = true,
+  initialSource = "",
   prepare,
   denied,
 }: ReviewInboxProps) {
@@ -102,12 +104,27 @@ function Inbox({
         epoch.current++;
       };
     const version = ++epoch.current;
+    // Loading sources owns the request generation; filters cannot cancel discovery.
+    setBusy(true);
     void api<{ items: ReviewSource[] }>(`${base}/sources`)
       .then((value) => {
-        if (alive.current && version === epoch.current) setSources(value.items);
+        if (alive.current && version === epoch.current) {
+          setSources(value.items);
+          // Navigation supplies a preference only; current source authority must confirm it.
+          if (
+            initialSource &&
+            value.items.some((item) => item.source_account_id === initialSource)
+          ) {
+            setSource(initialSource);
+            void load(initialSource);
+          }
+        }
       })
       .catch((e) => {
         if (alive.current && version === epoch.current) failure(e);
+      })
+      .finally(() => {
+        if (alive.current && version === epoch.current) setBusy(false);
       });
     return () => {
       alive.current = false;
@@ -126,6 +143,8 @@ function Inbox({
   };
   // Opaque cursor continuation keeps SQL's source snapshot; refresh starts a new snapshot.
   const load = async (selected = source, state = filter, cursor?: string) => {
+    // An empty selection cannot supersede the initial source-discovery request.
+    if (!sources && !selected) return;
     const version = ++epoch.current;
     setPage(null);
     resetDetail();
@@ -308,7 +327,7 @@ function Inbox({
           Source account
           <select
             value={source}
-            disabled={!available || busy || !!retry}
+            disabled={!available || !sources || busy || !!retry}
             onChange={(e) => {
               setSource(e.target.value);
               void load(e.target.value);
@@ -326,7 +345,7 @@ function Inbox({
           Review status
           <select
             value={filter}
-            disabled={!available || busy || !!retry}
+            disabled={!available || !sources || busy || !!retry}
             onChange={(e) => {
               setFilter(e.target.value);
               void load(source, e.target.value);
@@ -428,25 +447,33 @@ function Inbox({
           {detail.blockers.length > 0 && (
             <p role="alert">Review blocked: {detail.blockers.join(", ")}</p>
           )}
-          {detail.provider_exceptions && detail.provider_exceptions.total_count !== "0" && (
-            <section aria-label="Source changes after posting">
-              <p role="alert">
-                The source changed after posting. The posted journal and its original
-                evidence are unchanged. These changes need separate correction review.
-              </p>
-              <p>{detail.provider_exceptions.total_count} recorded source changes</p>
-              <ul>
-                {detail.provider_exceptions.items.map((item) => (
-                  <li key={item.exception_id}>
-                    Source {item.kind}: revision {item.previous_revision} → {item.current_revision}
-                  </li>
-                ))}
-              </ul>
-              {detail.provider_exceptions.truncated && (
-                <p>Showing the latest 100 changes. Earlier history is retained.</p>
-              )}
-            </section>
-          )}
+          {detail.provider_exceptions &&
+            detail.provider_exceptions.total_count !== "0" && (
+              <section aria-label="Source changes after posting">
+                <p role="alert">
+                  The source changed after posting. The posted journal and its
+                  original evidence are unchanged. These changes need separate
+                  correction review.
+                </p>
+                <p>
+                  {detail.provider_exceptions.total_count} recorded source
+                  changes
+                </p>
+                <ul>
+                  {detail.provider_exceptions.items.map((item) => (
+                    <li key={item.exception_id}>
+                      Source {item.kind}: revision {item.previous_revision} →{" "}
+                      {item.current_revision}
+                    </li>
+                  ))}
+                </ul>
+                {detail.provider_exceptions.truncated && (
+                  <p>
+                    Showing the latest 100 changes. Earlier history is retained.
+                  </p>
+                )}
+              </section>
+            )}
           {detail.journal_id && (
             <>
               <p>Posted journal: {detail.journal_id}</p>

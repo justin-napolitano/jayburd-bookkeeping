@@ -483,3 +483,10 @@ footer {
     white-space: nowrap;
   }
 }
+
+/* Opaque provider references remain readable within narrow connection panels. */
+section[aria-label="Connections"] { overflow-wrap: anywhere; }
+section[aria-label="Connections"] article { margin-block: 1.2rem; padding: 1rem; border: 1px solid var(--line, #cdd8d6); border-radius: .5rem; }
+section[aria-label="Connections"] li { margin-block: .8rem; }
+section[aria-label="Connections"] button { margin-block: .25rem; }
+section[aria-label="Connections"] input:not([type="checkbox"]), section[aria-label="Connections"] select { max-width: 100%; min-width: 0; }
