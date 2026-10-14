@@ -519,6 +519,8 @@ test("book workspace balances, account activity and journal remain scoped on des
   await expect(page.locator("tfoot td")).toHaveText(["123.45", "123.45"]);
   expect(activityReads).toBe(1);
   await page.setViewportSize({ width: 390, height: 844 });
+  // Wider glyph metrics reproduce the intrinsic grid pressure seen on Linux CI.
+  await page.addStyleTag({ content: ".book-nav button { font-family: monospace; }" });
   await expect(
     page.getByRole("navigation", { name: "Book navigation" }),
   ).toBeVisible();

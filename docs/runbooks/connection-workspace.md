@@ -61,3 +61,15 @@ source options. Discovery now holds the busy boundary until it finishes or hands
 off to the selected-source read; selectors remain disabled while the source list
 is unavailable and an empty selection cannot supersede discovery. `locks filters until connection source discovery
 finishes` proves this regression; source authority remains checked before handoff.
+
+## Mobile CI follow-up
+
+PR #107's Linux frontend gate exposed horizontal overflow in book navigation.
+Three `1fr` tracks inherited min-content widths from non-wrapping labels. A wider
+monospace test font reproduces the same 390px overflow locally before the fix.
+Mobile tracks now use `minmax(0, 1fr)` and labels wrap; no document clipping or
+weakened overflow assertion. The existing workspace browser journey retains the
+wide-font regression. Before fix: named browser case FAIL; after fix: all 13
+browser journeys PASS and mobile screenshot inspected. Default Go checks/race tests/
+build, generated API/types, 221 web unit tests and production web build PASS.
+GitHub Linux validation must pass on the corrected head before merge.
