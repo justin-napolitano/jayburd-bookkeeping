@@ -96,3 +96,38 @@ run "reject_unbounded_consent" {
   variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { consent_expires_at = "2099-01-01T00:00:00Z" }) }
   expect_failures = [google_cloud_run_v2_service.api]
 }
+
+run "reject_project_zero" {
+  command = plan
+  variables { project_number = "0" }
+  expect_failures = [var.project_number]
+}
+
+run "reject_project_leading_zero" {
+  command = plan
+  variables { project_number = "0123456789012" }
+  expect_failures = [var.project_number]
+}
+
+run "reject_project_overflow" {
+  command = plan
+  variables { project_number = "9223372036854775808" }
+  expect_failures = [var.project_number]
+}
+
+run "reject_client_id_version_overflow" {
+  command = plan
+  variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/9223372036854775808" }) }
+  expect_failures = [var.connections]
+}
+
+run "reject_client_secret_version_overflow" {
+  command = plan
+  variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/9223372036854775808" }) }
+  expect_failures = [var.connections]
+}
+
+run "accept_exact_int64_version_maximum" {
+  command = plan
+  variables { connections = merge({ infisical_origin = "https://us.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = true, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h") }, { client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/9223372036854775807", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/9223372036854775807" }) }
+}
