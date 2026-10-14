@@ -1,0 +1,339 @@
+//go:build integration
+
+package providerflow
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/acquisition"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/staging"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/server"
+)
+
+var proof = flag.Bool("provider-flow-proof", false, "Use only disposable synthetic provider-flow database")
+
+const actor = "00000000-0000-4000-8000-000000000001"
+const entity = "00000000-0000-4000-8000-000000000002"
+const book = "00000000-0000-4000-8000-000000000003"
+const currency = "00000000-0000-4000-8000-000000000005"
+const account = "00000000-0000-4000-8000-000000000011"
+const worker = "00000000-0000-4000-8000-000000000020"
+const claim = "00000000-0000-4000-8000-000000000030"
+
+// connect uses only the isolated test database, with no inherited DSN or credential discovery.
+func connect(t *testing.T, user string) *pgx.Conn {
+	t.Helper()
+	if !*proof {
+		t.Skip("use make provider-flow-test")
+	}
+	c, e := pgx.Connect(context.Background(), fmt.Sprintf("host=database port=5432 user=%s dbname=provider_flow_template sslmode=disable connect_timeout=5", user))
+	if e != nil {
+		t.Fatal("synthetic database unavailable")
+	}
+	t.Cleanup(func() { c.Close(context.Background()) })
+	return c
+}
+
+// exec installs fictional fixtures only, never runtime product authority.
+func exec(t *testing.T, c *pgx.Conn, q string, args ...any) {
+	t.Helper()
+	if _, e := c.Exec(context.Background(), q, args...); e != nil {
+		t.Fatal("synthetic setup failed", e)
+	}
+}
+
+// scalar reads aggregate proof facts without outputting source payloads.
+func scalar(t *testing.T, c *pgx.Conn, q string) string {
+	t.Helper()
+	var s string
+	if e := c.QueryRow(context.Background(), q).Scan(&s); e != nil {
+		t.Fatal("synthetic aggregate failed")
+	}
+	return s
+}
+
+// ownerCall provisions reviewed mandates through the actual owner-only boundary.
+func ownerCall(t *testing.T, c *pgx.Conn, q string, args ...any) {
+	t.Helper()
+	tx, e := c.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if e != nil {
+		t.Fatal("owner transaction failed")
+	}
+	defer tx.Rollback(context.Background())
+	if _, e = tx.Exec(context.Background(), "SET LOCAL ROLE bookkeeping_owner"); e != nil {
+		t.Fatal("owner role failed")
+	}
+	var out []byte
+	if e = tx.QueryRow(context.Background(), q, args...).Scan(&out); e != nil {
+		t.Fatal("owner operation failed", e)
+	}
+	if tx.Commit(context.Background()) != nil {
+		t.Fatal("owner commit failed")
+	}
+}
+
+// identity authenticates only an original synthetic bearer value; it is not an identity emulator.
+type identity struct{}
+
+// Authenticate maps the test credential to a fixed fictional principal.
+func (identity) Authenticate(_ context.Context, token string) (string, error) {
+	if token != "synthetic-flow" {
+		return "", errors.New("denied")
+	}
+	return actor, nil
+}
+
+// provider supplies verified fictional Link/account results and counts external mutations.
+type provider struct{ exchanges int }
+
+// CreateLink returns an ephemeral synthetic value and fixed bounded expiry.
+func (*provider) CreateLink(context.Context, connections.LinkRequest) (connections.LinkResult, error) {
+	return connections.LinkResult{Token: connections.NewSecret("synthetic-link"), ExpiresAt: time.Now().Add(5 * time.Minute)}, nil
+}
+
+// VerifySession binds only the known synthetic session and public token.
+func (*provider) VerifySession(_ context.Context, link, public connections.Secret, expectedItem string) error {
+	if expectedItem != "" || link != connections.NewSecret("synthetic-link") || public != connections.NewSecret("synthetic-public") {
+		return errors.New("unverified")
+	}
+	return nil
+}
+
+// Exchange counts the side effect so replay cannot be mistaken for success.
+func (p *provider) Exchange(context.Context, connections.Secret) (connections.ExchangeResult, error) {
+	p.exchanges++
+	return connections.ExchangeResult{ItemID: "synthetic-flow-item", AccessToken: connections.NewSecret("synthetic-access")}, nil
+}
+
+// Manifest returns only server-verified account identity; there are no client-supplied balances.
+func (*provider) Manifest(context.Context, connections.Secret) (connections.Manifest, error) {
+	code := "USD"
+	return connections.Manifest{ItemID: "synthetic-flow-item", Accounts: []connections.Account{{AccountID: "synthetic-flow-account", Type: "depository", Currency: &code}}, ConsentExpiresAt: "2099-01-01T00:00:00Z"}, nil
+}
+
+// Rotate is deliberately unavailable in this enrollment-to-review scenario.
+func (*provider) Rotate(context.Context, connections.Secret) (connections.ExchangeResult, error) {
+	return connections.ExchangeResult{}, errors.New("not in scenario")
+}
+
+// Remove is deliberately unavailable; disconnect must never call it.
+func (*provider) Remove(context.Context, connections.Secret) error {
+	return errors.New("not in scenario")
+}
+
+// secretStore retains only this test's synthetic token in memory behind the production interface.
+type secretStore struct {
+	stored        connections.StoredCredential
+	writes, reads int
+}
+
+// Put requires immutable reference identity and exact synthetic replay.
+func (s *secretStore) Put(_ context.Context, r connections.CredentialReference, token connections.Secret) error {
+	if s.writes > 0 && (s.stored.Reference != r || s.stored.Token != token) {
+		return errors.New("conflict")
+	}
+	s.stored = connections.StoredCredential{Reference: r, Token: token}
+	s.writes++
+	return nil
+}
+
+// Read returns only the exact immutable version requested.
+func (s *secretStore) Read(_ context.Context, r connections.CredentialReference) (connections.StoredCredential, error) {
+	s.reads++
+	if s.writes == 0 || s.stored.Reference != r {
+		return connections.StoredCredential{}, errors.New("missing")
+	}
+	return s.stored, nil
+}
+
+// Resolve checks the same stored reference before furnishing fictional runner credentials.
+func (s *secretStore) Resolve(_ context.Context, r acquisition.CredentialReference) (acquisition.ProviderCredentials, error) {
+	stored := s.stored.Reference
+	if s.writes == 0 || stored.ReferenceID != r.ReferenceID || stored.Version != r.Version || stored.ItemID != r.ItemID || stored.Environment != r.Environment {
+		return acquisition.ProviderCredentials{}, errors.New("denied")
+	}
+	credentials := acquisition.ProviderCredentials{ClientID: "synthetic-client", Secret: "synthetic-secret"}
+	err := s.stored.Token.WithValue(func(value string) error { credentials.AccessToken = value; return nil })
+	return credentials, err
+}
+
+// transport intercepts the pinned production adapter; no request reaches Plaid.
+type transport struct{ calls int }
+
+// RoundTrip verifies account filtering and serves exact original decimal bytes.
+func (p *transport) RoundTrip(r *http.Request) (*http.Response, error) {
+	p.calls++
+	if r.URL.String() != "https://sandbox.plaid.com/transactions/sync" || r.Header.Get("Plaid-Version") != "2020-09-14" {
+		return nil, errors.New("wrong destination")
+	}
+	raw, e := io.ReadAll(r.Body)
+	if e != nil {
+		return nil, e
+	}
+	var request struct {
+		Options struct {
+			AccountID string `json:"account_id"`
+		} `json:"options"`
+	}
+	if json.Unmarshal(raw, &request) != nil || request.Options.AccountID != "synthetic-flow-account" {
+		return nil, errors.New("wrong scope")
+	}
+	body := `{"accounts":[{"account_id":"synthetic-flow-account","type":"depository"}],"added":[{"account_id":"synthetic-flow-account","transaction_id":"synthetic-cent-a","amount":0.10,"iso_currency_code":"USD","unofficial_currency_code":null,"date":"2026-10-13","pending":false,"pending_transaction_id":null,"name":"Fictional purchase A"},{"account_id":"synthetic-flow-account","transaction_id":"synthetic-cent-b","amount":0.20,"iso_currency_code":"USD","unofficial_currency_code":null,"date":"2026-10-13","pending":false,"pending_transaction_id":null,"name":"Fictional purchase B"}],"modified":[],"removed":[],"next_cursor":"synthetic-cursor","has_more":false,"transactions_update_status":"HISTORICAL_UPDATE_COMPLETE","request_id":"synthetic-request"}`
+	return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
+}
+
+// request exercises authenticated HTTP and checks public output never exposes credential internals.
+func request(t *testing.T, s *server.Server, method, path, key string, body any, want int) map[string]json.RawMessage {
+	t.Helper()
+	var payload io.Reader
+	if body != nil {
+		raw, e := json.Marshal(body)
+		if e != nil {
+			t.Fatal("request fixture")
+		}
+		payload = strings.NewReader(string(raw))
+	}
+	r := httptest.NewRequest(method, path, payload)
+	r.Header.Set("Authorization", "Bearer synthetic-flow")
+	r.Header.Set("Origin", "http://localhost:3000")
+	r.Header.Set("Content-Type", "application/json")
+	if key != "" {
+		r.Header.Set("Idempotency-Key", key)
+	}
+	w := httptest.NewRecorder()
+	s.HTTP.Handler.ServeHTTP(w, r)
+	if w.Code != want {
+		var problem struct {
+			Code string `json:"code"`
+		}
+		_ = json.Unmarshal(w.Body.Bytes(), &problem)
+		t.Fatalf("HTTP %s: status %d code %s", method, w.Code, problem.Code)
+	}
+	for _, forbidden := range []string{"credential_ref", "credential_version", "claim_id", "token_sha256", "synthetic-access", "synthetic-secret"} {
+		if strings.Contains(w.Body.String(), forbidden) {
+			t.Fatal("private connection metadata leaked")
+		}
+	}
+	var out map[string]json.RawMessage
+	if json.Unmarshal(w.Body.Bytes(), &out) != nil {
+		t.Fatal("invalid public result")
+	}
+	return out
+}
+
+// stringField decodes identifiers without coercing monetary numbers.
+func stringField(t *testing.T, v json.RawMessage) string {
+	t.Helper()
+	var s string
+	if json.Unmarshal(v, &s) != nil {
+		t.Fatal("invalid string field")
+	}
+	return s
+}
+
+// TestProviderEnrollmentAcquisitionFlow connects real HTTP, enrollment SQL, durable evidence and runner SQL.
+func TestProviderEnrollmentAcquisitionFlow(t *testing.T) {
+	c := connect(t, "postgres")
+	runtime := connect(t, "synthetic_runtime")
+	sync := connect(t, "synthetic_sync")
+	operator := connect(t, "synthetic_operator")
+	exec(t, c, `INSERT INTO ledger.principal(principal_id,issuer,subject) VALUES($1,'synthetic','flow-owner'),($2,'synthetic','flow-worker')`, actor, worker)
+	exec(t, c, `INSERT INTO ledger.entity(entity_id,name,kind) VALUES($1,'Fictional Flow LLC','legal')`, entity)
+	exec(t, c, `INSERT INTO ledger.membership VALUES($1,$2,'read',NULL),($1,$2,'import',NULL),($1,$3,'read',NULL),($1,$3,'import',NULL)`, entity, actor, worker)
+	exec(t, c, `INSERT INTO ledger.book(entity_id,book_id,name) VALUES($1,$2,'Fictional Flow Book')`, entity, book)
+	exec(t, c, `INSERT INTO reference.currency VALUES($1,'USD','840',2,'2000-01-01',NULL,'synthetic')`, currency)
+	exec(t, c, `INSERT INTO ledger.account VALUES($1,$2,$3,'1000','Fictional bank','asset','debit',true,'2026-01-01',NULL)`, entity, book, account)
+	ownerCall(t, operator, `SELECT integration.set_connect_permission($1,$2,$3,$1,'flow-connect',true)`, actor, entity, book)
+	ownerCall(t, operator, `SELECT integration.set_connection_worker($1,$2,$3,'flow-worker',$4)`, actor, entity, book, `{"service_principal_id":"`+worker+`","worker_login":"synthetic_sync","enabled":true}`)
+	p, store := &provider{}, &secretStore{}
+	service := connections.New(runtime, p, store)
+	app, e := server.New(server.Config{Mode: "managed", Listen: "127.0.0.1:8080", Origin: "http://localhost:3000", Project: "synthetic-project", DatabaseURL: "synthetic"}, server.Dependencies{Auth: identity{}, Operations: &ledger.Service{DB: runtime}, Connections: service, Ready: func(context.Context) error { return nil }})
+	if e != nil {
+		t.Fatal("server composition failed")
+	}
+	base := "/v1/entities/" + entity + "/books/" + book
+	begin := request(t, app, "POST", base+"/connection-attempts", "flow-begin", connections.BeginRequest{Mode: "new", ApprovedStreamIDs: []string{}}, 200)
+	var attempt map[string]json.RawMessage
+	_ = json.Unmarshal(begin["attempt"], &attempt)
+	id := stringField(t, attempt["attempt_id"])
+	nonce := stringField(t, begin["nonce"])
+	link := stringField(t, begin["link_token"])
+	execute := connections.ExecuteRequest{Nonce: nonce, LinkToken: link, PublicToken: "synthetic-public"}
+	request(t, app, "POST", base+"/connection-attempts/"+id+"/execute", "", execute, 200)
+	request(t, app, "POST", base+"/connection-attempts/"+id+"/execute", "", execute, 200)
+	if p.exchanges != 1 || store.writes != 1 {
+		t.Fatal("replayed provider exchange or secret write")
+	}
+	bound := request(t, app, "POST", base+"/connection-attempts/"+id+"/bindings", "flow-bind", connections.BindingRequest{ConsentGrants: true, Bindings: []connections.Binding{{AccountID: "synthetic-flow-account", LedgerAccountID: account, CurrencyVersionID: currency, BindingDate: "2026-10-13", BindingEvidenceRef: claim}}}, 200)
+	var streams []struct {
+		StreamID string `json:"stream_id"`
+		SourceID string `json:"source_account_id"`
+		Overlap  bool   `json:"overlap_review_required"`
+	}
+	if json.Unmarshal(bound["streams"], &streams) != nil || len(streams) != 1 || streams[0].Overlap {
+		t.Fatal("provider-first source not reviewable")
+	}
+	httpProvider := &transport{}
+	client, e := acquisition.NewPlaidHTTP(httpProvider)
+	if e != nil {
+		t.Fatal("provider composition failed")
+	}
+	directory := t.TempDir()
+	if err := os.Chmod(directory, 0700); err != nil {
+		t.Fatal("private directory setup failed")
+	}
+	disk, e := staging.Open(directory)
+	if e != nil {
+		t.Fatal("private storage failed")
+	}
+	defer disk.Close()
+	evidence, e := acquisition.NewLocalEvidence(disk)
+	if e != nil {
+		t.Fatal("evidence composition failed")
+	}
+	runner, e := acquisition.New(sync, client, store, evidence)
+	if e != nil {
+		t.Fatal("runner composition failed")
+	}
+	scope := acquisition.Scope{EntityID: entity, BookID: book, StreamID: streams[0].StreamID}
+	out, e := runner.Run(context.Background(), scope, claim)
+	if e != nil || out.Status != "completed" || out.ChangedCount != "2" {
+		t.Fatal("acquisition did not publish", e)
+	}
+	out, e = runner.Run(context.Background(), scope, claim)
+	if e != nil || out.Status != "completed" || httpProvider.calls != 1 {
+		t.Fatal("replay refetched provider or failed")
+	}
+	if scalar(t, c, `SELECT count(*)::text FROM ledger.journal_entry`) != "0" {
+		t.Fatal("acquisition posted a journal")
+	}
+	if scalar(t, c, `SELECT sum(r.amount)::text FROM banking.source_observation o JOIN banking.observation_revision r ON (r.entity_id,r.book_id,r.observation_id,r.revision)=(o.entity_id,o.book_id,o.observation_id,o.current_revision)`) != "0.300000000" {
+		t.Fatal("exact cents changed")
+	}
+	if scalar(t, c, `SELECT count(*)::text FROM banking.review_item WHERE state='needs_review'`) != "2" {
+		t.Fatal("acquired evidence not reviewable")
+	}
+	request(t, app, "GET", base+"/connections", "", nil, 200)
+	request(t, app, "GET", base+"/review-items?source_account_id="+streams[0].SourceID+"&state=needs_review", "", nil, 200)
+	request(t, app, "POST", base+"/connections/streams/"+scope.StreamID+"/disconnect", "flow-disconnect", map[string]string{"expected_binding_revision": "1"}, 200)
+	_, e = runner.Run(context.Background(), scope, claim)
+	if e == nil || httpProvider.calls != 1 {
+		t.Fatal("disconnected stream retained acquisition authority")
+	}
+	ownerCall(t, operator, `SELECT integration.set_connect_permission($1,$2,$3,$1,'flow-revoke',false)`, actor, entity, book)
+	request(t, app, "GET", base+"/connection-attempts/"+id, "", nil, 404)
+}
