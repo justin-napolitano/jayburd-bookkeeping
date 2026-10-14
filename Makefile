@@ -128,3 +128,7 @@ connection-ops-test:
 
 webhook-test:
 	bash scripts/test-webhook.sh
+
+.PHONY: sync-dispatch-test
+sync-dispatch-test:
+	bash scripts/test-sync-dispatch.sh

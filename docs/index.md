@@ -100,3 +100,5 @@ and its billing link/foundation are established; see the delivery evidence ledge
 the [delivery evidence ledger](runbooks/gcp-delivery.md).
 
 - [Cloud Run rollout contract](contracts/cloud-run-rollout.md) and [release review instructions](../deploy/README.md).
+
+Acquisition delivery: [SQL ownership](contracts/acquisition-dispatch-sql.md), [Go runtime](contracts/acquisition-dispatch-runtime.md), [transport profile](contracts/acquisition-transport.md), [delivery runbook](runbooks/acquisition-dispatch.md), and [bounded HTTP host](runbooks/worker-host.md).
