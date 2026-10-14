@@ -112,3 +112,20 @@ not every field or provider guarantee. Alternative float SDK decoding loses orig
 number tokens; unrestricted unknown-field acceptance conceals material changes;
 rejecting all inert nested additions is stricter but unnecessarily broad for fields
 with no financial interpretation. Tests prove this local parser profile only.
+
+## Transaction classification compatibility — 2026-10-14
+
+Issue #118: accept optional `transaction_code` as null or a string of at most
+256 Unicode codepoints (our bound). Retain it only in private raw evidence;
+never derive direction, ledger category or posting authority from it. Unknown
+classification strings remain inert, like other unmapped metadata. Wrong JSON
+types reject. Unknown field names and all money/account checks still reject.
+The proprietary adapter/ISO applicability above is unchanged.
+
+PI01 documents this nullable classification even where no institution code is
+available. Synthetic reproduction proved our previous allowlist rejected its
+null form. This is a confirmed compatibility defect, not proof of the cause of
+the earlier hosted rejection. Rejecting the documented field prevents valid
+pages; accepting every unknown field would remove the material-schema boundary.
+`TestPlaidTransactionCode` verifies the narrow alternative, exact cents, raw
+retention, omitted normalized mapping, invalid types and account isolation.

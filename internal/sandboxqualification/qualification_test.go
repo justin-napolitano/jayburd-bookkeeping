@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/plaid"
 )
 
 const safeInput = `{"environment":"sandbox","client_id":"synthetic-client","secret":"synthetic-secret","access_token":"access-sandbox-synthetic","account_id":"Account-A","currencies":[{"Code":"USD","VersionID":"00000000-0000-4000-8000-000000000005","MinorUnit":2,"ValidFrom":"2000-01-01","ValidTo":""}]}`
@@ -106,8 +108,8 @@ func TestOptInNeverReadsProvider(t *testing.T) {
 // TestProbeFailuresStayPartialOrBlocked covers scope, parser, progress, readiness and upstream failure with fixed output.
 func TestProbeFailuresStayPartialOrBlocked(t *testing.T) {
 	cases := []struct{ name, body, reason string }{
-		{"mismatch", page("C1", false, strings.Replace(transaction, "Account-A", "Other-A", 1)), "decoder_rejected"},
-		{"duplicate", strings.Replace(page("C1", false, ""), `"has_more":false`, `"has_more":false,"has_more":true`, 1), "decoder_rejected"},
+		{"mismatch", page("C1", false, strings.Replace(transaction, "Account-A", "Other-A", 1)), "decoder_account_mismatch"},
+		{"duplicate", strings.Replace(page("C1", false, ""), `"has_more":false`, `"has_more":false,"has_more":true`, 1), "decoder_duplicate_key"},
 		{"readiness", strings.Replace(page("", false, ""), "HISTORICAL_UPDATE_COMPLETE", "NOT_READY", 1), "provider_not_ready"},
 		{"cycle", page("C1", true, ""), "cursor_not_progressing"},
 	}
@@ -188,4 +190,24 @@ func TestAggregateBudgets(t *testing.T) {
 			t.Fatal("cancelled run reached transport")
 		}
 	})
+}
+
+// TestDecoderReasonRedaction verifies wrapped codes and arbitrary errors cannot leak values.
+func TestDecoderReasonRedaction(t *testing.T) {
+	for _, code := range []string{"limit_exceeded", "invalid_expectation", "invalid_json", "duplicate_key", "invalid_number", "invalid_cursor", "invalid_field", "unknown_enum", "account_mismatch", "unsupported_account", "duplicate_identity", "invalid_identity", "invalid_lineage", "invalid_date", "unsupported_currency", "amount_out_of_range", "unknown_field"} {
+		if decoderReason(fmt.Errorf("private wrapper: %w", &plaid.Error{Code: code})) != "decoder_"+code {
+			t.Fatal("classification missing")
+		}
+	}
+	for _, err := range []error{nil, fmt.Errorf("private provider detail"), &plaid.Error{Code: "private provider detail"}, (*plaid.Error)(nil)} {
+		if decoderReason(err) != "decoder_rejected" {
+			t.Fatal("unreviewed error escaped")
+		}
+	}
+	body := strings.Replace(page("C1", false, transaction), `"name":`, `"private-field-marker":"private-value-marker","name":`, 1)
+	r := Run(context.Background(), true, input(t), fakeTransport(func(*http.Request) (*http.Response, error) { return reply(body), nil }))
+	encoded, _ := json.Marshal(r)
+	if r.Checks[0].Reason != "decoder_unknown_field" || r.Initial != (Counts{}) || strings.Contains(string(encoded), "private-") {
+		t.Fatal("receipt redaction or failure atomicity")
+	}
 }

@@ -245,7 +245,7 @@ func round(ctx context.Context, provider acquisition.Provider, input *Input, cur
 		}
 		page, e := plaid.DecodePage(raw, plaid.Expected{AccountID: input.data.AccountID, Currencies: input.data.Currencies})
 		if e != nil {
-			return "", "", counts, "decoder_rejected"
+			return "", "", counts, decoderReason(e)
 		}
 		counts.Pages++
 		changes := len(page.Added) + len(page.Modified) + len(page.Removed)
@@ -270,4 +270,20 @@ func round(ctx context.Context, provider acquisition.Provider, input *Input, cur
 		cursor = &next
 	}
 	return "", "", counts, "profile_limit"
+}
+
+// decoderReason exposes only reviewed classifications, never error text or upstream fields.
+func decoderReason(err error) string {
+	var decoded *plaid.Error
+	if errors.As(err, &decoded) && decoded != nil {
+		switch decoded.Code {
+		case "limit_exceeded", "invalid_expectation", "invalid_json", "duplicate_key",
+			"invalid_number", "invalid_cursor", "invalid_field", "unknown_enum",
+			"account_mismatch", "unsupported_account", "duplicate_identity",
+			"invalid_identity", "invalid_lineage", "invalid_date", "unsupported_currency",
+			"amount_out_of_range", "unknown_field":
+			return "decoder_" + decoded.Code
+		}
+	}
+	return "decoder_rejected"
 }
