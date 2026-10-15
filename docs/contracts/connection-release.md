@@ -48,3 +48,15 @@ configuration-bound rollback and deterministic receipt digest. Default tests use
 fictional metadata and no provider/cloud calls. This does not create a release,
 provision Infisical, implement Link/reconnect, deploy workers or qualify Sandbox.
 #27/#11 retain delivery/configuration acceptance; #88 retains provider qualification.
+
+## First Sandbox writer configuration
+
+The first hosted qualification selects project
+`ec11c550-d143-4902-be67-e33266753539` and writer identity
+`56d2a541-a48d-4bcc-ae0c-11f48c945ba2`, origin `https://app.infisical.com`.
+The [isolated role exception](provider-vault.md#approved-isolated-sandbox-role-exception)
+is owner-approved; the manifest evidence must link the configuration confirmation.
+Use the existing Hosted Link profile (`link_events_qualified=false`); do not infer
+ordinary-SDK qualification from saved identity settings. A complete reviewed
+manifest still requires the public Firebase browser identifier, exact build/image
+receipts and numeric static GSM pins. No placeholder identifier may be deployed.
