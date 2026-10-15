@@ -10,6 +10,9 @@ reference provenance and boundaries. Hosted execution belongs to #133.
 
 ## Stage ledger
 
+- Issue #133 follow-up adds a one-click Sandbox starter preset for an empty
+  workspace. It prepares the existing durable setup command from the reviewed
+  bounded USD metadata; explicit review and execution remain required.
 - Reviewed existing enrollment/setup/connection/delivery SQL and operator bootstrap.
 - Verified SIX List One's publication/hash and USD record; recorded a bounded local
   validity window, distinct from ISO historical dates.
@@ -18,6 +21,14 @@ reference provenance and boundaries. Hosted execution belongs to #133.
 
 ## Current evidence
 
+PASS: the focused browser test proves the starter registers the exact bounded
+setup request without executing it. `make web-check web-test web-build
+web-browser` passes: 258 unit tests and 16 Chromium component tests. No provider
+call, source account or journal is part of this UI change.
+PASS: `make check test build` passes with the pinned Go 1.26.9 toolchain. After
+stopping an obsolete three-day-old local demo that held the proof ports,
+`make app-integration` passes through the production Next bridge, Go HTTP, and
+disposable PostgreSQL. The integration identity and database remain synthetic.
 PASS: eight named PostgreSQL test groups, including initial/replay/conflict,
 rollback after a deliberately failed delivery insert, disabled actor/service,
 revoked grant, cross-entity, wrong/missing worker capability and API denial.

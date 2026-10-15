@@ -225,10 +225,87 @@ function Setup({
       } as Extract<RegisterCommand, { operation: "setup" }>["body"],
     });
   };
+  const starterCurrency = workspace.currencies.find(
+    (currency) =>
+      currency.alphabetic_code === "USD" &&
+      currency.minor_unit === 2 &&
+      currency.valid_to !== null &&
+      currency.valid_from < currency.valid_to,
+  );
+  // The preset prepares the same reviewed setup command as the full form; it grants no extra authority.
+  const prepareSandboxStarter = () => {
+    const endsBefore = starterCurrency?.valid_to;
+    if (!starterCurrency || !endsBefore || locked) return;
+    prepare({
+      operation: "setup",
+      entity_id: null,
+      book_id: null,
+      body: {
+        entity_name: "Personal Sandbox",
+        entity_kind: "personal",
+        book_name: "Sandbox bank connections",
+        starts_on: starterCurrency.valid_from,
+        ends_before: endsBefore,
+        functional_currency_version_id: starterCurrency.currency_version_id,
+        accounts: [
+          {
+            code: "1000",
+            name: "Sandbox checking",
+            category: "asset",
+            normal_side: "debit",
+            monetary: true,
+          },
+          {
+            code: "3000",
+            name: "Opening equity",
+            category: "equity",
+            normal_side: "credit",
+            monetary: false,
+          },
+          {
+            code: "4000",
+            name: "Uncategorized income",
+            category: "revenue",
+            normal_side: "credit",
+            monetary: false,
+          },
+          {
+            code: "5000",
+            name: "Uncategorized expenses",
+            category: "expense",
+            normal_side: "debit",
+            monetary: false,
+          },
+        ],
+      },
+    });
+  };
   return (
     <section>
+      {workspace.entities.length === 0 && (
+        <div className="starter-book">
+          <h3>Start with a Sandbox bank connection</h3>
+          <p>
+            Prepare a personal development book with checking, equity, income,
+            and expense accounts. You will review the exact command before the
+            ledger creates anything.
+          </p>
+          <button
+            type="button"
+            disabled={locked || !starterCurrency}
+            onClick={prepareSandboxStarter}
+          >
+            Review Sandbox starter book
+          </button>
+          {!starterCurrency && (
+            <p role="alert">
+              Reviewed bounded USD metadata is required before starter setup.
+            </p>
+          )}
+        </div>
+      )}
       <details>
-        <summary>Create an entity and book</summary>
+        <summary>Create a custom entity and book</summary>
         <p>
           Development policy: accrual, UTC, USD functional currency, half-even
           rounding. Foreign transaction currencies remain supported. Choose
