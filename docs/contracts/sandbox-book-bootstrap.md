@@ -22,7 +22,11 @@ Only currency/principal UUIDs and fixed PASS text are reported; never UID or ema
 
 ## Book stage
 
-After UI setup, `sandbox-book.sql` takes `project`, `actor_id`, `entity_id`,
+UI setup may use the custom form or the bounded Sandbox starter preset. The preset
+only prepares the ordinary durable setup command with a personal entity, one
+monetary checking account, and non-monetary equity/income/expense accounts. The
+owner still reviews and explicitly executes it; it adds no alternate SQL or auth
+path. After UI setup, `sandbox-book.sql` takes `project`, `actor_id`, `entity_id`,
 `book_id`, `worker_login`, `publisher_login`, `scheduler_paused`. Exact fixed dev
 IAM login names and a true owner-observed scheduler-paused attestation are required;
 SQL cannot query cloud scheduler state. Existing SQL capability predicates must

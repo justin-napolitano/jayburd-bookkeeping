@@ -60,7 +60,7 @@ const workspace = {
       alphabetic_code: "USD",
       minor_unit: 2,
       valid_from: "2026-01-01",
-      valid_to: null,
+      valid_to: "2027-01-01",
     },
   ],
   development_policy: "dev-accrual-usd-v1",
@@ -273,7 +273,9 @@ test("setup registers review then executes and explicitly acknowledges", async (
 }) => {
   const server = await mockCommands(page, true);
   await mount(<Harness />);
-  await page.getByText("Create an entity and book", { exact: true }).click();
+  await page
+    .getByText("Create a custom entity and book", { exact: true })
+    .click();
   await page.getByLabel("Entity name", { exact: true }).fill("Fictional LLC");
   await page.getByLabel("Book name", { exact: true }).fill("Operating");
   await page.getByLabel("Period starts on").fill("2026-01-01");
@@ -300,6 +302,65 @@ test("setup registers review then executes and explicitly acknowledges", async (
   await expect(
     page.getByText("No unacknowledged command.", { exact: false }),
   ).toBeVisible();
+});
+test("Sandbox starter prepares the bounded reviewed setup without manual fields", async ({
+  mount,
+  page,
+}) => {
+  const server = await mockCommands(page, true);
+  await mount(<Harness />);
+  await page
+    .getByRole("button", { name: "Review Sandbox starter book", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Create book", exact: true }),
+  ).toBeVisible();
+  expect(server.executions).toBe(0);
+  expect(server.registrations).toHaveLength(1);
+  const request = JSON.parse(server.registrations[0].body!);
+  expect(request).toEqual({
+    operation: "setup",
+    entity_id: null,
+    book_id: null,
+    body: {
+      entity_name: "Personal Sandbox",
+      entity_kind: "personal",
+      book_name: "Sandbox bank connections",
+      starts_on: "2026-01-01",
+      ends_before: "2027-01-01",
+      functional_currency_version_id: "c1",
+      accounts: [
+        {
+          code: "1000",
+          name: "Sandbox checking",
+          category: "asset",
+          normal_side: "debit",
+          monetary: true,
+        },
+        {
+          code: "3000",
+          name: "Opening equity",
+          category: "equity",
+          normal_side: "credit",
+          monetary: false,
+        },
+        {
+          code: "4000",
+          name: "Uncategorized income",
+          category: "revenue",
+          normal_side: "credit",
+          monetary: false,
+        },
+        {
+          code: "5000",
+          name: "Uncategorized expenses",
+          category: "expense",
+          normal_side: "debit",
+          monetary: false,
+        },
+      ],
+    },
+  });
 });
 test("denied entity switch clears previous financial values", async ({
   mount,
@@ -520,7 +581,9 @@ test("book workspace balances, account activity and journal remain scoped on des
   expect(activityReads).toBe(1);
   await page.setViewportSize({ width: 390, height: 844 });
   // Wider glyph metrics reproduce the intrinsic grid pressure seen on Linux CI.
-  await page.addStyleTag({ content: ".book-nav button { font-family: monospace; }" });
+  await page.addStyleTag({
+    content: ".book-nav button { font-family: monospace; }",
+  });
   await expect(
     page.getByRole("navigation", { name: "Book navigation" }),
   ).toBeVisible();
