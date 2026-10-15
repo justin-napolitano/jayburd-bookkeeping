@@ -66,6 +66,11 @@ Issue #151 correction: `make web-check web-test web-build web-browser` passed
 with 263 unit tests and 17 browser journeys. New hook regressions cover denied
 discovery followed by successful retry and definitive setup rejection followed
 by empty pending discovery. No database or API contract changes are required.
+PR #152 merged as `262b54e` with every check green. Owner build 38823429691
+passed validation, integration, all candidate runtimes and vulnerability gates.
+The promotion manifest pins its API, migrator and web receipts; database work
+is read-only migration status verification. Hosted action authorization remains
+unverified until the owner completes the starter-book flow.
 
 Hosted scope denial remains fail-closed; no private payload or log was inspected.
 The stale-error correction and owner starter-book acceptance remain.
