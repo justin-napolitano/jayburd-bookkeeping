@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { useCommands } from "./commands";
-import type { API } from "./api";
+import { APIError, type API } from "./api";
 import type { DurableCommand, RegisterCommand } from "./types";
 afterEach(cleanup);
 const body = {
@@ -29,6 +29,26 @@ const prepared: DurableCommand = {
 };
 // API replacement models session composition changes while an old network operation remains unresolved.
 describe("command session boundary", () => {
+  it("clears only explicit inaccessible recovery and reloads the command gate", async () => {
+    let blocked = true;
+    const api = vi.fn(async (path: string) => {
+      if (path === "/v1/commands/pending/clear") {
+        blocked = false;
+        return { cleared: true };
+      }
+      if (path.endsWith("/pending") && blocked) throw new APIError(403, false);
+      return { command: null };
+    }) as unknown as API;
+    const hook = renderHook(() => useCommands(api));
+    await waitFor(() => expect(hook.result.current.accessDenied).toBe(true));
+    expect(hook.result.current.locked).toBe(true);
+    await act(async () => hook.result.current.clearInaccessible());
+    await waitFor(() => expect(hook.result.current.ready).toBe(true));
+    expect(hook.result.current.accessDenied).toBe(false);
+    expect(hook.result.current.locked).toBe(false);
+    expect(api).toHaveBeenNthCalledWith(2, "/v1/commands/pending/clear", "{}");
+  });
+
   it.each(["register", "execute"] as const)(
     "ignores late %s completion after API replacement",
     async (operation) => {

@@ -128,7 +128,14 @@ describe('durable command transport', () => {
   expect((await createBridge(transport(),()=>env)(request('/v1/commands',{'Content-Type':'application/json','Idempotency-Key':'same-command'},'{}'))).status).toBe(200);
   expect((await createBridge(transport(),()=>env)(request('/v1/commands/pending'))).status).toBe(200);
  });
- it.each(['/v1/commands/pending?actor=other',`/v1/commands/${id}/force`,`/v1/commands/invalid/execute`])('rejects non-contract route %s before provider access',async(path)=>{
+ it('forwards explicit inaccessible-command clearing without a key',async()=>{
+  const fetcher=transport(Response.json({cleared:true}));
+  const result=await createBridge(fetcher,()=>env)(request('/v1/commands/pending/clear',{'Content-Type':'application/json'},'{}'));
+  expect(result.status).toBe(200);
+  expect(new Headers(fetcher.mock.calls[1][1]?.headers).has('Idempotency-Key')).toBe(false);
+  expect(new TextDecoder().decode(fetcher.mock.calls[1][1]?.body as Uint8Array)).toBe('{}');
+ });
+ it.each(['/v1/commands/pending?actor=other','/v1/commands/pending/clear?actor=other',`/v1/commands/${id}/force`,`/v1/commands/invalid/execute`])('rejects non-contract route %s before provider access',async(path)=>{
   const fetcher=vi.fn<typeof fetch>();
   expect((await createBridge(fetcher,()=>env)(request(path,{'Content-Type':'application/json'},'{}'))).status).toBe(404);
   expect(fetcher).not.toHaveBeenCalled();

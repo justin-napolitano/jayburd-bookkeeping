@@ -1,0 +1,44 @@
+# Inaccessible saved-command recovery
+<!-- stage-runbook: true -->
+
+## Status and boundary
+
+Issue #133 hosted acceptance found an authenticated owner blocked before first-book
+setup by an older unacknowledged command whose current scope authorization fails.
+Add one explicit recovery action for the owning principal. It returns only whether
+work was cleared, never the command, scope, request, result, or financial data.
+
+## Stage ledger
+
+- PostgreSQL locks the active principal and pending command in a serializable
+  transaction, reuses current command authorization, and permits clearing only
+  the existing not-found/permission-denied cases.
+- Prepared work is cancelled and then acknowledged; committed or cancelled work
+  is acknowledged. Accounting functions are never called and immutable history
+  plus cancel/acknowledge audit records remain.
+- The API and same-origin bridge expose `POST /v1/commands/pending/clear` with an
+  exact empty object. The UI requires an explicit click and reloads recovery and
+  workspace state only after confirmed success.
+
+## Current evidence
+
+- `make migration-test` passed fresh, replay, down/up, and dirty-state proofs.
+- `make ledger-test` passed the full PostgreSQL suite after advancing the schema
+  compatibility sentinel to clean migration 16. Recovery tests also reject
+  empty, malformed, and nonempty bodies through the owned error contract.
+- `make check test build` passed. All 261 web unit tests, the production build,
+  and all 17 browser tests passed, including explicit denied recovery and
+  restored starter-book setup.
+- `make app-integration` passed the synthetic PostgreSQL, API, and web
+  composition gate.
+
+## Remaining work
+
+Hosted cause is inferred from the fail-closed contract; no private payload or log
+was inspected. Migration 16 must deploy before the API/web revision.
+
+## PR handoff
+
+Deploy the reviewed migration first, then the matching API and web images. Hosted
+acceptance is the owner explicitly clearing inaccessible work and preparing the
+Sandbox starter book without exposing or executing the old command.

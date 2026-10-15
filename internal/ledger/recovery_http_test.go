@@ -28,6 +28,7 @@ func TestCommandHTTPBoundary(t *testing.T) {
 	}{
 		{"register", "POST", "/v1/commands", `{"body":{"x":1,"x":2}}`, "registration", "https://synthetic.invalid", "Bearer synthetic", "register", 201},
 		{"pending", "GET", "/v1/commands/pending", "", "", "https://synthetic.invalid", "Bearer synthetic", "pending", 200},
+		{"clear", "POST", "/v1/commands/pending/clear", `{}`, "", "https://synthetic.invalid", "Bearer synthetic", "clear", 200},
 		{"execute", "POST", "/v1/commands/synthetic-id/execute", `{}`, "", "https://synthetic.invalid", "Bearer synthetic", "execute", 200},
 		{"cancel", "POST", "/v1/commands/synthetic-id/cancel", `{}`, "", "https://synthetic.invalid", "Bearer synthetic", "cancel", 200},
 		{"acknowledge", "POST", "/v1/commands/synthetic-id/acknowledge", `{}`, "", "https://synthetic.invalid", "Bearer synthetic", "acknowledge", 200},
