@@ -80,7 +80,7 @@ cloud-sql-test:
 
 .PHONY: release-test
 release-test:
-	node --test scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs scripts/migration-receipt.test.mjs scripts/database-probe-receipt.test.mjs
+	node --test scripts/sandbox-release.test.mjs scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs scripts/migration-receipt.test.mjs scripts/database-probe-receipt.test.mjs
 	bash scripts/test-deploy-dev.sh
 	node --test scripts/worker-release-manifest.test.mjs scripts/worker-deployment-receipt.test.mjs
 	bash scripts/test-deploy-workers.sh

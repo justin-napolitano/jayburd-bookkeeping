@@ -77,6 +77,10 @@ source-builder verification remains CI evidence, not a local claim.
   Full checks and exact disposable probe passed afterward. Sandbox blocked initial
   localhost/Docker/provider access; approved reruns passed without source changes.
 
+- Integrated main after PRs #134/#135 merged; resolved the Makefile conflict by
+  retaining both Sandbox release-policy and database-probe receipt test suites.
+  `make check test build release-test` passed again on the merged branch.
+
 ## Remaining work
 
 Review and build immutable API image, then run the separate

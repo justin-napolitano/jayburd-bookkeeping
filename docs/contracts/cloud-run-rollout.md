@@ -104,3 +104,12 @@ the selected authority when secrets are needed. Transport smoke proves only API
 anonymous denial, web unauthenticated denial and available shell/config. Real MFA,
 revocation, cross-entity denial, synthetic posting/recovery, load, restore and cost
 remain separate #27/#12 acceptance; passing deployment must not close those issues.
+
+## Limited Sandbox qualification
+
+The separately reviewed [Sandbox release contract](sandbox-release.md) adds explicit
+`sandbox-promote`/`sandbox-rollback` operations for the fixed development project.
+Full promote/rollback gates above remain unchanged. Sandbox releases require the
+bounded database proof (#130), and connection-enabled/worker releases also require
+delivery implementation (#131). Hosted activation is separately tracked in #133.
+Scheduling remains paused; no production or full-readiness claim follows.

@@ -125,3 +125,102 @@ run "reject_probe_alias" {
   variables { sandbox_probe = { image = "worker:latest", client_id_version = "latest", client_secret_version = "1" } }
   expect_failures = [var.sandbox_probe]
 }
+
+run "deliver_slot_00" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "slot-00", mode = "execute", source_id = "00000000-0000-4000-8000-000000000003" } }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.provider_delivery) == 1 && google_secret_manager_secret_iam_member.provider_delivery[0].secret_id == "jayburd-dev-bank-sync-slot-00" && google_secret_manager_secret_iam_member.provider_delivery[0].role == "roles/secretmanager.secretVersionAdder" && length(google_secret_manager_secret_iam_member.add_canary) == 0 && google_cloud_run_v2_job.canary[0].template[0].template[0].max_retries == 0
+    error_message = "Only the selected slot may receive add-only permission, without retry."
+  }
+}
+
+run "deliver_slot_01" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "slot-01", mode = "execute", source_id = "00000000-0000-4000-8000-000000000003" } }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.provider_delivery) == 1 && google_secret_manager_secret_iam_member.provider_delivery[0].secret_id == "jayburd-dev-bank-sync-slot-01" && google_secret_manager_secret_iam_member.provider_delivery[0].role == "roles/secretmanager.secretVersionAdder" && length(google_secret_manager_secret_iam_member.add_canary) == 0 && google_cloud_run_v2_job.canary[0].template[0].template[0].max_retries == 0
+    error_message = "Only the selected slot may receive add-only permission, without retry."
+  }
+}
+
+run "deliver_slot_02" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "slot-02", mode = "execute", source_id = "00000000-0000-4000-8000-000000000003" } }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.provider_delivery) == 1 && google_secret_manager_secret_iam_member.provider_delivery[0].secret_id == "jayburd-dev-bank-sync-slot-02" && google_secret_manager_secret_iam_member.provider_delivery[0].role == "roles/secretmanager.secretVersionAdder" && length(google_secret_manager_secret_iam_member.add_canary) == 0 && google_cloud_run_v2_job.canary[0].template[0].template[0].max_retries == 0
+    error_message = "Only the selected slot may receive add-only permission, without retry."
+  }
+}
+
+run "deliver_slot_03" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "slot-03", mode = "execute", source_id = "00000000-0000-4000-8000-000000000003" } }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.provider_delivery) == 1 && google_secret_manager_secret_iam_member.provider_delivery[0].secret_id == "jayburd-dev-bank-sync-slot-03" && google_secret_manager_secret_iam_member.provider_delivery[0].role == "roles/secretmanager.secretVersionAdder" && length(google_secret_manager_secret_iam_member.add_canary) == 0 && google_cloud_run_v2_job.canary[0].template[0].template[0].max_retries == 0
+    error_message = "Only the selected slot may receive add-only permission, without retry."
+  }
+}
+
+run "deliver_slot_04" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "slot-04", mode = "execute", source_id = "00000000-0000-4000-8000-000000000003" } }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.provider_delivery) == 1 && google_secret_manager_secret_iam_member.provider_delivery[0].secret_id == "jayburd-dev-bank-sync-slot-04" && google_secret_manager_secret_iam_member.provider_delivery[0].role == "roles/secretmanager.secretVersionAdder" && length(google_secret_manager_secret_iam_member.add_canary) == 0 && google_cloud_run_v2_job.canary[0].template[0].template[0].max_retries == 0
+    error_message = "Only the selected slot may receive add-only permission, without retry."
+  }
+}
+
+run "deliver_slot_05" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "slot-05", mode = "execute", source_id = "00000000-0000-4000-8000-000000000003" } }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.provider_delivery) == 1 && google_secret_manager_secret_iam_member.provider_delivery[0].secret_id == "jayburd-dev-bank-sync-slot-05" && google_secret_manager_secret_iam_member.provider_delivery[0].role == "roles/secretmanager.secretVersionAdder" && length(google_secret_manager_secret_iam_member.add_canary) == 0 && google_cloud_run_v2_job.canary[0].template[0].template[0].max_retries == 0
+    error_message = "Only the selected slot may receive add-only permission, without retry."
+  }
+}
+
+run "deliver_slot_06" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "slot-06", mode = "execute", source_id = "00000000-0000-4000-8000-000000000003" } }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.provider_delivery) == 1 && google_secret_manager_secret_iam_member.provider_delivery[0].secret_id == "jayburd-dev-bank-sync-slot-06" && google_secret_manager_secret_iam_member.provider_delivery[0].role == "roles/secretmanager.secretVersionAdder" && length(google_secret_manager_secret_iam_member.add_canary) == 0 && google_cloud_run_v2_job.canary[0].template[0].template[0].max_retries == 0
+    error_message = "Only the selected slot may receive add-only permission, without retry."
+  }
+}
+
+run "deliver_slot_07" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "slot-07", mode = "execute", source_id = "00000000-0000-4000-8000-000000000003" } }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.provider_delivery) == 1 && google_secret_manager_secret_iam_member.provider_delivery[0].secret_id == "jayburd-dev-bank-sync-slot-07" && google_secret_manager_secret_iam_member.provider_delivery[0].role == "roles/secretmanager.secretVersionAdder" && length(google_secret_manager_secret_iam_member.add_canary) == 0 && google_cloud_run_v2_job.canary[0].template[0].template[0].max_retries == 0
+    error_message = "Only the selected slot may receive add-only permission, without retry."
+  }
+}
+
+run "slot_lookup_has_no_write" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "slot-00" } }
+  assert {
+    condition     = length(google_secret_manager_secret_iam_member.provider_delivery) == 0 && length(google_secret_manager_secret_iam_member.add_canary) == 0
+    error_message = "Slot lookup has no destination write grant."
+  }
+}
+
+run "reject_slot_0" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "slot-08" } }
+  expect_failures = [var.canary]
+}
+
+run "reject_slot_1" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "/bank-sync/slot-00" } }
+  expect_failures = [var.canary]
+}
+
+run "reject_slot_2" {
+  command = plan
+  variables { canary = { image = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", infisical_project = "00000000-0000-4000-8000-000000000001", infisical_identity = "00000000-0000-4000-8000-000000000002", source_version = "1", key = "../slot-00" } }
+  expect_failures = [var.canary]
+}

@@ -1,4 +1,4 @@
-// Command deliver runs only an explicitly authorized development canary delivery.
+// Command deliver runs only explicitly selected development credential delivery.
 package main
 
 import (
@@ -24,11 +24,12 @@ type config struct {
 }
 
 var uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+var slotPattern = regexp.MustCompile(`^slot-0[0-7]$`)
 var projectPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`)
 
 // valid rejects missing bindings before any metadata authentication or external operation.
 func (c config) valid() bool {
-	if c.key != "JAYBURD_DELIVERY_CANARY" && c.key != "PLAID_CLIENT_ID" && c.key != "PLAID_SECRET" {
+	if c.key != "JAYBURD_DELIVERY_CANARY" && c.key != "PLAID_CLIENT_ID" && c.key != "PLAID_SECRET" && !slotPattern.MatchString(c.key) {
 		return false
 	}
 	n, e := strconv.ParseInt(c.number, 10, 64)
@@ -127,7 +128,7 @@ func managed(ctx context.Context, c config) (providersecrets.CanaryMetadata, err
 		return providersecrets.CanaryMetadata{}, e
 	}
 	if c.lookup {
-		return delivery.LookupRoot(ctx, c.key, c.version)
+		return delivery.LookupSelected(ctx, c.key, c.version)
 	}
 	_, e = delivery.Deliver(ctx, providersecrets.DeliveryRequest{Key: c.key, SourceID: c.sourceID, SourceVersion: c.version})
 	return providersecrets.CanaryMetadata{}, e
