@@ -59,6 +59,7 @@ func TestRuntimeReadiness(t *testing.T) {
 		{"sync_role", "GRANT bookkeeping_sync TO synthetic_server", "REVOKE bookkeeping_sync FROM synthetic_server"},
 		{"missing_recovery_register", "REVOKE EXECUTE ON FUNCTION ledger.register_command(uuid,text,uuid,text) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.register_command(uuid,text,uuid,text) TO bookkeeping_api"},
 		{"missing_recovery_pending", "REVOKE EXECUTE ON FUNCTION ledger.pending_command(uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.pending_command(uuid) TO bookkeeping_api"},
+		{"missing_recovery_clear", "REVOKE EXECUTE ON FUNCTION ledger.clear_inaccessible_command(uuid,uuid,text) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.clear_inaccessible_command(uuid,uuid,text) TO bookkeeping_api"},
 		{"missing_recovery_transition", "REVOKE EXECUTE ON FUNCTION ledger.transition_command(uuid,uuid,uuid,text,text) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION ledger.transition_command(uuid,uuid,uuid,text,text) TO bookkeeping_api"},
 		{"missing_workspace", "REVOKE EXECUTE ON FUNCTION reporting.workspace(uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION reporting.workspace(uuid) TO bookkeeping_api"},
 		{"missing_list_sources", "REVOKE EXECUTE ON FUNCTION banking.list_sources(uuid,uuid,uuid) FROM bookkeeping_api", "GRANT EXECUTE ON FUNCTION banking.list_sources(uuid,uuid,uuid) TO bookkeeping_api"},

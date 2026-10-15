@@ -28,9 +28,11 @@ no table access. Same registration key with changed content conflicts.
 Discovery/results reauthorize the current principal and current operation-specific scope. Setup/post retain read/post
 authority; import requires entity read+import and source read+import.
 Another principal cannot discover, execute, cancel or acknowledge a command.
-Revoked scopes fail closed without returning request/result financial data. An
-unacknowledged inaccessible command blocks new work pending operator restoration;
-this availability limitation is explicit, not a reason to bypass authorization.
+Revoked scopes fail closed without returning request/result financial data. The
+owning principal may explicitly clear an inaccessible command through the bounded
+payload-free recovery action: prepared work is cancelled and acknowledged, while
+terminal work is acknowledged. The action refuses currently authorized commands,
+never executes or reverses accounting work, and preserves immutable history.
 Command storage has the existing 1MiB request bound; it is not a general draft API.
 The gate applies to this interactive workflow. Existing direct setup/post API
 clients retain their original idempotency obligations; this is not semantic
@@ -42,6 +44,9 @@ duplicate detection across independently submitted business transactions.
   `{operation: setup|post|import, entity_id: uuid|null, book_id: uuid|null, body: object}`.
   Setup requires null targets; post/import require both. Return 201 `Command`.
 - `GET /v1/commands/pending`: return `{command: Command|null}`; no query/body.
+- `POST /v1/commands/pending/clear`: exact body `{}`; return `{cleared:boolean}`.
+  It reveals no command fields and qualifies only after current scope authorization
+  returns not-found or permission-denied for the owning principal.
 - `POST /v1/commands/{command_id}/execute`, `/cancel`, `/acknowledge`: body `{}`,
   return 200 `Command`. Command identity supplies retry identity; no extra key
   authorizes a changed operation. Execution returns the stored result on replay.
@@ -87,7 +92,8 @@ until the user acknowledges it. Cancelling a prepared command requires server
 confirmation, followed by acknowledgement before new work.
 
 Named proofs: `TestCommandLifecycle`, `TestCommandAuthorization`,
-`TestCommandConcurrency`, `TestCommandLostAcknowledgement`; synthetic browser
+`TestInaccessibleCommandClear`, `TestCommandConcurrency`,
+`TestCommandLostAcknowledgement`; synthetic browser
 setup/post/report, dropped real response followed by remount/recovery, and denied
 scope. Full Go/PostgreSQL regression and existing browser unit/component gates
 remain required. Live Firebase and deployed GCP verification remain separate.

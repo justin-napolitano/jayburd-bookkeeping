@@ -68,6 +68,7 @@ export function Bookkeeping({
   const recovery = useCommands(api);
   const locked = recovery.locked;
   const epoch = useRef(0);
+  const deniedRecovery = useRef(false);
   const load = useCallback(async () => {
     const n = ++epoch.current;
     setLoading(true);
@@ -105,10 +106,14 @@ export function Bookkeeping({
   }, [recovery.command?.command_id, recovery.command?.state, load]);
   useEffect(() => {
     if (recovery.accessDenied) {
+      deniedRecovery.current = true;
       setWorkspace(null);
       setScope("");
+    } else if (deniedRecovery.current) {
+      deniedRecovery.current = false;
+      void load();
     }
-  }, [recovery.accessDenied]);
+  }, [recovery.accessDenied, load]);
   const selected = (recovery.accessDenied ? null : workspace)?.entities
     .flatMap((entity) => entity.books.map((book) => ({ entity, book })))
     .find((x) => `${x.entity.entity_id}/${x.book.book_id}` === scope);

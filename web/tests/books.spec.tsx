@@ -407,6 +407,40 @@ test("denied recovery blocks new work and clears a previously visible command", 
   ).toHaveCount(0);
 });
 
+test("explicitly clears inaccessible saved work before first-book setup", async ({
+  mount,
+  page,
+}) => {
+  await mockCommands(page, true);
+  let cleared = false;
+  await page.route("**/v1/commands/pending**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/v1/commands/pending/clear") {
+      cleared = true;
+      return route.fulfill({ json: { cleared: true } });
+    }
+    return cleared
+      ? route.fulfill({ json: { command: null } })
+      : route.fulfill({ status: 403, json: { code: "permission_denied" } });
+  });
+  await mount(<Harness />);
+  await expect(
+    page.getByRole("button", { name: "Clear inaccessible saved command" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Review Sandbox starter book" }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Clear inaccessible saved command" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Review Sandbox starter book" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("No unacknowledged command. New work is available."),
+  ).toBeVisible();
+});
+
 test("successful acknowledgement followed by failed discovery keeps new work locked", async ({
   mount,
   page,
