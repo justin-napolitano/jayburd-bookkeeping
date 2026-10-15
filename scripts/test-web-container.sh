@@ -36,6 +36,7 @@ for (let attempt = 0; attempt < 40; attempt++) {
  await new Promise(resolve => setTimeout(resolve, 250));
 }
 if (!response?.ok) throw new Error('shell unavailable');
+if (!response.headers.get('cache-control')?.includes('no-store')) throw new Error('application shell is cacheable');
 const body = await response.text();
 if (!body.includes('Sign-in is not configured')) throw new Error('unconfigured sign-in boundary missing');
 if (response.headers.get('x-frame-options') !== 'DENY') throw new Error('frame boundary missing');
@@ -51,7 +52,7 @@ JS
 docker stop --time 20 "$proof_id" >/dev/null
 # Node may report SIGTERM as 143; SIGKILL/timeout (137) remains a failure.
 case "$(docker inspect --format '{{.State.ExitCode}}' "$proof_id")" in 0|143) ;; *) exit 1 ;; esac
-echo 'PASS: non-root/read-only frontend serves unconfigured sign-in and static assets; no demo or finance access.'
+echo 'PASS: non-root/read-only frontend serves a non-cacheable sign-in shell and static assets; no demo or finance access.'
 
 # Restart the same immutable image with synthetic public identifiers, without rebuilding or enabling a provider.
 docker rm "$proof_id" >/dev/null
