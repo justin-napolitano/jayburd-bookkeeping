@@ -19,6 +19,8 @@ work was cleared, never the command, scope, request, result, or financial data.
 - The API and same-origin bridge expose `POST /v1/commands/pending/clear` with an
   exact empty object. The UI requires an explicit click and reloads recovery and
   workspace state only after confirmed success.
+- PR #145 merged as `cacc5a0`. Owner-dispatched build 38809806298 passed all
+  validation and published matching API, migrator, web, and worker candidates.
 
 ## Current evidence
 
@@ -31,14 +33,18 @@ work was cleared, never the command, scope, request, result, or financial data.
   restored starter-book setup.
 - `make app-integration` passed the synthetic PostgreSQL, API, and web
   composition gate.
+- Build 38809806298 passed its complete reusable validation plus per-image
+  runtime, vulnerability, and publication gates.
 
 ## Remaining work
 
 Hosted cause is inferred from the fail-closed contract; no private payload or log
-was inspected. Migration 16 must deploy before the API/web revision.
+was inspected. The reviewed migration-only manifest must execute migration 16
+before a separate API/web promotion from the same build.
 
 ## PR handoff
 
-Deploy the reviewed migration first, then the matching API and web images. Hosted
-acceptance is the owner explicitly clearing inaccessible work and preparing the
-Sandbox starter book without exposing or executing the old command.
+First handoff is the exact `operation: migrate` manifest for build 38809806298.
+After its receipt verifies execution, prepare a separate Sandbox promotion for the
+matching API and web images. Hosted acceptance is the owner explicitly clearing
+inaccessible work and preparing the starter book without exposing the old command.
