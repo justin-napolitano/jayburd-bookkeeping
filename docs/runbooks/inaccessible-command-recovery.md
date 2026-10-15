@@ -45,6 +45,9 @@ work was cleared, never the command, scope, request, result, or financial data.
   The production route manifest marks `/` dynamic, and a loopback production
   response returned `Cache-Control: private, no-cache, no-store, max-age=0,
   must-revalidate` while referencing content-hashed static assets.
+- PR #149 merged as `bc3f932`. Owner-dispatched build 38818907429 passed the
+  complete validation matrix, exact candidate runtime checks, vulnerability
+  gates, and published matching digest-pinned application images.
 - `make app-integration` passed the synthetic PostgreSQL, API, and web
   composition gate.
 - Build 38809806298 passed its complete reusable validation plus per-image
@@ -54,12 +57,13 @@ work was cleared, never the command, scope, request, result, or financial data.
 
 Hosted scope denial remains fail-closed; no private payload or log was inspected.
 The non-cacheable web release and owner acceptance remain.
-The local candidate-container rerun was blocked before application startup by
-an Alpine mirror certificate/index refresh failure; CI remains the independent
-candidate-image authority for that gate.
+The earlier local candidate-container rerun was blocked before application
+startup by an Alpine mirror certificate/index refresh failure; build 38818907429
+subsequently passed that independent candidate-image gate in CI.
 
 ## PR handoff
 
-Migration execution is complete. The next handoff is a web release containing
-the shell cache correction. Hosted acceptance is the owner explicitly clearing
+Migration execution is complete. The next handoff is the exact
+`operation: sandbox-promote` manifest for build 38818907429. Hosted acceptance is
+the root returning `no-store`, followed by the owner explicitly clearing
 inaccessible work and preparing the starter book without exposing the old command.
