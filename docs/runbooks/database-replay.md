@@ -23,8 +23,11 @@ Prior execution and verification evidence is recorded in
 [issue #26](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6194069357).
 PASS: exact manifest validation and `make check test build release-test`.
 Manifest SHA256: `9c601f13b807fa60b881a83eb01f2e63f0b388052cf03750ee8accb1981290fd`.
-The independent API probe outcome is recorded in #130; it does not substitute
-for replay/status receipts.
+PASS: hosted API permission probe `jayburd-dev-database-probe-9fg4r`, completed
+2026-10-15T15:42:03.088618Z. Exact image/identity/arguments/task/retry metadata was
+accepted by `scripts/database-probe-receipt.mjs`; receipt status is
+`api-database-permission-proof-passed`. Build 38758756744 supplies the API image.
+This does not substitute for replay/status receipts; #130 remains open.
 
 ## Remaining work
 
