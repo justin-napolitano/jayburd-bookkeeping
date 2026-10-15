@@ -66,7 +66,7 @@ expect_failure() {
   [[ $(cat "$scratch/output") == "$1" ]]
   [[ $(wc -l < "$TEST_LOG" | tr -d ' ') == "$2" ]]
 }
-for operation in promote rollback; do
+for operation in promote rollback sandbox-promote sandbox-rollback; do
   printf '{"project":"jayburd-synthetic-test","operation":"%s"}\n' "$operation" > "$scratch/release/approved.json"
   reset_case
   bash "$root/scripts/deploy-workers.sh" "$scratch/release" > "$scratch/output"

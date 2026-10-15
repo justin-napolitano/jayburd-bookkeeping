@@ -50,7 +50,7 @@ export function validateWorkerDeployment(m,observed) {
     scheduler?.httpTarget?.oidcToken?.serviceAccountEmail!==`jayburd-dev-scheduler@${m.project}.iam.gserviceaccount.com` ||
     scheduler?.httpTarget?.oauthToken!==undefined || scheduler?.pubsubTarget!==undefined || scheduler?.appEngineHttpTarget!==undefined) throw new Error('Worker readback rejected');
   return {schemaVersion:1,status:'paused-workers-observed',project:m.project,projectNumber:m.projectNumber,
-    build:m.build,image:m.image,operation:m.operation,revisions,scheduler:'PAUSED',approvedWorkerConfigSHA256:workerConfigDigest(m),
+    build:m.build,image:m.image,operation:m.operation,releaseScope:['sandbox-promote','sandbox-rollback'].includes(m.operation)?'sandbox-qualification':'full',revisions,scheduler:'PAUSED',approvedWorkerConfigSHA256:workerConfigDigest(m),
     limitations:['Selected control-plane metadata only; IAM policy and workload OIDC remain separately qualified.',
       'Paused scheduling does not cancel existing tasks or prove absence of provider requests.',
       'No provider, SQL mandate, secret propagation or bookkeeping qualification.']};
