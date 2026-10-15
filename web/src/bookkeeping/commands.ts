@@ -15,13 +15,14 @@ export function useCommands(api: API) {
   const alive = useRef(true);
   const running = useRef(false);
   const generation = useRef(0);
-  // Failed discovery clears sensitive snapshots and keeps new work locked.
-  const discover = useCallback(async () => {
+  // Discovery clears stale recovery errors while preserving a rejected action's explanation.
+  const discover = useCallback(async (actionError = "") => {
     const version = ++generation.current;
     setReady(false);
     try {
       const result = await api<PendingCommand>("/v1/commands/pending");
       if (!alive.current || version !== generation.current) return null;
+      setError(actionError);
       setAccessDenied(false);
       setCommand(result.command);
       if (result.command) setRegistration(null);
@@ -83,12 +84,11 @@ export function useCommands(api: API) {
       }
     } catch (e) {
       if (!current()) return;
-      setError(
-        e instanceof Error ? e.message : "Command registration is unconfirmed.",
-      );
+      const message = e instanceof Error ? e.message : "Command registration is unconfirmed.";
+      setError(message);
       // Definitive rejection permits discarding only this failed candidate; a conflicting pending command is still discovered.
       if (e instanceof APIError && !e.uncertain) setRegistration(null);
-      await discover();
+      await discover(e instanceof APIError && e.uncertain ? "" : message);
     } finally {
       if (current()) {
         running.current = false;
@@ -150,12 +150,11 @@ export function useCommands(api: API) {
       }
     } catch (e) {
       if (!current()) return;
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Command outcome is unconfirmed. Check its saved state.",
-      );
-      await discover();
+      const message = e instanceof Error
+        ? e.message
+        : "Command outcome is unconfirmed. Check its saved state.";
+      setError(message);
+      await discover(e instanceof APIError && e.uncertain ? "" : message);
     } finally {
       if (current()) {
         running.current = false;
