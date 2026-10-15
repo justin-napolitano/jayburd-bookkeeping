@@ -421,3 +421,9 @@ including inherited transaction fields omitted from rendered documentation.
 [Enrollment decision and source review](../contracts/hosted-link-enrollment.md)
 records reviewed official Link API and Hosted Link creation/completion sections,
 SDK tradeoffs and the distinction between synthetic proof and hosted qualification.
+
+[Limited Sandbox release](../contracts/sandbox-release.md), reviewed2026-10-15:
+selected official Cloud Run job-execution and Plaid Sandbox-limitation sections.
+Explains why execution, clean schema, integrated fictional journeys and production
+readiness require different evidence. Separate operation/issue gates are project
+policy, proposed for owner review; the sources do not approve that policy.

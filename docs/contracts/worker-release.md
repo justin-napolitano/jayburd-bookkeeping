@@ -106,3 +106,12 @@ separation, default pause, exact trust and bounds. They do not establish deploye
 IAM correctness, workload identity authentication, a completed owner state
 migration, credential freshness, or successful provider acquisition. Hosted
 permission gaps must fail deployment and be reviewed, never trigger broad grants.
+
+## Limited Sandbox qualification
+
+The separately reviewed [Sandbox release contract](sandbox-release.md) adds explicit
+`sandbox-promote`/`sandbox-rollback` operations for the fixed development project.
+Full promote/rollback gates above remain unchanged. Sandbox releases require the
+bounded database proof (#130), and connection-enabled/worker releases also require
+delivery implementation (#131). Hosted activation is separately tracked in #133.
+Scheduling remains paused; no production or full-readiness claim follows.

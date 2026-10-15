@@ -42,10 +42,11 @@ jobs:
           node scripts/worker-release-manifest.mjs deploy/worker-release.json "$RELEASE_SHA256" "$RUNNER_TEMP/release"
           node --input-type=module <<'JS'
           import {readFileSync,writeFileSync,appendFileSync} from 'node:fs';
-          import {workerGates} from './scripts/worker-release-manifest.mjs';
+          import {requiredWorkerGates} from './scripts/worker-release-manifest.mjs';
           const m=JSON.parse(readFileSync(process.env.RUNNER_TEMP+'/release/approved.json'));
           if(m.project!==process.env.PROJECT_ID || m.projectNumber!==process.env.PROJECT_NUMBER) throw new Error('Project mismatch');
           appendFileSync(process.env.GITHUB_ENV,`BUILD_RUN=${m.build.run}\nBUILD_ATTEMPT=${m.build.attempt}\nBUILD_COMMIT=${m.build.commit}\nPREVIOUS_DEPLOYMENT=${m.previousDeployment??''}\n`);
+          const workerGates=requiredWorkerGates(m.operation);
           writeFileSync(process.env.RUNNER_TEMP+'/release/prs.txt',workerGates.prs.join('\n')+'\n');
           writeFileSync(process.env.RUNNER_TEMP+'/release/issues.txt',workerGates.issues.join('\n')+'\n');
           JS

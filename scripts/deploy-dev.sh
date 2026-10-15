@@ -6,7 +6,7 @@ set -euo pipefail
 release_dir="$1"
 project=$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1])).project' "$release_dir/approved.json")
 operation=$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1])).operation' "$release_dir/approved.json")
-[[ "$project" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ && "$operation" =~ ^(promote|rollback|migrate|verify)$ ]]
+[[ "$project" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ && "$operation" =~ ^(promote|rollback|sandbox-promote|sandbox-rollback|migrate|verify)$ ]]
 umask 077
 # Provider diagnostics/plans stay runner-private and are never emitted or uploaded. Fixed outcomes only.
 quiet() {
@@ -25,7 +25,7 @@ apply_root() {
     -var-file="$release_dir/$root.tfvars.json" -out="$release_dir/$root.tfplan"
   quiet terraform -chdir="infra/gcp/$root" apply -input=false -lock-timeout=5m "$release_dir/$root.tfplan"
 }
-if [[ "$operation" == promote || "$operation" == migrate || "$operation" == verify ]]; then
+if [[ "$operation" == promote || "$operation" == sandbox-promote || "$operation" == migrate || "$operation" == verify ]]; then
   apply_root migration
   if ! gcloud run jobs execute jayburd-dev-migrate --project "$project" --region us-central1 --wait --quiet \
     --format='value(metadata.name)' > "$release_dir/execution-name.txt" 2> "$release_dir/provider-private.log"; then
@@ -40,7 +40,11 @@ if [[ "$operation" == promote || "$operation" == migrate || "$operation" == veri
     echo 'BLOCKED: execution readback failed' >&2; exit 1
   fi
   node scripts/migration-receipt.mjs "$release_dir/approved.json" "$release_dir/migration-execution.json" "$release_dir/migration.json" "$execution"
-  echo 'PASS: migration execution completed before runtime changes.'
+  if [[ "$operation" == verify || "$operation" == sandbox-promote ]]; then
+    echo 'PASS: database verification completed before runtime changes.'
+  else
+    echo 'PASS: migration execution completed before runtime changes.'
+  fi
 fi
 if [[ "$operation" == migrate || "$operation" == verify ]]; then
   echo 'PASS: migration-only release completed; application services untouched.'
