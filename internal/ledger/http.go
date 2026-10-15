@@ -33,6 +33,7 @@ func Handler(auth Authenticator, ops Operations) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/commands", endpoint(auth, ops, "command_register"))
 	mux.HandleFunc("GET /v1/commands/pending", endpoint(auth, ops, "command_pending"))
+	mux.HandleFunc("POST /v1/commands/pending/clear", endpoint(auth, ops, "command_clear"))
 	mux.HandleFunc("POST /v1/commands/{command}/execute", endpoint(auth, ops, "command_execute"))
 	mux.HandleFunc("POST /v1/commands/{command}/cancel", endpoint(auth, ops, "command_cancel"))
 	mux.HandleFunc("POST /v1/commands/{command}/acknowledge", endpoint(auth, ops, "command_acknowledge"))
@@ -221,7 +222,7 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			if err == nil && len(result.Body) > 2<<20 {
 				err = &Failure{422, "result_out_of_range"}
 			}
-		case "command_register", "command_pending", "command_execute", "command_cancel", "command_acknowledge":
+		case "command_register", "command_pending", "command_clear", "command_execute", "command_cancel", "command_acknowledge":
 			if op == "command_pending" && (r.ContentLength > 0 || len(r.TransferEncoding) > 0) {
 				fail(400, "invalid_request")
 				return

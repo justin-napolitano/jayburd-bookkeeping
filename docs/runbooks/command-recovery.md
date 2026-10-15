@@ -53,15 +53,17 @@ Hosted [run38174592229](https://github.com/justin-napolitano/jayburd-bookkeeping
 failed before browser execution: Ubuntu lacked `rg` for the readiness header
 check. Both header checks now use `grep -qi`; hosted verification of this fix
 remains pending.
-Future delivery needs reviewed GCP synthetic deployment
-and managed identity configuration; this change does not authorize either.
+Hosted first-book acceptance later identified an inaccessible unacknowledged
+command. Issue #133 adds explicit payload-free clearing in migration16; its current
+evidence and deployment status live in
+[the focused runbook](inaccessible-command-recovery.md).
 
 ## PR handoff
 
 One branch/runbook, exclusive agent file ownership, coordinator commits only.
 No production authentication bypass; synthetic auth lives only in test artifacts.
 Merged migrations1–4 stay immutable. No live deployment or bookkeeping approval.
-Migration5 is additive and forward-only. One pending command per principal
-deliberately serializes interactive work across tabs; legacy direct callers
-retain their existing idempotency obligations. Revoked access can leave pending
-work blocked until an operator restores authority; there is no bypass or expiry.
+Migration5 remains immutable. One pending command per principal deliberately
+serializes interactive work across tabs; legacy direct callers retain their
+existing idempotency obligations. Migration16 adds an explicit owner action that
+clears only an inaccessible command without reading its payload or changing books.

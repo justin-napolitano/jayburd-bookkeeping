@@ -100,6 +100,32 @@ export function useCommands(api: API) {
     if (!ready || command || registration || running.current) return;
     void register({ key: crypto.randomUUID(), body: JSON.stringify(input) });
   };
+  // Explicit recovery clears only server-confirmed inaccessible work and never receives its payload.
+  const clearInaccessible = async () => {
+    if (!accessDenied || running.current) return;
+    const epoch = sessionEpoch.current;
+    const current = () => alive.current && epoch === sessionEpoch.current;
+    running.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      await api<{ cleared: boolean }>("/v1/commands/pending/clear", "{}");
+      if (current()) await discover();
+    } catch (e) {
+      if (current()) {
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Inaccessible saved work could not be cleared.",
+        );
+      }
+    } finally {
+      if (current()) {
+        running.current = false;
+        setBusy(false);
+      }
+    }
+  };
   // Every action targets the durable command ID; retries cannot become a different financial request.
   const transition = async (action: "execute" | "cancel" | "acknowledge") => {
     if (!command || running.current) return;
@@ -146,6 +172,7 @@ export function useCommands(api: API) {
     registration,
     locked: !ready || busy || !!command || !!registration,
     prepare,
+    clearInaccessible,
     transition,
     retryRegistration: () => registration && void register(registration),
     reload: async () => {

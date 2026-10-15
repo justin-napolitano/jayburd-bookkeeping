@@ -1492,6 +1492,81 @@
         }
       }
     },
+    "/v1/commands/pending/clear": {
+      "post": {
+        "operationId": "clearInaccessibleCommand",
+        "summary": "Clear the owner's inaccessible saved command",
+        "description": "Explicit internal recovery control, not an ISO20022 message. Requires an exact empty object. Only the owning principal's currently inaccessible unacknowledged command qualifies. Prepared work is cancelled and acknowledged; terminal work is acknowledged. No saved payload, scope, result or financial data is returned, and no accounting operation executes.",
+        "tags": [
+          "Ledger"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "maxProperties": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem413"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem500"
+          },
+          "200": {
+            "description": "Whether an inaccessible saved command was cleared in this transaction.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "cleared"
+                  ],
+                  "properties": {
+                    "cleared": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/commands/{command_id}/execute": {
       "post": {
         "operationId": "executeCommand",

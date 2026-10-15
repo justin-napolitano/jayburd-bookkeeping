@@ -38,6 +38,7 @@ function recovery(command: DurableCommand): ReturnType<typeof useCommands> {
     locked: true,
     prepare: vi.fn(),
     transition: vi.fn(),
+    clearInaccessible: vi.fn(),
     retryRegistration: vi.fn(),
     reload: vi.fn(),
   };
