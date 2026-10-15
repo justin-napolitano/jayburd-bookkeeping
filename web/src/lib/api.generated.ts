@@ -272,6 +272,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/commands/pending/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear the owner's inaccessible saved command
+         * @description Explicit internal recovery control, not an ISO20022 message. Requires an exact empty object. Only the owning principal's currently inaccessible unacknowledged command qualifies. Prepared work is cancelled and acknowledged; terminal work is acknowledged. No saved payload, scope, result or financial data is returned, and no accounting operation executes.
+         */
+        post: operations["clearInaccessibleCommand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/commands/{command_id}/execute": {
         parameters: {
             query?: never;
@@ -2243,6 +2263,41 @@ export interface operations {
                 };
             };
             422: components["responses"]["Problem422"];
+            500: components["responses"]["Problem500"];
+            503: components["responses"]["Problem503"];
+        };
+    };
+    clearInaccessibleCommand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Whether an inaccessible saved command was cleared in this transaction. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        cleared: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["Problem400"];
+            401: components["responses"]["Problem401"];
+            403: components["responses"]["Problem403"];
+            404: components["responses"]["Problem404"];
+            409: components["responses"]["Problem409"];
+            413: components["responses"]["Problem413"];
             500: components["responses"]["Problem500"];
             503: components["responses"]["Problem503"];
         };

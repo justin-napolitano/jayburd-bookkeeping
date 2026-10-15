@@ -35,6 +35,17 @@ export function CommandPanel({
         <p role="status">Checking saved work before enabling new entries…</p>
       )}
       {r.error && <p role="alert">{r.error}</p>}
+      {r.accessDenied && (
+        <>
+          <p>
+            Older saved work no longer has an accessible book. Clearing it does
+            not post, reverse, or reveal any accounting data.
+          </p>
+          <button disabled={r.busy} onClick={() => void r.clearInaccessible()}>
+            Clear inaccessible saved command
+          </button>
+        </>
+      )}
       {r.busy && (
         <p role="status">Waiting for the authoritative command result…</p>
       )}

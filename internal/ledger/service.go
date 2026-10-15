@@ -57,7 +57,7 @@ func (s *Service) Workspace(ctx context.Context, c Command) (Result, error) {
 // Recovery runs only the explicit interactive command lifecycle, never a worker.
 func (s *Service) Recovery(ctx context.Context, c Command, action string) (Result, error) {
 	switch action {
-	case "register", "pending", "execute", "cancel", "acknowledge":
+	case "register", "pending", "clear", "execute", "cancel", "acknowledge":
 	default:
 		return Result{}, &Failure{400, "invalid_request"}
 	}
@@ -215,6 +215,9 @@ func (s *Service) attempt(ctx context.Context, c Command, op string, iso pgx.TxI
 	case "command_pending":
 		r.Status = 200
 		err = tx.QueryRow(ctx, "select ledger.pending_command($1)", c.Actor).Scan(&r.Body)
+	case "command_clear":
+		r.Status = 200
+		err = tx.QueryRow(ctx, "select ledger.clear_inaccessible_command($1,$2,$3)", c.Actor, c.Request, c.Body).Scan(&r.Body)
 	case "command_execute", "command_cancel", "command_acknowledge":
 		r.Status = 200
 		err = tx.QueryRow(ctx, "select ledger.transition_command($1,$2,$3,$4,$5)", c.Actor, c.CommandID, c.Request, strings.TrimPrefix(op, "command_"), c.Body).Scan(&r.Body)

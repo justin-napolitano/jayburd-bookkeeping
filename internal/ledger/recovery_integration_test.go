@@ -74,6 +74,22 @@ func pendingCommand(t *testing.T, s *Service, who string) *durableCommand {
 	return v.Command
 }
 
+// clearInaccessible invokes the payload-free escape hatch and decodes only its fixed boolean receipt.
+func clearInaccessible(t *testing.T, s *Service, who string) bool {
+	t.Helper()
+	r, err := s.Recovery(context.Background(), Command{Actor: who, Request: requestID(), Body: `{}`}, "clear")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var v struct {
+		Cleared bool `json:"cleared"`
+	}
+	if json.Unmarshal(r.Body, &v) != nil {
+		t.Fatal("invalid clear receipt")
+	}
+	return v.Cleared
+}
+
 // TestCommandLifecycle proves prepare, execute, replay, explicit acknowledgement and immutable history.
 func TestCommandLifecycle(t *testing.T) {
 	for _, op := range []string{"setup", "post"} {
@@ -217,6 +233,79 @@ func TestCommandAuthorization(t *testing.T) {
 		if _, err = runtime.Exec(ctx, q); err == nil {
 			t.Fatal("runtime crossed command table boundary")
 		}
+	}
+}
+
+// TestInaccessibleCommandClear proves explicit release never exposes or executes saved financial work.
+func TestInaccessibleCommandClear(t *testing.T) {
+	for _, terminal := range []string{"prepared", "committed", "cancelled"} {
+		t.Run(terminal, func(t *testing.T) {
+			c, s, _ := fixtureDB(t, "command_clear_"+terminal)
+			ctx := context.Background()
+			r, err := s.Recovery(ctx, registration("post", "blocked"), "register")
+			if err != nil {
+				t.Fatal(err)
+			}
+			v := decodeCommand(t, r)
+			if terminal == "committed" {
+				recoverCommand(t, s, v.ID, "execute")
+			} else if terminal == "cancelled" {
+				recoverCommand(t, s, v.ID, "cancel")
+			}
+			sql(t, c, "UPDATE ledger.membership SET revoked_at=now() WHERE entity_id=$1 AND principal_id=$2 AND permission='read'", entity, actor)
+			_, err = s.Recovery(ctx, Command{Actor: actor}, "pending")
+			requireFailure(t, err, "permission_denied")
+			journals := scalar(t, c, "SELECT count(*)::text FROM ledger.journal_entry")
+			if !clearInaccessible(t, s, actor) || clearInaccessible(t, s, actor) {
+				t.Fatal("clear receipt did not distinguish initial action from replay")
+			}
+			if scalar(t, c, "SELECT state||':'||(acknowledged_at IS NOT NULL)::text FROM ledger.interactive_command WHERE command_id=$1", v.ID) != map[string]string{"prepared": "cancelled:true", "committed": "committed:true", "cancelled": "cancelled:true"}[terminal] {
+				t.Fatal("unexpected terminal recovery state")
+			}
+			if scalar(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != journals {
+				t.Fatal("clear changed accounting")
+			}
+			expectedActions := map[string]string{"prepared": "3", "committed": "3", "cancelled": "3"}[terminal]
+			if scalar(t, c, "SELECT count(*)::text FROM audit.command_action WHERE command_id=$1", v.ID) != expectedActions {
+				t.Fatal("clear audit evidence incomplete")
+			}
+		})
+	}
+	for _, op := range []string{"setup", "post"} {
+		t.Run("authorized_"+op, func(t *testing.T) {
+			_, s, _ := fixtureDB(t, "command_clear_authorized_"+op)
+			r, err := s.Recovery(context.Background(), registration(op, "visible"), "register")
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = s.Recovery(context.Background(), Command{Actor: actor, Request: requestID(), Body: `{}`}, "clear")
+			requireFailure(t, err, "invalid_command_state")
+			if found := pendingCommand(t, s, actor); found == nil || found.ID != decodeCommand(t, r).ID {
+				t.Fatal("authorized command was cleared")
+			}
+		})
+	}
+	t.Run("other_principal", func(t *testing.T) {
+		c, s, _ := fixtureDB(t, "command_clear_other")
+		other := requestID()
+		sql(t, c, "INSERT INTO ledger.principal VALUES($1,'synthetic','clear-other',NULL)", other)
+		r, err := s.Recovery(context.Background(), registration("post", "owned"), "register")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if clearInaccessible(t, s, other) {
+			t.Fatal("other principal cleared foreign work")
+		}
+		if found := pendingCommand(t, s, actor); found == nil || found.ID != decodeCommand(t, r).ID {
+			t.Fatal("foreign clear changed owned command")
+		}
+	})
+	for name, body := range map[string]string{"empty": "", "malformed": "{", "nonempty": `{"unexpected":true}`} {
+		t.Run("invalid_body_"+name, func(t *testing.T) {
+			_, s, _ := fixtureDB(t, "command_clear_invalid_"+name)
+			_, err := s.Recovery(context.Background(), Command{Actor: actor, Request: requestID(), Body: body}, "clear")
+			requireFailure(t, err, "invalid_request")
+		})
 	}
 }
 
