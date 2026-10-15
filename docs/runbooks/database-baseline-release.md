@@ -25,17 +25,36 @@ rollout. Contract: [read-only status](../contracts/migration-status.md).
 ## Current evidence
 
 PASS: exact manifest/expiry/build validator, bootstrap ancestry,
-`make check test build release-test`, and staged runbook validation. Actual status
-has not run. Latest images embed migrations1–15; using them to check the old
+`make check test build release-test`, and staged runbook validation. Hosted
+verification now PASS in workflow38663999729, execution jayburd-dev-migrate-sp7xd,
+completed 2026-10-15T01:11:09.256743Z. The retained receipt and independently
+validated allowlisted metadata match the exact image, identity, status action,
+one task, zero retries and 660-second timeout. This establishes clean version5
+and exact baseline artifact hashes, without an upgrade.
+
+PASS: fresh local `make migration-test` and `make cloud-sql-test check test build`,
+including reviewed role-bootstrap replay and restricted migrator/API checks.
+These local results do not substitute for the pending hosted role bootstrap.
+
+Latest images embed migrations1–15; using them to check the old
 baseline would fail the exact-version contract. Only the older migrator executes;
 its API/web image references satisfy same-build provenance and are never deployed.
 
 ## Remaining work
 
-Owner reviews and merges this exact candidate. Dispatch `deploy-dev.yml` on main
-with its SHA256. Require successful exact-image/action readback and the redacted
-migration-verification receipt. Any dirty, missing, changed or unexpected version
-blocks further migration; never force or down-migrate.
+#127 is merged and its exact-hash verification succeeded. Before the forward
+upgrade, rerun the reviewed `db/bootstrap/cloud-sql.sql` through the retained
+operator to precreate safe NOLOGIN publisher/observer/sync/webhook roles. The
+original hosted bootstrap predates these additions; migrator cannot CREATE ROLE.
+Do not assume the roles exist or grant CREATEROLE to the migrator.
+
+Cloud Shell command access PASS, but its project authorization check is BLOCKED.
+Owner must reopen Cloud Shell and run:
+`gcloud projects describe jayburd-bookkeeping-dev --format='value(projectNumber)'`,
+authorize the session, and confirm public project number9088794002. No credential
+transfer or `--authorize-session` command was used by the agent. After restoration,
+check operator capabilities, execute hash-verified bootstrap, and read back safe
+role attributes/memberships before preparing a dispatchable upgrade manifest.
 
 Then prepare the forward upgrade to migrations1–15 and post-upgrade verification.
 Application promotion still requires actual API IAM denials, ownership review,
@@ -46,10 +65,13 @@ also need hosted acceptance before an interactive bank-to-review claim.
 
 ## PR handoff
 
-This is the concrete next deployment prerequisite, not a frontend deployment.
+The read-only prerequisite succeeded; forward upgrade remains blocked on operator
+authorization and role bootstrap. No frontend deployment.
 No SQL or application implementation change. Source/build compatibility evidence:
 https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6181599981.
 Existing local demo remains running. No real bank activation is authorized.
 
 Reviewed candidate SHA256:
 `3b1962af44c61bf1b26f09ab0f19e3e895c5885b0beaebc0eb037f649903e25d`.
+
+Hosted result: https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6182078948.
