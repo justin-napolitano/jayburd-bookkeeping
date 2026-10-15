@@ -29,7 +29,7 @@ variable "canary" {
       can(regex("^us-central1-docker[.]pkg[.]dev/${var.project_id}/jayburd-dev/worker@sha256:[a-f0-9]{64}$", var.canary.image)) &&
       alltrue([for id in [var.canary.infisical_project, var.canary.infisical_identity] : can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", id)) && id != "00000000-0000-0000-0000-000000000000"]) &&
       contains(["lookup", "execute"], var.canary.mode) &&
-      contains(["JAYBURD_DELIVERY_CANARY", "PLAID_CLIENT_ID", "PLAID_SECRET"], var.canary.key) &&
+      (contains(["JAYBURD_DELIVERY_CANARY", "PLAID_CLIENT_ID", "PLAID_SECRET"], var.canary.key) || can(regex("^slot-0[0-7]$", var.canary.key))) &&
       (var.canary.mode == "lookup" ? var.canary.source_id == null : try(can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", var.canary.source_id)) && var.canary.source_id != "00000000-0000-0000-0000-000000000000", false)) &&
       can(regex("^[1-9][0-9]{0,18}$", var.canary.source_version)) && try(tonumber(var.canary.source_version) <= 9223372036854775807, false)
     )

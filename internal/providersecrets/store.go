@@ -42,8 +42,8 @@ type reservation struct {
 
 // sourceValue contains source data only in trusted adapter memory.
 type sourceValue struct {
-	ID, Workspace, Environment, SecretKey, SecretValue string
-	Version                                            json.Number
+	ID, Workspace, Environment, SecretKey, SecretValue, SecretPath string
+	Version                                                        json.Number
 }
 
 // NewStore validates the bounded pool and freezes its order so concurrent reservation is deterministic.

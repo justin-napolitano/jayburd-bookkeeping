@@ -49,24 +49,31 @@ func NewDelivery(c DeliveryConfig, registry *GCSRegistry) (*Delivery, error) {
 	return &Delivery{&Store{config: s, http: client(s.Transport)}, r, registry}, nil
 }
 
-// target defines the complete allowlist; folder paths and destination names cannot be supplied.
+// deliveryNamespace defines the entire allowlist; callers cannot supply folders or destination suffixes.
+func deliveryNamespace(key string) (string, string, error) {
+	switch key {
+	case "JAYBURD_DELIVERY_CANARY":
+		return "/", "canary", nil
+	case "PLAID_CLIENT_ID":
+		return "/", "client-id", nil
+	case "PLAID_SECRET":
+		return "/", "client-secret", nil
+	default:
+		if len(key) != 7 || !strings.HasPrefix(key, "slot-0") || key[6] < '0' || key[6] > '7' {
+			return "", "", fail("secret_reference_invalid")
+		}
+		return "/bank-sync", key, nil
+	}
+}
+
+// target validates immutable source selectors before mapping a fixed destination.
 func (d *Delivery) target(q DeliveryRequest) (string, string, error) {
 	if !uuid.MatchString(q.SourceID) || !positive(q.SourceVersion) {
 		return "", "", fail("secret_reference_invalid")
 	}
-	folder, suffix := "/", ""
-	switch q.Key {
-	case "JAYBURD_DELIVERY_CANARY":
-		suffix = "canary"
-	case "PLAID_CLIENT_ID":
-		suffix = "client-id"
-	case "PLAID_SECRET":
-		suffix = "client-secret"
-	default:
-		if len(q.Key) != 7 || !strings.HasPrefix(q.Key, "slot-0") || q.Key[6] < '0' || q.Key[6] > '7' {
-			return "", "", fail("secret_reference_invalid")
-		}
-		folder, suffix = "/bank-sync", q.Key
+	folder, suffix, err := deliveryNamespace(q.Key)
+	if err != nil {
+		return "", "", err
 	}
 	return folder, "projects/" + d.destination.config.ProjectID + "/secrets/jayburd-dev-bank-sync-" + suffix, nil
 }
@@ -109,7 +116,7 @@ func (d *Delivery) Deliver(ctx context.Context, q DeliveryRequest) (DeliveryRece
 		return DeliveryReceipt{}, e
 	}
 	v := source.Secret
-	if v.ID != q.SourceID || v.Workspace != expected.Project || v.Environment != "dev" || v.SecretKey != q.Key || string(v.Version) != q.SourceVersion || len(v.SecretValue) == 0 || len(v.SecretValue) > 65536 || strings.Contains(v.SecretValue, "${") {
+	if v.ID != q.SourceID || v.Workspace != expected.Project || v.Environment != "dev" || v.SecretKey != q.Key || (v.SecretPath != "" && v.SecretPath != folder) || string(v.Version) != q.SourceVersion || len(v.SecretValue) == 0 || len(v.SecretValue) > 65536 || strings.Contains(v.SecretValue, "${") {
 		return DeliveryReceipt{}, fail("secret_source_mismatch")
 	}
 	if folder == "/" && !opaque.MatchString(v.SecretValue) {
@@ -167,13 +174,22 @@ func (d *Delivery) LookupRoot(ctx context.Context, key, version string) (CanaryM
 	if (key != "JAYBURD_DELIVERY_CANARY" && key != "PLAID_CLIENT_ID" && key != "PLAID_SECRET") || !positive(version) {
 		return CanaryMetadata{}, fail("secret_reference_invalid")
 	}
+	return d.LookupSelected(ctx, key, version)
+}
+
+// LookupSelected discovers only fixed root/slot metadata, never caller-controlled paths or values.
+func (d *Delivery) LookupSelected(ctx context.Context, key, version string) (CanaryMetadata, error) {
+	folder, _, e := deliveryNamespace(key)
+	if e != nil || !positive(version) {
+		return CanaryMetadata{}, fail("secret_reference_invalid")
+	}
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 	token, e := d.source.auth(ctx)
 	if e != nil {
 		return CanaryMetadata{}, e
 	}
-	q := url.Values{"projectId": {d.source.config.ProjectID}, "environment": {"dev"}, "secretPath": {"/"}, "version": {version}, "type": {"shared"}, "viewSecretValue": {"false"}, "includeImports": {"false"}, "expandSecretReferences": {"false"}}
+	q := url.Values{"projectId": {d.source.config.ProjectID}, "environment": {"dev"}, "secretPath": {folder}, "version": {version}, "type": {"shared"}, "viewSecretValue": {"false"}, "includeImports": {"false"}, "expandSecretReferences": {"false"}}
 	raw, _, e := request(ctx, d.source.http, "GET", d.source.config.InfisicalOrigin+"/api/v4/secrets/"+key+"?"+q.Encode(), token, "", nil)
 	if e != nil {
 		return CanaryMetadata{}, e
@@ -188,7 +204,7 @@ func (d *Delivery) LookupRoot(ctx context.Context, key, version string) (CanaryM
 		return CanaryMetadata{}, e
 	}
 	s := result.Secret
-	if !uuid.MatchString(s.ID) || s.ID == "00000000-0000-0000-0000-000000000000" || s.Workspace != d.source.config.ProjectID || s.Environment != "dev" || s.SecretKey != key || string(s.Version) != version || (s.SecretPath != "" && s.SecretPath != "/") {
+	if !uuid.MatchString(s.ID) || s.ID == "00000000-0000-0000-0000-000000000000" || s.Workspace != d.source.config.ProjectID || s.Environment != "dev" || s.SecretKey != key || string(s.Version) != version || (s.SecretPath != "" && s.SecretPath != folder) {
 		return CanaryMetadata{}, fail("secret_source_mismatch")
 	}
 	return CanaryMetadata{SourceID: s.ID, SourceVersion: version}, nil
