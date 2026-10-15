@@ -49,7 +49,7 @@ export function CommandPanel({
       {r.busy && (
         <p role="status">Waiting for the authoritative command result…</p>
       )}
-      {!c && !r.registration && r.ready && (
+      {!c && !r.registration && r.ready && !r.error && (
         <p>No unacknowledged command. New work is available.</p>
       )}
       <button disabled={r.busy} onClick={() => void r.reload()}>
