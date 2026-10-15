@@ -41,6 +41,24 @@ credential_pending until Store.Read verifies the Google payload. Acquisition rea
 only the mapping and pinned Google/static versions, with no latest alias or source
 fallback. Missing propagation is PARTIAL, not permission to repeat exchange/rotation.
 
+## Approved isolated Sandbox role exception
+
+Owner approval on 2026-10-15 permits built-in **Member** for API writer identity
+`56d2a541-a48d-4bcc-ae0c-11f48c945ba2` only in isolated Infisical project
+`ec11c550-d143-4902-be67-e33266753539`. See the
+[approval](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/133#issuecomment-6196883808)
+and [configuration confirmation](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/133#issuecomment-6197028300).
+This supersedes the exact create/read-only Infisical grant below for this bounded
+Sandbox journey. Member is broader; no granular or least-privilege claim follows.
+Do not grant Admin or add this writer to static Plaid credential/canary projects.
+
+Owner confirms GCP ID Token Auth restricted to
+`jayburd-dev-api@jayburd-bookkeeping-dev.iam.gserviceaccount.com`, access and maximum
+TTL 900 seconds, and Development `/bank-sync`. These are owner attestations;
+hosted authentication/write/delivery remain #133 acceptance. Fixed eight-slot,
+create-once behavior, immutable registry, separate delivery identity and numeric
+GSM-version validation are unchanged. No production or real-bank approval.
+
 ## Concrete interfaces and bounds
 
 `NewGCSRegistry(GCSConfig{Bucket,Prefix,Tokens,Transport})`,
