@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/justin-napolitano/jayburd-bookkeeping/db/migrations"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/databaseprobe"
 )
 
 var cloudSQLProof = flag.Bool("cloud-sql-proof", false, "enable isolated synthetic Docker proof only")
@@ -50,6 +51,10 @@ func TestRestrictedMigration(t *testing.T) {
 		t.Fatal("missing artifact receipts")
 	}
 	runtime := proofDB(t, "synthetic_api", "bookkeeping")
+	// Exercise the exact hosted probe with a restricted synthetic login before any cloud execution.
+	if err := databaseprobe.Run(ctx, runtime, "synthetic_api"); err != nil {
+		t.Fatal("runtime probe failed")
+	}
 	var allowed bool
 	if err := runtime.QueryRowContext(ctx, `SELECT has_function_privilege(current_user,'reporting.workspace(uuid)','EXECUTE')`).Scan(&allowed); err != nil || !allowed {
 		t.Fatal("runtime lost its authorized entrypoint")
