@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "jayburd-bookkeeping-dev",
   "projectNumber": "9088794002",
-  "operation": "verify",
+  "operation": "migrate",
   "build": {
     "run": "38654097056",
     "attempt": "1",
