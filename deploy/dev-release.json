@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "jayburd-bookkeeping-dev",
   "projectNumber": "9088794002",
-  "operation": "migrate",
+  "operation": "verify",
   "build": {
     "run": "38654097056",
     "attempt": "1",
@@ -15,7 +15,7 @@
   },
   "evidence": {
     "bootstrap": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6182206357",
-    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6182206763"
+    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6193592881"
   },
-  "expiresAt": "2026-10-18T01:23:30Z"
+  "expiresAt": "2026-10-18T13:46:48Z"
 }
