@@ -146,3 +146,7 @@ worker-bootstrap-test:
 
 sandbox-qualification-test:
 	bash scripts/test-sandbox-qualification.sh
+
+.PHONY: sandbox-bootstrap-test
+sandbox-bootstrap-test:
+	bash scripts/test-sandbox-bootstrap.sh
