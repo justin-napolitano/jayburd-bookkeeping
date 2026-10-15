@@ -2,20 +2,20 @@
   "schemaVersion": 1,
   "project": "jayburd-bookkeeping-dev",
   "projectNumber": "9088794002",
-  "operation": "verify",
+  "operation": "migrate",
   "build": {
-    "run": "38327676280",
+    "run": "38654097056",
     "attempt": "1",
-    "commit": "0376b8793c882311f2d9cf0fbb2e99ecfc0bf540"
+    "commit": "5c10e944678e15caf5f832fc87b5c95aa6f86456"
   },
   "images": {
-    "api": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:5ba73ee81b3d1b2b02a9558208c1a85be48dcb002a7c4364a46a60956dba04ee",
-    "migrate": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:375d51ed48c1a7657461f6fe4bb80b98e30c43c1ee89ea17e1eea4c019ef5592",
-    "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:fef425a44604f6750e61e5b23c79a31093cd73b415a69a78f479a017205f734f"
+    "api": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:8fc56a4f31ca7c848d07dcb8085b20a409ca9fbc6fc29017fcf0bc81a94ce9ac",
+    "migrate": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:0d2ae04ddc621c28308e6b3c39b312dfda7b1338b95782c7d9bfa39970a51831",
+    "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:c90028d6836b8d3fe3ca5c2af2436f484802f375e874eeaaee5492f1165b1140"
   },
   "evidence": {
-    "bootstrap": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6129966805",
-    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6181599981"
+    "bootstrap": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6182206357",
+    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6182206763"
   },
-  "expiresAt": "2026-10-17T01:02:49Z"
+  "expiresAt": "2026-10-18T01:23:30Z"
 }
