@@ -24,7 +24,9 @@ test("real setup and lost committed journal recover after remount with exactly o
       "No books are available. Create your first development book below.",
     ),
   ).toBeVisible();
-  await page.getByText("Create an entity and book", { exact: true }).click();
+  await page
+    .getByText("Create a custom entity and book", { exact: true })
+    .click();
   await page
     .getByLabel("Entity name", { exact: true })
     .fill("Synthetic browser LLC");
