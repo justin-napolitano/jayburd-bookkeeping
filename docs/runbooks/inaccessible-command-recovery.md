@@ -48,6 +48,13 @@ work was cleared, never the command, scope, request, result, or financial data.
 - PR #149 merged as `bc3f932`. Owner-dispatched build 38818907429 passed the
   complete validation matrix, exact candidate runtime checks, vulnerability
   gates, and published matching digest-pinned application images.
+- Deployment PR #150 and run 38821143876 completed. Live verification returned
+  `no-store` and the current recovery bundle. Owner acceptance then exposed a
+  ambiguous state: discovery can succeed while a rejected action's denial remains
+  visible. Successful discovery now clears stale discovery and uncertain-transport
+  errors while preserving definitive action failures. Idle copy is hidden whenever
+  an action error exists. The screenshot alone does not establish which request
+  was denied; hosted setup authorization remains unverified.
 - `make app-integration` passed the synthetic PostgreSQL, API, and web
   composition gate.
 - Build 38809806298 passed its complete reusable validation plus per-image
@@ -55,8 +62,13 @@ work was cleared, never the command, scope, request, result, or financial data.
 
 ## Remaining work
 
+Issue #151 correction: `make web-check web-test web-build web-browser` passed
+with 263 unit tests and 17 browser journeys. New hook regressions cover denied
+discovery followed by successful retry and definitive setup rejection followed
+by empty pending discovery. No database or API contract changes are required.
+
 Hosted scope denial remains fail-closed; no private payload or log was inspected.
-The non-cacheable web release and owner acceptance remain.
+The stale-error correction and owner starter-book acceptance remain.
 The earlier local candidate-container rerun was blocked before application
 startup by an Alpine mirror certificate/index refresh failure; build 38818907429
 subsequently passed that independent candidate-image gate in CI.
