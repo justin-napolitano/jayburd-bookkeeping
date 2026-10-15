@@ -136,6 +136,8 @@ jobs:
           node-version: '24.18.0'
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: Prove isolated first-book operator bootstrap
+        run: make sandbox-bootstrap-test
       - name: Install locked browser dependencies
         run: npm --prefix web ci
       - name: Install Chromium for real application proof

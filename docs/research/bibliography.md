@@ -2,6 +2,12 @@
 
 ## Purpose and reading order
 
+[First Sandbox reference bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review)
+records SIX's official ISO 4217 List One XML publication (2026-09-17), retrieved
+2026-10-15 with SHA256, and the reviewed USD/840/2 record. Use it for this bounded
+local reference installation, not historical validity or full ISO certification.
+The maintenance page and selected XML record were reviewed; paid ISO text was not.
+
 [Plaid Link browser](../contracts/plaid-link-browser.md) reviews official Web SDK
 loading, callbacks and cleanup (selected sections, 2026-10-14). Use it to distinguish
 our memory/cancellation policy from real Link Events and institution qualification.
