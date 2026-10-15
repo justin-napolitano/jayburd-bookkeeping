@@ -6,6 +6,8 @@
 !cmd/
 !cmd/api/
 !cmd/api/*.go
+!cmd/database-probe/
+!cmd/database-probe/*.go
 !internal/
 !internal/**/
 !internal/**/*.go

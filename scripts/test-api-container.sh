@@ -26,11 +26,13 @@ case "${1:-}" in
   proof_arch="$(docker version --format '{{.Server.Arch}}')"
   case "$proof_arch" in arm64|amd64) ;; *) echo 'Unsupported Docker architecture' >&2; exit 1 ;; esac
   CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go build -trimpath -ldflags='-s -w' -o "$proof_dir/api" ./cmd/api
+  CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go build -trimpath -ldflags='-s -w' -o "$proof_dir/database-probe" ./cmd/database-probe
   cat > "$proof_dir/Dockerfile" <<DOCKERFILE
 FROM $probe_image AS certificates
 FROM scratch
 COPY --from=certificates /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY api /api
+COPY database-probe /database-probe
 USER 65532:65532
 EXPOSE 8080
 ENTRYPOINT ["/api"]
@@ -42,6 +44,11 @@ DOCKERFILE
  *) echo 'Usage: scripts/test-api-container.sh [--local-build | --image sha256:ID]' >&2; exit 1 ;;
 esac
 [[ "$(docker image inspect --format '{{.Config.User}}' "$proof_image")" == '65532:65532' ]]
+# The additional proof command is inert by default and rejects invalid actions offline.
+docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --entrypoint /database-probe "$proof_image"
+if docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --entrypoint /database-probe "$proof_image" -action=up; then
+ echo 'FAIL: invalid database probe action accepted' >&2; exit 1
+fi
 docker network create --internal "$proof_id" >/dev/null
 docker run -d --name "$proof_id" --network "$proof_id" --network-alias api \
  --read-only --user 65532:65532 --cap-drop ALL --security-opt no-new-privileges \

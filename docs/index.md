@@ -38,6 +38,7 @@ background work. The two predecessor repos are reference material only.
 | How does the frontend authenticate to the private API? | [Runtime identity and private bridge](contracts/private-api-bridge.md) |
 | How are application images packaged and published? | [Image delivery contract](contracts/image-delivery.md) |
 | How does Cloud SQL connect and migrate safely? | [Cloud SQL contract](contracts/cloud-sql.md) |
+| How do we prove actual API database permissions? | [Bounded permission probe and operator procedure](runbooks/database-permission-probe.md) |
 | Is the development database provisioned? | [Cloud SQL provisioning evidence and next gates](runbooks/cloud-sql-bootstrap.md) |
 | Has Cloud SQL role bootstrap succeeded? | [Cloud Shell bootstrap and current operator ownership](runbooks/cloud-shell-bootstrap.md) |
 | How is the GCP foundation validated and bootstrapped? | [Foundation operations](gcp-foundation.md) |
