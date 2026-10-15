@@ -104,3 +104,12 @@ configuration-preserving rollback. Expired or changed policy requires a separate
 reviewed forward promotion, not silently renewed consent. Worker deployment uses
 the separate [paused worker release](WORKERS.md); application releases do not
 apply its root or activate acquisition.
+
+## Limited Sandbox qualification
+
+The separately reviewed [Sandbox release contract](../docs/contracts/sandbox-release.md) adds explicit
+`sandbox-promote`/`sandbox-rollback` operations for the fixed development project.
+Full promote/rollback gates above remain unchanged. Sandbox releases require the
+bounded database proof (#130), and connection-enabled/worker releases also require
+delivery implementation (#131). Hosted activation is separately tracked in #133.
+Scheduling remains paused; no production or full-readiness claim follows.

@@ -3,6 +3,10 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 const repo = 'justin-napolitano/jayburd-bookkeeping';
 const components = ['api', 'migrate', 'web'];
+// Explicit operations keep limited qualification separate from full release authority.
+export function isSandbox(operation) { return ['sandbox-promote','sandbox-rollback'].includes(operation); }
+// Both rollback scopes require immutable prior evidence and never execute migrations.
+export function isRollback(operation) { return ['rollback','sandbox-rollback'].includes(operation); }
 // Exact object fields prevent arbitrary Terraform variables, environment values or destinations entering promotion.
 function keys(value, names) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).sort().join(',') !== [...names].sort().join(',')) throw new Error('Release rejected');
@@ -39,7 +43,7 @@ export function validateManifest(bytes, expectedHash, now = Date.now()) {
   keys(m.build, ['run','attempt','commit']); keys(m.images, components);
   keys(m.evidence, migrationOnly ? ['bootstrap','compatibility'] : ['bootstrap','identity','secrets','compatibility']);
   if (m.schemaVersion !== (migrationOnly ? 1 : 2) || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(m.project) || !/^[1-9][0-9]{5,19}$/.test(m.projectNumber) ||
-      !['promote','rollback','migrate','verify'].includes(m.operation) || (!migrationOnly && !/^[A-Za-z0-9_-]{1,128}$/.test(m.firebaseApiKey)) ||
+      !['promote','rollback','sandbox-promote','sandbox-rollback','migrate','verify'].includes(m.operation) || (!migrationOnly && !/^[A-Za-z0-9_-]{1,128}$/.test(m.firebaseApiKey)) ||
       !/^[1-9][0-9]{0,19}$/.test(m.build.run) || !/^[1-9][0-9]{0,3}$/.test(m.build.attempt) || !/^[a-f0-9]{40}$/.test(m.build.commit)) throw new Error('Release rejected');
   if ([m.project,m.projectNumber,...(migrationOnly ? [] : [m.firebaseApiKey]),m.build.run,m.build.attempt,m.build.commit].some(v=>typeof v!=='string') ||
       typeof m.expiresAt!=='string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(m.expiresAt)) throw new Error('Release rejected');
@@ -51,12 +55,14 @@ export function validateManifest(bytes, expectedHash, now = Date.now()) {
     if (typeof m.images[component] !== 'string' || !m.images[component].startsWith(prefix) || !/^sha256:[a-f0-9]{64}$/.test(m.images[component].slice(prefix.length))) throw new Error('Release rejected');
   }
   for (const value of Object.values(m.evidence)) if (typeof value !== 'string' || !/^https:\/\/github\.com\/justin-napolitano\/jayburd-bookkeeping\/issues\/[1-9][0-9]*#issuecomment-[0-9]+$/.test(value)) throw new Error('Release rejected');
-  if (!migrationOnly && (m.operation === 'rollback' ? typeof m.previousDeployment!=='string' || !/^[1-9][0-9]{0,19}$/.test(m.previousDeployment) : m.previousDeployment !== null)) throw new Error('Release rejected');
+  if (!migrationOnly && (isRollback(m.operation) ? typeof m.previousDeployment!=='string' || !/^[1-9][0-9]{0,19}$/.test(m.previousDeployment) : m.previousDeployment !== null)) throw new Error('Release rejected');
   if (!migrationOnly) validateConnections(m.connections, m.projectNumber, expiry, now);
+  if (isSandbox(m.operation) && (m.project !== 'jayburd-bookkeeping-dev' || m.projectNumber !== '9088794002')) throw new Error('Release rejected');
   return m;
 }
 // Migration and read-only status gather database evidence; full service promotion retains every closure gate.
-export function requiredGates(operation) {
+export function requiredGates(operation, connections = null) {
+  if (isSandbox(operation)) return {issues:connections === null ? [5,6,130] : [5,6,130,131],prs:[23,24,129]};
   if (['migrate','verify'].includes(operation)) return {issues:[5],prs:[44]};
   if (['promote','rollback'].includes(operation)) return {issues:[6,11,26],prs:[23,24]};
   throw new Error('Release rejected');
@@ -75,9 +81,9 @@ export function validateBuild(m, run, receipts) {
 }
 // Rollback targets must be evidenced by a successful earlier deployment; SQL compatibility still needs owner review.
 export function validateRollback(m, run, receipt) {
-  if (m.operation !== 'rollback' || String(run.id) !== m.previousDeployment || run.path !== '.github/workflows/deploy-dev.yml' || run.conclusion !== 'success' ||
+  if (!isRollback(m.operation) || String(run.id) !== m.previousDeployment || run.path !== '.github/workflows/deploy-dev.yml' || run.conclusion !== 'success' ||
       run.event !== 'workflow_dispatch' || run.head_branch !== 'main' || String(run.actor?.id) !== '55423093' || run.triggering_actor?.login !== 'justin-napolitano' || String(run.repository?.id) !== '1414515318' ||
-      receipt.status !== 'transport-smoke-passed' || receipt.project !== m.project || receipt.images?.api !== m.images.api || receipt.images?.web !== m.images.web || receipt.approvedConnectionConfigSHA256 !== connectionConfigDigest(m.connections)) throw new Error('Rollback rejected');
+      isSandbox(receipt.operation) !== isSandbox(m.operation) || receipt.status !== 'transport-smoke-passed' || receipt.project !== m.project || receipt.images?.api !== m.images.api || receipt.images?.web !== m.images.web || receipt.approvedConnectionConfigSHA256 !== connectionConfigDigest(m.connections)) throw new Error('Rollback rejected');
 }
 // Only named public configuration reaches generated inputs. Never read credentials, plans or state.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -87,12 +93,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (evidence) {
       const json = file => JSON.parse(readFileSync(`${evidence}/${file}`, 'utf8'));
       validateBuild(m, json('build-run.json'), components.map(c=>json(`${c}/candidate.json`)));
-      if (m.operation === 'rollback') validateRollback(m, json('previous-run.json'), json('previous/deployment.json'));
+      if (isRollback(m.operation)) validateRollback(m, json('previous-run.json'), json('previous/deployment.json'));
     }
     mkdirSync(destination, {recursive:true, mode:0o700});
     const common = {project_id:m.project, region:'us-central1'};
     if (!['migrate','verify'].includes(m.operation)) writeFileSync(`${destination}/runtime.tfvars.json`, JSON.stringify({...common, project_number:m.projectNumber, images:{api:m.images.api,web:m.images.web}, firebase_api_key:m.firebaseApiKey, connections:m.connections}), {mode:0o600});
-    writeFileSync(`${destination}/migration.tfvars.json`, JSON.stringify({...common, image:m.images.migrate, action:m.operation==='verify'?'status':'up'}), {mode:0o600});
+    writeFileSync(`${destination}/migration.tfvars.json`, JSON.stringify({...common, image:m.images.migrate, action:['verify','sandbox-promote'].includes(m.operation)?'status':'up'}), {mode:0o600});
     writeFileSync(`${destination}/approved.json`, JSON.stringify(m), {mode:0o600});
     console.log('PASS: release metadata validated');
   } catch { console.error('BLOCKED: release metadata or build evidence rejected'); process.exitCode=1; }
