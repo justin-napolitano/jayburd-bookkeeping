@@ -33,7 +33,11 @@ func (f *deliveryCloud) RoundTrip(r *http.Request) (*http.Response, error) {
 			return response(200, map[string]any{"accessToken": "synthetic-auth", "tokenType": "Bearer", "expiresIn": 900}), nil
 		}
 		q := r.URL.Query()
-		if r.Method != "GET" || q.Get("includeImports") != "false" || q.Get("expandSecretReferences") != "false" || q.Get("version") != "7" || q.Get("secretPath") != "/" || q.Get("projectId") != sourceProject || q.Get("environment") != "dev" {
+		folder := "/"
+		if strings.HasPrefix(r.URL.Path, "/api/v4/secrets/slot-0") {
+			folder = "/bank-sync"
+		}
+		if r.Method != "GET" || q.Get("includeImports") != "false" || q.Get("expandSecretReferences") != "false" || q.Get("version") != "7" || q.Get("secretPath") != folder || q.Get("projectId") != sourceProject || q.Get("environment") != "dev" {
 			return response(400, nil), nil
 		}
 		if f.failure == "denied" {
@@ -43,9 +47,18 @@ func (f *deliveryCloud) RoundTrip(r *http.Request) (*http.Response, error) {
 		if f.failure == "source" {
 			key = "WRONG"
 		}
-		return response(200, map[string]any{"secret": map[string]any{"id": "00000000-0000-4000-8000-000000000009", "workspace": sourceProject, "environment": "dev", "secretKey": key, "version": 7, "secretValue": "fictional-canary"}}), nil
+		fields := map[string]any{"id": "00000000-0000-4000-8000-000000000009", "workspace": sourceProject, "environment": "dev", "secretKey": key, "secretPath": folder, "version": 7, "secretValue": "fictional-canary"}
+		switch f.failure {
+		case "wrong-path":
+			fields["secretPath"] = "/other"
+		case "wrong-project":
+			fields["workspace"] = identity
+		case "wrong-version":
+			fields["version"] = 8
+		}
+		return response(200, map[string]any{"secret": fields}), nil
 	}
-	if r.URL.Host != "secretmanager.googleapis.com" || r.Method != "POST" || (!strings.HasSuffix(r.URL.Path, "/secrets/jayburd-dev-bank-sync-client-id:addVersion") && !strings.HasSuffix(r.URL.Path, "/secrets/jayburd-dev-bank-sync-canary:addVersion")) {
+	if r.URL.Host != "secretmanager.googleapis.com" || r.Method != "POST" || (!strings.HasSuffix(r.URL.Path, "/secrets/jayburd-dev-bank-sync-client-id:addVersion") && !strings.HasSuffix(r.URL.Path, "/secrets/jayburd-dev-bank-sync-canary:addVersion") && !strings.Contains(r.URL.Path, "/secrets/jayburd-dev-bank-sync-slot-0")) {
 		return nil, errors.New("forbidden endpoint")
 	}
 	var body struct {
@@ -322,6 +335,86 @@ func TestRootLookupAllowlist(t *testing.T) {
 		}
 		if !allowed && (err == nil || calls != 0) {
 			t.Fatal("unapproved key contacted source")
+		}
+	}
+}
+
+// TestDynamicSlots proves the complete fixed pool uses its folder and destination once, including replay ambiguity.
+func TestDynamicSlots(t *testing.T) {
+	for i := 0; i < 8; i++ {
+		for _, failure := range []string{"", "lost", "response", "denied", "source", "wrong-path", "wrong-project", "wrong-version"} {
+			d, f, q := newDeliveryProof(t, failure)
+			q.Key = "slot-0" + strconv.Itoa(i)
+			first, err := d.Deliver(context.Background(), q)
+			if failure == "" && (err != nil || !strings.HasSuffix(first.Destination, "/jayburd-dev-bank-sync-"+q.Key)) {
+				t.Fatal("slot delivery rejected", err)
+			}
+			if failure != "" && err == nil {
+				t.Fatal("failure accepted")
+			}
+			_, second := d.Deliver(context.Background(), q)
+			if failure == "" && second != nil {
+				t.Fatal("receipt replay failed")
+			}
+			if failure != "" && second == nil {
+				t.Fatal("ambiguous or denied delivery retried")
+			}
+			expected := 1
+			if failure == "denied" || failure == "source" || strings.HasPrefix(failure, "wrong-") {
+				expected = 0
+			}
+			if f.writes != expected {
+				t.Fatal("duplicate destination creation")
+			}
+		}
+	}
+}
+
+// TestSlotMetadataLookup proves value-disabled fixed namespace discovery and rejects mismatched source metadata.
+func TestSlotMetadataLookup(t *testing.T) {
+	for i := 0; i < 8; i++ {
+		key := "slot-0" + strconv.Itoa(i)
+		for _, mode := range []string{"ok", "wrong-path", "wrong-project", "wrong-version", "wrong-key"} {
+			d, f, _ := newDeliveryProof(t, "")
+			d.source.http = client(transportFunc(func(r *http.Request) (*http.Response, error) {
+				if strings.HasSuffix(r.URL.Path, "/login") {
+					return response(200, map[string]any{"accessToken": "synthetic-auth", "tokenType": "Bearer", "expiresIn": 900}), nil
+				}
+				q := r.URL.Query()
+				if r.Method != "GET" || r.URL.Path != "/api/v4/secrets/"+key || q.Get("secretPath") != "/bank-sync" || q.Get("viewSecretValue") != "false" || q.Get("version") != "1" || q.Get("projectId") != sourceProject || q.Get("includeImports") != "false" || q.Get("expandSecretReferences") != "false" {
+					t.Fatal("unsafe lookup")
+				}
+				fields := map[string]any{"id": "00000000-0000-4000-8000-000000000009", "workspace": sourceProject, "environment": "dev", "secretKey": key, "secretPath": "/bank-sync", "version": 1, "secretValue": "private-unexpected"}
+				switch mode {
+				case "wrong-path":
+					fields["secretPath"] = "/"
+				case "wrong-project":
+					fields["workspace"] = identity
+				case "wrong-version":
+					fields["version"] = 2
+				case "wrong-key":
+					fields["secretKey"] = "PLAID_SECRET"
+				}
+				return response(200, map[string]any{"secret": fields}), nil
+			}))
+			metadata, err := d.LookupSelected(context.Background(), key, "1")
+			if (err == nil) != (mode == "ok") || f.writes != 0 {
+				t.Fatal("lookup result/side effect mismatch")
+			}
+			encoded, _ := json.Marshal(metadata)
+			if strings.Contains(string(encoded), "private") {
+				t.Fatal("value leaked")
+			}
+		}
+	}
+	for _, key := range []string{"slot-08", "slot-00/other", "../slot-00", "/bank-sync/slot-00", "OTHER"} {
+		d, _, _ := newDeliveryProof(t, "")
+		d.source.http = client(transportFunc(func(*http.Request) (*http.Response, error) {
+			t.Fatal("invalid lookup contacted source")
+			return nil, nil
+		}))
+		if _, err := d.LookupSelected(context.Background(), key, "1"); err == nil {
+			t.Fatal("invalid key accepted")
 		}
 	}
 }

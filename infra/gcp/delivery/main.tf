@@ -120,11 +120,11 @@ resource "google_service_account_iam_member" "runner_federation" {
   member             = "principalSet://iam.googleapis.com/projects/${var.project_number}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.canary.workload_identity_pool_id}/attribute.repository_id/1414515318"
 }
 
-# Only the selected static key gets write authority; existing worker-owned containers are not adopted here.
+# Only the selected static key or fixed slot gets write authority; existing worker-owned containers are not adopted here.
 resource "google_secret_manager_secret_iam_member" "provider_delivery" {
   count     = var.canary == null ? 0 : (var.canary.mode == "execute" && var.canary.key != "JAYBURD_DELIVERY_CANARY" ? 1 : 0)
   project   = var.project_id
-  secret_id = var.canary.key == "PLAID_CLIENT_ID" ? "jayburd-dev-bank-sync-client-id" : "jayburd-dev-bank-sync-client-secret"
+  secret_id = var.canary.key == "PLAID_CLIENT_ID" ? "jayburd-dev-bank-sync-client-id" : (var.canary.key == "PLAID_SECRET" ? "jayburd-dev-bank-sync-client-secret" : "jayburd-dev-bank-sync-${var.canary.key}")
   role      = "roles/secretmanager.secretVersionAdder"
   member    = "serviceAccount:${google_service_account.delivery.email}"
 }

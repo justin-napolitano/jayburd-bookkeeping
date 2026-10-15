@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/providersecrets"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -74,5 +75,30 @@ func TestLookupWithoutID(t *testing.T) {
 	out.Reset()
 	if run(context.Background(), append(args, "-execute"), &out, nil) != 1 {
 		t.Fatal("mixed mode accepted")
+	}
+}
+
+// TestSelectedSlots accepts all fixed slots while rejecting paths, unknown slots and secret arguments before execution.
+func TestSelectedSlots(t *testing.T) {
+	keys := []string{"slot-08", "../slot-00", "/bank-sync/slot-00", "slot-00/other", "OTHER"}
+	for i := 0; i < 8; i++ {
+		keys = append(keys, "slot-0"+strconv.Itoa(i))
+	}
+	for index, key := range keys {
+		calls := 0
+		var out bytes.Buffer
+		result := run(context.Background(), append(arguments(), "-execute", "-key="+key), &out, func(_ context.Context, c config) (providersecrets.CanaryMetadata, error) {
+			calls++
+			if c.key != key {
+				t.Fatal("key changed")
+			}
+			return providersecrets.CanaryMetadata{}, nil
+		})
+		if index < 5 && (result != 1 || calls != 0) {
+			t.Fatal("invalid slot executed")
+		}
+		if index >= 5 && (result != 0 || calls != 1) {
+			t.Fatal("valid slot rejected")
+		}
 	}
 }
