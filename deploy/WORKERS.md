@@ -71,3 +71,12 @@ successful worker deployment run ID in `previousDeployment`. Image, binding,
 project and exact client versions must match that retained receipt. The prior
 successful build receipt is independently checked again. New policy or new
 versions require forward promotion; rollback never executes down migrations.
+
+## Limited Sandbox qualification
+
+The separately reviewed [Sandbox release contract](../docs/contracts/sandbox-release.md) adds explicit
+`sandbox-promote`/`sandbox-rollback` operations for the fixed development project.
+Full promote/rollback gates above remain unchanged. Sandbox releases require the
+bounded database proof (#130), and connection-enabled/worker releases also require
+delivery implementation (#131). Hosted activation is separately tracked in #133.
+Scheduling remains paused; no production or full-readiness claim follows.

@@ -45,7 +45,7 @@ jobs:
           import {requiredGates} from './scripts/release-manifest.mjs';
           const m=JSON.parse(readFileSync(process.env.RUNNER_TEMP+'/release/approved.json'));
           if(m.project!==process.env.PROJECT_ID || m.projectNumber!==process.env.PROJECT_NUMBER) throw new Error('Project mismatch');
-          const gates=requiredGates(m.operation);
+          const gates=requiredGates(m.operation,m.connections);
           appendFileSync(process.env.GITHUB_ENV,`BUILD_RUN=${m.build.run}\nBUILD_ATTEMPT=${m.build.attempt}\nBUILD_COMMIT=${m.build.commit}\nPREVIOUS_DEPLOYMENT=${m.previousDeployment??''}\nRELEASE_OPERATION=${m.operation}\n`);
           // Fixed numeric gate lists stay local to this step; no manifest-selected issue IDs.
           writeFileSync(process.env.RUNNER_TEMP+'/release/prs.txt',gates.prs.join('\n')+'\n');
@@ -84,7 +84,7 @@ jobs:
           terraform_wrapper: false
       - name: Run credential-free release and infrastructure tests
         run: |
-          node --test scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs scripts/migration-receipt.test.mjs
+          node --test scripts/sandbox-release.test.mjs scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs scripts/migration-receipt.test.mjs
           bash scripts/test-deploy-dev.sh
           make infra-test
       - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
