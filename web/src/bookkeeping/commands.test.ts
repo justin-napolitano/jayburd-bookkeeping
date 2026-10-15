@@ -49,6 +49,37 @@ describe("command session boundary", () => {
     expect(api).toHaveBeenNthCalledWith(2, "/v1/commands/pending/clear", "{}");
   });
 
+  it("clears a prior denial only after a later discovery succeeds", async () => {
+    let blocked = true;
+    const api = vi.fn(async () => {
+      if (blocked) throw new APIError(403, false);
+      return { command: null };
+    }) as unknown as API;
+    const hook = renderHook(() => useCommands(api));
+    await waitFor(() => expect(hook.result.current.accessDenied).toBe(true));
+    expect(hook.result.current.error).toContain("access was denied");
+    blocked = false;
+    await act(async () => hook.result.current.reload());
+    await waitFor(() => expect(hook.result.current.ready).toBe(true));
+    expect(hook.result.current.accessDenied).toBe(false);
+    expect(hook.result.current.error).toBe("");
+    expect(hook.result.current.locked).toBe(false);
+  });
+
+  it("preserves a rejected setup error when pending discovery finds no work", async () => {
+    const api = vi.fn(async (path: string) => {
+      if (path === "/v1/commands") throw new APIError(403, false);
+      return { command: null };
+    }) as unknown as API;
+    const hook = renderHook(() => useCommands(api));
+    await waitFor(() => expect(hook.result.current.ready).toBe(true));
+    await act(async () => hook.result.current.prepare(input));
+    await waitFor(() => expect(hook.result.current.busy).toBe(false));
+    expect(hook.result.current.error).toContain("access was denied");
+    expect(hook.result.current.accessDenied).toBe(false);
+    expect(hook.result.current.command).toBeNull();
+  });
+
   it.each(["register", "execute"] as const)(
     "ignores late %s completion after API replacement",
     async (operation) => {
