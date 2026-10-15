@@ -21,6 +21,7 @@ build:
 	go build -trimpath -o bin/deliver ./cmd/deliver
 	go build -trimpath -o bin/sandbox-qualify ./cmd/sandbox-qualify
 	go build -trimpath -o bin/sandbox-probe ./cmd/sandbox-probe
+	go build -trimpath -o bin/database-probe ./cmd/database-probe
 
 web-check:
 	npm --prefix web run api:check
@@ -79,7 +80,7 @@ cloud-sql-test:
 
 .PHONY: release-test
 release-test:
-	node --test scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs scripts/migration-receipt.test.mjs
+	node --test scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs scripts/migration-receipt.test.mjs scripts/database-probe-receipt.test.mjs
 	bash scripts/test-deploy-dev.sh
 	node --test scripts/worker-release-manifest.test.mjs scripts/worker-deployment-receipt.test.mjs
 	bash scripts/test-deploy-workers.sh
