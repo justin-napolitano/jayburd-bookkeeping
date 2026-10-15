@@ -21,6 +21,8 @@ work was cleared, never the command, scope, request, result, or financial data.
   workspace state only after confirmed success.
 - PR #145 merged as `cacc5a0`. Owner-dispatched build 38809806298 passed all
   validation and published matching API, migrator, web, and worker candidates.
+- Migration-only release PR #146 merged and run 38813529384 completed
+  successfully, applying migration 16 without changing application services.
 
 ## Current evidence
 
@@ -39,12 +41,11 @@ work was cleared, never the command, scope, request, result, or financial data.
 ## Remaining work
 
 Hosted cause is inferred from the fail-closed contract; no private payload or log
-was inspected. The reviewed migration-only manifest must execute migration 16
-before a separate API/web promotion from the same build.
+was inspected. The matching API/web Sandbox promotion and owner acceptance remain.
 
 ## PR handoff
 
-First handoff is the exact `operation: migrate` manifest for build 38809806298.
-After its receipt verifies execution, prepare a separate Sandbox promotion for the
-matching API and web images. Hosted acceptance is the owner explicitly clearing
-inaccessible work and preparing the starter book without exposing the old command.
+Migration execution is complete. The next handoff is the exact
+`operation: sandbox-promote` manifest for the matching API and web images. Hosted
+acceptance is the owner explicitly clearing inaccessible work and preparing the
+starter book without exposing the old command.
