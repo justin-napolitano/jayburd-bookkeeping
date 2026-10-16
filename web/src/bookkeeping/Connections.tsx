@@ -248,15 +248,23 @@ function ConnectionWorkspace({
     setAttempts(null);
     setStatus(null);
     setOperation(null);
-    const [value, page] = await Promise.all([
+    const [listing, discovery] = await Promise.allSettled([
       api<Listing>(`${base}/connections`),
       api<AttemptPage>(`${base}/connection-attempts?limit=100`),
     ]);
     if (!current.live) return;
-    if (!validList(value)) throw Error("response");
-    setAttempts(checkAttempts(page));
-    setList(value);
-    if (page.unfinished_count === "0") setEnrollmentStarted(false);
+    // A failed Item listing must not hide successful durable-attempt discovery.
+    if (discovery.status === "fulfilled") {
+      const page = checkAttempts(discovery.value);
+      setAttempts(page);
+      if (page.unfinished_count === "0") setEnrollmentStarted(false);
+    }
+    if (listing.status === "fulfilled") {
+      if (!validList(listing.value)) throw Error("response");
+      setList(listing.value);
+    }
+    if (discovery.status === "rejected") throw discovery.reason;
+    if (listing.status === "rejected") throw listing.reason;
   };
   // A status is useful only for the exact currently selected Item/source/stream scope.
   const checkedStatus = (
@@ -451,13 +459,35 @@ function ConnectionWorkspace({
         );
         return;
       }
-      const value = await api<Attempt>(
-        `${base}/connection-attempts/${handoff.attempt.attempt_id}/execute`,
-        JSON.stringify({
-          nonce: handoff.nonce,
-          link_token: handoff.link_token,
-        }),
-      );
+      let value: Attempt;
+      try {
+        value = await api<Attempt>(
+          `${base}/connection-attempts/${handoff.attempt.attempt_id}/execute`,
+          JSON.stringify({
+            nonce: handoff.nonce,
+            link_token: handoff.link_token,
+          }),
+        );
+      } catch (error) {
+        // A 409 can follow a committed exchange. Inspect that exact attempt;
+        // never restore the handoff or repeat the provider mutation.
+        if (error instanceof APIError && error.status === 409 && current.live) {
+          const recovered = checkedAttempt(
+            await api<Attempt>(`${base}/connection-attempts/${handoff.attempt.attempt_id}`),
+            handoff.attempt.attempt_id,
+          );
+          if (!current.live) return;
+          setAttempt(recovered);
+          setInspectID(recovered.attempt_id);
+          if (recovered.state === "credential_recovery_required") {
+            setMessage(
+              "Bank setup needs credential recovery. Review this attempt below; do not start another bank connection.",
+            );
+            return;
+          }
+        }
+        throw error;
+      }
       if (!current.live) return;
       const checked = checkedAttempt(value, handoff.attempt.attempt_id);
       setAttempt(checked);

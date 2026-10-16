@@ -1,3 +1,14 @@
+# Bank connection recovery — 2026-10-15
+
+Owner reached hosted Plaid success, but token persistence failed before a dynamic
+Infisical secret appeared (#160). PR #165 replaces per-account slots/delivery with
+KMS-encrypted PostgreSQL records and incorporates #161 recovery UI. See the
+[contract](contracts/bank-token-vault.md) and [living evidence](runbooks/bank-token-vault.md).
+The implementation passed synthetic encrypted enrollment/acquisition/posting and
+lost-acknowledgement recovery. It is not deployed yet. #164 owns KMS provisioning,
+migration 18, matching API/consumer images and hosted owner acceptance. Static
+Plaid client secrets retain their managed-secret path. No old token was recovered.
+
 # Current delivery — 2026-10-14
 
 Managed Plaid Link loading and controlled paused-worker promotion are implemented
