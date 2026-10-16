@@ -26,6 +26,9 @@ the test fixture. It covers enrollment, acquisition, exact posting and lost
 response recovery. This is synthetic integration evidence, not hosted acceptance.
 PASS: the ordinary `make app-integration` recovery journey also passes through
 the production bridge, with exactly one posting after a lost committed response.
+CI caught the separate cloud migration-status fixture still treating version 17
+as invalid. Its older/newer/restore metadata cases now require migration 17;
+the focused restricted Cloud SQL suite is rerun before release.
 
 ## Remaining work
 
