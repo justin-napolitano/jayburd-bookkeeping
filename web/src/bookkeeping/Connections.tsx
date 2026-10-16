@@ -603,6 +603,11 @@ function ConnectionWorkspace({
         Connections for {entity.name} / {book.name}. Enrollment is not a balance
         or confirmation of complete bank history.
       </p>
+      <p>
+        Connect account prepares bank access for a book you created, then opens
+        Plaid. You choose which accounts to share and review where they belong
+        before importing transactions.
+      </p>
       {!link && <p>New bank setup is unavailable in this deployment.</p>}
       <button
         type="button"

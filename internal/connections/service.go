@@ -20,9 +20,10 @@ type repository interface {
 
 // Service commits authority before remote work and publishes references only after readback.
 type Service struct {
-	repo     repository
-	provider Provider
-	secrets  SecretStore
+	repo          repository
+	provider      Provider
+	secrets       SecretStore
+	creatorLogins *WorkerLogins
 }
 
 // New composes injected boundaries without startup credential discovery.
@@ -150,7 +151,13 @@ func (s *Service) Begin(parent context.Context, scope Scope, key string, input B
 	}
 	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
 	defer cancel()
-	raw, e := s.repo.call(ctx, "begin_connection", scope.Actor, scope.Entity, scope.Book, key, jsonText(input))
+	op := "begin_connection"
+	args := []any{scope.Actor, scope.Entity, scope.Book, key, jsonText(input)}
+	if s.creatorLogins != nil {
+		op = "creator_begin_connection"
+		args = append(args, s.creatorLogins.Sync, s.creatorLogins.Publisher)
+	}
+	raw, e := s.repo.call(ctx, op, args...)
 	if e != nil {
 		return out, e
 	}
@@ -493,6 +500,9 @@ func (s *Service) Attempt(ctx context.Context, scope Scope, id string) (json.Raw
 func (s *Service) List(ctx context.Context, scope Scope) (json.RawMessage, error) {
 	if e := s.ready(scope); e != nil {
 		return nil, e
+	}
+	if s.creatorLogins != nil {
+		return s.repo.call(ctx, "creator_list_connections", scope.Actor, scope.Entity, scope.Book, s.creatorLogins.Sync, s.creatorLogins.Publisher)
 	}
 	return s.repo.call(ctx, "list_connections", scope.Actor, scope.Entity, scope.Book)
 }
