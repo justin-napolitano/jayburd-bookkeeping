@@ -1,34 +1,21 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 1,
   "project": "jayburd-bookkeeping-dev",
   "projectNumber": "9088794002",
-  "operation": "sandbox-promote",
+  "operation": "migrate",
   "build": {
-    "run": "38829829288",
+    "run": "38843645129",
     "attempt": "1",
-    "commit": "eaa016a711308427f52fc8be5c90e025fcffcc32"
+    "commit": "74823ef94046c9be50ae7a2d22d78789ac663462"
   },
   "images": {
-    "api": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:808c259e8ce0e22027d333927ad3e4b6e86efd05fe3a4b32a2a3c854b82600af",
-    "migrate": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:3ea800423d7a91666db4362167f722265843ae9d0aa7cf3fc96a17c9057525f6",
-    "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:1bf4ae38973d992773d58d8ec704a3a01d27049092f2b55eea512c2d2ee0dadc"
+    "api": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:52b799a78431c057a90fc3faa00918db33dac47b1c6160a16ae90eac79de546b",
+    "migrate": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:4eec01196f4d72f385549ae4b8f6abc4f07fc2d4d61836f33c2b60540f7b750c",
+    "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:b4aaddf134d4fcf6a1626184ad227ebb0d5f305463fe419fd7b59575225bad13"
   },
-  "firebaseApiKey": "AIzaSyDi2taJScO3dnw4NqU9gsdDUXaJ_q0GXGg",
   "evidence": {
     "bootstrap": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6182206357",
-    "identity": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/6#issuecomment-6197238285",
-    "secrets": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/133#issuecomment-6197028300",
-    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/130#issuecomment-6196651622"
+    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/164#issuecomment-6207096526"
   },
-  "expiresAt": "2026-10-20T17:00:00Z",
-  "previousDeployment": null,
-  "connections": {
-    "infisical_origin": "https://app.infisical.com",
-    "infisical_project": "ec11c550-d143-4902-be67-e33266753539",
-    "infisical_identity": "56d2a541-a48d-4bcc-ae0c-11f48c945ba2",
-    "link_events_qualified": false,
-    "client_id_version": "projects/9088794002/secrets/jayburd-dev-bank-sync-client-id/versions/1",
-    "client_secret_version": "projects/9088794002/secrets/jayburd-dev-bank-sync-client-secret/versions/1",
-    "consent_expires_at": "2026-10-22T17:00:00Z"
-  }
+  "expiresAt": "2026-10-20T17:00:00Z"
 }
