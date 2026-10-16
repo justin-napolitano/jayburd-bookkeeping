@@ -78,3 +78,19 @@ one additional lease-scoped encrypted-credential reader. Issue #166 updates the
 assertion to eleven and explicitly checks that reader; the existing denied
 table and API-function assertions remain. Re-run the synthetic sync proof and
 full CI before publishing images.
+
+## Development rollout
+
+PR #167 merged the CI correction. Its synthetic sync proof, Go checks and all
+hosted PR checks passed. The owner-operated workers Terraform root enabled
+Cloud KMS and created the `jayburd-dev/bank-credentials` key in `us-central1`.
+After API propagation, key IAM readback confirmed only the development API
+service account has encrypt/decrypt and the sync service account has decrypt.
+No account token, plaintext key, Terraform state or plan entered this evidence.
+Build 38843645129 passed complete validation and published all four candidate
+image receipts from merged commit 74823ef. The migration-only manifest pins
+its matching API/migrator/web digests for forward migration 18. Next: run the
+hash-approved migration workflow and check its retained receipt, then promote
+matching API and web images. The new worker image needs its own paused release
+and binding review before acquisition. Hosted Sandbox enrollment remains the
+acceptance gate.
