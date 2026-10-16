@@ -261,6 +261,14 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 		}
 		input.PublicToken = token.value
 	}
+	// Probe database-store wrapping capability before the irreversible provider claim.
+	if before.ClaimID == nil && (before.Mode == "new" || before.Mode == "rotate") {
+		if checker, ok := s.secretStore(scope).(interface{ Check(context.Context) error }); ok {
+			if checker.Check(ctx) != nil {
+				return nil, failed("temporarily_unavailable")
+			}
+		}
+	}
 	var lh, ph *string
 	if input.LinkToken != "" {
 		v := hash(input.LinkToken)
@@ -345,13 +353,13 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 	if _, e = s.context(ctx, scope, id); e != nil {
 		return nil, e
 	}
-	if e = s.secrets.Put(ctx, ref, credential.AccessToken); e != nil {
+	if e = s.secretStore(scope).Put(ctx, ref, credential.AccessToken); e != nil {
 		return s.recovery(ctx, scope, c, "secret_unknown")
 	}
 	if _, e = s.context(ctx, scope, id); e != nil {
 		return nil, e
 	}
-	stored, e := s.secrets.Read(ctx, ref)
+	stored, e := s.secretStore(scope).Read(ctx, ref)
 	if e != nil || !matches(stored, ref) || subtle.ConstantTimeCompare([]byte(stored.Token.value), []byte(credential.AccessToken.value)) != 1 {
 		return s.recovery(ctx, scope, c, "secret_unknown")
 	}
@@ -382,7 +390,7 @@ func (s *Service) Reconcile(parent context.Context, scope Scope, id string) (jso
 	if e != nil {
 		return nil, e
 	}
-	stored, e := s.secrets.Read(ctx, ref)
+	stored, e := s.secretStore(scope).Read(ctx, ref)
 	if e != nil || !matches(stored, ref) {
 		return nil, failed("credential_recovery_required")
 	}
@@ -442,7 +450,7 @@ func (s *Service) readPrevious(ctx context.Context, scope Scope, c attemptContex
 	if e != nil {
 		return Secret{}, e
 	}
-	v, e := s.secrets.Read(ctx, r)
+	v, e := s.secretStore(scope).Read(ctx, r)
 	if e != nil || !matches(v, r) {
 		return Secret{}, failed("credential_recovery_required")
 	}
@@ -527,4 +535,23 @@ func (s *Service) Disconnect(ctx context.Context, scope Scope, id, key, revision
 		return nil, failed("invalid_request")
 	}
 	return s.repo.call(ctx, "disconnect_stream", scope.Actor, scope.Entity, scope.Book, id, key, revision)
+}
+
+// secretStore binds database-backed storage to the current verified operation scope.
+func (s *Service) secretStore(scope Scope) SecretStore {
+	if factory, ok := s.secrets.(interface{ ForScope(Scope) SecretStore }); ok {
+		return factory.ForScope(scope)
+	}
+	return s.secrets
+}
+
+// Abandon closes only an explicitly acknowledged new Sandbox attempt with no stored credential.
+func (s *Service) Abandon(ctx context.Context, scope Scope, id string) (json.RawMessage, error) {
+	if e := s.ready(scope); e != nil {
+		return nil, e
+	}
+	if !validID(id) {
+		return nil, failed("invalid_request")
+	}
+	return s.repo.call(ctx, "abandon_connection", scope.Actor, scope.Entity, scope.Book, id)
 }

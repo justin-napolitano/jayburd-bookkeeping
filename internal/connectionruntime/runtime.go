@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/bankcredential"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/providersecrets"
 )
@@ -97,16 +98,11 @@ func New(parent context.Context, c Config, db connections.Beginner, transport ht
 	if e != nil {
 		return nil, ErrConfiguration
 	}
-	registry, e := providersecrets.NewGCSRegistry(providersecrets.GCSConfig{Bucket: c.RegistryBucket, Prefix: c.RegistryPrefix, Tokens: tokens, Transport: transport})
+	wrapper, e := bankcredential.NewKMS("projects/"+c.ProjectNumber+"/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials", tokens, transport)
 	if e != nil {
 		return nil, ErrConfiguration
 	}
-	slots := make([]providersecrets.Slot, 8)
-	for i := range slots {
-		name := "slot-0" + strconv.Itoa(i)
-		slots[i] = providersecrets.Slot{ID: name, InfisicalKey: name, GCPSecret: "projects/" + c.ProjectNumber + "/secrets/jayburd-dev-bank-sync-" + name}
-	}
-	store, e := providersecrets.NewStore(providersecrets.StoreConfig{InfisicalOrigin: c.InfisicalOrigin, ProjectID: c.InfisicalProject, Environment: c.InfisicalEnvironment, IdentityID: c.InfisicalIdentity, IdentityTokens: tokens, Transport: transport, Slots: slots}, registry, reader)
+	store, e := bankcredential.NewAPIStore(db, wrapper)
 	if e != nil {
 		return nil, ErrConfiguration
 	}

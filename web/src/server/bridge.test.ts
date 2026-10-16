@@ -258,6 +258,7 @@ describe('connection bridge routes', () => {
   ['GET',`/connection-attempts/${id}`,false],
   ['POST',`/connection-attempts/${id}/execute`,false],
   ['POST',`/connection-attempts/${id}/reconcile`,false],
+  ['POST',`/connection-attempts/${id}/abandon`,false],
   ['POST',`/connection-attempts/${id}/bindings`,true],
   ['GET','/connections',false],
   ['GET','/connection-attempts?limit=100&before='+id,false],

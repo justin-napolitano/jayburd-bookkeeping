@@ -48,6 +48,7 @@ const states = [
   "credential_recovery_required",
   "disconnect_pending",
   "disconnected",
+  "abandoned",
 ];
 const itemStates = [
   "active",
@@ -131,6 +132,7 @@ function ConnectionWorkspace({
   >({});
   const [date, setDate] = useState("");
   const [consent, setConsent] = useState(false);
+  const [abandonConsent, setAbandonConsent] = useState(false);
   const [disconnect, setDisconnect] = useState<
     Listing["items"][number]["accounts"][number] | null
   >(null);
@@ -246,15 +248,23 @@ function ConnectionWorkspace({
     setAttempts(null);
     setStatus(null);
     setOperation(null);
-    const [value, page] = await Promise.all([
+    const [listing, discovery] = await Promise.allSettled([
       api<Listing>(`${base}/connections`),
       api<AttemptPage>(`${base}/connection-attempts?limit=100`),
     ]);
     if (!current.live) return;
-    if (!validList(value)) throw Error("response");
-    setAttempts(checkAttempts(page));
-    setList(value);
-    if (page.unfinished_count === "0") setEnrollmentStarted(false);
+    // A failed Item listing must not hide successful durable-attempt discovery.
+    if (discovery.status === "fulfilled") {
+      const page = checkAttempts(discovery.value);
+      setAttempts(page);
+      if (page.unfinished_count === "0") setEnrollmentStarted(false);
+    }
+    if (listing.status === "fulfilled") {
+      if (!validList(listing.value)) throw Error("response");
+      setList(listing.value);
+    }
+    if (discovery.status === "rejected") throw discovery.reason;
+    if (listing.status === "rejected") throw listing.reason;
   };
   // A status is useful only for the exact currently selected Item/source/stream scope.
   const checkedStatus = (
@@ -345,6 +355,7 @@ function ConnectionWorkspace({
       setBindingExpired(discovered?.binding_expired ?? bindingExpiry);
       setSelection({});
       setConsent(false);
+      setAbandonConsent(false);
       const value = await api<Attempt>(`${base}/connection-attempts/${id}`);
       if (!current.live) return;
       setAttempt(checkedAttempt(value, id));
@@ -371,6 +382,7 @@ function ConnectionWorkspace({
       setAttempt(null);
       setSelection({});
       setConsent(false);
+      setAbandonConsent(false);
       const begun = await api<Begin>(
         `${base}/connection-attempts`,
         JSON.stringify({
@@ -447,13 +459,35 @@ function ConnectionWorkspace({
         );
         return;
       }
-      const value = await api<Attempt>(
-        `${base}/connection-attempts/${handoff.attempt.attempt_id}/execute`,
-        JSON.stringify({
-          nonce: handoff.nonce,
-          link_token: handoff.link_token,
-        }),
-      );
+      let value: Attempt;
+      try {
+        value = await api<Attempt>(
+          `${base}/connection-attempts/${handoff.attempt.attempt_id}/execute`,
+          JSON.stringify({
+            nonce: handoff.nonce,
+            link_token: handoff.link_token,
+          }),
+        );
+      } catch (error) {
+        // A 409 can follow a committed exchange. Inspect that exact attempt;
+        // never restore the handoff or repeat the provider mutation.
+        if (error instanceof APIError && error.status === 409 && current.live) {
+          const recovered = checkedAttempt(
+            await api<Attempt>(`${base}/connection-attempts/${handoff.attempt.attempt_id}`),
+            handoff.attempt.attempt_id,
+          );
+          if (!current.live) return;
+          setAttempt(recovered);
+          setInspectID(recovered.attempt_id);
+          if (recovered.state === "credential_recovery_required") {
+            setMessage(
+              "Bank setup needs credential recovery. Review this attempt below; do not start another bank connection.",
+            );
+            return;
+          }
+        }
+        throw error;
+      }
       if (!current.live) return;
       const checked = checkedAttempt(value, handoff.attempt.attempt_id);
       setAttempt(checked);
@@ -501,6 +535,7 @@ function ConnectionWorkspace({
       setAttempt(a);
       setSelection({});
       setConsent(false);
+      setAbandonConsent(false);
     } else if (request.kind === "stream") {
       if (!request.scope) throw Error("response");
       checkedStatus(value, request.scope);
@@ -970,6 +1005,50 @@ function ConnectionWorkspace({
           >
             Reconcile recorded credential
           </button>
+          {attempt.mode === "new" &&
+            attempt.state === "credential_recovery_required" &&
+            attempt.sync_item_id === null && (
+              <details>
+                <summary>Credential unavailable: start over</summary>
+                <p>
+                  Use this only after confirming the credential cannot be
+                  recovered. This preserves the failed attempt and does not
+                  remove the Item at Plaid. Orphaned Sandbox Item cleanup may
+                  still be needed.
+                </p>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={abandonConsent}
+                    disabled={mutable}
+                    onChange={(e) => setAbandonConsent(e.target.checked)}
+                  />
+                  I confirm this credential is unavailable and want to abandon
+                  this setup.
+                </label>
+                <button
+                  disabled={mutable || !abandonConsent}
+                  onClick={() =>
+                    void run(async () => {
+                      const current = life.current;
+                      const value = await api<Attempt>(
+                        `${base}/connection-attempts/${attempt.attempt_id}/abandon`,
+                        JSON.stringify({ confirm_unrecoverable: true }),
+                      );
+                      if (!current.live) return;
+                      setAttempt(checkedAttempt(value, attempt.attempt_id));
+                      setAbandonConsent(false);
+                      await readList();
+                      setMessage(
+                        "Setup abandoned. Its history is retained. A new connection requires a fresh Plaid session.",
+                      );
+                    })
+                  }
+                >
+                  Abandon unavailable setup
+                </button>
+              </details>
+            )}
           {!expiredAttempt &&
             !bindingExpired &&
             attempt.state === "binding_review" &&
@@ -993,6 +1072,7 @@ function ConnectionWorkspace({
                         setDate(e.target.value);
                         setSelection({});
                         setConsent(false);
+                        setAbandonConsent(false);
                       }}
                     />
                   </label>
@@ -1021,6 +1101,7 @@ function ConnectionWorkspace({
                                   },
                                 }));
                                 setConsent(false);
+                                setAbandonConsent(false);
                               }}
                             >
                               <option value="">Do not bind</option>
@@ -1059,6 +1140,7 @@ function ConnectionWorkspace({
                                   },
                                 }));
                                 setConsent(false);
+                                setAbandonConsent(false);
                               }}
                             >
                               <option value="">Choose currency</option>

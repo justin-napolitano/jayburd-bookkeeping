@@ -47,6 +47,7 @@ func mountConnections(mux *http.ServeMux, auth ledger.Authenticator, ops Connect
 		"GET " + base + "/connection-attempts/{attempt}":            "attempt",
 		"POST " + base + "/connection-attempts/{attempt}/execute":   "execute",
 		"POST " + base + "/connection-attempts/{attempt}/reconcile": "reconcile",
+		"POST " + base + "/connection-attempts/{attempt}/abandon":   "abandon",
 		"POST " + base + "/connection-attempts/{attempt}/bindings":  "bind",
 		"GET " + base + "/connections":                              "list",
 		"POST " + base + "/connections/streams/{stream}/disconnect": "disconnect",
@@ -153,6 +154,22 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 				return
 			}
 			result, err = ops.Bind(r.Context(), scope, attempt, key, in)
+		case "abandon":
+			var in struct {
+				Confirm bool `json:"confirm_unrecoverable"`
+			}
+			if !decodeConnectionJSON(raw, &in) || !in.Confirm {
+				fail(400, "invalid_request")
+				return
+			}
+			recovery, ok := ops.(interface {
+				Abandon(context.Context, connections.Scope, string) (json.RawMessage, error)
+			})
+			if !ok {
+				fail(422, "unsupported_connection_mode")
+				return
+			}
+			result, err = recovery.Abandon(r.Context(), scope, attempt)
 		case "reconcile":
 			var in struct{}
 			if !decodeConnectionJSON(raw, &in) {

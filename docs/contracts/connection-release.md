@@ -60,3 +60,26 @@ Use the existing Hosted Link profile (`link_events_qualified=false`); do not inf
 ordinary-SDK qualification from saved identity settings. A complete reviewed
 manifest still requires the public Firebase browser identifier, exact build/image
 receipts and numeric static GSM pins. No placeholder identifier may be deployed.
+
+
+## Encrypted bank-token runtime transition (#162–#164)
+
+The new API/consumer image pair selects encrypted PostgreSQL storage, with fixed
+KMS resource `projects/{projectNumber}/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials`.
+This name is frozen in source and matches workers Terraform; it is not chosen by
+an HTTP request, ambient environment or mutable alias. Existing schemaVersion2
+Infisical/mapping identifiers remain validated compatibility metadata, but the new
+dynamic-token runtime never reads them. Static client versions remain authoritative.
+
+Apply workers KMS resources/grants, forward migration 18, and matching API/consumer
+images before owner enrollment. Keep scheduling paused. After encrypted credentials
+are activated, legacy-image rollback is incompatible; use a compatible encrypted
+image or reviewed forward repair. Deployment acceptance must enforce this build
+compatibility, not rely on the unchanged configuration digest. Hosted KMS/IAM and
+owner acceptance remain #164; synthetic tests do not close that gate.
+
+Runtime promotion/rollback gates now require closed #162/#163 and merged #165
+ancestral to the selected build and workflow. The existing deploy workflows check
+that ancestry before cloud authentication. Worker gates carry the same barrier.
+This prevents selecting pre-encryption images even with an unchanged legacy
+connection-policy digest. Migration/verification-only gates remain unchanged.

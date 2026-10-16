@@ -14,7 +14,7 @@ data "google_service_account" "caller" {
   account_id = "jayburd-dev-${each.key}"
 }
 resource "google_project_service" "worker" {
-  for_each           = toset(["cloudtasks.googleapis.com", "cloudscheduler.googleapis.com", "secretmanager.googleapis.com"])
+  for_each           = toset(["cloudtasks.googleapis.com", "cloudscheduler.googleapis.com", "secretmanager.googleapis.com", "cloudkms.googleapis.com"])
   project            = var.project_id
   service            = each.value
   disable_on_destroy = false
@@ -290,4 +290,30 @@ resource "google_service_account_iam_member" "worker_caller_read" {
   service_account_id = "projects/${var.project_id}/serviceAccounts/${local.accounts[each.value]}"
   role               = google_project_iam_custom_role.worker_caller_read.name
   member             = "serviceAccount:jayburd-dev-worker-deployer@${var.project_id}.iam.gserviceaccount.com"
+}
+
+
+# Per-account database envelopes use an independent wrapping key. Values never enter Terraform.
+resource "google_kms_key_ring" "bank_credentials" {
+  project    = var.project_id
+  name       = "jayburd-dev"
+  location   = "us-central1"
+  depends_on = [google_project_service.worker]
+}
+resource "google_kms_crypto_key" "bank_credentials" {
+  name            = "bank-credentials"
+  key_ring        = google_kms_key_ring.bank_credentials.id
+  purpose         = "ENCRYPT_DECRYPT"
+  rotation_period = "7776000s"
+  lifecycle { prevent_destroy = true }
+}
+resource "google_kms_crypto_key_iam_member" "api_bank_credentials" {
+  crypto_key_id = google_kms_crypto_key.bank_credentials.id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = "serviceAccount:${local.accounts.api}"
+}
+resource "google_kms_crypto_key_iam_member" "sync_bank_credentials" {
+  crypto_key_id = google_kms_crypto_key.bank_credentials.id
+  role          = "roles/cloudkms.cryptoKeyDecrypter"
+  member        = "serviceAccount:${google_service_account.sync.email}"
 }

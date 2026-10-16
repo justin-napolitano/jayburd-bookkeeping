@@ -24,7 +24,7 @@ function run() {return {id:123,run_attempt:1,head_sha:'a'.repeat(40),path:'.gith
 // A candidate is only packaging evidence, never deployment approval.
 function candidate(m) {return {schemaVersion:1,component:'worker',image:m.image,commit:m.build.commit,workflowRun:'https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/123/attempts/1',status:'candidate-only',deployable:false};}
 test('exact worker approval and fixed closure gates',()=>{
-  const m=manifest();assert.deepEqual(validate(m),m);assert.deepEqual(workerGates,{issues:[5,6,11,26],prs:[109,110,111]});
+  const m=manifest();assert.deepEqual(validate(m),m);assert.deepEqual(workerGates,{issues:[5,6,11,26,162,163],prs:[109,110,111,165]});
   assert.throws(()=>validateWorkerManifest(JSON.stringify(m),'0'.repeat(64),now));
 });
 test('reject active scheduling, arbitrary input, invalid scope and numeric aliases',()=>{
