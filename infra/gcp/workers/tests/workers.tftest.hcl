@@ -106,3 +106,14 @@ run "reject_release_identity_as_secret_writer" {
   variables { infisical_sync_service_account = "jayburd-dev-worker-deployer@jayburd-synthetic-test.iam.gserviceaccount.com" }
   expect_failures = [var.infisical_sync_service_account]
 }
+run "encrypted_bank_credentials" {
+  command = plan
+  assert {
+    condition     = google_kms_key_ring.bank_credentials.location == "us-central1" && google_kms_crypto_key.bank_credentials.name == "bank-credentials" && google_kms_crypto_key.bank_credentials.rotation_period == "7776000s"
+    error_message = "Bank ciphertext must use the fixed development wrapping key with rotation."
+  }
+  assert {
+    condition     = google_kms_crypto_key_iam_member.api_bank_credentials.role == "roles/cloudkms.cryptoKeyEncrypterDecrypter" && google_kms_crypto_key_iam_member.api_bank_credentials.member == "serviceAccount:jayburd-dev-api@jayburd-synthetic-test.iam.gserviceaccount.com" && google_kms_crypto_key_iam_member.sync_bank_credentials.role == "roles/cloudkms.cryptoKeyDecrypter"
+    error_message = "Only API may encrypt; acquisition has decrypt only. No publisher KMS grant."
+  }
+}

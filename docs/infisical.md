@@ -82,17 +82,16 @@ receive names and PASS/FAIL evidence only. Default local and PR checks stay offl
 - [GCP sync options](https://infisical.com/docs/integrations/secret-syncs/gcp-secret-manager)
 - [GitHub OIDC and immutable subjects](https://infisical.com/docs/documentation/platform/identities/oidc-auth/github)
 
-## Dynamic provider credentials
+## Per-account bank tokens
 
-The [provider vault contract](contracts/provider-vault.md) now specifies and
-implements a separately scoped API writer through Infisical GCP ID Token Auth.
-This is the reviewed exception for connection creation/recovery, not an acquisition
-reader fallback. Acquisition still reads only exact Google Secret Manager versions.
-Eight precreated, never-reused development slots and immutable private GCS mappings
-bind logical credential identity to independently verified destination versions.
+Owner selected [encrypted PostgreSQL persistence](contracts/bank-token-vault.md)
+under #162–#164. New API/worker binaries use Cloud KMS envelopes in the database,
+not dynamic Infisical keys or delivery slots. Infisical still owns static Plaid
+client credentials; their existing controlled delivery remains separate.
 
-The [hosted API composition](contracts/hosted-connections.md) remains explicitly
-opt-in and Sandbox-only. Synthetic tests prove one-shot writes, uncertain-response
-recovery and mismatch denial; no Infisical project, IAM, sync or hosted secret
-acceptance is claimed. See the [delivery runbook](runbooks/hosted-sandbox.md) for
-current evidence and owner configuration prerequisites.
+The [legacy provider vault](contracts/provider-vault.md) and its eight-slot pool
+are retained only for history and explicit legacy recovery, with no automatic
+fallback, import or resource deletion. Existing legacy release identifier fields
+remain validated for schemaVersion2 compatibility but do not select a dynamic
+writer in the new binaries. Retiring these fields requires a versioned release
+contract change. Do not paste tokens into SQL or create slot placeholders.

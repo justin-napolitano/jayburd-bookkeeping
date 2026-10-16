@@ -3,7 +3,10 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -19,6 +22,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/acquisition"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/bankcredential"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/staging"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
@@ -84,49 +88,6 @@ func (*connectionProofProvider) Rotate(context.Context, connections.Secret) (con
 // Remove is deliberately unavailable; disconnect must never call it.
 func (*connectionProofProvider) Remove(context.Context, connections.Secret) error {
 	return errors.New("not in scenario")
-}
-
-// connectionProofSecrets retains only this test's synthetic token in memory behind the production interface.
-type connectionProofSecrets struct {
-	mu            sync.Mutex
-	stored        connections.StoredCredential
-	writes, reads int
-}
-
-// Put requires immutable reference identity and exact synthetic replay.
-func (s *connectionProofSecrets) Put(_ context.Context, r connections.CredentialReference, token connections.Secret) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.writes > 0 && (s.stored.Reference != r || s.stored.Token != token) {
-		return errors.New("conflict")
-	}
-	s.stored = connections.StoredCredential{Reference: r, Token: token}
-	s.writes++
-	return nil
-}
-
-// Read returns only the exact immutable version requested.
-func (s *connectionProofSecrets) Read(_ context.Context, r connections.CredentialReference) (connections.StoredCredential, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.reads++
-	if s.writes == 0 || s.stored.Reference != r {
-		return connections.StoredCredential{}, errors.New("missing")
-	}
-	return s.stored, nil
-}
-
-// Resolve checks the same stored reference before furnishing fictional runner credentials.
-func (s *connectionProofSecrets) Resolve(_ context.Context, r acquisition.CredentialReference) (acquisition.ProviderCredentials, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	stored := s.stored.Reference
-	if s.writes == 0 || stored.ReferenceID != r.ReferenceID || stored.Version != r.Version || stored.ItemID != r.ItemID || stored.Environment != r.Environment {
-		return acquisition.ProviderCredentials{}, errors.New("denied")
-	}
-	credentials := acquisition.ProviderCredentials{ClientID: "synthetic-client", Secret: "synthetic-secret"}
-	err := s.stored.Token.WithValue(func(value string) error { credentials.AccessToken = value; return nil })
-	return credentials, err
 }
 
 // connectionProofTransport intercepts the pinned production adapter; no request reaches Plaid.
@@ -200,12 +161,22 @@ func bootstrapConnectionBrowser(t *testing.T, ctx context.Context, admin *pgx.Co
 	if err != nil {
 		t.Fatal("evidence composition failed")
 	}
-	provider, store, transport := &connectionProofProvider{}, &connectionProofSecrets{}, &connectionProofTransport{}
+	provider, transport := &connectionProofProvider{}, &connectionProofTransport{}
+	store, err := bankcredential.NewAPIStore(pool, browserKeyWrapper{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver, err := bankcredential.NewResolver(workerPool, browserKeyWrapper{}, func(context.Context) (acquisition.ProviderCredentials, error) {
+		return acquisition.ProviderCredentials{ClientID: "synthetic-client", Secret: "synthetic-secret"}, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	client, err := acquisition.NewPlaidHTTP(transport)
 	if err != nil {
 		t.Fatal("synthetic provider composition failed")
 	}
-	runner, err := acquisition.New(workerPool, client, store, evidence)
+	runner, err := acquisition.New(workerPool, client, resolver, evidence)
 	if err != nil {
 		t.Fatal("synthetic runner composition failed")
 	}
@@ -288,4 +259,21 @@ func (f *connectionBrowserFixture) wrap(product http.Handler) http.Handler {
 		}
 		product.ServeHTTP(w, r)
 	})
+}
+
+// browserKeyWrapper substitutes only the external KMS capability; SQL and envelope encryption are real.
+type browserKeyWrapper struct{}
+
+func (browserKeyWrapper) Wrap(_ context.Context, key, aad []byte) (string, []byte, error) {
+	b, _ := aes.NewCipher(bytes.Repeat([]byte{7}, 32))
+	g, _ := cipher.NewGCM(b)
+	return "projects/123456789/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials/cryptoKeyVersions/1", g.Seal(nil, make([]byte, 12), key, aad), nil
+}
+func (browserKeyWrapper) Unwrap(_ context.Context, version string, raw, aad []byte) ([]byte, error) {
+	if version != "projects/123456789/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials/cryptoKeyVersions/1" {
+		return nil, bankcredential.ErrUnavailable
+	}
+	b, _ := aes.NewCipher(bytes.Repeat([]byte{7}, 32))
+	g, _ := cipher.NewGCM(b)
+	return g.Open(nil, make([]byte, 12), raw, aad)
 }

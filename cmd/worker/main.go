@@ -12,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/acquisition"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/bankcredential"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/cloudevidence"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/providersecrets"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/workerruntime"
@@ -123,22 +125,33 @@ func managed(ctx context.Context, o options) (*workerruntime.Runtime, func(), er
 		cleanup()
 		return nil, nil, workerruntime.ErrConfiguration
 	}
-	registry, e := providersecrets.NewGCSRegistry(providersecrets.GCSConfig{Bucket: o.MappingBucket, Prefix: o.MappingPrefix, Tokens: tokens, Transport: t})
+	wrapper, e := bankcredential.NewKMS("projects/"+o.ProjectNumber+"/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials", tokens, t)
 	if e != nil {
 		cleanup()
 		return nil, nil, workerruntime.ErrConfiguration
 	}
-	resolver, e := providersecrets.NewResolver(reader, registry, providersecrets.ResolverConfig{ClientIDVersion: o.ClientIDVersion, ClientSecretVersion: o.ClientSecretVersion})
-	if e != nil {
-		cleanup()
-		return nil, nil, workerruntime.ErrConfiguration
+	factory := func(db acquisition.Beginner) (acquisition.CredentialResolver, error) {
+		return bankcredential.NewResolver(db, wrapper, func(ctx context.Context) (acquisition.ProviderCredentials, error) {
+			var result acquisition.ProviderCredentials
+			id, err := reader.Read(ctx, o.ClientIDVersion)
+			if err != nil {
+				return result, err
+			}
+			secret, err := reader.Read(ctx, o.ClientSecretVersion)
+			if err != nil {
+				return result, err
+			}
+			result.ClientID = string(id)
+			result.Secret = string(secret)
+			return result, nil
+		})
 	}
 	evidence, e := cloudevidence.New(o.EvidenceBucket, tokens, t)
 	if e != nil {
 		cleanup()
 		return nil, nil, workerruntime.ErrConfiguration
 	}
-	r, e := workerruntime.Managed(ctx, o.Worker, workerruntime.ConsumerAdapters{Credentials: resolver, Evidence: evidence})
+	r, e := workerruntime.Managed(ctx, o.Worker, workerruntime.ConsumerAdapters{CredentialFactory: factory, Evidence: evidence})
 	if e != nil {
 		cleanup()
 		return nil, nil, e

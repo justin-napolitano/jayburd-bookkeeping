@@ -212,3 +212,30 @@ func TestConnectionHTTPFailures(t *testing.T) {
 		}
 	}
 }
+
+// Abandon models the explicit SQL-only terminal recovery transition.
+func (s *connectionStub) Abandon(_ context.Context, scope connections.Scope, _ string) (json.RawMessage, error) {
+	return s.record(scope, "abandon")
+}
+
+// TestAbandonAcknowledgement rejects omission, false and unknown fields before any service call.
+func TestAbandonAcknowledgement(t *testing.T) {
+	for _, body := range []string{`{}`, `{"confirm_unrecoverable":false}`, `{"confirm_unrecoverable":true,"extra":true}`, `{"confirm_unrecoverable":true}`} {
+		ops := &connectionStub{}
+		request := httptest.NewRequest("POST", connectionBase+"/connection-attempts/"+connectionAttempt+"/abandon", strings.NewReader(body))
+		request.Header.Set("Authorization", "Bearer synthetic")
+		request.Header.Set("Content-Type", "application/json")
+		request.SetPathValue("entity", connectionEntity)
+		request.SetPathValue("book", connectionBook)
+		request.SetPathValue("attempt", connectionAttempt)
+		response := httptest.NewRecorder()
+		connectionEndpoint(connectionAuth{}, ops, "abandon")(response, request)
+		want := 400
+		if body == `{"confirm_unrecoverable":true}` {
+			want = 200
+		}
+		if response.Code != want || (want == 400 && ops.calls != 0) || (want == 200 && ops.operation != "abandon") {
+			t.Fatal("acknowledgement boundary", response.Code, ops.calls)
+		}
+	}
+}
