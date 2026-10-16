@@ -175,7 +175,14 @@ func (r *Runner) acquire(ctx context.Context, s Scope, a attempt) (Outcome, bool
 				return Outcome{}, false, e
 			}
 			credentialCtx, stop := context.WithTimeout(ctx, 5*time.Second)
-			credentials, e := r.credentials.Resolve(credentialCtx, c.reference())
+			var credentials ProviderCredentials
+			if scoped, ok := r.credentials.(interface {
+				ResolveScoped(context.Context, Scope, string, string, CredentialReference) (ProviderCredentials, error)
+			}); ok {
+				credentials, e = scoped.ResolveScoped(credentialCtx, s, c.SetID, c.Fence, c.reference())
+			} else {
+				credentials, e = r.credentials.Resolve(credentialCtx, c.reference())
+			}
 			expired := credentialCtx.Err() != nil
 			stop()
 			if e != nil || expired {

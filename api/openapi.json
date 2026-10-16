@@ -3533,6 +3533,92 @@
           }
         }
       }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/abandon": {
+      "post": {
+        "operationId": "abandonConnection",
+        "summary": "Abandon an unavailable new Sandbox credential without deleting its audit history",
+        "description": "Explicit owner acknowledgement. Only a new credential_recovery_required attempt with no stored ciphertext or published credential can be abandoned. Does not remove the Plaid Item, replay exchange, or post journals. See docs/contracts/bank-token-vault.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionAttempt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "confirm_unrecoverable"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "confirm_unrecoverable": {
+                    "type": "boolean",
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6059,7 +6145,8 @@
               "active",
               "credential_recovery_required",
               "disconnect_pending",
-              "disconnected"
+              "disconnected",
+              "abandoned"
             ]
           },
           "expires_at": {

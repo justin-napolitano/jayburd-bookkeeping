@@ -12,14 +12,15 @@ import (
 
 // ConsumerAdapters are explicitly constructed durable storage and credential resolution capabilities.
 type ConsumerAdapters struct {
-	Credentials acquisition.CredentialResolver
-	Evidence    acquisition.EvidenceStore
+	Credentials       acquisition.CredentialResolver
+	CredentialFactory func(acquisition.Beginner) (acquisition.CredentialResolver, error)
+	Evidence          acquisition.EvidenceStore
 }
 
 // Managed constructs actual Cloud SQL/queue/provider clients using only metadata identity and explicit adapters.
 // It does not create bindings, fetch bank data, migrate or start a listener.
 func Managed(parent context.Context, c Config, a ConsumerAdapters) (*Runtime, error) {
-	if c.Validate() != nil || c.Mode == "consumer" && (a.Credentials == nil || a.Evidence == nil) || c.Mode == "publisher" && (a.Credentials != nil || a.Evidence != nil) {
+	if c.Validate() != nil || c.Mode == "consumer" && ((a.Credentials == nil && a.CredentialFactory == nil) || (a.Credentials != nil && a.CredentialFactory != nil) || a.Evidence == nil) || c.Mode == "publisher" && (a.Credentials != nil || a.CredentialFactory != nil || a.Evidence != nil) {
 		return nil, ErrConfiguration
 	}
 	transport := DirectTransport()
@@ -71,7 +72,15 @@ func Managed(parent context.Context, c Config, a ConsumerAdapters) (*Runtime, er
 			closeAll()
 			return nil, ErrConfiguration
 		}
-		runner, e = acquisition.New(pool, provider, a.Credentials, a.Evidence)
+		credentials := a.Credentials
+		if a.CredentialFactory != nil {
+			credentials, e = a.CredentialFactory(pool)
+			if e != nil || credentials == nil {
+				closeAll()
+				return nil, ErrConfiguration
+			}
+		}
+		runner, e = acquisition.New(pool, provider, credentials, a.Evidence)
 		if e != nil {
 			closeAll()
 			return nil, ErrConfiguration

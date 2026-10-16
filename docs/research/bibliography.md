@@ -2,6 +2,12 @@
 
 ## Purpose and reading order
 
+[Encrypted bank credentials](../contracts/bank-token-vault.md) records
+selected official Plaid persistent-token, Cloud KMS envelope-encryption and CRC32C
+sections reviewed 2026-10-15. It distinguishes secure datastore requirements from
+our scoped SQL/AAD/immutable-version design; hosted KMS qualification is pending.
+
+
 [First Sandbox reference bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review)
 records SIX's official ISO 4217 List One XML publication (2026-09-17), retrieved
 2026-10-15 with SHA256, and the reviewed USD/840/2 record. Use it for this bounded
