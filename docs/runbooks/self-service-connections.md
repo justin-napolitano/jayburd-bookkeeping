@@ -43,3 +43,13 @@ The publisher currently has one fixed binding; shared multi-book acquisition
 is tracked in [#156](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/156)
 with fairness, current-grant and deployment-policy gates. Real bank activation remains outside
 this Sandbox implementation.
+
+## Hosted forward migration
+
+PR #157 merged as `eaa016a711308427f52fc8be5c90e025fcffcc32`.
+[Build 38829829288](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38829829288)
+passed all validation, frontend, real application integration and four image
+publication jobs. The migration-only manifest selects its matching immutable
+receipts and applies migration 17 before application promotion. Runtime services
+remain on the previous release during this operation. Hosted authenticated Link
+acceptance remains pending the owner's UI test.
