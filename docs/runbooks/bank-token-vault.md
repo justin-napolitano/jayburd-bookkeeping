@@ -104,3 +104,22 @@ reports `migration-execution-passed` at schema 18. The runtime workflow checks
 the current schema before changing Cloud Run services. The separate paused
 worker image, account binding and actual hosted Sandbox completion remain to
 be verified after application promotion.
+
+## First paused worker candidate
+
+The owner reported binding `b095afc3-d9e4-4273-9c2f-bc7c766adce3` from the
+scoped read-only lookup. The same successful build 38843645129 contains an
+encrypted-reader worker candidate, pinned by digest in
+`deploy/worker-release.json`. A [metadata-only preflight](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/164#issuecomment-6219312071)
+read back paused Scheduler, an existing queue, enabled static credential version
+metadata, narrow KMS key IAM, and an absent worker service pair. The dedicated
+worker deployment identity provider is still disabled. This manifest is a
+reviewable candidate; do not dispatch until the owner enables that federation
+through the foundation root and confirms the private worker runtime backend.
+No provider credential, Terraform state/plan, or financial row was read.
+
+The old Hosted Link attempt remains a one-shot recovery case. Its binding ID
+does not demonstrate encrypted credential persistence or a completed Item.
+Issue #160 remains open until the owner uses the updated UI to classify the
+attempt and demonstrates a fresh Sandbox completion through binding review.
+Issue #164 remains open through hosted API ciphertext and worker read acceptance.
