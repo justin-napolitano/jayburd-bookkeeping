@@ -53,3 +53,17 @@ publication jobs. The migration-only manifest selects its matching immutable
 receipts and applies migration 17 before application promotion. Runtime services
 remain on the previous release during this operation. Hosted authenticated Link
 acceptance remains pending the owner's UI test.
+
+## Matching Sandbox promotion
+
+[Migration execution 38831151356](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38831151356)
+succeeded with `migration-execution-passed` for build 38829829288. The matching
+schemaVersion 2 Sandbox manifest restores the reviewed identity and connection
+policy and promotes API/web from that same build. Promotion checks the applied
+schema through the read-only status action. Existing acquisition scheduling and
+real-account activation remain unchanged. Local release/deployment tests pass.
+
+Use the configured canonical origin for hosted acceptance:
+`https://jayburd-dev-web-9088794002.us-central1.run.app/`. After signing in, select
+the book, open Connections and choose Connect account. The Cloud Run alias is
+not the configured browser POST origin and must not be shared as the test link.
