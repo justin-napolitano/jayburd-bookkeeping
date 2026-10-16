@@ -56,7 +56,7 @@ test('migration-only release omits runtime configuration but still requires comp
 test('migration prerequisites cannot relax full application closure gates',()=>{
  assert.deepEqual(requiredGates('migrate'),{issues:[5],prs:[44]});
  assert.deepEqual(requiredGates('verify'),{issues:[5],prs:[44]});
- for(const operation of ['promote','rollback']) assert.deepEqual(requiredGates(operation),{issues:[6,11,26],prs:[23,24]});
+ for(const operation of ['promote','rollback']) assert.deepEqual(requiredGates(operation),{issues:[6,11,26,162,163],prs:[23,24,165]});
  assert.throws(()=>requiredGates('force'));
 });
 test('read-only verification preserves the complete build gate and rejects runtime inputs',()=>{

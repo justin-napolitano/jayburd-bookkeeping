@@ -60,11 +60,12 @@ export function validateManifest(bytes, expectedHash, now = Date.now()) {
   if (isSandbox(m.operation) && (m.project !== 'jayburd-bookkeeping-dev' || m.projectNumber !== '9088794002')) throw new Error('Release rejected');
   return m;
 }
-// Migration and read-only status gather database evidence; full service promotion retains every closure gate.
+// Runtime builds must descend from encrypted storage PR165; legacy images cannot roll back active DB tokens.
+// Migration/status gather evidence independently; runtime promotion retains every prior closure gate.
 export function requiredGates(operation, connections = null) {
-  if (isSandbox(operation)) return {issues:connections === null ? [5,6,130] : [5,6,130,131],prs:[23,24,129]};
+  if (isSandbox(operation)) return {issues:connections === null ? [5,6,130,162,163] : [5,6,130,131,162,163],prs:[23,24,129,165]};
   if (['migrate','verify'].includes(operation)) return {issues:[5],prs:[44]};
-  if (['promote','rollback'].includes(operation)) return {issues:[6,11,26],prs:[23,24]};
+  if (['promote','rollback'].includes(operation)) return {issues:[6,11,26,162,163],prs:[23,24,165]};
   throw new Error('Release rejected');
 }
 // GitHub run metadata and all three retained receipts must agree with the independently approved manifest.

@@ -53,10 +53,10 @@ export function validateWorkerRollback(m,run,receipt) {
       receipt.approvedWorkerConfigSHA256!==workerConfigDigest(m)) throw new Error('Worker rollback rejected');
 }
 // Existing infrastructure/identity/secret closure gates remain independent of an operator evidence URL.
-export const workerGates={issues:[5,6,11,26],prs:[109,110,111]};
+export const workerGates={issues:[5,6,11,26,162,163],prs:[109,110,111,165]};
 // Qualification deploys only paused workers; hosted activation remains a separate acceptance.
 export function requiredWorkerGates(operation) {
-  if (isSandbox(operation)) return {issues:[5,6,130,131],prs:[109,110,111,129]};
+  if (isSandbox(operation)) return {issues:[5,6,130,131,162,163],prs:[109,110,111,129,165]};
   if (['promote','rollback'].includes(operation)) return workerGates;
   throw new Error('Worker release rejected');
 }
