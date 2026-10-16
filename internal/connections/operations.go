@@ -32,6 +32,9 @@ func (s *Service) Attempts(ctx context.Context, scope Scope, limit int, after *s
 	if limit < 1 || limit > 100 || after != nil && !validID(*after) {
 		return nil, failed("invalid_request")
 	}
+	if s.creatorLogins != nil {
+		return s.repo.call(ctx, "creator_list_connection_attempts", scope.Actor, scope.Entity, scope.Book, limit, after, s.creatorLogins.Sync, s.creatorLogins.Publisher)
+	}
 	return s.repo.call(ctx, "list_connection_attempts", scope.Actor, scope.Entity, scope.Book, limit, after)
 }
 

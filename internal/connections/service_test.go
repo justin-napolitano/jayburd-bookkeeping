@@ -59,7 +59,7 @@ func (r *memoryRepo) call(_ context.Context, op string, args ...any) (json.RawMe
 	c.ExecuteLink = false
 	c.ExecuteProvider = false
 	switch op {
-	case "begin_connection":
+	case "begin_connection", "creator_begin_connection":
 		var in BeginRequest
 		_ = json.Unmarshal([]byte(args[4].(string)), &in)
 		r.c.Mode = in.Mode
@@ -118,7 +118,7 @@ func (r *memoryRepo) call(_ context.Context, op string, args ...any) (json.RawMe
 		c = r.c
 	case "get_connection_attempt":
 		return encode(map[string]any{"attempt_id": attemptID, "state": r.c.State, "manifest": r.c.Manifest}), nil
-	case "list_connections":
+	case "list_connections", "creator_list_connections":
 		return encode(map[string]any{"items": []any{}}), nil
 	case "bind_connection":
 		r.c.State = "active"

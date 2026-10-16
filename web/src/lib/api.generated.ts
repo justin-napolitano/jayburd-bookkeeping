@@ -567,7 +567,7 @@ export interface paths {
         put?: never;
         /**
          * beginConnection
-         * @description Optional explicitly composed connection service. Verified identity and current connection grants required. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md.
+         * @description Optional explicitly composed connection service. Verified identity and current connection grants required; configured creator onboarding can prepare missing book permissions and worker bindings atomically with Begin(new), using current creator/read/post proof and server-owned worker logins. Revoked grants are never restored. Strict 32 KiB JSON; no duplicate/unknown fields, query parameters or automatic posting. Token handoff is memory-only and no-store. See docs/contracts/connection-http.md and docs/contracts/self-service-connections.md.
          */
         post: operations["beginConnection"];
         delete?: never;
