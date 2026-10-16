@@ -113,10 +113,33 @@ encrypted-reader worker candidate, pinned by digest in
 `deploy/worker-release.json`. A [metadata-only preflight](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/164#issuecomment-6219312071)
 read back paused Scheduler, an existing queue, enabled static credential version
 metadata, narrow KMS key IAM, and an absent worker service pair. The dedicated
-worker deployment identity provider is still disabled. This manifest is a
-reviewable candidate; do not dispatch until the owner enables that federation
-through the foundation root and confirms the private worker runtime backend.
+worker deployment identity provider was disabled at preflight. This established
+the initial release boundary; it is superseded by the paused deployment below.
 No provider credential, Terraform state/plan, or financial row was read.
+
+## Paused worker deployment
+
+PR #172 merged the pinned candidate to main after all five checks passed. On
+2026-10-16 the owner authorized enabling the isolated worker WIF pool and OIDC
+provider directly in GCP. Readback confirmed the provider still restricts the
+numeric owner, actor and repository IDs, `workflow_dispatch`, main and the exact
+`deploy-workers.yml` workflow; its service-account impersonation binding is
+scoped to that repository ID. The private worker runtime state bucket exists
+with versioning. The direct enablement creates Terraform drift: preserve the
+already-enabled build and application deployment flags, and set
+`enable_github_worker_deploy_identity=true` in the owner-operated foundation
+inputs before the next foundation apply. No foundation state or plan was read.
+
+[Worker release run 38946843411](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38946843411)
+passed exact manifest/build evidence, infrastructure tests, workload identity
+authentication, isolated runtime apply and receipt validation. The public
+receipt reports `paused-workers-observed`, publisher revision
+`jayburd-dev-acquisition-publisher-00001-rs4`, sync revision
+`jayburd-dev-acquisition-sync-00001-ktn`, and Scheduler `PAUSED`; independent
+Cloud Run and Scheduler metadata readback agrees. This is control-plane evidence
+only. It does not prove hosted ciphertext persistence, authorized worker read,
+provider acquisition or ledger acceptance. Do not activate Scheduler from this
+release alone.
 
 The old Hosted Link attempt remains a one-shot recovery case. Its binding ID
 does not demonstrate encrypted credential persistence or a completed Item.
