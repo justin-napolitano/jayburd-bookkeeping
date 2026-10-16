@@ -3,7 +3,7 @@
 
 ## Status and boundary
 
-Issue #164: the creator's first **Connect account** action now prepares the
+Issue #170: the creator's first **Connect account** action now prepares the
 per-book delivery binding automatically under [self-service onboarding](../contracts/self-service-connections.md).
 `sandbox-book.sql` remains an administrative recovery path, not the routine way
 to obtain the binding ID. This helper reads one active binding ID only; it does
