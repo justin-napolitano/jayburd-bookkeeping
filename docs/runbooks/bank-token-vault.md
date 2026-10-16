@@ -94,3 +94,13 @@ hash-approved migration workflow and check its retained receipt, then promote
 matching API and web images. The new worker image needs its own paused release
 and binding review before acquisition. Hosted Sandbox enrollment remains the
 acceptance gate.
+
+## Matching application promotion
+
+This second, dependent release restores the reviewed Sandbox connection policy
+and public browser identity metadata while pinning API, migrator and web to the
+same successful build 38843645129. Dispatch only after migration-only release
+reports `migration-execution-passed` at schema 18. The runtime workflow checks
+the current schema before changing Cloud Run services. The separate paused
+worker image, account binding and actual hosted Sandbox completion remain to
+be verified after application promotion.
