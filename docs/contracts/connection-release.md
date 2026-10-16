@@ -77,3 +77,9 @@ are activated, legacy-image rollback is incompatible; use a compatible encrypted
 image or reviewed forward repair. Deployment acceptance must enforce this build
 compatibility, not rely on the unchanged configuration digest. Hosted KMS/IAM and
 owner acceptance remain #164; synthetic tests do not close that gate.
+
+Runtime promotion/rollback gates now require closed #162/#163 and merged #165
+ancestral to the selected build and workflow. The existing deploy workflows check
+that ancestry before cloud authentication. Worker gates carry the same barrier.
+This prevents selecting pre-encryption images even with an unchanged legacy
+connection-policy digest. Migration/verification-only gates remain unchanged.

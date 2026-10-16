@@ -37,13 +37,13 @@ test('Sandbox accepts only fixed development project and explicit bounded policy
 });
 test('Sandbox gates retain database proof and connection implementation while full gates stay intact',()=>{
  for(const op of ['sandbox-promote','sandbox-rollback']) {
-  assert.deepEqual(requiredGates(op),{issues:[5,6,130],prs:[23,24,129]});
-  assert.deepEqual(requiredGates(op,{}),{issues:[5,6,130,131],prs:[23,24,129]});
-  assert.deepEqual(requiredWorkerGates(op),{issues:[5,6,130,131],prs:[109,110,111,129]});
+  assert.deepEqual(requiredGates(op),{issues:[5,6,130,162,163],prs:[23,24,129,165]});
+  assert.deepEqual(requiredGates(op,{}),{issues:[5,6,130,131,162,163],prs:[23,24,129,165]});
+  assert.deepEqual(requiredWorkerGates(op),{issues:[5,6,130,131,162,163],prs:[109,110,111,129,165]});
  }
  for(const op of ['promote','rollback']) {
-  assert.deepEqual(requiredGates(op),{issues:[6,11,26],prs:[23,24]});
-  assert.deepEqual(requiredWorkerGates(op),{issues:[5,6,11,26],prs:[109,110,111]});
+  assert.deepEqual(requiredGates(op),{issues:[6,11,26,162,163],prs:[23,24,165]});
+  assert.deepEqual(requiredWorkerGates(op),{issues:[5,6,11,26,162,163],prs:[109,110,111,165]});
  }
  assert.throws(()=>requiredWorkerGates('force'));
 });
