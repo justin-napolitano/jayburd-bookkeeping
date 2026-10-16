@@ -19,6 +19,12 @@ not modify SQL, contact Plaid, deploy workers, or enable scheduling.
 - Tested the SQL on a disposable synthetic database: active scoped lookup,
   wrong-entity and wrong-book queries passed. Wrapper tests cover successful,
   missing, failed-connection and malformed-ID outcomes without network access.
+- Added a Cloud Shell launcher that checks the selected IAM operator, opens a
+  short-lived local proxy, invokes the same lookup, and stops the proxy on exit.
+- Copied the three lookup files to `~/jayburd-binding` in the owner's Cloud Shell
+  and verified matching SHA256 hashes. Remote `gcloud config get-value account`
+  currently returns `(unset)` because the Cloud Shell session still requires
+  owner authorization. No hosted database connection was attempted.
 
 ## Current evidence
 
@@ -42,16 +48,25 @@ application API, cloud resource or credential handling.
 
 ## Operator use
 
-Use an existing **development** Cloud SQL proxy and operator IAM `psql` setup,
-as documented in [Cloud Shell bootstrap](cloud-shell-bootstrap.md). Verify that
-the proxy targets `jayburd-bookkeeping-dev:us-central1:jayburd-dev`; the script
-cannot infer the proxy's target from a PostgreSQL session. From the repository:
+In an **authorized** Google Cloud Shell as `personal.jnapolitano@gmail.com`, run
+the launcher copied to `~/jayburd-binding`. It starts and stops the development
+proxy automatically and uses the fixed IAM operator login:
+
+```sh
+~/jayburd-binding/scripts/run-worker-binding-cloud-shell.sh 9781d120-b826-4f77-949e-51ceda2c5e0f 8b09e985-e348-4497-9bca-2b10eaf61417
+```
+
+For an existing development Cloud SQL proxy and operator IAM `psql` setup,
+as documented in [Cloud Shell bootstrap](cloud-shell-bootstrap.md), the lower
+level script also works. Verify that the proxy targets
+`jayburd-bookkeeping-dev:us-central1:jayburd-dev`; it cannot infer the proxy's
+target from a PostgreSQL session. From the repository:
 
 ```sh
 scripts/show-worker-binding.sh ENTITY_UUID BOOK_UUID
 ```
 
-For the book previously shown in the owner's Sandbox UI, the arguments are:
+For the book previously shown in the owner's Sandbox UI, those arguments are:
 
 ```sh
 scripts/show-worker-binding.sh 9781d120-b826-4f77-949e-51ceda2c5e0f 8b09e985-e348-4497-9bca-2b10eaf61417
