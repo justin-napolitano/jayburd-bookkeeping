@@ -32,7 +32,6 @@ const connectionProofEntity = "10000000-0000-4000-8000-000000000002"
 const connectionProofBook = "10000000-0000-4000-8000-000000000003"
 const connectionProofBank = "10000000-0000-4000-8000-000000000011"
 const connectionProofExpense = "10000000-0000-4000-8000-000000000012"
-const connectionProofWorker = "10000000-0000-4000-8000-000000000020"
 const connectionProofClaim = "10000000-0000-4000-8000-000000000030"
 
 // connectionProofProvider supplies verified fictional Link/account results and counts external mutations.
@@ -165,29 +164,23 @@ type connectionBrowserFixture struct {
 	transport *connectionProofTransport
 }
 
-// bootstrapConnectionBrowser installs fictional mandates independently of browser enrollment.
+// bootstrapConnectionBrowser supplies creator evidence but leaves connection provisioning to the runtime API.
 func bootstrapConnectionBrowser(t *testing.T, ctx context.Context, admin *pgx.Conn, pool *pgxpool.Pool) *connectionBrowserFixture {
 	t.Helper()
 	_, err := admin.Exec(ctx, `
  CREATE ROLE synthetic_connection_sync LOGIN IN ROLE bookkeeping_sync;
- INSERT INTO ledger.principal(principal_id,issuer,subject) VALUES('10000000-0000-4000-8000-000000000020','synthetic','connection-browser-worker');
+ CREATE ROLE synthetic_connection_publisher LOGIN IN ROLE bookkeeping_publisher;
  INSERT INTO ledger.entity(entity_id,name,kind) VALUES('10000000-0000-4000-8000-000000000002','Fictional Connection Proof LLC','legal');
  INSERT INTO ledger.book(entity_id,book_id,name) VALUES('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','Connection proof / USD');
- INSERT INTO ledger.membership(entity_id,principal_id,permission) SELECT '10000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', unnest(ARRAY['read','import','prepare','post']);
- INSERT INTO ledger.membership(entity_id,principal_id,permission) SELECT '10000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000020', unnest(ARRAY['read','import']);
+ INSERT INTO ledger.membership(entity_id,principal_id,permission) SELECT '10000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', unnest(ARRAY['read','prepare','post']);
+ INSERT INTO ledger.setup_receipt(principal_id,idempotency_key,normalized_request,result,entity_id,book_id,request_id)
+ VALUES('00000000-0000-4000-8000-000000000001','synthetic-browser-creator','{}','{}','10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003',gen_random_uuid());
  INSERT INTO ledger.book_policy VALUES('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000004','2026-01-01','2027-01-01','00000000-0000-4000-8000-000000000002','accrual','UTC',2,'half_even','synthetic-reviewed-spot-v1','00000000-0000-4000-8000-000000000001',clock_timestamp());
  INSERT INTO ledger.period(entity_id,book_id,period_id,starts_on,ends_before) VALUES('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000006','2026-01-01','2027-01-01');
  INSERT INTO ledger.account VALUES('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000011','1000','Fictional connection bank','asset','debit',true,'2026-01-01',NULL),('10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000012','5000','Fictional connection expenses','expense','debit',false,'2026-01-01',NULL);
  `)
 	if err != nil {
 		t.Fatal("synthetic connection setup failed", err)
-	}
-	if _, err = demoOwnerCall(ctx, admin, `SELECT integration.set_connect_permission($1,$2,$3,$1,'browser-connect',true)`, connectionProofActor, connectionProofEntity, connectionProofBook); err != nil {
-		t.Fatal("connection mandate failed", err)
-	}
-	workerRaw := `{"service_principal_id":"` + connectionProofWorker + `","worker_login":"synthetic_connection_sync","enabled":true}`
-	if _, err = demoOwnerCall(ctx, admin, `SELECT integration.set_connection_worker($1,$2,$3,'browser-worker',$4)`, connectionProofActor, connectionProofEntity, connectionProofBook, workerRaw); err != nil {
-		t.Fatal("worker mandate failed", err)
 	}
 	workerPool, err := pgxpool.New(ctx, "host=database port=5432 user=synthetic_connection_sync dbname=app_proof sslmode=disable connect_timeout=5 pool_max_conns=2")
 	if err != nil {
@@ -216,7 +209,11 @@ func bootstrapConnectionBrowser(t *testing.T, ctx context.Context, admin *pgx.Co
 	if err != nil {
 		t.Fatal("synthetic runner composition failed")
 	}
-	return &connectionBrowserFixture{service: connections.New(pool, provider, store), runner: runner, admin: admin, provider: provider, transport: transport}
+	service, err := connections.NewForBookCreators(pool, provider, store, connections.WorkerLogins{Sync: "synthetic_connection_sync", Publisher: "synthetic_connection_publisher"})
+	if err != nil {
+		t.Fatal("creator onboarding composition failed", err)
+	}
+	return &connectionBrowserFixture{service: service, runner: runner, admin: admin, provider: provider, transport: transport}
 }
 
 // ServeHTTP triggers only the single fictional binding; it accepts no caller scope or provider data.

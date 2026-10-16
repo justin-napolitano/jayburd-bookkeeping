@@ -22,6 +22,11 @@ Only currency/principal UUIDs and fixed PASS text are reported; never UID or ema
 
 ## Book stage
 
+Superseded for routine creator onboarding by
+[self-service connections](self-service-connections.md) in issue #155. The
+operator script remains an explicit administrative/recovery path. New creators
+use Connect account; runtime prepares the book under the bounded SQL contract.
+
 UI setup may use the custom form or the bounded Sandbox starter preset. The preset
 only prepares the ordinary durable setup command with a personal entity, one
 monetary checking account, and non-monetary equity/income/expense accounts. The

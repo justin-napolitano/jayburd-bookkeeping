@@ -128,7 +128,10 @@ func New(parent context.Context, c Config, db connections.Beginner, transport ht
 	if e != nil {
 		return nil, ErrUnavailable
 	}
-	return connections.New(db, provider, store), nil
+	return connections.NewForBookCreators(db, provider, store, connections.WorkerLogins{
+		Sync:      "jayburd-dev-sync@" + c.ProjectID + ".iam",
+		Publisher: "jayburd-dev-publisher@" + c.ProjectID + ".iam",
+	})
 }
 
 // ManagedScope rejects accidental URL database mode or a different hosting project before dependency startup.
