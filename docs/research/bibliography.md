@@ -424,6 +424,12 @@ including inherited transaction fields omitted from rendered documentation.
 
 ### Sandbox Hosted Link completion
 
+[Creator connection onboarding](../contracts/self-service-connections.md), reviewed
+2026-10-15, applies PostgreSQL 17 S12 function-security and serializable-retry
+sections to restricted creator provisioning. It documents the project-specific
+authorization policy, alternatives and named regression tests; the manuals do
+not themselves approve self-service grants.
+
 [Enrollment decision and source review](../contracts/hosted-link-enrollment.md)
 records reviewed official Link API and Hosted Link creation/completion sections,
 SDK tradeoffs and the distinction between synthetic proof and hosted qualification.

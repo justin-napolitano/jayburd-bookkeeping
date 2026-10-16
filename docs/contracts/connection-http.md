@@ -16,6 +16,13 @@ existing standards profile. See [service](connection-service.md) and
 
 ## Routes
 
+Issue #155 adds [creator onboarding](self-service-connections.md) in the explicitly
+configured managed connection runtime. GET discovery remains read-only and can
+return empty lists for eligible unconfigured creators. Begin(new) prepares the
+book and persists the attempt atomically before Link work. Existing configured
+or delegated books retain current grants; revoked grants are never recreated.
+No request can supply worker logins or service principals.
+
 Prefix `/v1/entities/{entity}/books/{book}`; IDs are canonical UUID strings.
 
 | Method / suffix | Service operation |

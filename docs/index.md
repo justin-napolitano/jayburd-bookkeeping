@@ -10,6 +10,7 @@ background work. The two predecessor repos are reference material only.
 
 | Question | Authoritative document |
 | --- | --- |
+| How does Connect account prepare a new creator-owned book? | [Self-service onboarding](contracts/self-service-connections.md) and [delivery evidence](runbooks/self-service-connections.md) |
 | How does the operator provision the first Sandbox principal and book? | [First Sandbox book bootstrap](runbooks/sandbox-book-bootstrap.md) |
 | What is the next product/data-collection sequence? | [Delivery milestones](plans/product-and-ingestion.md) |
 | What must pass before live sync, and how will scaling be measured? | [Sync quality gates](plans/sync-quality.md) and [validation evidence](runbooks/sync-quality.md) |
