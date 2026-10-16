@@ -69,3 +69,12 @@ PASS after consolidation: 268 web unit tests and all 17 component-browser tests;
 both real browser/API/PostgreSQL recovery and encrypted connection journeys;
 final repository/context/migration/generated-contract/vet checks. Implementation
 is ready for review; no live deployment, KMS apply or owner acceptance claimed.
+
+## Post-merge CI correction
+
+The merged PR #165 sync-state CI failed because its legacy privilege-count
+assertion still expected ten worker functions. Migration 18 grants the worker
+one additional lease-scoped encrypted-credential reader. Issue #166 updates the
+assertion to eleven and explicitly checks that reader; the existing denied
+table and API-function assertions remain. Re-run the synthetic sync proof and
+full CI before publishing images.
