@@ -90,6 +90,15 @@ receipt=$(book_stage)
 [[ "$(sql 'SELECT count(*) FROM integration.connection_receipt')" == 3 ]]
 [[ "$(sql 'SELECT binding_revision FROM integration.sync_delivery_binding')" == 1 ]]
 echo 'PASS TestBookInitialReplay'
+# The owner lookup returns exactly the active binding for this book, without exposing another scope.
+lookup_binding() {
+ docker exec "$proof" psql -X -qAt -w -v ON_ERROR_STOP=1 -U synthetic_operator -d bookkeeping \
+  -v entity_id="$1" -v book_id="$2" -f /tmp/bootstrap/worker-binding-id.sql
+}
+[[ "$(lookup_binding "$entity" "$book")" == "$(sql 'SELECT binding_id FROM integration.sync_delivery_binding')" ]]
+[[ -z "$(lookup_binding "$entity" '00000000-0000-4000-8000-000000000099')" ]]
+[[ -z "$(lookup_binding '00000000-0000-4000-8000-000000000099' "$book")" ]]
+echo 'PASS TestScopedWorkerBindingLookup'
 service=$(sql "SELECT principal_id FROM ledger.principal WHERE issuer LIKE 'urn:jayburd:%'")
 for principal in "$actor" "$service"; do
  sql "UPDATE ledger.principal SET disabled_at=clock_timestamp() WHERE principal_id='$principal'" >/dev/null

@@ -40,6 +40,11 @@ owner bootstrap, applicable SQL/image compatibility, managed identity and
 Infisical propagation. A syntactically valid URL is not evidence verification;
 the owner reviews those comments before approving the exact bytes.
 
+For a creator-owned Sandbox book, **Connect account** now enrolls the binding.
+The owner can retrieve its active UUID with the read-only
+[`show-worker-binding.sh`](../scripts/show-worker-binding.sh) helper using the
+reviewed entity and book IDs. See the [operator instructions](../docs/runbooks/worker-binding-lookup.md).
+
 Close #5/#6/#11/#26 only on their actual acceptance evidence. The workflow checks
 these closures and merged/ancestral #109/#110/#111. Build commit must be ancestral
 to the workflow commit. This tooling does not close those issues to bypass gates.

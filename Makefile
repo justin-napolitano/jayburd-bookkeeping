@@ -150,3 +150,4 @@ sandbox-qualification-test:
 .PHONY: sandbox-bootstrap-test
 sandbox-bootstrap-test:
 	bash scripts/test-sandbox-bootstrap.sh
+	bash scripts/test-show-worker-binding.sh
