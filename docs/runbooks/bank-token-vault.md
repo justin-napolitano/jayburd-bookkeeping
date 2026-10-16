@@ -11,7 +11,8 @@ slots. Static app secrets remain managed secrets. Contract:
 ## Stage ledger
 
 Reviewed current writer/readers and official Plaid/KMS selected sections. Created
-issues before implementation. Existing #161 remains independent recovery UI work.
+issues before implementation. PR #165 incorporates the recovery UI and regression tests originally in #161,
+so one PR carries the encrypted-storage and recovery behavior.
 No real token retrieval, exchange retry, attempt reset or legacy-secret deletion.
 
 ## Current evidence
@@ -54,3 +55,17 @@ Release gate and deployment isolation tests are rerun for the ancestry change.
 PASS: 26 release-manifest/worker/Sandbox gate tests plus application and worker
 deployment-isolation/failure tests after the ancestry barrier. No provider or cloud
 mutation performed by these synthetic checks.
+
+
+## Consolidated recovery UI
+
+Integrated the prior #161 changes: an Item-list failure cannot erase independent
+attempt discovery, and completion 409 inspects the exact current attempt without
+repeating exchange. Kept all recovery and abandonment tests. Revalidating the
+combined browser flow before updating the PR; #161 is superseded after publication.
+
+
+PASS after consolidation: 268 web unit tests and all 17 component-browser tests;
+both real browser/API/PostgreSQL recovery and encrypted connection journeys;
+final repository/context/migration/generated-contract/vet checks. Implementation
+is ready for review; no live deployment, KMS apply or owner acceptance claimed.

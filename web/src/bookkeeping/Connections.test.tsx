@@ -899,15 +899,24 @@ it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
 
 // Abandonment is a separate affirmative action and cannot repeat a provider exchange.
 it("requires acknowledgement before abandoning an unavailable new setup", async () => {
-  const recovery = { ...attempt, state: "credential_recovery_required", manifest,
-    expired_unclaimed: false, binding_expired: false };
+  const recovery = {
+    ...attempt,
+    state: "credential_recovery_required",
+    manifest,
+    expired_unclaimed: false,
+    binding_expired: false,
+  };
   let abandoned = false;
   const api = vi.fn(async (path: string, body?: string) => {
     if (path.endsWith("/connections")) return { items: [] };
-    if (path.includes("/connection-attempts?")) return {
-      items: [{ ...recovery, state: abandoned ? "abandoned" : recovery.state }],
-      unfinished_count: abandoned ? "0" : "1", next_cursor: null,
-    };
+    if (path.includes("/connection-attempts?"))
+      return {
+        items: [
+          { ...recovery, state: abandoned ? "abandoned" : recovery.state },
+        ],
+        unfinished_count: abandoned ? "0" : "1",
+        next_cursor: null,
+      };
     if (path.endsWith("/abandon")) {
       expect(JSON.parse(body!)).toEqual({ confirm_unrecoverable: true });
       abandoned = true;
@@ -916,13 +925,93 @@ it("requires acknowledgement before abandoning an unavailable new setup", async 
     return recovery;
   }) as unknown as API;
   render(<Connections {...props(api, false)} />);
-  fireEvent.click(await screen.findByRole("button", { name: `Review attempt ${attempt.attempt_id}` }));
-  const button = await screen.findByRole("button", { name: "Abandon unavailable setup", hidden: true });
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: `Review attempt ${attempt.attempt_id}`,
+    }),
+  );
+  const button = await screen.findByRole("button", {
+    name: "Abandon unavailable setup",
+    hidden: true,
+  });
   expect((button as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(screen.getByText("Credential unavailable: start over"));
-  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this credential is unavailable/ }));
+  fireEvent.click(
+    screen.getByRole("checkbox", {
+      name: /I confirm this credential is unavailable/,
+    }),
+  );
   fireEvent.click(button);
   await screen.findByText(/Setup abandoned. Its history is retained/);
   expect(screen.getByText("Unfinished attempts: 0")).toBeTruthy();
-  expect(vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute"))).toHaveLength(0);
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute")),
+  ).toHaveLength(0);
+});
+
+// Item transport failure cannot erase independently successful attempt discovery.
+it("keeps durable recovery discovery when connection listing fails", async () => {
+  const recovered = {
+    ...attempt,
+    state: "credential_recovery_required",
+    manifest,
+    expired_unclaimed: false,
+    binding_expired: false,
+  };
+  const api = vi.fn(async (path: string) => {
+    if (path.includes("/connection-attempts?"))
+      return { items: [recovered], next_cursor: null, unfinished_count: "1" };
+    throw new APIError(0, true);
+  }) as unknown as API;
+  render(<Connections {...props(api, false)} />);
+  await screen.findByRole("button", {
+    name: `Review attempt ${attempt.attempt_id}`,
+  });
+  expect(screen.getByText("Unfinished attempts: 1")).toBeTruthy();
+  expect(screen.queryByText(/Attempt discovery unavailable/)).toBeNull();
+});
+
+// A committed exchange may return 409 during storage; recovery uses GET only.
+it("inspects the exact Hosted attempt after conflict without repeating exchange", async () => {
+  const recovered = {
+    ...attempt,
+    state: "credential_recovery_required",
+    manifest,
+  };
+  const api = vi.fn(async (path: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.endsWith("/execute")) throw new APIError(409, false);
+    if (path.endsWith(`/${attempt.attempt_id}`)) return recovered;
+    return {
+      attempt,
+      nonce: id(9),
+      link_token: "synthetic-link",
+      expires_at: attempt.expires_at,
+      hosted_link_url: "https://secure.plaid.com/hl/synthetic",
+    };
+  }) as unknown as API;
+  render(<Connections {...props(api)} link={{ open: vi.fn() }} />);
+  await screen.findByText("No connected Items in this book.");
+  fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+  await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Check bank setup completion" }),
+  );
+  await screen.findByText(/Bank setup needs credential recovery/);
+  expect(
+    screen.getByText("Historical attempt status: credential recovery required"),
+  ).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: "Check bank setup completion" }),
+  ).toBeNull();
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute")),
+  ).toHaveLength(1);
+  expect(
+    (
+      screen.getByRole("button", {
+        name: "Reconcile recorded credential",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(false);
 });

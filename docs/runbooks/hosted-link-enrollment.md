@@ -52,3 +52,36 @@ Actual hosted interactive qualification remains separate under #88.
 ## PR handoff
 
 Targets main; no migration. Owner merge precedes image build and hosted acceptance.
+
+## Hosted recovery investigation (#160)
+
+Owner observed Hosted Link success followed by completion HTTP 409. The new
+attempt's public status is `credential_recovery_required` with a recorded account
+manifest. That establishes that the service got through provider verification and
+manifest recording; it does not prove source storage or destination delivery.
+GSM slot-00 version metadata currently lists no versions. API source creation
+and separate allowlisted delivery still need to be distinguished. No credential
+values or provider payloads were accessed. Storage object-name lookup was blocked
+by local TLS trust; certificate verification was not bypassed.
+
+Fixed UI recovery: independently successful durable-attempt discovery survives an
+Item-list transport failure. Hosted completion 409 inspects the exact attempt by
+GET, exposes credential recovery and clears the one-shot handoff without another
+execute or provider exchange. `Connections.test.tsx` names both regressions.
+These changes do not deliver a credential, reset attempts or activate acquisition.
+The owner is checking existence only of /bank-sync/slot-00 in the isolated writer
+project; no secret values are requested. Hosted acceptance remains incomplete.
+
+Validation for #160 recovery UI: PASS `make check test build`; PASS
+`make web-check web-test web-build web-browser` (265 unit, 17 browser tests);
+PASS `make app-integration` against the real local API/disposable PostgreSQL.
+The initial sandbox cache-access denial was rerun with approved cache access.
+These tests verify recovery presentation and retained discovery, not hosted
+credential creation/delivery. No migration or deployment in this patch.
+
+
+PR #165 incorporates this #160/#161 recovery presentation fix together with the
+owner-selected encrypted database token path. The historical source/delivery
+investigation above is superseded for new runtime credentials by
+[bank-token-vault](../contracts/bank-token-vault.md); no old token was retrieved
+or reconstructed. Hosted acceptance remains pending coordinated deployment.
