@@ -48,6 +48,7 @@ const states = [
   "credential_recovery_required",
   "disconnect_pending",
   "disconnected",
+  "abandoned",
 ];
 const itemStates = [
   "active",
@@ -131,6 +132,7 @@ function ConnectionWorkspace({
   >({});
   const [date, setDate] = useState("");
   const [consent, setConsent] = useState(false);
+  const [abandonConsent, setAbandonConsent] = useState(false);
   const [disconnect, setDisconnect] = useState<
     Listing["items"][number]["accounts"][number] | null
   >(null);
@@ -345,6 +347,7 @@ function ConnectionWorkspace({
       setBindingExpired(discovered?.binding_expired ?? bindingExpiry);
       setSelection({});
       setConsent(false);
+      setAbandonConsent(false);
       const value = await api<Attempt>(`${base}/connection-attempts/${id}`);
       if (!current.live) return;
       setAttempt(checkedAttempt(value, id));
@@ -371,6 +374,7 @@ function ConnectionWorkspace({
       setAttempt(null);
       setSelection({});
       setConsent(false);
+      setAbandonConsent(false);
       const begun = await api<Begin>(
         `${base}/connection-attempts`,
         JSON.stringify({
@@ -501,6 +505,7 @@ function ConnectionWorkspace({
       setAttempt(a);
       setSelection({});
       setConsent(false);
+      setAbandonConsent(false);
     } else if (request.kind === "stream") {
       if (!request.scope) throw Error("response");
       checkedStatus(value, request.scope);
@@ -970,6 +975,50 @@ function ConnectionWorkspace({
           >
             Reconcile recorded credential
           </button>
+          {attempt.mode === "new" &&
+            attempt.state === "credential_recovery_required" &&
+            attempt.sync_item_id === null && (
+              <details>
+                <summary>Credential unavailable: start over</summary>
+                <p>
+                  Use this only after confirming the credential cannot be
+                  recovered. This preserves the failed attempt and does not
+                  remove the Item at Plaid. Orphaned Sandbox Item cleanup may
+                  still be needed.
+                </p>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={abandonConsent}
+                    disabled={mutable}
+                    onChange={(e) => setAbandonConsent(e.target.checked)}
+                  />
+                  I confirm this credential is unavailable and want to abandon
+                  this setup.
+                </label>
+                <button
+                  disabled={mutable || !abandonConsent}
+                  onClick={() =>
+                    void run(async () => {
+                      const current = life.current;
+                      const value = await api<Attempt>(
+                        `${base}/connection-attempts/${attempt.attempt_id}/abandon`,
+                        JSON.stringify({ confirm_unrecoverable: true }),
+                      );
+                      if (!current.live) return;
+                      setAttempt(checkedAttempt(value, attempt.attempt_id));
+                      setAbandonConsent(false);
+                      await readList();
+                      setMessage(
+                        "Setup abandoned. Its history is retained. A new connection requires a fresh Plaid session.",
+                      );
+                    })
+                  }
+                >
+                  Abandon unavailable setup
+                </button>
+              </details>
+            )}
           {!expiredAttempt &&
             !bindingExpired &&
             attempt.state === "binding_review" &&
@@ -993,6 +1042,7 @@ function ConnectionWorkspace({
                         setDate(e.target.value);
                         setSelection({});
                         setConsent(false);
+                        setAbandonConsent(false);
                       }}
                     />
                   </label>
@@ -1021,6 +1071,7 @@ function ConnectionWorkspace({
                                   },
                                 }));
                                 setConsent(false);
+                                setAbandonConsent(false);
                               }}
                             >
                               <option value="">Do not bind</option>
@@ -1059,6 +1110,7 @@ function ConnectionWorkspace({
                                   },
                                 }));
                                 setConsent(false);
+                                setAbandonConsent(false);
                               }}
                             >
                               <option value="">Choose currency</option>

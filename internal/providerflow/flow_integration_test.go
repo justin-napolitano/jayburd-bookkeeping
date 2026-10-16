@@ -3,7 +3,10 @@
 package providerflow
 
 import (
+	"bytes"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -18,6 +21,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/acquisition"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/bankcredential"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/staging"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
@@ -259,7 +263,12 @@ func TestProviderEnrollmentAcquisitionFlow(t *testing.T) {
 	exec(t, c, `INSERT INTO ledger.account VALUES($1,$2,$3,'1000','Fictional bank','asset','debit',true,'2026-01-01',NULL)`, entity, book, account)
 	ownerCall(t, operator, `SELECT integration.set_connect_permission($1,$2,$3,$1,'flow-connect',true)`, actor, entity, book)
 	ownerCall(t, operator, `SELECT integration.set_connection_worker($1,$2,$3,'flow-worker',$4)`, actor, entity, book, `{"service_principal_id":"`+worker+`","worker_login":"synthetic_sync","enabled":true}`)
-	p, store := &provider{}, &secretStore{}
+	p := &provider{}
+	encrypted, e := bankcredential.NewAPIStore(runtime, flowWrapper{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	store := &lostCredentialAck{base: encrypted}
 	service := connections.New(runtime, p, store)
 	app, e := server.New(server.Config{Mode: "managed", Listen: "127.0.0.1:8080", Origin: "http://localhost:3000", Project: "synthetic-project", DatabaseURL: "synthetic"}, server.Dependencies{Auth: identity{}, Operations: &ledger.Service{DB: runtime}, Connections: service, Ready: func(context.Context) error { return nil }})
 	if e != nil {
@@ -273,9 +282,10 @@ func TestProviderEnrollmentAcquisitionFlow(t *testing.T) {
 	nonce := stringField(t, begin["nonce"])
 	link := stringField(t, begin["link_token"])
 	execute := connections.ExecuteRequest{Nonce: nonce, LinkToken: link, PublicToken: "synthetic-public"}
+	request(t, app, "POST", base+"/connection-attempts/"+id+"/execute", "", execute, 409)
+	request(t, app, "POST", base+"/connection-attempts/"+id+"/reconcile", "", map[string]any{}, 200)
 	request(t, app, "POST", base+"/connection-attempts/"+id+"/execute", "", execute, 200)
-	request(t, app, "POST", base+"/connection-attempts/"+id+"/execute", "", execute, 200)
-	if p.exchanges != 1 || store.writes != 1 {
+	if p.exchanges != 1 || scalar(t, c, "SELECT count(*)::text FROM integration.bank_credential") != "1" {
 		t.Fatal("replayed provider exchange or secret write")
 	}
 	bound := request(t, app, "POST", base+"/connection-attempts/"+id+"/bindings", "flow-bind", connections.BindingRequest{ConsentGrants: true, Bindings: []connections.Binding{{AccountID: "synthetic-flow-account", LedgerAccountID: account, CurrencyVersionID: currency, BindingDate: "2026-10-13", BindingEvidenceRef: claim}}}, 200)
@@ -305,7 +315,13 @@ func TestProviderEnrollmentAcquisitionFlow(t *testing.T) {
 	if e != nil {
 		t.Fatal("evidence composition failed")
 	}
-	runner, e := acquisition.New(sync, client, store, evidence)
+	resolver, e := bankcredential.NewResolver(sync, flowWrapper{}, func(context.Context) (acquisition.ProviderCredentials, error) {
+		return acquisition.ProviderCredentials{ClientID: "synthetic-client", Secret: "synthetic-secret"}, nil
+	})
+	if e != nil {
+		t.Fatal(e)
+	}
+	runner, e := acquisition.New(sync, client, resolver, evidence)
 	if e != nil {
 		t.Fatal("runner composition failed")
 	}
@@ -336,4 +352,54 @@ func TestProviderEnrollmentAcquisitionFlow(t *testing.T) {
 	}
 	ownerCall(t, operator, `SELECT integration.set_connect_permission($1,$2,$3,$1,'flow-revoke',false)`, actor, entity, book)
 	request(t, app, "GET", base+"/connection-attempts/"+id, "", nil, 404)
+}
+
+// flowWrapper provides a fictional KEK while exercising production envelope AEAD and SQL storage.
+type flowWrapper struct{}
+
+func (flowWrapper) Wrap(_ context.Context, key, aad []byte) (string, []byte, error) {
+	block, _ := aes.NewCipher(bytes.Repeat([]byte{7}, 32))
+	g, _ := cipher.NewGCM(block)
+	return "projects/123456789/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials/cryptoKeyVersions/1", g.Seal(nil, make([]byte, 12), key, aad), nil
+}
+func (flowWrapper) Unwrap(_ context.Context, version string, raw, aad []byte) ([]byte, error) {
+	if version != "projects/123456789/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials/cryptoKeyVersions/1" {
+		return nil, bankcredential.ErrUnavailable
+	}
+	block, _ := aes.NewCipher(bytes.Repeat([]byte{7}, 32))
+	g, _ := cipher.NewGCM(block)
+	return g.Open(nil, make([]byte, 12), raw, aad)
+}
+
+// lostCredentialAck models a committed ciphertext whose acknowledgement never reaches the service.
+type lostCredentialAck struct {
+	base *bankcredential.APIStore
+	lost bool
+}
+type lostScopedAck struct {
+	root  *lostCredentialAck
+	inner connections.SecretStore
+}
+
+func (s *lostCredentialAck) ForScope(scope connections.Scope) connections.SecretStore {
+	return &lostScopedAck{s, s.base.ForScope(scope)}
+}
+func (s *lostCredentialAck) Put(context.Context, connections.CredentialReference, connections.Secret) error {
+	return bankcredential.ErrUnavailable
+}
+func (s *lostCredentialAck) Read(context.Context, connections.CredentialReference) (connections.StoredCredential, error) {
+	return connections.StoredCredential{}, bankcredential.ErrUnavailable
+}
+func (s *lostScopedAck) Put(ctx context.Context, r connections.CredentialReference, v connections.Secret) error {
+	if e := s.inner.Put(ctx, r, v); e != nil {
+		return e
+	}
+	if !s.root.lost {
+		s.root.lost = true
+		return bankcredential.ErrUnavailable
+	}
+	return nil
+}
+func (s *lostScopedAck) Read(ctx context.Context, r connections.CredentialReference) (connections.StoredCredential, error) {
+	return s.inner.Read(ctx, r)
 }

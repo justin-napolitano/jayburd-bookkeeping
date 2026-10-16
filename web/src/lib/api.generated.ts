@@ -736,6 +736,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/abandon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Abandon an unavailable new Sandbox credential without deleting its audit history
+         * @description Explicit owner acknowledgement. Only a new credential_recovery_required attempt with no stored ciphertext or published credential can be abandoned. Does not remove the Plaid Item, replay exchange, or post journals. See docs/contracts/bank-token-vault.md.
+         */
+        post: operations["abandonConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1418,7 +1438,7 @@ export interface components {
             /** @enum {string} */
             mode: "new" | "reconnect" | "rotate" | "remove";
             /** @enum {string} */
-            state: "link_pending" | "link_ready" | "exchange_claimed" | "credential_pending" | "binding_review" | "active" | "credential_recovery_required" | "disconnect_pending" | "disconnected";
+            state: "link_pending" | "link_ready" | "exchange_claimed" | "credential_pending" | "binding_review" | "active" | "credential_recovery_required" | "disconnect_pending" | "disconnected" | "abandoned";
             /** Format: date-time */
             expires_at: string;
             sync_item_id: string | null;
@@ -3164,6 +3184,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectionStreamStatus"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    abandonConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @constant */
+                    confirm_unrecoverable: true;
+                };
+            };
+        };
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionAttempt"];
                 };
             };
             /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */

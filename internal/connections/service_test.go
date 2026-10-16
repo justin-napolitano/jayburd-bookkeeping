@@ -573,3 +573,18 @@ func TestHostedCompletionClaimBoundary(t *testing.T) {
 		})
 	}
 }
+
+// unavailableCipher models a preflight failure with no provider side effect or SQL claim.
+type unavailableCipher struct{ *memorySecrets }
+
+func (unavailableCipher) Check(context.Context) error { return errors.New("private KMS failure") }
+func TestWrappingPreflightBeforeExchange(t *testing.T) {
+	s, r, p, store := fixture()
+	s.secrets = unavailableCipher{store}
+	in := begin(t, s)
+	_, e := s.Execute(context.Background(), scope, attemptID, in)
+	code(t, e, "temporarily_unavailable")
+	if r.claimed || count(p.calls, "exchange") != 0 || store.writes != 0 {
+		t.Fatal("preflight consumed irreversible claim")
+	}
+}

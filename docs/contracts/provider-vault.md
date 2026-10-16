@@ -1,6 +1,13 @@
 # Provider credential storage and propagation
 
-## Reviewed decision
+## Superseded dynamic-token path
+
+Owner selected [encrypted PostgreSQL bank tokens](bank-token-vault.md) on
+2026-10-15 (#162–#164). New runtime images do not use the eight-slot writer or
+mapping resolver below. Static client-secret delivery remains in use. Keep these
+resources and records for history; no automatic migration or deletion is implied.
+
+## Historical reviewed decision
 
 Keep Infisical as source and GCP Secret Manager as the sole acquisition runtime
 reader. The coordinator approved a separately scoped connection writer and an

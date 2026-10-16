@@ -896,3 +896,33 @@ it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
     expect(p.link.open).not.toHaveBeenCalled();
   },
 );
+
+// Abandonment is a separate affirmative action and cannot repeat a provider exchange.
+it("requires acknowledgement before abandoning an unavailable new setup", async () => {
+  const recovery = { ...attempt, state: "credential_recovery_required", manifest,
+    expired_unclaimed: false, binding_expired: false };
+  let abandoned = false;
+  const api = vi.fn(async (path: string, body?: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.includes("/connection-attempts?")) return {
+      items: [{ ...recovery, state: abandoned ? "abandoned" : recovery.state }],
+      unfinished_count: abandoned ? "0" : "1", next_cursor: null,
+    };
+    if (path.endsWith("/abandon")) {
+      expect(JSON.parse(body!)).toEqual({ confirm_unrecoverable: true });
+      abandoned = true;
+      return { ...recovery, state: "abandoned" };
+    }
+    return recovery;
+  }) as unknown as API;
+  render(<Connections {...props(api, false)} />);
+  fireEvent.click(await screen.findByRole("button", { name: `Review attempt ${attempt.attempt_id}` }));
+  const button = await screen.findByRole("button", { name: "Abandon unavailable setup", hidden: true });
+  expect((button as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByText("Credential unavailable: start over"));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this credential is unavailable/ }));
+  fireEvent.click(button);
+  await screen.findByText(/Setup abandoned. Its history is retained/);
+  expect(screen.getByText("Unfinished attempts: 0")).toBeTruthy();
+  expect(vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute"))).toHaveLength(0);
+});
