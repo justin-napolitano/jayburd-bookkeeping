@@ -18,5 +18,7 @@ local-imports/
 infra/gcp/*/backend.tf
 *.tfvars
 *.tfvars.json
+# Public booleans for the already-deployed development identities; no owner inputs.
+!infra/gcp/foundation/deployed-dev-identities.tfvars
 crash.log
 crash.*.log

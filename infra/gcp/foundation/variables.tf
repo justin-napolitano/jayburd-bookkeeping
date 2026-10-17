@@ -35,16 +35,28 @@ variable "enable_github_build_identity" {
   description = "Owner-controlled opt-in after promotion review; no deployment federation is granted."
   type        = bool
   default     = false
+  validation {
+    condition     = var.project_id != "jayburd-bookkeeping-dev" || var.enable_github_build_identity
+    error_message = "The deployed development build identity is enabled; preserve it in owner.tfvars before applying foundation."
+  }
 }
 
 variable "enable_github_deploy_identity" {
   description = "Owner opt-in after reviewing runtime rollout authority; separate from build federation."
   type        = bool
   default     = false
+  validation {
+    condition     = var.project_id != "jayburd-bookkeeping-dev" || var.enable_github_deploy_identity
+    error_message = "The deployed development application identity is enabled; preserve it in owner.tfvars before applying foundation."
+  }
 }
 
 variable "enable_github_worker_deploy_identity" {
   description = "Owner opt-in for the isolated, exact worker deployment workflow."
   type        = bool
   default     = false
+  validation {
+    condition     = var.project_id != "jayburd-bookkeeping-dev" || var.enable_github_worker_deploy_identity
+    error_message = "The deployed development worker identity is enabled; preserve it in owner.tfvars before applying foundation."
+  }
 }
