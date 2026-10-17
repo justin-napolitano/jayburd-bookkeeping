@@ -57,4 +57,16 @@ Local release validation passed: exact manifest hash
 `05803d7210c8fa40cade63cd196dad65f407b922ff31fbbc36683e23cd99512e`,
 GitHub build metadata and all three retained candidate receipts match, and
 `make release-test` passed. The source PR's five CI checks passed; this release
-PR must pass its own checks before merge. No application deployment has run.
+PR passed its five checks before merge.
+
+PR #177 merged as `700fdbca45e1e51559612cf7a9f0f45d6ba47ced`.
+[Deployment 39072895377](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39072895377)
+completed with `transport-smoke-passed` against the exact approved manifest.
+The receipt names ready API revision `jayburd-dev-api-00008-f8b` and web revision
+`jayburd-dev-web-00008-k5t`. Public HTTP readback returned 200 for the configured
+URL and 307 from Cloud Run's alternate service URL to that configured URL.
+Scheduler readback remains PAUSED. Issue comments
+[#160](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/160#issuecomment-6241885269)
+and [#164](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/164#issuecomment-6241889935)
+retain the hosted acceptance limits. No fresh Hosted Link completion, ciphertext
+persistence or authorized worker read has been observed from this release.
