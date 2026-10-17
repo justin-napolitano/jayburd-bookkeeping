@@ -971,6 +971,65 @@ it("keeps durable recovery discovery when connection listing fails", async () =>
   expect(screen.queryByText(/Attempt discovery unavailable/)).toBeNull();
 });
 
+// A denied historical attempt must not eject an otherwise authorized book.
+it("keeps the selected Connections scope after an attempt-only denial", async () => {
+  const recovered = {
+    ...attempt,
+    state: "credential_recovery_required",
+    manifest,
+    expired_unclaimed: false,
+    binding_expired: false,
+  };
+  const denied = vi.fn();
+  const api = vi.fn(async (path: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.includes("/connection-attempts?"))
+      return { items: [recovered], next_cursor: null, unfinished_count: "1" };
+    if (path.endsWith(`/${attempt.attempt_id}`)) throw new APIError(403, false);
+    throw new Error("unexpected request");
+  }) as unknown as API;
+  render(<Connections {...props(api, false)} denied={denied} />);
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: `Review attempt ${attempt.attempt_id}`,
+    }),
+  );
+  await screen.findByText(/This attempt is unavailable/);
+  expect(screen.getByText("Unfinished attempts: 1")).toBeTruthy();
+  expect(denied).not.toHaveBeenCalled();
+  expect(
+    (screen.getByRole("button", { name: "Connect account" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(true);
+});
+
+// Revoked book access still clears the financial workspace after revalidation.
+it("clears the scope when attempt and discovery access are both denied", async () => {
+  const denied = vi.fn();
+  let discoveryReads = 0;
+  const api = vi.fn(async (path: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.includes("/connection-attempts?")) {
+      if (++discoveryReads > 1) throw new APIError(403, false);
+      return {
+        items: [{ ...attempt, expired_unclaimed: false, binding_expired: false }],
+        next_cursor: null,
+        unfinished_count: "1",
+      };
+    }
+    if (path.endsWith(`/${attempt.attempt_id}`)) throw new APIError(403, false);
+    throw new Error("unexpected request");
+  }) as unknown as API;
+  render(<Connections {...props(api, false)} denied={denied} />);
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: `Review attempt ${attempt.attempt_id}`,
+    }),
+  );
+  await waitFor(() => expect(denied).toHaveBeenCalledOnce());
+  expect(screen.queryByText("Unfinished attempts: 1")).toBeNull();
+});
+
 // A committed exchange may return 409 during storage; recovery uses GET only.
 it("inspects the exact Hosted attempt after conflict without repeating exchange", async () => {
   const recovered = {

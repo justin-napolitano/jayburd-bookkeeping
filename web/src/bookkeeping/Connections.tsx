@@ -356,7 +356,21 @@ function ConnectionWorkspace({
       setSelection({});
       setConsent(false);
       setAbandonConsent(false);
-      const value = await api<Attempt>(`${base}/connection-attempts/${id}`);
+      let value: Attempt;
+      try {
+        value = await api<Attempt>(`${base}/connection-attempts/${id}`);
+      } catch (error) {
+        if (!(error instanceof APIError) || ![403, 404].includes(error.status))
+          throw error;
+        // A historical attempt may be inaccessible while the book remains authorized.
+        // Recheck current scope before deciding whether to clear its financial view.
+        await readList();
+        if (!current.live) return;
+        setMessage(
+          "This attempt is unavailable. Your current Connections access was rechecked; no bank setup was completed.",
+        );
+        return;
+      }
       if (!current.live) return;
       setAttempt(checkedAttempt(value, id));
       setInspectID(id);
