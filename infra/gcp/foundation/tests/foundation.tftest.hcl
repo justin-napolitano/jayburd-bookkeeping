@@ -104,6 +104,55 @@ run "worker_release_isolated_by_default" {
     error_message = "Worker federation requires the exact owner-dispatched main workflow."
   }
 }
+
+# The live development identity settings must be explicit on every owner apply.
+run "deployed_development_identities_remain_enabled" {
+  command = plan
+  variables {
+    project_id                           = "jayburd-bookkeeping-dev"
+    enable_github_build_identity         = true
+    enable_github_deploy_identity        = true
+    enable_github_worker_deploy_identity = true
+  }
+  assert {
+    condition     = !google_iam_workload_identity_pool.github.disabled && !google_iam_workload_identity_pool.deployment.disabled && !google_iam_workload_identity_pool.worker_deployment.disabled && !google_iam_workload_identity_pool_provider.build.disabled && !google_iam_workload_identity_pool_provider.deployment.disabled && !google_iam_workload_identity_pool_provider.worker_deployment.disabled
+    error_message = "A development foundation apply must preserve all three enabled identities."
+  }
+}
+
+run "reject_accidental_worker_identity_disable" {
+  command = plan
+  variables {
+    project_id                           = "jayburd-bookkeeping-dev"
+    enable_github_build_identity         = true
+    enable_github_deploy_identity        = true
+    enable_github_worker_deploy_identity = false
+  }
+  expect_failures = [var.enable_github_worker_deploy_identity]
+}
+
+run "reject_accidental_build_identity_disable" {
+  command = plan
+  variables {
+    project_id                           = "jayburd-bookkeeping-dev"
+    enable_github_build_identity         = false
+    enable_github_deploy_identity        = true
+    enable_github_worker_deploy_identity = true
+  }
+  expect_failures = [var.enable_github_build_identity]
+}
+
+run "reject_accidental_app_identity_disable" {
+  command = plan
+  variables {
+    project_id                           = "jayburd-bookkeeping-dev"
+    enable_github_build_identity         = true
+    enable_github_deploy_identity        = false
+    enable_github_worker_deploy_identity = true
+  }
+  expect_failures = [var.enable_github_deploy_identity]
+}
+
 run "reject_noncanonical_project_number" {
   command = plan
   variables { project_number = "012345678901" }

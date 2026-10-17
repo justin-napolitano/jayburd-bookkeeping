@@ -129,6 +129,11 @@ with versioning. The direct enablement creates Terraform drift: preserve the
 already-enabled build and application deployment flags, and set
 `enable_github_worker_deploy_identity=true` in the owner-operated foundation
 inputs before the next foundation apply. No foundation state or plan was read.
+The checked-in `deployed-dev-identities.tfvars` overlay keeps all three GitHub
+identity flags true when passed after private `owner.tfvars`. Foundation input
+validation rejects a plan for this deployed project if any is false, including
+when the overlay is omitted. Owner review and apply against private state remain
+required to reconcile the direct GCP enablement.
 
 [Worker release run 38946843411](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/38946843411)
 passed exact manifest/build evidence, infrastructure tests, workload identity
