@@ -24,13 +24,20 @@ also fails, it clears financial state as before. This is a presentation and
 authorization-recheck fix, not a credential reset, provider exchange or proof
 that the old attempt is recoverable.
 
+The development web service also has a second Cloud Run URL. Its bridge accepts
+the configured public origin (`jayburd-dev-web-9088794002.us-central1.run.app`),
+while the service-reported `*.a.run.app` alias can lead to rejected requests.
+The application landing page now redirects that alias to the configured origin
+before sign-in. The owner should use the configured URL for the next test.
+
 `Connections.test.tsx` covers both the attempt-only denial and actual scope
-revocation. Fresh Sandbox acceptance still requires an owner-authorized Hosted
+revocation; `page.test.tsx` covers canonical-host routing. Fresh Sandbox acceptance still requires an owner-authorized Hosted
 Link session to reach verified binding review, followed by ciphertext/worker-read
 evidence under #164. Keep Scheduler paused until those checks pass.
 
 Validation for this patch: `make web-check web-test web-build web-browser`
-passed (270 unit and 17 browser tests). `make check test build` could not start:
+passed on the final patch (273 unit and 17 browser tests).
+`make check test build` could not start:
 the pinned Go 1.26.9 toolchain download returned HTTP 403 even after a permitted
 network retry; local Go 1.26.5 is below the module requirement. The existing
 synthetic browser/API/PostgreSQL Hosted Link journey is unchanged but must pass
