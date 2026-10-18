@@ -218,12 +218,8 @@ it("TestConnectionsScopeAndRecovery inspects unknown exchange without retry", as
   await screen.findByText("Historical attempt status: exchange claimed");
   expect(executes).toBe(1);
   expect(
-    (
-      screen.getByRole("button", {
-        name: "Reconcile recorded credential",
-      }) as HTMLButtonElement
-    ).disabled,
-  ).toBe(true);
+    screen.queryByRole("button", { name: "Try connecting again" }),
+  ).toBeNull();
 });
 it("TestConnectionsScopeAndRecovery rejects mismatched attempt identity", async () => {
   const api = vi.fn(async (path: string) =>
@@ -231,7 +227,7 @@ it("TestConnectionsScopeAndRecovery rejects mismatched attempt identity", async 
       ? { items: [] }
       : { ...attempt, entity_id: id(99) },
   ) as unknown as API;
-  render(<Connections {...props(api)} />);
+  render(<Connections {...props(api)} link={{ open: vi.fn() }} />);
   await screen.findByText("No connected Items in this book.");
   fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
     target: { value: id(5) },
@@ -377,7 +373,7 @@ it("TestConnectionsScopeAndRecovery reconciles known recorded credential only", 
       manifest,
     };
   }) as unknown as API;
-  render(<Connections {...props(api)} />);
+  render(<Connections {...props(api)} link={{ open: vi.fn() }} />);
   await screen.findByText("No connected Items in this book.");
   fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
     target: { value: id(5) },
@@ -386,9 +382,7 @@ it("TestConnectionsScopeAndRecovery reconciles known recorded credential only", 
   await screen.findByText(
     "Historical attempt status: credential recovery required",
   );
-  fireEvent.click(
-    screen.getByRole("button", { name: "Reconcile recorded credential" }),
-  );
+  fireEvent.click(screen.getByRole("button", { name: "Try connecting again" }));
   await screen.findByRole("group", {
     name: "Review verified account bindings",
   });
@@ -403,21 +397,47 @@ it("TestConnectionsScopeAndRecovery reconciles known recorded credential only", 
   ).toBe(false);
 });
 
-// A confirmed recovery conflict leaves the one-shot claim intact and offers
-// explicit, owner-controlled abandonment only after exact-attempt reinspection.
-it("explains unresolved credential reconciliation without replaying Plaid", async () => {
+// A confirmed absent credential permits a guarded new session, never exchange replay.
+it("retries a failed setup after confirming no stored credential", async () => {
   const recovered = {
     ...attempt,
     state: "credential_recovery_required",
     manifest,
   };
-  const api = vi.fn(async (path: string) => {
+  let abandoned = false;
+  const api = vi.fn(async (path: string, body?: string) => {
     if (path.endsWith("/connections")) return { items: [] };
+    if (path.includes("/connection-attempts?"))
+      return {
+        items: [
+          {
+            ...recovered,
+            state: abandoned ? "abandoned" : recovered.state,
+            expired_unclaimed: false,
+            binding_expired: false,
+          },
+        ],
+        unfinished_count: abandoned ? "0" : "1",
+        next_cursor: null,
+      };
     if (path.endsWith("/reconcile")) throw new APIError(409, false);
+    if (path.endsWith("/abandon")) {
+      expect(JSON.parse(body!)).toEqual({ confirm_unrecoverable: true });
+      abandoned = true;
+      return { ...recovered, state: "abandoned" };
+    }
+    if (path.endsWith("/connection-attempts"))
+      return {
+        attempt: { ...attempt, attempt_id: id(10) },
+        nonce: id(9),
+        link_token: "synthetic-link",
+        expires_at: attempt.expires_at,
+        hosted_link_url: "https://secure.plaid.com/hl/synthetic",
+      };
     return recovered;
   }) as unknown as API;
-  render(<Connections {...props(api)} />);
-  await screen.findByText("No connected Items in this book.");
+  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+  await screen.findByText("Unfinished attempts: 1");
   fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
     target: { value: attempt.attempt_id },
   });
@@ -425,13 +445,9 @@ it("explains unresolved credential reconciliation without replaying Plaid", asyn
   await screen.findByText(
     "Historical attempt status: credential recovery required",
   );
-  fireEvent.click(
-    screen.getByRole("button", { name: "Reconcile recorded credential" }),
-  );
-  await screen.findByText(
-    /Reconciliation did not confirm a recorded credential/,
-  );
-  expect(screen.getByText("Credential unavailable: start over")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Try connecting again" }));
+  await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+  expect(screen.getByText("Unfinished attempts: 0")).toBeTruthy();
   expect(
     vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/reconcile")),
   ).toHaveLength(1);
@@ -443,6 +459,9 @@ it("explains unresolved credential reconciliation without replaying Plaid", asyn
       .mocked(api)
       .mock.calls.filter(([path]) => path.endsWith(`/${attempt.attempt_id}`)),
   ).toHaveLength(2);
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/abandon")),
+  ).toHaveLength(1);
 });
 
 // A confirmed rejection needs a fresh review rather than an endless immutable retry envelope.
@@ -939,8 +958,8 @@ it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
   },
 );
 
-// Abandonment is a separate affirmative action and cannot repeat a provider exchange.
-it("requires acknowledgement before abandoning an unavailable new setup", async () => {
+// An uncertain reconciliation must retain the attempt and never begin again.
+it("does not restart after an uncertain reconciliation", async () => {
   const recovery = {
     ...attempt,
     state: "credential_recovery_required",
@@ -948,44 +967,80 @@ it("requires acknowledgement before abandoning an unavailable new setup", async 
     expired_unclaimed: false,
     binding_expired: false,
   };
-  let abandoned = false;
-  const api = vi.fn(async (path: string, body?: string) => {
+  const api = vi.fn(async (path: string) => {
     if (path.endsWith("/connections")) return { items: [] };
     if (path.includes("/connection-attempts?"))
       return {
-        items: [
-          { ...recovery, state: abandoned ? "abandoned" : recovery.state },
-        ],
-        unfinished_count: abandoned ? "0" : "1",
+        items: [recovery],
+        unfinished_count: "1",
         next_cursor: null,
       };
-    if (path.endsWith("/abandon")) {
-      expect(JSON.parse(body!)).toEqual({ confirm_unrecoverable: true });
-      abandoned = true;
-      return { ...recovery, state: "abandoned" };
-    }
+    if (path.endsWith("/reconcile")) throw new APIError(503, true);
     return recovery;
   }) as unknown as API;
-  render(<Connections {...props(api, false)} />);
+  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
   fireEvent.click(
     await screen.findByRole("button", {
       name: `Review attempt ${attempt.attempt_id}`,
     }),
   );
-  const button = await screen.findByRole("button", {
-    name: "Abandon unavailable setup",
-    hidden: true,
-  });
-  expect((button as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.click(screen.getByText("Credential unavailable: start over"));
   fireEvent.click(
-    screen.getByRole("checkbox", {
-      name: /I confirm this credential is unavailable/,
+    await screen.findByRole("button", { name: "Try connecting again" }),
+  );
+  await screen.findByText(/This operation could not be confirmed/);
+  expect(screen.getByText("Unfinished attempts: 1")).toBeTruthy();
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/abandon")),
+  ).toHaveLength(0);
+  expect(
+    vi
+      .mocked(api)
+      .mock.calls.filter(([path]) => path.endsWith("/connection-attempts")),
+  ).toHaveLength(0);
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute")),
+  ).toHaveLength(0);
+});
+
+// A server conflict can mean a credential was stored concurrently; never restart.
+it("stops retry when the stored-credential guard rejects abandonment", async () => {
+  const recovery = {
+    ...attempt,
+    state: "credential_recovery_required",
+    manifest,
+  };
+  const api = vi.fn(async (path: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.includes("/connection-attempts?"))
+      return {
+        items: [
+          { ...recovery, expired_unclaimed: false, binding_expired: false },
+        ],
+        unfinished_count: "1",
+        next_cursor: null,
+      };
+    if (path.endsWith("/reconcile") || path.endsWith("/abandon"))
+      throw new APIError(409, false);
+    return recovery;
+  }) as unknown as API;
+  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: `Review attempt ${attempt.attempt_id}`,
     }),
   );
-  fireEvent.click(button);
-  await screen.findByText(/Setup abandoned. Its history is retained/);
-  expect(screen.getByText("Unfinished attempts: 0")).toBeTruthy();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Try connecting again" }),
+  );
+  await screen.findByText(/Connection status changed/);
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/abandon")),
+  ).toHaveLength(1);
+  expect(
+    vi
+      .mocked(api)
+      .mock.calls.filter(([path]) => path.endsWith("/connection-attempts")),
+  ).toHaveLength(0);
   expect(
     vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute")),
   ).toHaveLength(0);
@@ -1040,8 +1095,11 @@ it("keeps the selected Connections scope after an attempt-only denial", async ()
   expect(screen.getByText("Unfinished attempts: 1")).toBeTruthy();
   expect(denied).not.toHaveBeenCalled();
   expect(
-    (screen.getByRole("button", { name: "Connect account" }) as HTMLButtonElement)
-      .disabled,
+    (
+      screen.getByRole("button", {
+        name: "Connect account",
+      }) as HTMLButtonElement
+    ).disabled,
   ).toBe(true);
 });
 
@@ -1054,7 +1112,9 @@ it("clears the scope when attempt and discovery access are both denied", async (
     if (path.includes("/connection-attempts?")) {
       if (++discoveryReads > 1) throw new APIError(403, false);
       return {
-        items: [{ ...attempt, expired_unclaimed: false, binding_expired: false }],
+        items: [
+          { ...attempt, expired_unclaimed: false, binding_expired: false },
+        ],
         next_cursor: null,
         unfinished_count: "1",
       };
@@ -1111,7 +1171,7 @@ it("inspects the exact Hosted attempt after conflict without repeating exchange"
   expect(
     (
       screen.getByRole("button", {
-        name: "Reconcile recorded credential",
+        name: "Try connecting again",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(false);

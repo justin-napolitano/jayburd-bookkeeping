@@ -132,7 +132,6 @@ function ConnectionWorkspace({
   >({});
   const [date, setDate] = useState("");
   const [consent, setConsent] = useState(false);
-  const [abandonConsent, setAbandonConsent] = useState(false);
   const [disconnect, setDisconnect] = useState<
     Listing["items"][number]["accounts"][number] | null
   >(null);
@@ -252,10 +251,11 @@ function ConnectionWorkspace({
       api<Listing>(`${base}/connections`),
       api<AttemptPage>(`${base}/connection-attempts?limit=100`),
     ]);
-    if (!current.live) return;
+    if (!current.live) return null;
     // A failed Item listing must not hide successful durable-attempt discovery.
+    let page: AttemptPage | null = null;
     if (discovery.status === "fulfilled") {
-      const page = checkAttempts(discovery.value);
+      page = checkAttempts(discovery.value);
       setAttempts(page);
       if (page.unfinished_count === "0") setEnrollmentStarted(false);
     }
@@ -265,6 +265,7 @@ function ConnectionWorkspace({
     }
     if (discovery.status === "rejected") throw discovery.reason;
     if (listing.status === "rejected") throw listing.reason;
+    return page;
   };
   // A status is useful only for the exact currently selected Item/source/stream scope.
   const checkedStatus = (
@@ -337,7 +338,10 @@ function ConnectionWorkspace({
   useEffect(() => {
     const current = { live: true, flight: false, abort: new AbortController() };
     life.current = current;
-    if (!locked) void run(readList);
+    if (!locked)
+      void run(async () => {
+        await readList();
+      });
     return () => {
       current.live = false;
       current.abort.abort();
@@ -355,7 +359,6 @@ function ConnectionWorkspace({
       setBindingExpired(discovered?.binding_expired ?? bindingExpiry);
       setSelection({});
       setConsent(false);
-      setAbandonConsent(false);
       let value: Attempt;
       try {
         value = await api<Attempt>(`${base}/connection-attempts/${id}`);
@@ -377,10 +380,76 @@ function ConnectionWorkspace({
       // Recheck discovery before releasing an earlier local enrollment latch.
       if (discovered?.binding_expired ?? bindingExpiry) await readList();
     });
-  // Only this fresh, in-memory Begin reply may authorize a single Link handoff.
+  // A fresh Begin reply alone authorizes a new, memory-only Link handoff.
+  const beginNewConnection = async (current: typeof life.current) => {
+    if (!link || !current.live) return;
+    setEnrollmentStarted(true);
+    setExpiredAttempt(false);
+    setBindingExpired(false);
+    setAttempt(null);
+    setSelection({});
+    setConsent(false);
+    const begun = await api<Begin>(
+      `${base}/connection-attempts`,
+      JSON.stringify({
+        mode: "new",
+        sync_item_id: null,
+        expected_generation: null,
+        approved_stream_ids: [],
+      }),
+      crypto.randomUUID(),
+    );
+    if (!current.live) return;
+    const a = checkedAttempt(begun.attempt);
+    setAttempt(a);
+    setInspectID(a.attempt_id);
+    if (
+      !uuid.test(begun.nonce) ||
+      !begun.link_token ||
+      a.mode !== "new" ||
+      a.state !== "link_ready"
+    )
+      throw Error("handoff");
+    if (begun.hosted_link_url) {
+      if (
+        !validHostedURL(begun.hosted_link_url) ||
+        !begun.expires_at ||
+        !Number.isFinite(Date.parse(begun.expires_at)) ||
+        Date.parse(begun.expires_at) <= Date.now()
+      )
+        throw Error("handoff");
+      setHosted(begun);
+      setMessage(
+        "Open Plaid Sandbox in a new tab, finish setup, then return here to check completion.",
+      );
+      return;
+    }
+    const result = await link.open({
+      linkToken: begun.link_token,
+      signal: life.current.abort.signal,
+    });
+    if (!current.live) return;
+    if (!result) {
+      setMessage(
+        "Bank setup canceled. The known attempt remains available for inspection.",
+      );
+      return;
+    }
+    // No catch retries this irreversible handoff: unknown replies require inspection.
+    const value = await api<Attempt>(
+      `${base}/connection-attempts/${a.attempt_id}/execute`,
+      JSON.stringify({
+        nonce: begun.nonce,
+        link_token: begun.link_token,
+        public_token: result.publicToken,
+      }),
+    );
+    if (!current.live) return;
+    setAttempt(checkedAttempt(value, a.attempt_id));
+    await readList();
+  };
   const start = () =>
     run(async () => {
-      const current = life.current;
       if (
         !link ||
         !attempts ||
@@ -390,71 +459,96 @@ function ConnectionWorkspace({
           !["active", "disconnected"].includes(attempt?.state ?? ""))
       )
         return;
-      setEnrollmentStarted(true);
-      setExpiredAttempt(false);
-      setBindingExpired(false);
-      setAttempt(null);
-      setSelection({});
-      setConsent(false);
-      setAbandonConsent(false);
-      const begun = await api<Begin>(
-        `${base}/connection-attempts`,
-        JSON.stringify({
-          mode: "new",
-          sync_item_id: null,
-          expected_generation: null,
-          approved_stream_ids: [],
-        }),
-        crypto.randomUUID(),
-      );
-      if (!current.live) return;
-      const a = checkedAttempt(begun.attempt);
-      setAttempt(a);
-      setInspectID(a.attempt_id);
+      await beginNewConnection(life.current);
+    });
+  // Retry first resolves the old claim, then uses the server's stored-credential
+  // guard before starting a new Link session. An uncertain reply stops here.
+  const retryConnection = () =>
+    run(async () => {
+      const current = life.current;
+      const old = attempt;
       if (
-        !uuid.test(begun.nonce) ||
-        !begun.link_token ||
-        a.mode !== "new" ||
-        a.state !== "link_ready"
+        !link ||
+        !old ||
+        hosted ||
+        pending ||
+        old.mode !== "new" ||
+        old.sync_item_id !== null ||
+        old.state !== "credential_recovery_required"
       )
-        throw Error("handoff");
-      if (begun.hosted_link_url) {
+        return;
+      const path = `${base}/connection-attempts/${old.attempt_id}`;
+      let recovered: Attempt;
+      let credentialAbsent = false;
+      try {
+        recovered = checkedAttempt(
+          await api<Attempt>(`${path}/reconcile`, "{}"),
+          old.attempt_id,
+        );
+      } catch (error) {
         if (
-          !validHostedURL(begun.hosted_link_url) ||
-          !begun.expires_at ||
-          !Number.isFinite(Date.parse(begun.expires_at)) ||
-          Date.parse(begun.expires_at) <= Date.now()
+          !(error instanceof APIError) ||
+          error.status !== 409 ||
+          error.uncertain
         )
-          throw Error("handoff");
-        setHosted(begun);
+          throw error;
+        credentialAbsent = true;
+        recovered = checkedAttempt(await api<Attempt>(path), old.attempt_id);
+      }
+      if (!current.live) return;
+      setAttempt(recovered);
+      if (recovered.state !== "credential_recovery_required") {
+        await readList();
+        if (current.live)
+          setMessage("Connection status updated. Review it below.");
+        return;
+      }
+      if (!credentialAbsent) {
+        setMessage("Connection status is still pending. Try again in a moment.");
+        return;
+      }
+      let abandoned: Attempt;
+      try {
+        abandoned = checkedAttempt(
+          await api<Attempt>(
+            `${path}/abandon`,
+            JSON.stringify({ confirm_unrecoverable: true }),
+          ),
+          old.attempt_id,
+        );
+      } catch (error) {
+        if (
+          error instanceof APIError &&
+          error.status === 409 &&
+          !error.uncertain
+        ) {
+          const fresh = checkedAttempt(
+            await api<Attempt>(path),
+            old.attempt_id,
+          );
+          if (!current.live) return;
+          setAttempt(fresh);
+          await readList();
+          if (current.live)
+            setMessage(
+              "Connection status changed. Check it before trying again.",
+            );
+          return;
+        }
+        throw error;
+      }
+      if (!current.live) return;
+      if (abandoned.state !== "abandoned") throw Error("response");
+      setAttempt(abandoned);
+      const page = await readList();
+      if (!current.live) return;
+      if (!page || page.unfinished_count !== "0") {
         setMessage(
-          "Open Plaid Sandbox in a new tab, finish setup, then return here to check completion.",
+          "Another setup needs attention. Check its status before trying again.",
         );
         return;
       }
-      const result = await link.open({
-        linkToken: begun.link_token,
-        signal: life.current.abort.signal,
-      });
-      if (!current.live) return;
-      if (!result) {
-        setMessage(
-          "Bank setup canceled. The known attempt remains available for inspection.",
-        );
-        return;
-      }
-      // No catch retries this irreversible handoff: unknown replies require inspection.
-      const value = await api<Attempt>(
-        `${base}/connection-attempts/${a.attempt_id}/execute`,
-        JSON.stringify({
-          nonce: begun.nonce,
-          link_token: begun.link_token,
-          public_token: result.publicToken,
-        }),
-      );
-      if (!current.live) return;
-      setAttempt(checkedAttempt(value, a.attempt_id));
-      await readList();
+      await beginNewConnection(current);
     });
   // Only an explicit check resolves Hosted Link. Unknown replies discard the handoff.
   const completeHosted = () =>
@@ -487,7 +581,9 @@ function ConnectionWorkspace({
         // never restore the handoff or repeat the provider mutation.
         if (error instanceof APIError && error.status === 409 && current.live) {
           const recovered = checkedAttempt(
-            await api<Attempt>(`${base}/connection-attempts/${handoff.attempt.attempt_id}`),
+            await api<Attempt>(
+              `${base}/connection-attempts/${handoff.attempt.attempt_id}`,
+            ),
             handoff.attempt.attempt_id,
           );
           if (!current.live) return;
@@ -549,7 +645,6 @@ function ConnectionWorkspace({
       setAttempt(a);
       setSelection({});
       setConsent(false);
-      setAbandonConsent(false);
     } else if (request.kind === "stream") {
       if (!request.scope) throw Error("response");
       checkedStatus(value, request.scope);
@@ -985,112 +1080,43 @@ function ConnectionWorkspace({
               connection requires a fresh Link session.
             </p>
           )}
-          {[
-            "exchange_claimed",
-            "credential_pending",
-            "credential_recovery_required",
-            "disconnect_pending",
-          ].includes(attempt.state) && (
-            <p>
-              This attempt is unresolved. Do not repeat the provider exchange.
-              Reconciliation can only check an already recorded credential; it
-              cannot repair a lost exchange response.
-            </p>
-          )}
-          <button
-            disabled={
-              mutable ||
-              !["credential_pending", "credential_recovery_required"].includes(
-                attempt.state,
-              )
-            }
-            onClick={() =>
-              void run(async () => {
-                const current = life.current;
-                let value: Attempt;
-                try {
-                  value = await api<Attempt>(
+          {attempt.state === "credential_recovery_required" &&
+          attempt.mode === "new" &&
+          attempt.sync_item_id === null ? (
+            <>
+              <p>
+                This bank setup did not finish. Trying again checks for a saved
+                connection before opening a new Sandbox session. The earlier
+                attempt stays in your history.
+              </p>
+              <button
+                disabled={mutable || !link}
+                onClick={() => void retryConnection()}
+              >
+                Try connecting again
+              </button>
+            </>
+          ) : ["credential_pending", "credential_recovery_required"].includes(
+              attempt.state,
+            ) ? (
+            <button
+              disabled={mutable}
+              onClick={() =>
+                void run(async () => {
+                  const current = life.current;
+                  const value = await api<Attempt>(
                     `${base}/connection-attempts/${attempt.attempt_id}/reconcile`,
                     "{}",
                   );
-                } catch (error) {
-                  if (!(error instanceof APIError) || error.status !== 409)
-                    throw error;
-                  // A rejected reconciliation never authorizes replay. Re-read the
-                  // exact attempt before describing its current recovery path.
-                  const recovered = checkedAttempt(
-                    await api<Attempt>(
-                      `${base}/connection-attempts/${attempt.attempt_id}`,
-                    ),
-                    attempt.attempt_id,
-                  );
                   if (!current.live) return;
-                  setAttempt(recovered);
-                  if (recovered.state === "credential_recovery_required") {
-                    setMessage(
-                      "Reconciliation did not confirm a recorded credential. If you have confirmed it is unavailable, open ‘Credential unavailable: start over’ below to review abandonment before a fresh Sandbox connection.",
-                    );
-                    return;
-                  }
+                  setAttempt(checkedAttempt(value, attempt.attempt_id));
                   await readList();
-                  if (current.live)
-                    setMessage(
-                      "Connection status changed during reconciliation. Review the current attempt before proceeding.",
-                    );
-                  return;
-                }
-                if (!current.live) return;
-                setAttempt(checkedAttempt(value, attempt.attempt_id));
-                await readList();
-              })
-            }
-          >
-            Reconcile recorded credential
-          </button>
-          {attempt.mode === "new" &&
-            attempt.state === "credential_recovery_required" &&
-            attempt.sync_item_id === null && (
-              <details>
-                <summary>Credential unavailable: start over</summary>
-                <p>
-                  Use this only after confirming the credential cannot be
-                  recovered. This preserves the failed attempt and does not
-                  remove the Item at Plaid. Orphaned Sandbox Item cleanup may
-                  still be needed.
-                </p>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={abandonConsent}
-                    disabled={mutable}
-                    onChange={(e) => setAbandonConsent(e.target.checked)}
-                  />
-                  I confirm this credential is unavailable and want to abandon
-                  this setup.
-                </label>
-                <button
-                  disabled={mutable || !abandonConsent}
-                  onClick={() =>
-                    void run(async () => {
-                      const current = life.current;
-                      const value = await api<Attempt>(
-                        `${base}/connection-attempts/${attempt.attempt_id}/abandon`,
-                        JSON.stringify({ confirm_unrecoverable: true }),
-                      );
-                      if (!current.live) return;
-                      setAttempt(checkedAttempt(value, attempt.attempt_id));
-                      setAbandonConsent(false);
-                      await readList();
-                      setMessage(
-                        "Setup abandoned. Its history is retained. A new connection requires a fresh Plaid session.",
-                      );
-                    })
-                  }
-                >
-                  Abandon unavailable setup
-                </button>
-              </details>
-            )}
+                })
+              }
+            >
+              Check connection status
+            </button>
+          ) : null}
           {!expiredAttempt &&
             !bindingExpired &&
             attempt.state === "binding_review" &&
@@ -1114,7 +1140,6 @@ function ConnectionWorkspace({
                         setDate(e.target.value);
                         setSelection({});
                         setConsent(false);
-                        setAbandonConsent(false);
                       }}
                     />
                   </label>
@@ -1143,7 +1168,6 @@ function ConnectionWorkspace({
                                   },
                                 }));
                                 setConsent(false);
-                                setAbandonConsent(false);
                               }}
                             >
                               <option value="">Do not bind</option>
@@ -1182,7 +1206,6 @@ function ConnectionWorkspace({
                                   },
                                 }));
                                 setConsent(false);
-                                setAbandonConsent(false);
                               }}
                             >
                               <option value="">Choose currency</option>
