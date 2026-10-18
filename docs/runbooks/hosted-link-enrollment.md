@@ -125,10 +125,12 @@ clicked **Reconcile recorded credential**. The attempt remained in
 `credential_recovery_required`; the browser showed only its generic unconfirmed
 operation message. The screenshot did not include the HTTP status, so it does not
 prove whether the service returned its expected 409 or a separate failure.
-The browser now handles a confirmed 409 by reading the exact attempt again. If
-it remains in recovery, it explains that no credential was confirmed and points
-to the existing affirmative abandonment review. It never retries the provider
-exchange, infers a stored token from Plaid success, or automatically abandons
-the attempt. Other failures retain the generic uncertain outcome. Synthetic
-coverage names the 409 path. Fresh Hosted Link completion, encrypted persistence,
+The browser now offers **Try connecting again** on a failed new setup. It
+reconciles the exact attempt and, after a confirmed 409, reads it again. If it
+is still unresolved, the same click requests server-guarded abandonment. Only
+a confirmed abandoned state plus zero unfinished attempts opens a fresh Link
+session. Stored-credential conflicts and uncertain replies stop the retry.
+The old provider exchange is never repeated; its audit history remains.
+Synthetic UI coverage checks the successful restart and uncertainty path.
+Fresh Hosted Link completion, encrypted persistence,
 binding review, and worker read remain separate hosted acceptance gates.
