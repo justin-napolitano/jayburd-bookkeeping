@@ -80,6 +80,11 @@ rechecked. Only a new, unpublished credential-recovery attempt with no stored DB
 ciphertext can move to immutable `abandoned`. Preserve nonce/hash/claim/manifest
 and append an audit event; do not delete or recycle anything. Discovery excludes
 this terminal state from unfinished_count. It never removes the provider Item;
-known orphaned Sandbox Item cleanup remains explicit. The UI requires affirmative
-acknowledgement; users must try appropriate recovery/confirm token absence first.
+known orphaned Sandbox Item cleanup remains explicit. **Try connecting again** is
+the user's affirmative request to resolve and restart a failed new enrollment.
+The UI first reconciles the exact attempt; only a confirmed recovery conflict
+followed by an exact read of the still-unresolved attempt can invoke abandon.
+The server checks that no ciphertext or credential publication exists before
+accepting the command. An uncertain response or another unfinished attempt
+stops the restart. The old provider exchange is never repeated.
 This route is an internal operational command, not an ISO 20022 message.
