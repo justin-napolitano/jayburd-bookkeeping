@@ -117,3 +117,18 @@ owner-selected encrypted database token path. The historical source/delivery
 investigation above is superseded for new runtime credentials by
 [bank-token-vault](../contracts/bank-token-vault.md); no old token was retrieved
 or reconstructed. Hosted acceptance remains pending coordinated deployment.
+
+## Historical reconciliation feedback retest (#160)
+
+After deployment 39072895377, the owner inspected attempt `e8e959ae-…` and
+clicked **Reconcile recorded credential**. The attempt remained in
+`credential_recovery_required`; the browser showed only its generic unconfirmed
+operation message. The screenshot did not include the HTTP status, so it does not
+prove whether the service returned its expected 409 or a separate failure.
+The browser now handles a confirmed 409 by reading the exact attempt again. If
+it remains in recovery, it explains that no credential was confirmed and points
+to the existing affirmative abandonment review. It never retries the provider
+exchange, infers a stored token from Plaid success, or automatically abandons
+the attempt. Other failures retain the generic uncertain outcome. Synthetic
+coverage names the 409 path. Fresh Hosted Link completion, encrypted persistence,
+binding review, and worker read remain separate hosted acceptance gates.
