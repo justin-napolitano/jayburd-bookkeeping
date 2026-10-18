@@ -1007,10 +1007,38 @@ function ConnectionWorkspace({
             onClick={() =>
               void run(async () => {
                 const current = life.current;
-                const value = await api<Attempt>(
-                  `${base}/connection-attempts/${attempt.attempt_id}/reconcile`,
-                  "{}",
-                );
+                let value: Attempt;
+                try {
+                  value = await api<Attempt>(
+                    `${base}/connection-attempts/${attempt.attempt_id}/reconcile`,
+                    "{}",
+                  );
+                } catch (error) {
+                  if (!(error instanceof APIError) || error.status !== 409)
+                    throw error;
+                  // A rejected reconciliation never authorizes replay. Re-read the
+                  // exact attempt before describing its current recovery path.
+                  const recovered = checkedAttempt(
+                    await api<Attempt>(
+                      `${base}/connection-attempts/${attempt.attempt_id}`,
+                    ),
+                    attempt.attempt_id,
+                  );
+                  if (!current.live) return;
+                  setAttempt(recovered);
+                  if (recovered.state === "credential_recovery_required") {
+                    setMessage(
+                      "Reconciliation did not confirm a recorded credential. If you have confirmed it is unavailable, open ‘Credential unavailable: start over’ below to review abandonment before a fresh Sandbox connection.",
+                    );
+                    return;
+                  }
+                  await readList();
+                  if (current.live)
+                    setMessage(
+                      "Connection status changed during reconciliation. Review the current attempt before proceeding.",
+                    );
+                  return;
+                }
                 if (!current.live) return;
                 setAttempt(checkedAttempt(value, attempt.attempt_id));
                 await readList();
