@@ -403,6 +403,48 @@ it("TestConnectionsScopeAndRecovery reconciles known recorded credential only", 
   ).toBe(false);
 });
 
+// A confirmed recovery conflict leaves the one-shot claim intact and offers
+// explicit, owner-controlled abandonment only after exact-attempt reinspection.
+it("explains unresolved credential reconciliation without replaying Plaid", async () => {
+  const recovered = {
+    ...attempt,
+    state: "credential_recovery_required",
+    manifest,
+  };
+  const api = vi.fn(async (path: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.endsWith("/reconcile")) throw new APIError(409, false);
+    return recovered;
+  }) as unknown as API;
+  render(<Connections {...props(api)} />);
+  await screen.findByText("No connected Items in this book.");
+  fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
+    target: { value: attempt.attempt_id },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
+  await screen.findByText(
+    "Historical attempt status: credential recovery required",
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Reconcile recorded credential" }),
+  );
+  await screen.findByText(
+    /Reconciliation did not confirm a recorded credential/,
+  );
+  expect(screen.getByText("Credential unavailable: start over")).toBeTruthy();
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/reconcile")),
+  ).toHaveLength(1);
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute")),
+  ).toHaveLength(0);
+  expect(
+    vi
+      .mocked(api)
+      .mock.calls.filter(([path]) => path.endsWith(`/${attempt.attempt_id}`)),
+  ).toHaveLength(2);
+});
+
 // A confirmed rejection needs a fresh review rather than an endless immutable retry envelope.
 it("TestConnectionsScopeAndRecovery clears confirmed disconnect rejection", async () => {
   const api = vi.fn(async (_path: string, body?: string) => {
