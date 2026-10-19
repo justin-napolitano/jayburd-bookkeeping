@@ -5,7 +5,7 @@
 [Encrypted bank credentials](../contracts/bank-token-vault.md) records
 selected official Plaid persistent-token, Cloud KMS envelope-encryption and CRC32C
 sections reviewed 2026-10-15. It distinguishes secure datastore requirements from
-our scoped SQL/AAD/immutable-version design; hosted KMS qualification is pending.
+our scoped SQL/AAD/immutable-version design. KMS probe: 2026-10-19; runtime unproved.
 
 
 [First Sandbox reference bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review)

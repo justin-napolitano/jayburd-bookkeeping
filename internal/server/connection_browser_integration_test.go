@@ -267,10 +267,10 @@ type browserKeyWrapper struct{}
 func (browserKeyWrapper) Wrap(_ context.Context, key, aad []byte) (string, []byte, error) {
 	b, _ := aes.NewCipher(bytes.Repeat([]byte{7}, 32))
 	g, _ := cipher.NewGCM(b)
-	return "projects/123456789/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials/cryptoKeyVersions/1", g.Seal(nil, make([]byte, 12), key, aad), nil
+	return "projects/jayburd-synthetic-test/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials/cryptoKeyVersions/1", g.Seal(nil, make([]byte, 12), key, aad), nil
 }
 func (browserKeyWrapper) Unwrap(_ context.Context, version string, raw, aad []byte) ([]byte, error) {
-	if version != "projects/123456789/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials/cryptoKeyVersions/1" {
+	if version != "projects/jayburd-synthetic-test/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials/cryptoKeyVersions/1" {
 		return nil, bankcredential.ErrUnavailable
 	}
 	b, _ := aes.NewCipher(bytes.Repeat([]byte{7}, 32))
