@@ -249,7 +249,7 @@ describe("source review bridge", () => {
   });
 });
 
-/** These seven routes carry connection intent only; SQL remains the authorization authority. */
+/** These routes carry connection intent only; SQL remains the authorization authority. */
 describe('connection bridge routes', () => {
  const id='00000000-0000-4000-8000-0000000000ab';
  const base=`/v1/entities/${id}/books/${id}`;
@@ -257,6 +257,7 @@ describe('connection bridge routes', () => {
   ['POST','/connection-attempts',true],
   ['GET',`/connection-attempts/${id}`,false],
   ['POST',`/connection-attempts/${id}/execute`,false],
+  ['POST',`/connection-attempts/${id}/complete`,false],
   ['POST',`/connection-attempts/${id}/reconcile`,false],
   ['POST',`/connection-attempts/${id}/abandon`,false],
   ['POST',`/connection-attempts/${id}/bindings`,true],

@@ -19,25 +19,78 @@ revisit after enablement. This does not qualify institution-specific behavior.
 
 Begin includes an optional ephemeral `hosted_link_url`, limited to HTTPS
 secure.plaid.com/hl/ with an opaque alphanumeric/hyphen/underscore path segment,
-no query, fragment, userinfo or port. Both server and UI validate it. Request
-lifetime is 900 seconds. No SMS/email, redirects or webhook integration added.
-The URL and Link token stay in component memory; SQL retains the existing hash.
-A new-tab link uses noreferrer/noopener. Keep the originating tab open.
+no query, fragment, userinfo or port. Both server and UI validate it. No
+SMS/email, redirects or webhook integration is added. The URL and Link token
+are transient browser handoff material; the server also stores an encrypted,
+attempt-scoped Link token for completion after reload. SQL retains the hash.
+A new-tab link uses noreferrer/noopener.
 
-Explicit completion posts nonce and Link token through the existing execute route,
-omitting public_token. Before claiming exchange, SQL context must match nonce,
-Link hash, unexpired new attempt and current authority. The server reads one
+Explicit completion posts `{}` through the new complete route. Before claiming
+exchange, SQL context must match the retained token hash, unexpired new attempt
+and current authority. The server reads one
 bounded /link/token/get result. Zero completed public tokens returns the unchanged
 link_ready projection; the user can check again. Multiple tokens, malformed,
 stale or cross-session responses fail closed. Exactly one completed result provides
 the public token in server memory, then the existing one-shot claim, session
 verification, exchange, manifest and immutable credential publication run.
-No automatic polling/retry of exchange. An uncertain reply clears the browser
-handoff and requires existing attempt inspection/reconciliation. Reload drops
-unclaimed handoff; wait for expiry before restarting. Scope changes destroy it.
+No automatic polling/retry of exchange. An uncertain reply requires existing
+attempt inspection/reconciliation. Scope changes clear browser handoff material;
+the server retains its encrypted attempt-scoped copy for authorized recovery.
+
+## Source-backed recovery implementation (#187)
+
+[Plaid's Hosted Link guide](https://plaid.com/docs/link/hosted-link/)
+recommends retaining the Link token associated with the application's user,
+strongly recommends a completion webhook, and documents `/link/token/get` as a
+way to obtain completed-session results for up to six hours after the session
+ends. A redirect or Plaid success screen alone does not prove local exchange,
+storage or binding. The reviewed sections and limits are recorded as PI12 in
+[the Plaid source register](../research/plaid-ingestion-sources.md).
+
+Migration 19 stores an immutable encrypted Link handoff bound by AEAD/KMS AAD
+to the exact actor/entity/book/attempt. Only scoped SQL functions can read its
+ciphertext, after current grants and worker revision checks. The authenticated
+`POST /connection-attempts/{id}/complete` accepts only `{}`; the server decrypts
+and verifies the original Link-token hash, queries `/link/token/get`, then uses
+the existing one-shot claim, exchange and encrypted credential publication.
+The browser never receives a recovered token. The attempt remains claimable
+until the earlier of seven hours after Begin or six hours after Plaid's Hosted
+URL expiry; the URL itself still expires at the provider time. Provider results
+older than six hours are rejected. Encrypted handoff rows remain immutable
+audit history after expiry and are never used to start a new Plaid session.
+Revoked actor/book authority blocks reads and completion. This bounded **use**
+window is not a deletion policy; physical ciphertext retention needs a
+separately reviewed lifecycle.
+
+Evaluate verified `SESSION_FINISHED` webhook delivery as the recommended
+provider path with `/link/token/get` as a bounded recovery/read path. This work
+depends on the separate webhook authenticity and durable processing gates in
+#103 and #87; an unverified webhook must not authorize exchange. Until that
+design is accepted, continue explicit user-driven completion for an intact
+same-tab handoff, showing **Open Plaid Sandbox** and **Check bank setup
+completion** prominently.
+
+Only after an authoritative check proves the exact attempt has no completed
+session, claim, exchange or stored credential may a future **Start over** make
+it terminal atomically against concurrent completion and then create one new
+attempt. If Plaid cannot supply definitive absence, this fast restart is not
+allowed. The existing `/abandon` operation covers only
+`credential_recovery_required`; extension to `link_ready` is a separate SQL/API
+decision. The old `/execute` is never replayed and tokens never enter browser
+persistence, logs or documentation. An exited or expired session still needs
+an explicit safe-restart policy; completed sessions are now recoverable, but
+not every failed attempt is immediately restartable.
+
+Acceptance: synthetic browser/API/PostgreSQL fixtures cover same-tab completion,
+reload, completed session after reload, no completed result, duplicate results,
+concurrent claim, transport uncertainty, denied scope and repeated clicks.
+One old attempt can yield at most one exchange and one stored credential. A
+fresh Hosted Sandbox test must reach binding review; #160 and #164 remain open
+for separate hosted credential and worker evidence.
 
 Explicit account binding and existing acquisition/review remain separate. This
-change cannot post a journal. No SQL migration. Internal operational commands and
+change cannot post a journal. Migration 19 adds encrypted Link handoffs and
+extends the unclaimed completion window. Internal operational commands and
 Plaid proprietary JSON are not ISO 20022 messages; existing ISO 4217 mapping applies.
 
 ## Acceptance and limits

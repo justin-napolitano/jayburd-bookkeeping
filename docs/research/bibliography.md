@@ -40,6 +40,12 @@ No hosted state or provider readiness was established by this source review.
 
 Hosted/Sandbox source review (2026-10-14):
 
+The [PI12 Hosted Link refresh](plaid-ingestion-sources.md#pi12--hosted-link-completion-and-recovery-refresh-2026-10-18)
+records the 2026-10-18 official Plaid guide/API review and local public-page
+snapshot hashes. Read it before changing completion or lost-tab recovery: Plaid
+recommends a user-associated Link token and completion webhook, while the
+current browser-only handoff is a Jayburd design choice.
+
 - [Hosted workers](../contracts/hosted-workers.md): selected Cloud Run metadata
   identity, Cloud SQL IAM login and container lifecycle references; understand
   private caller binding and bounded pools. Synthetic checks do not prove hosted IAM.

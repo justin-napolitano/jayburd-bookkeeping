@@ -992,10 +992,10 @@ func TestReceiptActorAndArchive(t *testing.T) {
 	requireFailure(t, err, "not_found")
 }
 
-// TestSchemaCompatibility verifies controlled setup and the reporting migration's version state.
+// TestSchemaCompatibility verifies controlled setup and the current migration version state.
 func TestSchemaCompatibility(t *testing.T) {
 	c, _, _ := fixtureDB(t, "schema")
-	if scalar(t, c, "SELECT version::text||':'||dirty::text FROM public.schema_migrations") != "18:false" {
+	if scalar(t, c, "SELECT version::text||':'||dirty::text FROM public.schema_migrations") != "19:false" {
 		t.Fatal("migration state")
 	}
 	for _, q := range []string{

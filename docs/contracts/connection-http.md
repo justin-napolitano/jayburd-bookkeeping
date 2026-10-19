@@ -33,6 +33,7 @@ Prefix `/v1/entities/{entity}/books/{book}`; IDs are canonical UUID strings.
 | POST `/connections/streams/{stream}/operations` | Explicit pause/resume/request with Item, binding and stream revision pins. |
 | GET `/connection-attempts/{attempt}` | Safe current attempt projection. |
 | POST `/connection-attempts/{attempt}/execute` | Memory-only nonce/Link handoff; omit public token for Hosted Link completion. One-shot provider mutation. |
+| POST `/connection-attempts/{attempt}/complete` | Empty object; server retrieves the attempt-scoped encrypted Hosted Link token and checks Plaid completion before the one-shot claim. |
 | POST `/connection-attempts/{attempt}/reconcile` | Empty object; resolve known credential state without repeating exchange. |
 | POST `/connection-attempts/{attempt}/bindings` | Explicit verified account/source/ledger/currency selection. |
 | GET `/connections` | Bounded current connection list. |

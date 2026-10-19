@@ -46,6 +46,7 @@ func mountConnections(mux *http.ServeMux, auth ledger.Authenticator, ops Connect
 		"POST " + base + "/connection-attempts":                     "begin",
 		"GET " + base + "/connection-attempts/{attempt}":            "attempt",
 		"POST " + base + "/connection-attempts/{attempt}/execute":   "execute",
+		"POST " + base + "/connection-attempts/{attempt}/complete":  "complete",
 		"POST " + base + "/connection-attempts/{attempt}/reconcile": "reconcile",
 		"POST " + base + "/connection-attempts/{attempt}/abandon":   "abandon",
 		"POST " + base + "/connection-attempts/{attempt}/bindings":  "bind",
@@ -147,6 +148,20 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 				return
 			}
 			result, err = ops.Execute(r.Context(), scope, attempt, in)
+		case "complete":
+			var in struct{}
+			if !decodeConnectionJSON(raw, &in) {
+				fail(400, "invalid_request")
+				return
+			}
+			completion, ok := ops.(interface {
+				CompleteHosted(context.Context, connections.Scope, string) (json.RawMessage, error)
+			})
+			if !ok {
+				fail(422, "unsupported_connection_mode")
+				return
+			}
+			result, err = completion.CompleteHosted(r.Context(), scope, attempt)
 		case "bind":
 			var in connections.BindingRequest
 			if !decodeConnectionJSON(raw, &in) {
