@@ -94,8 +94,9 @@ Proposed UI acceptance: a fresh Begin followed by discovery and exact-attempt
 GET displays `link_ready` without an error; if the detail read fails, preserve
 independently valid discovery and show a safe action matched to the failure.
 For an active handoff, completion controls remain visible and named as the path
-forward. For a lost handoff, show the guarded restart option specified in
-[Hosted Link enrollment](hosted-link-enrollment.md), only when server evidence
-allows it. Technical attempt IDs belong in secondary details rather than the
+forward. For a lost handoff, offer server-side completion status recovery first;
+show a guarded restart only when the conditions in
+[Hosted Link enrollment](hosted-link-enrollment.md) are proven. Technical
+attempt IDs belong in secondary details rather than the
 primary bank setup action. A successful GET alone must not mark an Item
 connected, authorize another exchange or close hosted acceptance.

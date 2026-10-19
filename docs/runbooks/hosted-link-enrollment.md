@@ -169,6 +169,16 @@ open until a fresh Sandbox session reaches binding review and the separate
 credential/worker evidence passes. No production account or automatic journal
 posting is implied by this plan.
 
+Official Plaid Hosted Link and Link API documentation was refreshed and saved as
+public-page snapshots for review; see PI12 in the
+[Plaid source register](../research/plaid-ingestion-sources.md). It changes the
+priority of #187: Plaid recommends retaining a user-associated Link token and
+a completion webhook, while Jayburd's token currently disappears with the
+browser component. The proposed primary recovery is a scoped encrypted
+server-side token and verified completion/status path. A fast **Start over**
+remains a fallback only when absence of a completed provider result and local
+claim/credential can actually be proven. No provider account or token was read.
+
 Documentation-only validation: `git diff --check` passed. `make check test
 build` stopped before project checks because the pinned Go 1.26.9 toolchain
 download failed (connection reset in the sandbox; HTTP 403 on approved retry).
