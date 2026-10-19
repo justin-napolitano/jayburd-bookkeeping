@@ -25,8 +25,10 @@ completed Plaid exchange or connected Item.
 
 ## Hosted completion recovery runtime candidate (#187)
 
-After migration 19's deployment receipt confirms the schema version, promote the
+After the migration-only deployment receipt confirms execution, promote the
 matching API and web images from build 39199242284 with `sandbox-promote`.
+The promotion's status-only migration job must independently verify the expected
+schema before the API/web rollout proceeds.
 The manifest preserves the previously reviewed public identity, Infisical
 metadata, static Sandbox client pins, and explicit `link_events_qualified=false`.
 Its migration job performs status verification only; the acquisition Scheduler
@@ -36,7 +38,9 @@ service is not evidence that Plaid completion or token exchange succeeded.
 The runtime candidate manifest SHA-256 is
 `878e4d86a6740faa20c4945cbf2e9f757c7040624d57fd934d13c45f7486ac6e`.
 Exact build receipts passed the release validator, and `make release-test`
-passed locally. Promotion remains contingent on the migration receipt.
+passed locally. Migration deployment 39201782204 produced a successful
+execution receipt. That receipt does not attest SQL version or replay; the
+promotion status gate supplies the schema check before service changes.
 
 ## Status and boundary
 
