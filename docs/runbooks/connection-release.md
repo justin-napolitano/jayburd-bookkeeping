@@ -1,6 +1,22 @@
 <!-- stage-runbook: true -->
 # Connection release delivery
 
+## Hosted 503 stage-logging runtime candidate (#187)
+
+PR #192 passed all five required checks and merged as
+`42167d86d0c335ee9c701cc187b09878f736c6f4`. Owner-dispatched image build
+[39208669344](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39208669344)
+passed validation and published matching API, migrator, and web candidate
+receipts. `deploy/dev-release.json` pins their exact digests with the existing
+Sandbox identity and Infisical configuration. It uses `sandbox-promote`, so the
+migrator checks schema status only; no SQL migration is applied. The acquisition
+Scheduler remains paused. The exact release manifest SHA-256 is
+`c2ac4a01ac1ec1456c371560ec0e39dc68e659578d8bd6d18ea47612bfa43aff`.
+The build-run metadata and three candidate receipts passed the exact local
+release validator. `make release-test` and `bash scripts/test-deploy-dev.sh`
+passed. This candidate only adds fixed, token-free server failure-stage logs.
+It does not establish a successful Plaid session, credential write, or Item.
+
 ## Live Hosted completion failure triage (#187)
 
 The first fresh production-like Sandbox acceptance attempt after the migration
