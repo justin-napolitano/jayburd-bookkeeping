@@ -217,3 +217,20 @@ images. Keep Scheduler paused until the separate acquisition acceptance.
 Official Plaid SDK adoption is tracked separately in #195. Fresh hosted enrollment
 and credential persistence remain unproved; passing unit tests or rollout alone
 does not close #187.
+
+## Official connection SDK (#195)
+
+Pinned Plaid Go v49 source review is recorded in plaid-link-browser. Replace
+connection wire models with generated clients, preserving bounded Sandbox-only
+transport, redacted errors, no retries and decimal ingestion. Validation passed: `make check test build connection-service-test provider-flow-test`,
+`make app-integration connection-browser-test`, and explicit SDK no-retry, ambient
+configuration, and monetary-field projection regressions. Local tests use Go 1.26.5
+via an external modfile; repository toolchain remains 1.26.9. No SQL changes beyond
+the #194 dependency. CI, image promotion and fresh hosted acceptance remain pending.
+
+The browser fixture now composes the actual official SDK-backed HTTPProvider
+against an in-memory synthetic HTTP transport. The strengthened
+`make connection-browser-test` passed: Hosted Link pending/completed checks,
+one public-token exchange, encrypted storage, acquisition, review, posting and
+lost-response recovery. The earlier direct provider-interface fixture remains
+in the separate provider-flow test; it does not qualify SDK wire behavior.

@@ -15,7 +15,7 @@ local reference installation, not historical validity or full ISO certification.
 The maintenance page and selected XML record were reviewed; paid ISO text was not.
 
 [Plaid Link browser](../contracts/plaid-link-browser.md) reviews official Web SDK
-loading, callbacks and cleanup (selected sections, 2026-10-14). Use it to distinguish
+loading/callbacks (2026-10-14) and pinned Go SDK source (2026-10-19). Use it to distinguish
 our memory/cancellation policy from real Link Events and institution qualification.
 [Worker release](../contracts/worker-release.md) records the owner-bootstrap/runtime
 split and narrow federation policy. The [operator guide](../../deploy/WORKERS.md)
