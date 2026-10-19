@@ -265,6 +265,7 @@ separate deployment receipt passes.
 
 Migration deployment run 39326095579 completed successfully and retained its
 bounded migration receipt. The follow-up Sandbox promotion pins the same tested
-API/web images, preserves the approved connection configuration, and names
-runtime deployment 39291244312 as the rollback source. Transport smoke evidence
-remains required before the new runtime is considered available for testing.
+API/web images and preserves the approved connection configuration. Forward
+promotion has no rollback input; immutable deployment receipts remain available
+for a separately reviewed rollback. Transport smoke evidence remains required
+before the new runtime is considered available for testing.
