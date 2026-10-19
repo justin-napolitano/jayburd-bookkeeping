@@ -1,6 +1,28 @@
 <!-- stage-runbook: true -->
 # Connection release delivery
 
+## Hosted completion recovery migration 19 candidate (#187)
+
+PR #188 merged after all five checks passed. Owner-dispatched image build
+[39199242284](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39199242284)
+passed the repository's validation and image jobs. Its matching API, migrator,
+and web candidate receipts are pinned in `deploy/dev-release.json`. This
+migration-only operation applies forward migration 19, adding an immutable
+encrypted Hosted Link token handoff and bounded completion window. It does not
+replace the running API or web services or activate the acquisition worker.
+The manifest's SHA-256 is
+`8189e57e0f7dfd3dd9d7df93afa45697ffc08600738c287e513f55fcf00b0a2c`.
+GitHub run metadata and all three candidate receipts passed the exact release
+validator. `make release-test` passed its 32 release checks, deployment-script
+proof, and 11 worker-release checks.
+
+Verify the migration receipt and schema status before preparing a separate
+`sandbox-promote` release with the same build digests and existing connection
+metadata. Only after that runtime release should the owner start a fresh Plaid
+Sandbox enrollment. Historical attempts created before migration 19 lack a
+recoverable token, and a successful release alone does not establish a
+completed Plaid exchange or connected Item.
+
 ## Status and boundary
 
 Build on merged PR110 (60c0e3e). Fix explicit connection configuration through the
