@@ -135,12 +135,17 @@ func TestMigrationStatus(t *testing.T) {
 	if err := Status(ctx, reader, migrations.Files); err != nil {
 		t.Fatal("clean read-only status rejected")
 	}
+	var version int64
+	if err := admin.QueryRowContext(ctx, `SELECT version FROM deployment.schema_migrations`).Scan(&version); err != nil || version < 1 {
+		t.Fatal("fixture migration version unavailable")
+	}
+	restoreVersion := fmt.Sprintf(`UPDATE deployment.schema_migrations SET version=%d`, version)
 	for _, scenario := range []struct{ bad, restore string }{
 		{`UPDATE deployment.schema_migrations SET dirty=true`, `UPDATE deployment.schema_migrations SET dirty=false`},
-		// Canonical KMS resources require migration twenty; stale or future metadata fails closed.
-		{`UPDATE deployment.schema_migrations SET version=19`, `UPDATE deployment.schema_migrations SET version=20`},
-		{`UPDATE deployment.schema_migrations SET version=21`, `UPDATE deployment.schema_migrations SET version=20`},
-		{`DELETE FROM deployment.schema_migrations`, `INSERT INTO deployment.schema_migrations VALUES(20,false)`},
+		// Stale or future metadata fails closed relative to the applied fixture.
+		{fmt.Sprintf(`UPDATE deployment.schema_migrations SET version=%d`, version-1), restoreVersion},
+		{fmt.Sprintf(`UPDATE deployment.schema_migrations SET version=%d`, version+1), restoreVersion},
+		{`DELETE FROM deployment.schema_migrations`, fmt.Sprintf(`INSERT INTO deployment.schema_migrations VALUES(%d,false)`, version)},
 		{`INSERT INTO deployment.migration_artifact VALUES('extra.sql',repeat('a',64),now())`, `DELETE FROM deployment.migration_artifact WHERE filename='extra.sql'`},
 		{`CREATE TEMP TABLE saved_artifact AS SELECT * FROM deployment.migration_artifact WHERE filename='000001_ledger.up.sql'; DELETE FROM deployment.migration_artifact WHERE filename='000001_ledger.up.sql'`, `INSERT INTO deployment.migration_artifact SELECT * FROM saved_artifact; DROP TABLE saved_artifact`},
 		{`UPDATE deployment.migration_artifact SET sha256=repeat('a',64) WHERE filename='000001_ledger.up.sql'`, `UPDATE deployment.migration_artifact SET sha256='d9ae8fa5ff9715241de5cb52c63f7f6972baa9bab2083b0d92cb82ce7931e255' WHERE filename='000001_ledger.up.sql'`},
