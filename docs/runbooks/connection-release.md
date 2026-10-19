@@ -227,3 +227,10 @@ transport, redacted errors, no retries and decimal ingestion. Validation passed:
 configuration, and monetary-field projection regressions. Local tests use Go 1.26.5
 via an external modfile; repository toolchain remains 1.26.9. No SQL changes beyond
 the #194 dependency. CI, image promotion and fresh hosted acceptance remain pending.
+
+The browser fixture now composes the actual official SDK-backed HTTPProvider
+against an in-memory synthetic HTTP transport. The strengthened
+`make connection-browser-test` passed: Hosted Link pending/completed checks,
+one public-token exchange, encrypted storage, acquisition, review, posting and
+lost-response recovery. The earlier direct provider-interface fixture remains
+in the separate provider-flow test; it does not qualify SDK wire behavior.

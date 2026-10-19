@@ -38,56 +38,48 @@ const connectionProofBank = "10000000-0000-4000-8000-000000000011"
 const connectionProofExpense = "10000000-0000-4000-8000-000000000012"
 const connectionProofClaim = "10000000-0000-4000-8000-000000000030"
 
-// connectionProofProvider supplies verified fictional Link/account results and counts external mutations.
+// connectionProofProvider drives the real SDK adapter through fictional HTTP responses.
 type connectionProofProvider struct {
+	*connections.HTTPProvider
 	exchanges   atomic.Int64
 	completions atomic.Int64
 }
 
-// CreateLink returns an ephemeral synthetic value and fixed bounded expiry.
-func (*connectionProofProvider) CreateLink(context.Context, connections.LinkRequest) (connections.LinkResult, error) {
-	return connections.LinkResult{HostedURL: connections.NewSecret("https://secure.plaid.com/hl/synthetic"), Token: connections.NewSecret("synthetic-link"), ExpiresAt: time.Now().Add(5 * time.Minute)}, nil
-}
-
-// CompletedPublicToken provides one pending check before a fictional hosted completion.
-func (p *connectionProofProvider) CompletedPublicToken(_ context.Context, link connections.Secret) (connections.Secret, error) {
-	if link != connections.NewSecret("synthetic-link") {
-		return connections.Secret{}, errors.New("unverified")
+// RoundTrip counts provider effects and never sends a request outside the synthetic fixture.
+func (p *connectionProofProvider) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.URL.Scheme != "https" || r.URL.Host != "sandbox.plaid.com" || r.Header.Get("PLAID-CLIENT-ID") != "synthetic-client" || r.Header.Get("PLAID-SECRET") != "synthetic-secret" {
+		return nil, errors.New("wrong provider routing")
 	}
-	if p.completions.Add(1) == 1 {
-		return connections.Secret{}, &connections.Failure{Code: "link_session_pending"}
+	var body map[string]json.RawMessage
+	if json.NewDecoder(r.Body).Decode(&body) != nil {
+		return nil, errors.New("invalid request")
 	}
-	return connections.NewSecret("synthetic-public"), nil
-}
-
-// VerifySession binds only the known synthetic session and public token.
-func (*connectionProofProvider) VerifySession(_ context.Context, link, public connections.Secret, expectedItem string) error {
-	if expectedItem != "" || link != connections.NewSecret("synthetic-link") || public != connections.NewSecret("synthetic-public") {
-		return errors.New("unverified")
+	data := ""
+	switch r.URL.Path {
+	case "/link/token/create":
+		data = `{"link_token":"synthetic-link","hosted_link_url":"https://secure.plaid.com/hl/synthetic","expiration":"` + time.Now().Add(5*time.Minute).UTC().Format(time.RFC3339) + `"}`
+	case "/link/token/get":
+		if string(body["link_token"]) != `"synthetic-link"` {
+			return nil, errors.New("wrong link token")
+		}
+		data = `{"link_token":"synthetic-link","link_sessions":[]}`
+		if p.completions.Add(1) > 1 {
+			data = `{"link_token":"synthetic-link","link_sessions":[{"finished_at":"` + time.Now().Add(-time.Second).UTC().Format(time.RFC3339) + `","results":{"item_add_results":[{"public_token":"synthetic-public"}]}}]}`
+		}
+	case "/item/public_token/exchange":
+		if string(body["public_token"]) != `"synthetic-public"` {
+			return nil, errors.New("wrong public token")
+		}
+		p.exchanges.Add(1)
+		data = `{"access_token":"synthetic-access","item_id":"synthetic-flow-item"}`
+	case "/item/get":
+		data = `{"item":{"item_id":"synthetic-flow-item","error":null}}`
+	case "/accounts/get":
+		data = `{"item":{"item_id":"synthetic-flow-item"},"accounts":[{"account_id":"synthetic-flow-account","type":"depository","balances":{"iso_currency_code":"USD","current":9007199254740993.01}}]}`
+	default:
+		return nil, errors.New("unexpected provider operation")
 	}
-	return nil
-}
-
-// Exchange counts the side effect so replay cannot be mistaken for success.
-func (p *connectionProofProvider) Exchange(context.Context, connections.Secret) (connections.ExchangeResult, error) {
-	p.exchanges.Add(1)
-	return connections.ExchangeResult{ItemID: "synthetic-flow-item", AccessToken: connections.NewSecret("synthetic-access")}, nil
-}
-
-// Manifest returns only server-verified account identity; there are no client-supplied balances.
-func (*connectionProofProvider) Manifest(context.Context, connections.Secret) (connections.Manifest, error) {
-	code := "USD"
-	return connections.Manifest{ItemID: "synthetic-flow-item", Accounts: []connections.Account{{AccountID: "synthetic-flow-account", Type: "depository", Currency: &code}}, ConsentExpiresAt: "2099-01-01T00:00:00Z"}, nil
-}
-
-// Rotate is deliberately unavailable in this enrollment-to-review scenario.
-func (*connectionProofProvider) Rotate(context.Context, connections.Secret) (connections.ExchangeResult, error) {
-	return connections.ExchangeResult{}, errors.New("not in scenario")
-}
-
-// Remove is deliberately unavailable; disconnect must never call it.
-func (*connectionProofProvider) Remove(context.Context, connections.Secret) error {
-	return errors.New("not in scenario")
+	return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(data))}, nil
 }
 
 // connectionProofTransport intercepts the pinned production adapter; no request reaches Plaid.
@@ -162,6 +154,12 @@ func bootstrapConnectionBrowser(t *testing.T, ctx context.Context, admin *pgx.Co
 		t.Fatal("evidence composition failed")
 	}
 	provider, transport := &connectionProofProvider{}, &connectionProofTransport{}
+	provider.HTTPProvider, err = connections.NewHTTPProvider(connections.HTTPConfig{
+		ClientID: connections.NewSecret("synthetic-client"), ClientSecret: connections.NewSecret("synthetic-secret"), ConsentExpiresAt: time.Date(2099, 1, 1, 0, 0, 0, 0, time.UTC),
+	}, provider)
+	if err != nil {
+		t.Fatal("SDK fixture composition failed", err)
+	}
 	store, err := bankcredential.NewAPIStore(pool, browserKeyWrapper{})
 	if err != nil {
 		t.Fatal(err)
