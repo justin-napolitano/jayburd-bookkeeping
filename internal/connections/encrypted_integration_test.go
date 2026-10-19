@@ -5,7 +5,10 @@ package connections
 import (
 	"context"
 	"encoding/base64"
+	"strings"
 	"testing"
+
+	"github.com/justin-napolitano/jayburd-bookkeeping/db/migrations"
 )
 
 // TestEncryptedCredentialSQL proves current scoped authority and immutable ciphertext-only persistence.
@@ -27,14 +30,35 @@ func TestEncryptedCredentialSQL(t *testing.T) {
 		t.Fatal("missing staged manifest")
 	}
 	enc := func(b []byte) string { return base64.StdEncoding.EncodeToString(b) }
-	envelope := map[string]any{"profile": "jayburd-bank-aead-v1", "key_version": "projects/123456789/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials/cryptoKeyVersions/1", "wrapped_key": enc([]byte("fictional-wrapped-key")), "nonce": enc(make([]byte, 12)), "ciphertext": enc(make([]byte, 32))}
+	keyVersion := "projects/jayburd-synthetic-test/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials/cryptoKeyVersions/1"
+	envelope := map[string]any{"profile": "jayburd-bank-aead-v1", "key_version": keyVersion, "wrapped_key": enc([]byte("fictional-wrapped-key")), "nonce": enc(make([]byte, 12)), "ciphertext": enc(make([]byte, 32))}
 	args := []any{sc.Actor, sc.Entity, sc.Book, value(c.CredentialRef), value(c.CredentialVersion), c.Manifest.ItemID, "sandbox"}
 	get := "SELECT integration.get_bank_credential($1,$2,$3,$4,$5,$6,$7)::text"
 	put := "SELECT integration.put_bank_credential($1,$2,$3,$4,$5,$6,$7,$8)::text"
 	if proofObject(t, proofCall(t, db, "synthetic_runtime", get, args...))["envelope"] != nil {
 		t.Fatal("missing row must be explicit")
 	}
+	for _, invalid := range []string{
+		strings.Replace(keyVersion, "jayburd-synthetic-test", "-invalid", 1),
+		strings.Replace(keyVersion, "keyRings/jayburd-dev", "keyRings/other", 1),
+		keyVersion + "0/extra",
+	} {
+		envelope["key_version"] = invalid
+		if _, err := proofInvoke(t, db, "synthetic_runtime", put, append(args, proofRaw(envelope))...); err == nil {
+			t.Fatal("invalid wrapping key metadata accepted")
+		}
+	}
+	envelope["key_version"] = keyVersion
 	first := proofCall(t, db, "synthetic_runtime", put, append(args, proofRaw(envelope))...)
+	// A downgrade cannot strand a canonical envelope behind numeric-only writers.
+	down, err := migrations.Files.ReadFile("000020_canonical_kms_project.down.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = admin.Exec(context.Background(), string(down)); err == nil {
+		t.Fatal("canonical envelope downgrade accepted")
+	}
+	proofExec(t, admin, "ROLLBACK")
 	envelope["nonce"] = enc([]byte("differentone"))
 	if got := proofCall(t, db, "synthetic_runtime", put, append(args, proofRaw(envelope))...); got != first {
 		t.Fatal("concurrent version overwrote immutable winner")
