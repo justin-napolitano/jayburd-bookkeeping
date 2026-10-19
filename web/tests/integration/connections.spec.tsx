@@ -15,6 +15,24 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     name: "Connect account",
     exact: true,
   });
+  // Cancel after reload through the real API/SQL boundary, including a lost reply.
+  await expect(connect).toBeEnabled();
+  await connect.click();
+  await expect(
+    page.getByRole("link", { name: "Open Plaid Sandbox" }),
+  ).toBeVisible();
+  await component.unmount();
+  component = await mount(<ConnectionsHarness />);
+  await page.getByLabel("Entity and book").selectOption(scope);
+  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await page.route("**/connection-attempts/*/abandon", async (route) => {
+    const response = await route.fetch();
+    expect(response.ok()).toBe(true);
+    await route.abort("failed");
+  });
+  await page.getByRole("button", { name: "Cancel setup", exact: true }).click();
+  await expect(connect).toBeEnabled();
+  await page.unroute("**/connection-attempts/*/abandon");
   // Lose the exchange response after its commit: reload must discover recovery without a saved UUID.
   let exchangeDropped = false;
   await page.route("**/connection-attempts/*/complete", async (route) => {
@@ -44,7 +62,11 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
   await page.getByRole("button", { name: "Connections", exact: true }).click();
-  await page.getByRole("button", { name: /^Review attempt / }).click();
+  await page
+    .getByRole("listitem")
+    .filter({ hasText: "new — link ready" })
+    .getByRole("button", { name: /^Review attempt / })
+    .click();
   await page
     .getByRole("button", { name: "Check bank setup completion" })
     .click();
@@ -56,7 +78,11 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await expect(
     page.getByRole("button", { name: "Connect account", exact: true }),
   ).toBeDisabled();
-  await page.getByRole("button", { name: /^Review attempt / }).click();
+  await page
+    .getByRole("listitem")
+    .filter({ hasText: "new — binding review" })
+    .getByRole("button", { name: /^Review attempt / })
+    .click();
   await expect(
     page.getByRole("group", { name: "Review verified account bindings" }),
   ).toBeVisible();

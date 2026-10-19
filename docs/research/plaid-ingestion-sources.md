@@ -127,3 +127,11 @@ that `link_ready` or local expiry proves absence of a completed provider result.
 No Plaid account, token, private response or bank data was accessed in this
 review. See [Hosted Link contract](../contracts/hosted-link-enrollment.md) and
 [#187](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/187).
+
+## Application cancellation decision (#200, 2026-10-19)
+
+The existing PI12 Hosted Link review informed the local cancellation contract.
+A refresh of https://plaid.com/docs/api/tokens/ failed through the web tool;
+no new provider guarantees were inferred. Cancellation relies on the reviewed
+local atomic exchange-claim boundary, retains provider-session uncertainty,
+and does not claim remote revocation. See [the decision and tests](../contracts/hosted-link-enrollment.md#explicit-cancellation-and-retry-200).

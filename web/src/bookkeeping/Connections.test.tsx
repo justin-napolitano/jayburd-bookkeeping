@@ -398,71 +398,87 @@ it("TestConnectionsScopeAndRecovery reconciles known recorded credential only", 
 });
 
 // A confirmed absent credential permits a guarded new session, never exchange replay.
-it("retries a failed setup after confirming no stored credential", async () => {
-  const recovered = {
-    ...attempt,
-    state: "credential_recovery_required",
-    manifest,
-  };
-  let abandoned = false;
-  const api = vi.fn(async (path: string, body?: string) => {
-    if (path.endsWith("/connections")) return { items: [] };
-    if (path.includes("/connection-attempts?"))
-      return {
-        items: [
-          {
-            ...recovered,
-            state: abandoned ? "abandoned" : recovered.state,
-            expired_unclaimed: false,
-            binding_expired: false,
-          },
-        ],
-        unfinished_count: abandoned ? "0" : "1",
-        next_cursor: null,
-      };
-    if (path.endsWith("/reconcile")) throw new APIError(409, false);
-    if (path.endsWith("/abandon")) {
-      expect(JSON.parse(body!)).toEqual({ confirm_unrecoverable: true });
-      abandoned = true;
-      return { ...recovered, state: "abandoned" };
-    }
-    if (path.endsWith("/connection-attempts"))
-      return {
-        attempt: { ...attempt, attempt_id: id(10) },
-        nonce: id(9),
-        link_token: "synthetic-link",
-        expires_at: attempt.expires_at,
-        hosted_link_url: "https://secure.plaid.com/hl/synthetic",
-      };
-    return recovered;
-  }) as unknown as API;
-  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
-  await screen.findByText("Unfinished attempts: 1");
-  fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
-    target: { value: attempt.attempt_id },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
-  await screen.findByText(
-    "Historical attempt status: credential recovery required",
-  );
-  fireEvent.click(screen.getByRole("button", { name: "Try connecting again" }));
-  await screen.findByRole("link", { name: "Open Plaid Sandbox" });
-  expect(screen.getByText("Unfinished attempts: 0")).toBeTruthy();
-  expect(
-    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/reconcile")),
-  ).toHaveLength(1);
-  expect(
-    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute")),
-  ).toHaveLength(0);
-  expect(
-    vi
-      .mocked(api)
-      .mock.calls.filter(([path]) => path.endsWith(`/${attempt.attempt_id}`)),
-  ).toHaveLength(2);
-  expect(
-    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/abandon")),
-  ).toHaveLength(1);
-});
+it.each([true, false])(
+  "resolves a failed setup with retry=%s after confirming no stored credential",
+  async (retry) => {
+    const recovered = {
+      ...attempt,
+      state: "credential_recovery_required",
+      manifest,
+    };
+    let abandoned = false;
+    const api = vi.fn(async (path: string, body?: string) => {
+      if (path.endsWith("/connections")) return { items: [] };
+      if (path.includes("/connection-attempts?"))
+        return {
+          items: [
+            {
+              ...recovered,
+              state: abandoned ? "abandoned" : recovered.state,
+              expired_unclaimed: false,
+              binding_expired: false,
+            },
+          ],
+          unfinished_count: abandoned ? "0" : "1",
+          next_cursor: null,
+        };
+      if (path.endsWith("/reconcile")) throw new APIError(409, false);
+      if (path.endsWith("/abandon")) {
+        expect(JSON.parse(body!)).toEqual({ confirm_unrecoverable: true });
+        abandoned = true;
+        return { ...recovered, state: "abandoned" };
+      }
+      if (path.endsWith("/connection-attempts"))
+        return {
+          attempt: { ...attempt, attempt_id: id(10) },
+          nonce: id(9),
+          link_token: "synthetic-link",
+          expires_at: attempt.expires_at,
+          hosted_link_url: "https://secure.plaid.com/hl/synthetic",
+        };
+      return recovered;
+    }) as unknown as API;
+    render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+    await screen.findByText("Unfinished attempts: 1");
+    fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
+      target: { value: attempt.attempt_id },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
+    await screen.findByText(
+      "Historical attempt status: credential recovery required",
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: retry ? "Try connecting again" : "Cancel setup",
+      }),
+    );
+    if (retry) await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+    else
+      await screen.findByText(
+        "Setup canceled. You can connect an account whenever you’re ready.",
+      );
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.filter(([path]) => path.endsWith("/connection-attempts")),
+    ).toHaveLength(retry ? 1 : 0);
+    expect(screen.getByText("Unfinished attempts: 0")).toBeTruthy();
+    expect(
+      vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/reconcile")),
+    ).toHaveLength(1);
+    expect(
+      vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute")),
+    ).toHaveLength(0);
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.filter(([path]) => path.endsWith(`/${attempt.attempt_id}`)),
+    ).toHaveLength(2);
+    expect(
+      vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/abandon")),
+    ).toHaveLength(1);
+  },
+);
 
 // A confirmed rejection needs a fresh review rather than an endless immutable retry envelope.
 it("TestConnectionsScopeAndRecovery clears confirmed disconnect rejection", async () => {
@@ -916,7 +932,9 @@ it("checks a discovered Hosted attempt after reload without a browser token", as
     if (path.endsWith("/connections")) return { items: [] };
     if (path.includes("/connection-attempts?"))
       return {
-        items: [{ ...attempt, expired_unclaimed: false, binding_expired: false }],
+        items: [
+          { ...attempt, expired_unclaimed: false, binding_expired: false },
+        ],
         next_cursor: null,
         unfinished_count: "1",
       };
@@ -929,14 +947,22 @@ it("checks a discovered Hosted attempt after reload without a browser token", as
   }) as unknown as API;
   render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
   fireEvent.click(
-    await screen.findByRole("button", { name: `Review attempt ${attempt.attempt_id}` }),
+    await screen.findByRole("button", {
+      name: `Review attempt ${attempt.attempt_id}`,
+    }),
   );
   fireEvent.click(
     await screen.findByRole("button", { name: "Check bank setup completion" }),
   );
-  await screen.findByRole("group", { name: "Review verified account bindings" });
-  expect(vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/complete"))).toHaveLength(1);
-  expect(vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute"))).toHaveLength(0);
+  await screen.findByRole("group", {
+    name: "Review verified account bindings",
+  });
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/complete")),
+  ).toHaveLength(1);
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute")),
+  ).toHaveLength(0);
 });
 
 // Invalid navigation and unknown exchange outcomes must never retain a runnable handoff.
@@ -945,6 +971,7 @@ it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
   async (scenario) => {
     const api = vi.fn(async (path: string) => {
       if (path.endsWith("/connections")) return { items: [] };
+      if (path.endsWith("/abandon")) return { ...attempt, state: "abandoned" };
       if (path.endsWith("/complete")) throw new APIError(0, true);
       return {
         attempt,
@@ -977,9 +1004,11 @@ it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
         await screen.findByRole("alert");
       }
     }
-    expect(
-      screen.queryByRole("link", { name: "Open Plaid Sandbox" }),
-    ).toBeNull();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("link", { name: "Open Plaid Sandbox" }),
+      ).toBeNull(),
+    );
     expect(p.link.open).not.toHaveBeenCalled();
   },
 );
@@ -1202,3 +1231,117 @@ it("inspects the exact Hosted attempt after conflict without repeating exchange"
     ).disabled,
   ).toBe(false);
 });
+
+// Reloaded unclaimed setups can be canceled or restarted without IDs or operator SQL.
+it.each([false, true])(
+  "cancels a discovered setup, retry=%s",
+  async (retry) => {
+    let abandoned = false;
+    const api = vi.fn(async (path: string, body?: string) => {
+      if (path.endsWith("/connections")) return { items: [] };
+      if (path.includes("/connection-attempts?"))
+        return {
+          items: [
+            {
+              ...attempt,
+              state: abandoned ? "abandoned" : "link_ready",
+              expired_unclaimed: false,
+              binding_expired: false,
+            },
+          ],
+          unfinished_count: abandoned ? "0" : "1",
+          next_cursor: null,
+        };
+      if (path.endsWith("/abandon")) {
+        expect(JSON.parse(body!)).toEqual({ confirm_unrecoverable: true });
+        abandoned = true;
+        return { ...attempt, state: "abandoned" };
+      }
+      if (path.endsWith("/connection-attempts"))
+        return {
+          attempt: { ...attempt, attempt_id: id(10) },
+          nonce: id(9),
+          link_token: "synthetic-link",
+          expires_at: attempt.expires_at,
+          hosted_link_url: "https://secure.plaid.com/hl/synthetic",
+        };
+      throw Error("unexpected request");
+    }) as unknown as API;
+    render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: retry ? "Try again" : "Cancel setup",
+      }),
+    );
+    if (retry) await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+    else
+      await waitFor(() =>
+        expect(
+          (
+            screen.getByRole("button", {
+              name: "Connect account",
+            }) as HTMLButtonElement
+          ).disabled,
+        ).toBe(false),
+      );
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.filter(([path]) => path.endsWith("/connection-attempts")),
+    ).toHaveLength(retry ? 1 : 0);
+    expect(
+      vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute")),
+    ).toHaveLength(0);
+  },
+);
+
+// Unknown cancellation outcomes only allow retry after an authoritative abandoned read.
+it.each(["abandoned", "exchange_claimed"])(
+  "resolves lost cancellation reply as %s",
+  async (state) => {
+    let requested = false;
+    const api = vi.fn(async (path: string) => {
+      if (path.endsWith("/connections")) return { items: [] };
+      if (path.includes("/connection-attempts?"))
+        return {
+          items: [
+            {
+              ...attempt,
+              state: requested ? state : "link_ready",
+              expired_unclaimed: false,
+              binding_expired: false,
+            },
+          ],
+          unfinished_count: requested && state === "abandoned" ? "0" : "1",
+          next_cursor: null,
+        };
+      if (path.endsWith("/abandon")) {
+        requested = true;
+        throw new APIError(503, true);
+      }
+      if (path.endsWith(`/${attempt.attempt_id}`)) return { ...attempt, state };
+      if (path.endsWith("/connection-attempts"))
+        return {
+          attempt: { ...attempt, attempt_id: id(10) },
+          nonce: id(9),
+          link_token: "synthetic-link",
+          expires_at: attempt.expires_at,
+          hosted_link_url: "https://secure.plaid.com/hl/synthetic",
+        };
+      throw Error("unexpected request");
+    }) as unknown as API;
+    render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+    if (state === "abandoned")
+      await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+    else
+      await screen.findByText(
+        "Setup could not be canceled. Check its status before trying again.",
+      );
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.filter(([path]) => path.endsWith("/connection-attempts")),
+    ).toHaveLength(state === "abandoned" ? 1 : 0);
+  },
+);
