@@ -235,3 +235,14 @@ enrolls, acquires and posts synthetic transactions. Web API/type checks, all
 282 UI unit tests, production build and 17 component browser tests passed. The repository-pinned Go download
 failed; local validation uses installed Go 1.26.5 via an external modfile with
 current dependencies. CI remains the exact-toolchain check.
+
+## Migration status proof correction (#202)
+
+The migration 21 CI failure came from a test that still considered version 21
+future metadata and restored version 20. The synthetic proof now reads the
+applied fixture version and tests the preceding and following versions, retaining
+dirty, missing and altered metadata rejection. No runtime or migration SQL changed.
+
+Validation passed: `make cloud-sql-test worker-bootstrap-test` and `make check
+test build`, using the installed Go 1.26.5 external modfile described above.
+Both database checks ran only against disposable synthetic Docker databases.
