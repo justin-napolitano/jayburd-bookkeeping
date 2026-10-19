@@ -200,6 +200,12 @@ func (s *Service) Begin(parent context.Context, scope Scope, key string, input B
 		if e != nil {
 			return out, e
 		}
+		if link.HostedURL.value != "" {
+			store, ok := s.secretStore(scope).(LinkHandoffStore)
+			if !ok || store.PutLink(ctx, c.AttemptID, link.Token) != nil {
+				return out, failed("temporarily_unavailable")
+			}
+		}
 		out.HostedLinkURL = link.HostedURL.value
 		out.LinkToken = link.Token.value
 		out.ExpiresAt = link.ExpiresAt.UTC().Format(time.RFC3339)
@@ -210,6 +216,37 @@ func (s *Service) Begin(parent context.Context, scope Scope, key string, input B
 	}
 	out.Nonce = c.Nonce
 	return out, nil
+}
+
+// CompleteHosted resolves a retained Link session under current SQL authority after a reload.
+// Execute still owns the one-shot provider claim, so an uncertain exchange is never replayed.
+func (s *Service) CompleteHosted(ctx context.Context, scope Scope, id string) (json.RawMessage, error) {
+	if e := s.ready(scope); e != nil {
+		return nil, e
+	}
+	if !validID(id) {
+		return nil, failed("invalid_request")
+	}
+	c, e := s.context(ctx, scope, id)
+	if e != nil {
+		return nil, e
+	}
+	if c.Mode != "new" || c.State != "link_ready" {
+		return s.Attempt(ctx, scope, id)
+	}
+	store, ok := s.secretStore(scope).(LinkHandoffStore)
+	if !ok {
+		return nil, failed("configuration_error")
+	}
+	link, e := store.ReadLink(ctx, id)
+	if e != nil {
+		return nil, failed("temporarily_unavailable")
+	}
+	var token string
+	if e = link.WithValue(func(v string) error { token = v; return nil }); e != nil || !secretValid(link) || hash(token) != value(c.LinkHash) {
+		return nil, failed("invalid_metadata")
+	}
+	return s.Execute(ctx, scope, id, ExecuteRequest{Nonce: c.Nonce, LinkToken: token})
 }
 
 // Execute consumes a confirmed one-shot claim; replay never performs a remote mutation.

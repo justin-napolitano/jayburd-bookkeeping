@@ -872,11 +872,8 @@ it("Hosted completion stays pending, then exposes verified binding review", asyn
   let checks = 0;
   const api = vi.fn(async (path: string, body?: string) => {
     if (path.endsWith("/connections")) return { items: [] };
-    if (path.endsWith("/execute")) {
-      expect(JSON.parse(body!)).toEqual({
-        nonce: id(9),
-        link_token: "synthetic-link",
-      });
+    if (path.endsWith("/complete")) {
+      expect(JSON.parse(body!)).toEqual({});
       return ++checks === 1
         ? attempt
         : { ...attempt, state: "binding_review", manifest };
@@ -913,13 +910,42 @@ it("Hosted completion stays pending, then exposes verified binding review", asyn
   expect(checks).toBe(2);
 });
 
+// A reload loses the browser handoff but still offers server-side Plaid completion.
+it("checks a discovered Hosted attempt after reload without a browser token", async () => {
+  const api = vi.fn(async (path: string, body?: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.includes("/connection-attempts?"))
+      return {
+        items: [{ ...attempt, expired_unclaimed: false, binding_expired: false }],
+        next_cursor: null,
+        unfinished_count: "1",
+      };
+    if (path.endsWith(`/${attempt.attempt_id}`)) return attempt;
+    if (path.endsWith(`/${attempt.attempt_id}/complete`)) {
+      expect(body).toBe("{}");
+      return { ...attempt, state: "binding_review", manifest };
+    }
+    throw Error("unexpected request");
+  }) as unknown as API;
+  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: `Review attempt ${attempt.attempt_id}` }),
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Check bank setup completion" }),
+  );
+  await screen.findByRole("group", { name: "Review verified account bindings" });
+  expect(vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/complete"))).toHaveLength(1);
+  expect(vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute"))).toHaveLength(0);
+});
+
 // Invalid navigation and unknown exchange outcomes must never retain a runnable handoff.
 it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
   "Hosted handoff clears on %s",
   async (scenario) => {
     const api = vi.fn(async (path: string) => {
       if (path.endsWith("/connections")) return { items: [] };
-      if (path.endsWith("/execute")) throw new APIError(0, true);
+      if (path.endsWith("/complete")) throw new APIError(0, true);
       return {
         attempt,
         nonce: id(9),
@@ -1141,7 +1167,7 @@ it("inspects the exact Hosted attempt after conflict without repeating exchange"
   };
   const api = vi.fn(async (path: string) => {
     if (path.endsWith("/connections")) return { items: [] };
-    if (path.endsWith("/execute")) throw new APIError(409, false);
+    if (path.endsWith("/complete")) throw new APIError(409, false);
     if (path.endsWith(`/${attempt.attempt_id}`)) return recovered;
     return {
       attempt,
@@ -1166,7 +1192,7 @@ it("inspects the exact Hosted attempt after conflict without repeating exchange"
     screen.queryByRole("button", { name: "Check bank setup completion" }),
   ).toBeNull();
   expect(
-    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/execute")),
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/complete")),
   ).toHaveLength(1);
   expect(
     (

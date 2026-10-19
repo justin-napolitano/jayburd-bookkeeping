@@ -616,6 +616,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a Hosted Link session after browser reload
+         * @description Authenticated, attempt-scoped status check. The server retrieves an encrypted Link token, resolves Plaid completion, and retains the one-shot exchange claim. No token is supplied by the browser.
+         */
+        post: operations["completeHostedConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/reconcile": {
         parameters: {
             query?: never;
@@ -2962,6 +2982,44 @@ export interface operations {
                 };
             };
             /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    completeHostedConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Current authorized attempt state */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionAttempt"];
+                };
+            };
+            /** @description Fixed safe failure */
             default: {
                 headers: {
                     [name: string]: unknown;
