@@ -461,14 +461,49 @@ function ConnectionWorkspace({
         return;
       await beginNewConnection(life.current);
     });
-  // Retry first resolves the old claim, then uses the server's stored-credential
-  // guard before starting a new Link session. An uncertain reply stops here.
-  const retryConnection = () =>
+  // Cancellation is durable and serialized against exchange by the server. A lost
+  // reply is resolved by reading the same attempt; never infer success locally.
+  const cancelSetup = (old: Attempt, retry: boolean) =>
     run(async () => {
       const current = life.current;
-      const old = attempt;
+      const path = `${base}/connection-attempts/${old.attempt_id}`;
+      let result: Attempt;
+      try {
+        result = checkedAttempt(
+          await api<Attempt>(
+            `${path}/abandon`,
+            JSON.stringify({ confirm_unrecoverable: true }),
+          ),
+          old.attempt_id,
+        );
+      } catch {
+        result = checkedAttempt(await api<Attempt>(path), old.attempt_id);
+      }
+      if (!current.live) return;
+      setAttempt(result);
+      const page = await readList();
+      if (!current.live) return;
+      if (result.state !== "abandoned") {
+        setMessage(
+          "Setup could not be canceled. Check its status before trying again.",
+        );
+        return;
+      }
+      setHosted(null);
+      setEnrollmentStarted(false);
+      setMessage(
+        "Setup canceled. You can connect an account whenever you’re ready.",
+      );
+      if (retry && page?.unfinished_count === "0")
+        await beginNewConnection(current);
+    });
+  // Retry first resolves the old claim, then uses the server's stored-credential
+  // guard before starting a new Link session. An uncertain reply stops here.
+  const retryConnection = (old: Attempt | null = attempt, retry = true) =>
+    run(async () => {
+      const current = life.current;
       if (
-        !link ||
+        (retry && !link) ||
         !old ||
         hosted ||
         pending ||
@@ -504,7 +539,9 @@ function ConnectionWorkspace({
         return;
       }
       if (!credentialAbsent) {
-        setMessage("Connection status is still pending. Try again in a moment.");
+        setMessage(
+          "Connection status is still pending. Try again in a moment.",
+        );
         return;
       }
       let abandoned: Attempt;
@@ -548,7 +585,13 @@ function ConnectionWorkspace({
         );
         return;
       }
-      await beginNewConnection(current);
+      setHosted(null);
+      setEnrollmentStarted(false);
+      if (retry) await beginNewConnection(current);
+      else
+        setMessage(
+          "Setup canceled. You can connect an account whenever you’re ready.",
+        );
     });
   // An explicit check uses the server-retained encrypted Link token; reload does not lose it.
   const completeHosted = () =>
@@ -609,7 +652,9 @@ function ConnectionWorkspace({
       setAttempt(value);
       setInspectID(id);
       if (value.state === "link_ready") {
-        setMessage("Plaid has not reported a completed bank setup yet. Check again after finishing there.");
+        setMessage(
+          "Plaid has not reported a completed bank setup yet. Check again after finishing there.",
+        );
       } else {
         await readList();
       }
@@ -736,12 +781,7 @@ function ConnectionWorkspace({
           </button>
           <button
             disabled={locked || busy}
-            onClick={() => {
-              setHosted(null);
-              setMessage(
-                "Bank setup handoff cleared. Inspect the attempt; a new setup is available after its expiry.",
-              );
-            }}
+            onClick={() => void cancelSetup(hosted.attempt, false)}
           >
             Cancel bank setup
           </button>
@@ -756,6 +796,50 @@ function ConnectionWorkspace({
         Plaid. You choose which accounts to share and review where they belong
         before importing transactions.
       </p>
+      {attempts?.items
+        .filter(
+          (a) =>
+            a.mode === "new" &&
+            [
+              "link_pending",
+              "link_ready",
+              "credential_recovery_required",
+            ].includes(a.state) &&
+            !a.expired_unclaimed &&
+            !a.binding_expired,
+        )
+        .map((a) => (
+          <div
+            key={a.attempt_id}
+            role="group"
+            aria-label="Unfinished bank setup"
+          >
+            <p>
+              Your previous bank setup hasn’t finished. Try again to start a
+              fresh session, or cancel setup.
+            </p>
+            <button
+              disabled={mutable || !link}
+              onClick={() =>
+                void (a.state === "credential_recovery_required"
+                  ? retryConnection(a, true)
+                  : cancelSetup(a, true))
+              }
+            >
+              Try again
+            </button>{" "}
+            <button
+              disabled={mutable}
+              onClick={() =>
+                void (a.state === "credential_recovery_required"
+                  ? retryConnection(a, false)
+                  : cancelSetup(a, false))
+              }
+            >
+              Cancel setup
+            </button>
+          </div>
+        ))}
       {!link && <p>New bank setup is unavailable in this deployment.</p>}
       <button
         type="button"
@@ -1084,11 +1168,17 @@ function ConnectionWorkspace({
               connection requires a fresh Link session.
             </p>
           )}
-          {attempt.mode === "new" && attempt.state === "link_ready" && !expiredAttempt && !hosted && (
-            <button disabled={mutable} onClick={() => void checkHostedAttempt(attempt.attempt_id)}>
-              Check bank setup completion
-            </button>
-          )}
+          {attempt.mode === "new" &&
+            attempt.state === "link_ready" &&
+            !expiredAttempt &&
+            !hosted && (
+              <button
+                disabled={mutable}
+                onClick={() => void checkHostedAttempt(attempt.attempt_id)}
+              >
+                Check bank setup completion
+              </button>
+            )}
           {attempt.state === "credential_recovery_required" &&
           attempt.mode === "new" &&
           attempt.sync_item_id === null ? (

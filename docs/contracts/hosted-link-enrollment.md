@@ -70,16 +70,35 @@ design is accepted, continue explicit user-driven completion for an intact
 same-tab handoff, showing **Open Plaid Sandbox** and **Check bank setup
 completion** prominently.
 
-Only after an authoritative check proves the exact attempt has no completed
-session, claim, exchange or stored credential may a future **Start over** make
-it terminal atomically against concurrent completion and then create one new
-attempt. If Plaid cannot supply definitive absence, this fast restart is not
-allowed. The existing `/abandon` operation covers only
-`credential_recovery_required`; extension to `link_ready` is a separate SQL/API
-decision. The old `/execute` is never replayed and tokens never enter browser
-persistence, logs or documentation. An exited or expired session still needs
-an explicit safe-restart policy; completed sessions are now recoverable, but
-not every failed attempt is immediately restartable.
+## Explicit cancellation and retry (#200)
+
+Owner direction now permits discarding an unfinished **new** setup even if the
+user completed Plaid. This supersedes the earlier absence-of-completion restart
+proposal. The application does not claim that no provider session exists.
+The existing one-shot exchange claim is the authoritative local boundary:
+`abandon` locks the same attempt as `claim_connection`, rechecks initiating
+actor authority, and permits `link_pending`/`link_ready` only without a claim,
+sync Item, stored credential or publication. A winning cancellation makes the
+attempt immutable `abandoned`; a winning exchange claim rejects cancellation.
+No provider calls occur during cancellation, and no credential or audit history
+is deleted. This can leave an unused provider session; it is not bank-access
+revocation or Plaid Item removal. Existing claimed lost-credential abandonment
+keeps its original guards.
+
+The UI offers **Try again** and **Cancel setup** beside the blocking setup after
+reload. Both use authenticated POST `/abandon` with the existing explicit
+confirmation body. Retry creates a new session only after confirmed abandoned
+state and refreshed zero unfinished count. A lost reply reads that exact attempt;
+failed reads or a competing claim never authorize a new enrollment. Cancel does
+not create a replacement. Terminal attempts remain audit history.
+
+This is an internal operational state change, not an ISO 20022 financial
+message. Existing currency and ledger contracts are unchanged. Migration 21
+updates the function through release tooling; no operator record edits occur.
+Sources: existing PI12 review and local claim/publication contracts. An attempted
+2026-10-19 refresh of Plaid's tokens page was unavailable; no new provider
+behavior is assumed. Acceptance is synthetic SQL/service and browser evidence,
+not a claim of fresh hosted enrollment success.
 
 Acceptance: synthetic browser/API/PostgreSQL fixtures cover same-tab completion,
 reload, completed session after reload, no completed result, duplicate results,
