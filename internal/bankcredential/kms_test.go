@@ -26,7 +26,7 @@ func TestKMSIntegrity(t *testing.T) {
 			aad := []byte("fictional-scope")
 			wrapped := []byte("wrapped-fictional-key")
 			transport := roundTrip(func(r *http.Request) (*http.Response, error) {
-				if r.URL.Host != "cloudkms.googleapis.com" || r.Header.Get("Authorization") != "Bearer fictional-oauth" {
+				if r.URL.Host != "cloudkms.googleapis.com" || !strings.HasPrefix(r.URL.Path, "/v1/"+testKey+":") || r.Header.Get("Authorization") != "Bearer fictional-oauth" {
 					t.Fatal("wrong routing")
 				}
 				var in map[string]string
@@ -90,5 +90,17 @@ func TestKMSIntegrity(t *testing.T) {
 				t.Fatal("valid decrypt rejected")
 			}
 		})
+	}
+}
+
+// TestKMSCanonicalProject rejects the numeric alias that failed the deployed probe.
+func TestKMSCanonicalProject(t *testing.T) {
+	for _, key := range []string{
+		"projects/123456789/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials",
+		"projects/jayburd-synthetic-test/locations/us-central1/keyRings/other/cryptoKeys/bank-credentials",
+	} {
+		if _, err := NewKMS(key, tokenSource{}, roundTrip(nil)); err == nil {
+			t.Fatal("noncanonical or foreign key accepted")
+		}
 	}
 }

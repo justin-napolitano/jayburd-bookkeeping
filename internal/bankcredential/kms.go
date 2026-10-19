@@ -27,7 +27,8 @@ type KMS struct {
 	client *http.Client
 }
 
-var keyPattern = regexp.MustCompile(`^projects/[1-9][0-9]*/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials$`)
+// Cloud KMS uses the canonical project ID, independently of numeric GSM references.
+var keyPattern = regexp.MustCompile(`^projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials$`)
 
 // NewKMS validates configuration and performs no network access.
 func NewKMS(key string, tokens Tokens, transport http.RoundTripper) (*KMS, error) {

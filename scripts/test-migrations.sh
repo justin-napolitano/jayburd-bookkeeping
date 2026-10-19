@@ -72,6 +72,9 @@ if ((${#migrations[@]})); then
   run_migrate db/migrations migration_product up
   run_migrate db/migrations migration_product up
   echo 'PASS: product migration fresh install and replay.'
+  run_migrate db/migrations migration_product down 1
+  run_migrate db/migrations migration_product up
+  echo 'PASS: latest product migration empty-database down/up roundtrip.'
 else
   echo 'SKIP: no approved product schema yet; this proves tooling only.'
 fi
