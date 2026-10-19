@@ -8,9 +8,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"math/big"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -18,6 +20,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/justin-napolitano/jayburd-bookkeeping/db/migrations"
 )
 
 var proofPort = flag.Int("ledger-port", 0, "Port of the runner's disposable internal-network PostgreSQL")
@@ -44,6 +47,26 @@ func connection(t testing.TB, db, user string) *pgx.Conn {
 		t.Fatal(err)
 	}
 	return c
+}
+
+// latestMigrationVersion binds the compatibility proof to the embedded migration set.
+func latestMigrationVersion(t *testing.T) int {
+	t.Helper()
+	names, err := fs.Glob(migrations.Files, "*.up.sql")
+	if err != nil || len(names) == 0 {
+		t.Fatal("embedded migrations unavailable")
+	}
+	latest := 0
+	for _, name := range names {
+		version, err := strconv.Atoi(strings.SplitN(name, "_", 2)[0])
+		if err != nil {
+			t.Fatal("invalid embedded migration name")
+		}
+		if version > latest {
+			latest = version
+		}
+	}
+	return latest
 }
 
 // sql executes controlled fixture/admin SQL, never runtime authorization.
@@ -995,7 +1018,8 @@ func TestReceiptActorAndArchive(t *testing.T) {
 // TestSchemaCompatibility verifies controlled setup and the current migration version state.
 func TestSchemaCompatibility(t *testing.T) {
 	c, _, _ := fixtureDB(t, "schema")
-	if scalar(t, c, "SELECT version::text||':'||dirty::text FROM public.schema_migrations") != "20:false" {
+	want := fmt.Sprintf("%d:false", latestMigrationVersion(t))
+	if scalar(t, c, "SELECT version::text||':'||dirty::text FROM public.schema_migrations") != want {
 		t.Fatal("migration state")
 	}
 	for _, q := range []string{
