@@ -6,6 +6,39 @@
 Implementation and synthetic validation complete for #125. Synthetic validation only; no deployment,
 credential retrieval or live-bank connection. Contract: ../contracts/hosted-link-enrollment.md.
 
+## Issue #187 recovery delivery (2026-10-18)
+
+The new migration 19 retains each Hosted Link token as immutable AEAD ciphertext
+wrapped by the existing bank-credentials KMS key, bound to authenticated actor,
+entity, book and attempt. The public attempt and discovery responses still omit
+tokens and ciphertext. `POST /connection-attempts/{attempt}/complete` rechecks
+current SQL authority, decrypts the original token server-side, checks the hash,
+and queries Plaid's completed session result before using the existing one-shot
+exchange claim. The UI offers completion from a discovered `link_ready` attempt
+after remount. Same-tab checks use the same route. The Next bridge and OpenAPI
+allowlists include only this new empty-body operation.
+
+Synthetic evidence: migration 19 fresh install/replay passes. Unit tests prove
+per-actor/attempt envelope separation, pending completion without claim, reload
+completion, one exchange, and public route behavior. The full synthetic
+Connections browser/API/PostgreSQL proof passes with a remount between the
+pending and completed checks, then covers account binding, acquisition and
+explicit posting. `make app-integration` also passes. These tests use a fake
+Plaid provider and synthetic KMS wrapper; deployed Sandbox acceptance remains.
+CI's restricted Cloud SQL migration-status proof was updated to expect migration
+19 as current, with 18 and 20 as invalid metadata; the old hard-coded current
+version made CI reject the new migration even though the product migration passed.
+The ledger schema-compatibility fixture likewise expects the current version 19;
+its posting and accounting invariants remain unchanged.
+
+The completed-session recovery window follows Plaid's six-hour result window.
+The Hosted URL still expires at Plaid's reported time. A finished exit or lost
+provider result does not yet have an immediate safe **Start over** path;
+`link_ready` abandonment requires a separate provider-absence and concurrency
+contract. Immutable ciphertext retention needs a reviewed cleanup policy.
+Verified webhook delivery is still tracked under #103/#87. This change does not
+deploy, connect a live bank, or activate a worker.
+
 ## Stage ledger
 
 - Reviewed official Link creation/session/completion documentation and current service/SQL boundaries.
@@ -134,3 +167,53 @@ The old provider exchange is never repeated; its audit history remains.
 Synthetic UI coverage checks the successful restart and uncertainty path.
 Fresh Hosted Link completion, encrypted persistence,
 binding review, and worker read remain separate hosted acceptance gates.
+
+## Fresh retry still blocked at attempt review (2026-10-18)
+
+After release #185, the owner used **Try connecting again**. Discovery showed
+new attempt `4d72d362-beae-47a9-a901-994137ba172b` as `link_ready`, one
+unfinished attempt, two older attempts (one expired unclaimed, one abandoned),
+and no connected Item. Clicking **Review attempt** for the new attempt showed
+“This operation could not be confirmed.” The screenshot did not contain the
+exact GET HTTP status, fixed problem code or response shape, so the cause is
+still unconfirmed. A `link_ready` row proves Begin persisted an attempt; it
+does not prove Plaid completion, exchange, ciphertext or account binding.
+
+Current source behavior: Review attempt calls an exact read. It does not reopen
+Plaid or call `/execute`. A hosted URL/nonce/token is held only in the browser
+component; reload, scope change or cancel can discard it. If the original tab
+still displays **Open Plaid Sandbox**, the owner can use it and then **Check bank
+setup completion**. Otherwise, the implemented fallback is to wait for the
+unclaimed attempt to expire, refresh discovery and start a fresh attempt. Do
+not repeat an old provider exchange or infer that an unresolved attempt is safe
+to abandon.
+
+[#186](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/186)
+owns the exact-read diagnosis and regression. Record only method, scoped route,
+HTTP status, fixed problem code and redacted trace metadata; never capture or
+post Authorization headers, Link/public tokens, provider payloads or financial
+data. [#187](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/187)
+owns the proposed guarded lost-handoff restart and user-facing flow. The
+[Hosted Link contract](../contracts/hosted-link-enrollment.md) and
+[connection status UI contract](../contracts/connection-status-ui.md) define
+acceptance. Keep [#160](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/160)
+and [#164](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/164)
+open until a fresh Sandbox session reaches binding review and the separate
+credential/worker evidence passes. No production account or automatic journal
+posting is implied by this plan.
+
+Official Plaid Hosted Link and Link API documentation was refreshed and saved as
+public-page snapshots for review; see PI12 in the
+[Plaid source register](../research/plaid-ingestion-sources.md). It changes the
+priority of #187: Plaid recommends retaining a user-associated Link token and
+a completion webhook, while Jayburd's token currently disappears with the
+browser component. The proposed primary recovery is a scoped encrypted
+server-side token and verified completion/status path. A fast **Start over**
+remains a fallback only when absence of a completed provider result and local
+claim/credential can actually be proven. No provider account or token was read.
+
+Documentation-only validation: `git diff --check` passed. `make check test
+build` stopped before project checks because the pinned Go 1.26.9 toolchain
+download failed (connection reset in the sandbox; HTTP 403 on approved retry).
+No application code, database migration, cloud resource or hosted connection
+was changed by this documentation update.

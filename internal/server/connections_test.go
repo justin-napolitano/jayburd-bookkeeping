@@ -57,6 +57,11 @@ func (s *connectionStub) Execute(_ context.Context, scope connections.Scope, _ s
 	return s.record(scope, "execute")
 }
 
+// CompleteHosted checks the scoped saved Link handoff without browser tokens.
+func (s *connectionStub) CompleteHosted(_ context.Context, scope connections.Scope, _ string) (json.RawMessage, error) {
+	return s.record(scope, "complete")
+}
+
 // Reconcile represents status recovery without a new provider mutation.
 func (s *connectionStub) Reconcile(_ context.Context, scope connections.Scope, _ string) (json.RawMessage, error) {
 	return s.record(scope, "reconcile")
@@ -130,6 +135,7 @@ func TestConnectionHTTPBoundary(t *testing.T) {
 		{"POST", "/connection-attempts", `{"mode":"new","sync_item_id":null,"expected_generation":null,"approved_stream_ids":[]}`, "begin"},
 		{"GET", "/connection-attempts/" + connectionAttempt, "", "attempt"},
 		{"POST", "/connection-attempts/" + connectionAttempt + "/execute", `{"nonce":"` + connectionAttempt + `","link_token":"synthetic-link","public_token":"synthetic-public"}`, "execute"},
+		{"POST", "/connection-attempts/" + connectionAttempt + "/complete", `{}`, "complete"},
 		{"POST", "/connection-attempts/" + connectionAttempt + "/reconcile", `{}`, "reconcile"},
 		{"POST", "/connection-attempts/" + connectionAttempt + "/bindings", `{"consent_grants":true,"bindings":[]}`, "bind"},
 		{"GET", "/connections", "", "list"},

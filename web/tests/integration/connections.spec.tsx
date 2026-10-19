@@ -17,7 +17,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   });
   // Lose the exchange response after its commit: reload must discover recovery without a saved UUID.
   let exchangeDropped = false;
-  await page.route("**/connection-attempts/*/execute", async (route) => {
+  await page.route("**/connection-attempts/*/complete", async (route) => {
     if (exchangeDropped) return route.continue();
     const response = await route.fetch();
     expect(response.ok()).toBe(true);
@@ -39,6 +39,12 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     page.getByText(/Plaid has not reported completion yet/),
   ).toBeVisible();
   expect(exchangeDropped).toBe(false);
+  // Drop the browser-held handoff before Plaid reports completion; discovery must recover it.
+  await component.unmount();
+  component = await mount(<ConnectionsHarness />);
+  await page.getByLabel("Entity and book").selectOption(scope);
+  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await page.getByRole("button", { name: /^Review attempt / }).click();
   await page
     .getByRole("button", { name: "Check bank setup completion" })
     .click();
