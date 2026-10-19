@@ -246,3 +246,11 @@ dirty, missing and altered metadata rejection. No runtime or migration SQL chang
 Validation passed: `make cloud-sql-test worker-bootstrap-test` and `make check
 test build`, using the installed Go 1.26.5 external modfile described above.
 Both database checks ran only against disposable synthetic Docker databases.
+
+## Ledger compatibility proof correction (#204)
+
+The ledger compatibility test also retained a literal migration 20 expectation,
+so a correctly migrated version 21 fixture failed after all behavioral checks
+passed. The proof now derives the expected version from the embedded immutable
+migration set. The merged-main volume browser proof passed unchanged; no demo,
+runtime, migration SQL, or live database behavior changed.
