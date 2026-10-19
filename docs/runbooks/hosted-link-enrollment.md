@@ -28,6 +28,8 @@ Plaid provider and synthetic KMS wrapper; deployed Sandbox acceptance remains.
 CI's restricted Cloud SQL migration-status proof was updated to expect migration
 19 as current, with 18 and 20 as invalid metadata; the old hard-coded current
 version made CI reject the new migration even though the product migration passed.
+The ledger schema-compatibility fixture likewise expects the current version 19;
+its posting and accounting invariants remain unchanged.
 
 The completed-session recovery window follows Plaid's six-hour result window.
 The Hosted URL still expires at Plaid's reported time. A finished exit or lost
