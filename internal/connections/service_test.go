@@ -210,12 +210,32 @@ func (p *fakeProvider) Remove(context.Context, Secret) error { return p.touch("r
 
 type memorySecrets struct {
 	values     map[CredentialReference]Secret
+	links      map[string]Secret
 	writes     int
 	reads      int
 	lostPut    bool
 	wrongRef   bool
 	wrongToken bool
 	hook       func()
+}
+
+// PutLink and ReadLink model only the scoped ciphertext store's public behavior.
+func (s *memorySecrets) PutLink(_ context.Context, id string, token Secret) error {
+	if s.links == nil {
+		s.links = map[string]Secret{}
+	}
+	if old, ok := s.links[id]; ok && old.value != token.value {
+		return errors.New("immutable link")
+	}
+	s.links[id] = token
+	return nil
+}
+
+func (s *memorySecrets) ReadLink(_ context.Context, id string) (Secret, error) {
+	if token, ok := s.links[id]; ok {
+		return token, nil
+	}
+	return Secret{}, errors.New("missing link")
 }
 
 // Put simulates immutable version storage and lost acknowledgement.
@@ -515,6 +535,42 @@ type hostedProvider struct {
 	*fakeProvider
 	checks  int
 	pending bool
+}
+
+// CreateLink marks this synthetic flow as Hosted so Begin saves a recoverable token.
+func (p *hostedProvider) CreateLink(ctx context.Context, in LinkRequest) (LinkResult, error) {
+	link, err := p.fakeProvider.CreateLink(ctx, in)
+	link.HostedURL = NewSecret("https://secure.plaid.com/hl/synthetic")
+	return link, err
+}
+
+// TestHostedReloadCompletion proves pending checks, reload recovery and one exchange.
+func TestHostedReloadCompletion(t *testing.T) {
+	s, r, p, store := fixture()
+	hosted := &hostedProvider{fakeProvider: p, pending: true}
+	s.provider = hosted
+	if _, err := s.Begin(context.Background(), scope, "hosted", BeginRequest{Mode: "new", ApprovedStreamIDs: []string{}}); err != nil {
+		t.Fatal(err)
+	}
+	if store.links[attemptID].value != "synthetic-link" {
+		t.Fatal("Hosted Link handoff not retained")
+	}
+	if raw, err := s.CompleteHosted(context.Background(), scope, attemptID); err != nil || !strings.Contains(string(raw), "link_ready") || r.claimed {
+		t.Fatal("pending consumed claim", err)
+	}
+	hosted.pending = false
+	if _, err := s.CompleteHosted(context.Background(), scope, attemptID); err != nil {
+		t.Fatal(err)
+	}
+	if !r.claimed || count(p.calls, "exchange") != 1 {
+		t.Fatal("missing one-shot exchange")
+	}
+	if _, err := s.CompleteHosted(context.Background(), scope, attemptID); err != nil {
+		t.Fatal(err)
+	}
+	if hosted.checks != 2 || count(p.calls, "exchange") != 1 {
+		t.Fatal("completed attempt replayed provider")
+	}
 }
 
 // CompletedPublicToken never exchanges and exposes delayed provider completion deterministically.

@@ -9,8 +9,8 @@ const inaccessibleCommandAction = '/v1/commands/pending/clear';
 const bookPath = `/v1/entities/${uuid}/books/${uuid}`;
 // Connection paths are case-sensitive canonical UUID routes, matching the Go boundary.
 const connectionRead = new RegExp(`^${bookPath}/(?:connections|connection-attempts(?:/${uuid})?|connections/streams/${uuid}/status)$`);
-const connectionWrite = new RegExp(`^${bookPath}/(?:connection-attempts|connection-attempts/${uuid}/(?:execute|reconcile|abandon|bindings)|connections/streams/${uuid}/(?:disconnect|operations))$`);
-const connectionAction = new RegExp(`^${bookPath}/connection-attempts/${uuid}/(?:execute|reconcile|abandon)$`);
+const connectionWrite = new RegExp(`^${bookPath}/(?:connection-attempts|connection-attempts/${uuid}/(?:execute|complete|reconcile|abandon|bindings)|connections/streams/${uuid}/(?:disconnect|operations))$`);
+const connectionAction = new RegExp(`^${bookPath}/connection-attempts/${uuid}/(?:execute|complete|reconcile|abandon)$`);
 const reportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)$`, 'i');
 
 const exportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)/export\\.csv$`, 'i');

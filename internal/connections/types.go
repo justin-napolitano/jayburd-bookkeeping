@@ -36,6 +36,13 @@ type ExecuteRequest struct {
 	PublicToken string `json:"public_token,omitempty"`
 }
 
+// LinkHandoffStore retains a scoped, encrypted Hosted Link token for recovery after a browser reload.
+// Implementations must reauthorize the actor and never return ciphertext to a browser.
+type LinkHandoffStore interface {
+	PutLink(context.Context, string, Secret) error
+	ReadLink(context.Context, string) (Secret, error)
+}
+
 // String prevents diagnostic formatting from exposing browser handoff material.
 func (BeginResult) String() string { return "[connection handoff redacted]" }
 

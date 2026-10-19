@@ -6,6 +6,34 @@
 Implementation and synthetic validation complete for #125. Synthetic validation only; no deployment,
 credential retrieval or live-bank connection. Contract: ../contracts/hosted-link-enrollment.md.
 
+## Issue #187 recovery delivery (2026-10-18)
+
+The new migration 19 retains each Hosted Link token as immutable AEAD ciphertext
+wrapped by the existing bank-credentials KMS key, bound to authenticated actor,
+entity, book and attempt. The public attempt and discovery responses still omit
+tokens and ciphertext. `POST /connection-attempts/{attempt}/complete` rechecks
+current SQL authority, decrypts the original token server-side, checks the hash,
+and queries Plaid's completed session result before using the existing one-shot
+exchange claim. The UI offers completion from a discovered `link_ready` attempt
+after remount. Same-tab checks use the same route. The Next bridge and OpenAPI
+allowlists include only this new empty-body operation.
+
+Synthetic evidence: migration 19 fresh install/replay passes. Unit tests prove
+per-actor/attempt envelope separation, pending completion without claim, reload
+completion, one exchange, and public route behavior. The full synthetic
+Connections browser/API/PostgreSQL proof passes with a remount between the
+pending and completed checks, then covers account binding, acquisition and
+explicit posting. `make app-integration` also passes. These tests use a fake
+Plaid provider and synthetic KMS wrapper; deployed Sandbox acceptance remains.
+
+The completed-session recovery window follows Plaid's six-hour result window.
+The Hosted URL still expires at Plaid's reported time. A finished exit or lost
+provider result does not yet have an immediate safe **Start over** path;
+`link_ready` abandonment requires a separate provider-absence and concurrency
+contract. Immutable ciphertext retention needs a reviewed cleanup policy.
+Verified webhook delivery is still tracked under #103/#87. This change does not
+deploy, connect a live bank, or activate a worker.
+
 ## Stage ledger
 
 - Reviewed official Link creation/session/completion documentation and current service/SQL boundaries.

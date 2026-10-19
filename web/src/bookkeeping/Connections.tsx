@@ -550,31 +550,18 @@ function ConnectionWorkspace({
       }
       await beginNewConnection(current);
     });
-  // Only an explicit check resolves Hosted Link. Unknown replies discard the handoff.
+  // An explicit check uses the server-retained encrypted Link token; reload does not lose it.
   const completeHosted = () =>
     run(async () => {
       const current = life.current;
       const handoff = hosted;
       if (!handoff) return;
       setHosted(null);
-      if (
-        !handoff.expires_at ||
-        !Number.isFinite(Date.parse(handoff.expires_at)) ||
-        Date.parse(handoff.expires_at) <= Date.now()
-      ) {
-        setMessage(
-          "Bank setup expired. Refresh attempts before starting again.",
-        );
-        return;
-      }
       let value: Attempt;
       try {
         value = await api<Attempt>(
-          `${base}/connection-attempts/${handoff.attempt.attempt_id}/execute`,
-          JSON.stringify({
-            nonce: handoff.nonce,
-            link_token: handoff.link_token,
-          }),
+          `${base}/connection-attempts/${handoff.attempt.attempt_id}/complete`,
+          "{}",
         );
       } catch (error) {
         // A 409 can follow a committed exchange. Inspect that exact attempt;
@@ -606,6 +593,23 @@ function ConnectionWorkspace({
         setMessage(
           "Plaid has not reported completion yet. Finish setup, then check again.",
         );
+      } else {
+        await readList();
+      }
+    });
+  // Recovery checks the exact durable attempt without needing a browser-held handoff.
+  const checkHostedAttempt = (id: string) =>
+    run(async () => {
+      const current = life.current;
+      const value = checkedAttempt(
+        await api<Attempt>(`${base}/connection-attempts/${id}/complete`, "{}"),
+        id,
+      );
+      if (!current.live) return;
+      setAttempt(value);
+      setInspectID(id);
+      if (value.state === "link_ready") {
+        setMessage("Plaid has not reported a completed bank setup yet. Check again after finishing there.");
       } else {
         await readList();
       }
@@ -1079,6 +1083,11 @@ function ConnectionWorkspace({
               Expired before claim. This attempt cannot be replayed; a new
               connection requires a fresh Link session.
             </p>
+          )}
+          {attempt.mode === "new" && attempt.state === "link_ready" && !expiredAttempt && !hosted && (
+            <button disabled={mutable} onClick={() => void checkHostedAttempt(attempt.attempt_id)}>
+              Check bank setup completion
+            </button>
           )}
           {attempt.state === "credential_recovery_required" &&
           attempt.mode === "new" &&

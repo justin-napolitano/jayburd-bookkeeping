@@ -3080,6 +3080,23 @@
         }
       }
     },
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/complete": {
+      "post": {
+        "operationId": "completeHostedConnection",
+        "summary": "Check a Hosted Link session after browser reload",
+        "description": "Authenticated, attempt-scoped status check. The server retrieves an encrypted Link token, resolves Plaid completion, and retains the one-shot exchange claim. No token is supplied by the browser.",
+        "parameters": [
+          {"name": "entity_id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}},
+          {"name": "book_id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}},
+          {"name": "attempt_id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+        ],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "additionalProperties": false, "properties": {}}}}},
+        "responses": {
+          "200": {"description": "Current authorized attempt state", "headers": {"Cache-Control": {"schema": {"type": "string", "const": "no-store"}}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ConnectionAttempt"}}}},
+          "default": {"description": "Fixed safe failure", "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}}}
+        }
+      }
+    },
     "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/reconcile": {
       "post": {
         "operationId": "reconcileConnection",
