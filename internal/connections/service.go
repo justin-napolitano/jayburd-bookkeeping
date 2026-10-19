@@ -594,7 +594,7 @@ func (s *Service) secretStore(scope Scope) SecretStore {
 	return s.secrets
 }
 
-// Abandon closes only an explicitly acknowledged new Sandbox attempt with no stored credential.
+// Abandon serializes explicit new-setup cancellation against exchange and stored credentials.
 func (s *Service) Abandon(ctx context.Context, scope Scope, id string) (json.RawMessage, error) {
 	if e := s.ready(scope); e != nil {
 		return nil, e
