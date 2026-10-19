@@ -9,6 +9,13 @@ import (
 	"regexp"
 	"time"
 	"unicode/utf8"
+
+	plaid "github.com/plaid/plaid-go/v49"
+	"github.com/plaid/plaid-go/v49/accounts"
+	"github.com/plaid/plaid-go/v49/core"
+	"github.com/plaid/plaid-go/v49/item"
+	"github.com/plaid/plaid-go/v49/link"
+	"github.com/plaid/plaid-go/v49/option"
 )
 
 // HTTPConfig is explicitly supplied; ConsentExpiresAt is local approval, never invented provider consent.
@@ -19,8 +26,10 @@ type HTTPConfig struct {
 
 // HTTPProvider is an opt-in fixed Sandbox adapter. Construction never reads credentials or calls a network.
 type HTTPProvider struct {
-	config HTTPConfig
-	client *http.Client
+	config   HTTPConfig
+	link     *link.Client
+	item     *item.Client
+	accounts *accounts.Client
 }
 
 // String prevents formatting an adapter from traversing its credential configuration.
@@ -34,7 +43,12 @@ func NewHTTPProvider(config HTTPConfig, transport http.RoundTripper) (*HTTPProvi
 	if transport == nil || !secretValid(config.ClientID) || !secretValid(config.ClientSecret) || !config.ConsentExpiresAt.After(time.Now()) || config.ConsentExpiresAt.Year() > 9999 {
 		return nil, failed("configuration_error")
 	}
-	return &HTTPProvider{config: config, client: &http.Client{Transport: transport, Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+	clientID, version := config.ClientID.value, "2020-09-14"
+	options := core.NewRequestOptions(option.WithBaseURL("https://sandbox.plaid.com"),
+		option.WithClientID(&clientID), option.WithSecret(config.ClientSecret.value), option.WithVersion(&version), option.WithoutRetries(),
+		option.WithHTTPClient(&http.Client{Transport: boundedPlaidTransport{transport}, Timeout: 3 * time.Second,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}))
+	return &HTTPProvider{config: config, link: link.NewClient(options), item: item.NewClient(options), accounts: accounts.NewClient(options)}, nil
 }
 
 // SupportsMode rejects unqualified ordinary update-session proof before creating or claiming an attempt.
@@ -42,43 +56,64 @@ func (*HTTPProvider) SupportsMode(mode string) bool {
 	return mode == "new" || mode == "rotate" || mode == "remove"
 }
 
-// post performs one bounded request, no automatic retry, and strips all upstream diagnostics.
-func (p *HTTPProvider) post(parent context.Context, path string, body map[string]any, out any) error {
-	if p == nil || p.client == nil {
-		return failed("configuration_error")
+// boundedPlaidTransport validates responses before generated decoding; no upstream error escapes.
+type boundedPlaidTransport struct{ base http.RoundTripper }
+
+func (t boundedPlaidTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if r.URL.Scheme != "https" || r.URL.Host != "sandbox.plaid.com" || r.Method != "POST" {
+		return nil, failed("invalid_request")
 	}
-	switch path {
+	switch r.URL.Path {
 	case "/link/token/create", "/link/token/get", "/item/public_token/exchange", "/item/get", "/accounts/get", "/item/access_token/invalidate", "/item/remove":
 	default:
-		return failed("invalid_request")
+		return nil, failed("invalid_request")
 	}
-	ctx, cancel := context.WithTimeout(parent, 3*time.Second)
-	defer cancel()
-	body["client_id"] = p.config.ClientID.value
-	body["secret"] = p.config.ClientSecret.value
-	raw, e := json.Marshal(body)
-	if e != nil || len(raw) > 16384 {
-		return failed("invalid_request")
-	}
-	req, e := http.NewRequestWithContext(ctx, "POST", "https://sandbox.plaid.com"+path, bytes.NewReader(raw))
+	resp, e := t.base.RoundTrip(r)
 	if e != nil {
-		return failed("invalid_request")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Plaid-Version", "2020-09-14")
-	resp, e := p.client.Do(req)
-	if e != nil {
-		return failed("provider_unavailable")
+		return nil, failed("provider_unavailable")
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return failed("provider_unavailable")
+		return nil, failed("provider_unavailable")
 	}
 	data, e := io.ReadAll(io.LimitReader(resp.Body, 262145))
-	if e != nil || len(data) > 262144 || ctx.Err() != nil || !validResponseJSON(data) || json.Unmarshal(data, out) != nil {
-		return failed("provider_unavailable")
+	if e != nil || len(data) > 262144 || r.Context().Err() != nil || !validResponseJSON(data) {
+		return nil, failed("provider_unavailable")
 	}
-	return nil
+	if r.URL.Path == "/item/get" {
+		var v struct {
+			Item map[string]json.RawMessage `json:"item"`
+		}
+		if json.Unmarshal(data, &v) != nil || string(v.Item["error"]) != "null" {
+			return nil, failed("provider_unavailable")
+		}
+	}
+	if r.URL.Path == "/accounts/get" {
+		// Discard all balance amounts and unused account data before SDK float models see them.
+		var v struct {
+			Item struct {
+				ID string `json:"item_id"`
+			} `json:"item"`
+			Accounts []struct {
+				ID       string `json:"account_id"`
+				Type     string `json:"type"`
+				Balances struct {
+					Currency   *string `json:"iso_currency_code"`
+					Unofficial *string `json:"unofficial_currency_code"`
+				} `json:"balances"`
+			} `json:"accounts"`
+		}
+		if json.Unmarshal(data, &v) != nil {
+			return nil, failed("provider_unavailable")
+		}
+		data, e = json.Marshal(v)
+		if e != nil {
+			return nil, failed("provider_unavailable")
+		}
+	}
+	resp.Body = io.NopCloser(bytes.NewReader(data))
+	resp.ContentLength = int64(len(data))
+	return resp, nil
 }
 
 // CreateLink requests Transactions only; update mode uses an explicitly supplied existing credential.
@@ -86,32 +121,30 @@ func (p *HTTPProvider) CreateLink(ctx context.Context, input LinkRequest) (LinkR
 	if !validID(input.ActorID) || (input.Mode != "new" && input.Mode != "reconnect") {
 		return LinkResult{}, failed("invalid_request")
 	}
-	body := map[string]any{"client_name": "Jayburd", "language": "en", "country_codes": []string{"US"}, "user": map[string]string{"client_user_id": input.ActorID}}
+	request := &plaid.LinkTokenCreateRequest{ClientName: "Jayburd", Language: "en", CountryCodes: []plaid.CountryCode{plaid.CountryCodeUs}, User: &plaid.LinkTokenCreateRequestUser{ClientUserID: input.ActorID}}
 	if input.Mode == "new" {
-		body["products"] = []string{"transactions"}
-		body["hosted_link"] = map[string]any{"url_lifetime_seconds": 900}
+		lifetime := 900
+		request.Products = []plaid.Products{plaid.ProductsTransactions}
+		request.HostedLink = &plaid.LinkTokenCreateHostedLink{URLLifetimeSeconds: &lifetime}
 	} else {
 		if !secretValid(input.AccessToken) {
 			return LinkResult{}, failed("invalid_request")
 		}
-		body["access_token"] = input.AccessToken.value
+		request.AccessToken = &input.AccessToken.value
 	}
-	var response struct {
-		HostedURL  string `json:"hosted_link_url"`
-		Token      string `json:"link_token"`
-		Expiration string `json:"expiration"`
-	}
-	if e := p.post(ctx, "/link/token/create", body, &response); e != nil {
-		return LinkResult{}, e
-	}
-	expiry, e := time.Parse(time.RFC3339, response.Expiration)
-	if e != nil || !expiry.After(time.Now()) || !secretValid(NewSecret(response.Token)) {
+	response, e := p.link.CreateToken(ctx, request)
+	if e != nil || response == nil {
 		return LinkResult{}, failed("provider_unavailable")
 	}
-	if !validHostedURL(response.HostedURL) {
+
+	expiry := response.Expiration
+	if !expiry.After(time.Now()) || !secretValid(NewSecret(response.LinkToken)) {
 		return LinkResult{}, failed("provider_unavailable")
 	}
-	return LinkResult{Token: NewSecret(response.Token), ExpiresAt: expiry, HostedURL: NewSecret(response.HostedURL)}, nil
+	if response.HostedLinkURL == nil || !validHostedURL(*response.HostedLinkURL) {
+		return LinkResult{}, failed("provider_unavailable")
+	}
+	return LinkResult{Token: NewSecret(response.LinkToken), ExpiresAt: expiry, HostedURL: NewSecret(*response.HostedLinkURL)}, nil
 }
 
 // validHostedURL restricts navigation to the reviewed Plaid-hosted opaque path only.
@@ -125,40 +158,34 @@ func (p *HTTPProvider) CompletedPublicToken(ctx context.Context, link Secret) (S
 	if !secretValid(link) {
 		return Secret{}, failed("invalid_request")
 	}
-	var response struct {
-		Token    string `json:"link_token"`
-		Sessions []struct {
-			Finished *string `json:"finished_at"`
-			Results  *struct {
-				Added []struct {
-					PublicToken string `json:"public_token"`
-				} `json:"item_add_results"`
-			} `json:"results"`
-		} `json:"link_sessions"`
-	}
-	if e := p.post(ctx, "/link/token/get", map[string]any{"link_token": link.value}, &response); e != nil {
-		return Secret{}, e
-	}
-	if response.Token != link.value || len(response.Sessions) > 25 {
+	response, e := p.link.GetToken(ctx, &plaid.LinkTokenGetRequest{LinkToken: link.value})
+	if e != nil || response == nil || response.LinkToken != link.value || len(response.LinkSessions) > 25 {
 		return Secret{}, failed("provider_unavailable")
 	}
+
 	var token Secret
 	count := 0
-	for _, session := range response.Sessions {
-		if session.Finished == nil {
+	for _, session := range response.LinkSessions {
+		if session == nil {
+			return Secret{}, failed("provider_unavailable")
+		}
+		if session.FinishedAt == nil {
 			continue
 		}
-		when, e := time.Parse(time.RFC3339, *session.Finished)
-		if e != nil || when.After(time.Now()) || time.Since(when) > 6*time.Hour {
+		when := *session.FinishedAt
+		if when.After(time.Now()) || time.Since(when) > 6*time.Hour {
 			return Secret{}, failed("provider_unavailable")
 		}
 		if session.Results == nil {
 			continue
 		}
-		if len(session.Results.Added) > 25 {
+		if len(session.Results.ItemAddResults) > 25 {
 			return Secret{}, failed("provider_unavailable")
 		}
-		for _, item := range session.Results.Added {
+		for _, item := range session.Results.ItemAddResults {
+			if item == nil {
+				return Secret{}, failed("provider_unavailable")
+			}
 			token = NewSecret(item.PublicToken)
 			if !secretValid(token) {
 				return Secret{}, failed("provider_unavailable")
@@ -192,54 +219,38 @@ func (p *HTTPProvider) Exchange(ctx context.Context, public Secret) (ExchangeRes
 	if !secretValid(public) {
 		return ExchangeResult{}, failed("invalid_request")
 	}
-	var response struct {
-		Token string `json:"access_token"`
-		Item  string `json:"item_id"`
-	}
-	if e := p.post(ctx, "/item/public_token/exchange", map[string]any{"public_token": public.value}, &response); e != nil {
-		return ExchangeResult{}, e
-	}
-	if !secretValid(NewSecret(response.Token)) || !opaqueRE.MatchString(response.Item) {
+	response, e := p.item.ExchangePublicToken(ctx, &plaid.ItemPublicTokenExchangeRequest{PublicToken: public.value})
+	if e != nil || response == nil {
 		return ExchangeResult{}, failed("provider_unavailable")
 	}
-	return ExchangeResult{response.Item, NewSecret(response.Token)}, nil
-}
 
-type providerItem struct {
-	ID      string          `json:"item_id"`
-	Consent *string         `json:"consent_expiration_time"`
-	Error   json.RawMessage `json:"error"`
+	if !secretValid(NewSecret(response.AccessToken)) || !opaqueRE.MatchString(response.ItemID) {
+		return ExchangeResult{}, failed("provider_unavailable")
+	}
+	return ExchangeResult{response.ItemID, NewSecret(response.AccessToken)}, nil
 }
 
 // item checks current provider status without interpreting names as ownership evidence.
-func (p *HTTPProvider) item(ctx context.Context, token Secret) (providerItem, error) {
-	var response struct {
-		Item providerItem `json:"item"`
-	}
+func (p *HTTPProvider) itemStatus(ctx context.Context, token Secret) (*plaid.ItemWithConsentFields, error) {
 	if !secretValid(token) {
-		return response.Item, failed("invalid_request")
+		return nil, failed("invalid_request")
 	}
-	if e := p.post(ctx, "/item/get", map[string]any{"access_token": token.value}, &response); e != nil {
-		return response.Item, e
-	}
-	if !opaqueRE.MatchString(response.Item.ID) || len(response.Item.Error) == 0 || string(response.Item.Error) != "null" {
-		return response.Item, failed("provider_unavailable")
+	response, e := p.item.Get(ctx, &plaid.ItemGetRequest{AccessToken: token.value})
+	if e != nil || response == nil || response.Item == nil || !opaqueRE.MatchString(response.Item.ItemID) || response.Item.Error != nil {
+		return nil, failed("provider_unavailable")
 	}
 	return response.Item, nil
 }
 
 // Manifest uses cached account identity metadata only; balance values are not returned or used.
 func (p *HTTPProvider) Manifest(ctx context.Context, token Secret) (Manifest, error) {
-	item, e := p.item(ctx, token)
+	item, e := p.itemStatus(ctx, token)
 	if e != nil {
 		return Manifest{}, e
 	}
 	expiry := p.config.ConsentExpiresAt
-	if item.Consent != nil {
-		v, e := time.Parse(time.RFC3339, *item.Consent)
-		if e != nil {
-			return Manifest{}, failed("provider_unavailable")
-		}
+	if item.ConsentExpirationTime != nil {
+		v := *item.ConsentExpirationTime
 		if v.Before(expiry) {
 			expiry = v
 		}
@@ -247,32 +258,21 @@ func (p *HTTPProvider) Manifest(ctx context.Context, token Secret) (Manifest, er
 	if !expiry.After(time.Now()) {
 		return Manifest{}, failed("provider_unavailable")
 	}
-	var response struct {
-		Item struct {
-			ID string `json:"item_id"`
-		} `json:"item"`
-		Accounts []struct {
-			ID       string `json:"account_id"`
-			Type     string `json:"type"`
-			Balances struct {
-				Currency   *string `json:"iso_currency_code"`
-				Unofficial *string `json:"unofficial_currency_code"`
-			} `json:"balances"`
-		} `json:"accounts"`
-	}
-	if e = p.post(ctx, "/accounts/get", map[string]any{"access_token": token.value}, &response); e != nil {
-		return Manifest{}, e
-	}
-	if response.Item.ID != item.ID {
+	response, e := p.accounts.Get(ctx, &plaid.AccountsGetRequest{AccessToken: token.value})
+	if e != nil || response == nil || response.Item == nil || response.Item.ItemID != item.ItemID {
 		return Manifest{}, failed("provider_unavailable")
 	}
-	m := Manifest{ItemID: item.ID, ConsentExpiresAt: expiry.UTC().Format(time.RFC3339), Accounts: make([]Account, 0, len(response.Accounts))}
+
+	m := Manifest{ItemID: item.ItemID, ConsentExpiresAt: expiry.UTC().Format(time.RFC3339), Accounts: make([]Account, 0, len(response.Accounts))}
 	for _, a := range response.Accounts {
-		currency := a.Balances.Currency
-		if a.Balances.Unofficial != nil {
+		if a == nil || a.Balances == nil {
+			return Manifest{}, failed("provider_unavailable")
+		}
+		currency := a.Balances.IsoCurrencyCode
+		if a.Balances.UnofficialCurrencyCode != nil {
 			currency = nil
 		}
-		m.Accounts = append(m.Accounts, Account{a.ID, a.Type, currency})
+		m.Accounts = append(m.Accounts, Account{a.AccountID, string(a.Type), currency})
 	}
 	if !validManifest(m) {
 		return Manifest{}, failed("provider_unavailable")
@@ -285,21 +285,19 @@ func (p *HTTPProvider) Rotate(ctx context.Context, token Secret) (ExchangeResult
 	if !secretValid(token) {
 		return ExchangeResult{}, failed("invalid_request")
 	}
-	var response struct {
-		Token string `json:"new_access_token"`
+	response, e := p.item.InvalidateAccessToken(ctx, &plaid.ItemAccessTokenInvalidateRequest{AccessToken: token.value})
+	if e != nil || response == nil {
+		return ExchangeResult{}, failed("provider_unavailable")
 	}
-	if e := p.post(ctx, "/item/access_token/invalidate", map[string]any{"access_token": token.value}, &response); e != nil {
-		return ExchangeResult{}, e
-	}
-	next := NewSecret(response.Token)
+	next := NewSecret(response.NewAccessToken)
 	if !secretValid(next) {
 		return ExchangeResult{}, failed("provider_unavailable")
 	}
-	item, e := p.item(ctx, next)
+	item, e := p.itemStatus(ctx, next)
 	if e != nil {
 		return ExchangeResult{}, e
 	}
-	return ExchangeResult{item.ID, next}, nil
+	return ExchangeResult{item.ItemID, next}, nil
 }
 
 // Remove affects the whole Item and is invoked only after an explicit SQL-fenced Item claim.
@@ -307,12 +305,11 @@ func (p *HTTPProvider) Remove(ctx context.Context, token Secret) error {
 	if !secretValid(token) {
 		return failed("invalid_request")
 	}
-	var response struct {
-		RequestID string `json:"request_id"`
+	response, e := p.item.Remove(ctx, &plaid.ItemRemoveRequest{AccessToken: token.value})
+	if e != nil || response == nil {
+		return failed("provider_unavailable")
 	}
-	if e := p.post(ctx, "/item/remove", map[string]any{"access_token": token.value}, &response); e != nil {
-		return e
-	}
+
 	if !opaqueRE.MatchString(response.RequestID) {
 		return failed("provider_unavailable")
 	}
