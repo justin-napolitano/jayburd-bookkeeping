@@ -70,3 +70,28 @@ Scheduler readback remains PAUSED. Issue comments
 and [#164](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/164#issuecomment-6241889935)
 retain the hosted acceptance limits. No fresh Hosted Link completion, ciphertext
 persistence or authorized worker read has been observed from this release.
+
+## Failed-connection retry release candidate (#160)
+
+PR #184 merged as `c0cb29efe0d71c26293a1b9b9c4ccdc7ce73cbbc` after all
+five checks passed. Owner-dispatched [image build 39152439769](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39152439769)
+passed its application, browser, SQL and container checks and published matching
+candidate API, migrator and web images. This release pins their exact digests.
+It retains the reviewed Sandbox connection configuration, uses schema-status-only
+`sandbox-promote`, and leaves the acquisition Scheduler paused.
+
+The browser offers **Try connecting again** for a failed new connection. It
+reconciles the exact old attempt and asks the server to close it only after a
+confirmed missing-credential result. A stored credential, another unfinished
+attempt, or uncertain response stops the restart. A fresh Link session begins
+only after the server confirms the old attempt is safely closed. This release
+does not claim a successful fresh enrollment, encrypted credential write,
+binding review, transaction acquisition or posted journal. Those require the
+owner's next hosted Sandbox test and separate review.
+
+Release metadata validation passed against the successful build run and all
+three retained candidate receipts. The exact manifest SHA-256 is
+`767ce3e126bbaf0f35b86c05baab2da8533ad50c5de52a044905bea7c53eca98`.
+`make release-test` passed (32 release/receipt tests, 11 worker release tests,
+and deploy orchestration checks). Release PR CI and owner-dispatched deployment
+must still pass before the URL is offered for a fresh test.

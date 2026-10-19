@@ -4,14 +4,14 @@
   "projectNumber": "9088794002",
   "operation": "sandbox-promote",
   "build": {
-    "run": "39067510528",
+    "run": "39152439769",
     "attempt": "1",
-    "commit": "d1913796ad51699c361413b7915d4eb0e81ddc4d"
+    "commit": "c0cb29efe0d71c26293a1b9b9c4ccdc7ce73cbbc"
   },
   "images": {
-    "api": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:3ecfd663a4a41b7b57a9eb8748953759471846108a7a2b7b8bb8a15ffb82dcc0",
-    "migrate": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:0e7f0331d1444bc74a1c2f278b7de3047fab69e95b1d8189d42755d71f53061c",
-    "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:fd13278726a026254c5a3e99f300faddbfe8a711f46e561c90cfbb3d84a71c2a"
+    "api": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:f0a7b86aca3ac70acc729bc82be0d02165c9ab4bc1ba474d27eb6983799207f6",
+    "migrate": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:c18c2decd6f3435086626010ebaa5f2cda8ea8b900f13bce4a19e6697c9a34c9",
+    "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:9869d9ef005ce8e4b7ba4e6973528a128870086209a4536f1d4443d6c52a4c9c"
   },
   "firebaseApiKey": "AIzaSyDi2taJScO3dnw4NqU9gsdDUXaJ_q0GXGg",
   "evidence": {
