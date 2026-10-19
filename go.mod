@@ -3,11 +3,12 @@ module github.com/justin-napolitano/jayburd-bookkeeping
 go 1.26.9
 
 require (
-	github.com/golang-jwt/jwt/v4 v4.5.2
 	cloud.google.com/go/cloudsqlconn v1.25.3
 	firebase.google.com/go/v4 v4.22.0
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang-migrate/migrate/v4 v4.20.1
 	github.com/jackc/pgx/v5 v5.11.0
+	github.com/plaid/plaid-go/v49 v49.0.0
 	golang.org/x/oauth2 v0.37.0
 	google.golang.org/api v0.298.0
 )
