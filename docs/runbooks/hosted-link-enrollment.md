@@ -262,3 +262,9 @@ images from main commit 37803b5753cc649681dd42032151d82c8ce39e20. The staged
 migration-only release applies migration 21 before any runtime promotion. It
 does not change service traffic or claim a successful deployment until the
 separate deployment receipt passes.
+
+Migration deployment run 39326095579 completed successfully and retained its
+bounded migration receipt. The follow-up Sandbox promotion pins the same tested
+API/web images, preserves the approved connection configuration, and names
+runtime deployment 39291244312 as the rollback source. Transport smoke evidence
+remains required before the new runtime is considered available for testing.
