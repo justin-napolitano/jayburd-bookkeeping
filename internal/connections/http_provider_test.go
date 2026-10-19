@@ -34,7 +34,7 @@ func TestPlaidHTTPEnrollmentWire(t *testing.T) {
 			t.Fatal("unsafe wire")
 		}
 		var v map[string]any
-		if json.NewDecoder(r.Body).Decode(&v) != nil || v["client_id"] != "synthetic-client" || v["secret"] != "synthetic-secret" {
+		if json.NewDecoder(r.Body).Decode(&v) != nil || r.Header.Get("PLAID-CLIENT-ID") != "synthetic-client" || r.Header.Get("PLAID-SECRET") != "synthetic-secret" {
 			t.Fatal("missing injected credentials")
 		}
 		paths = append(paths, r.URL.Path)
@@ -222,5 +222,62 @@ func TestHostedLinkCompletion(t *testing.T) {
 				t.Fatal("completion rejected")
 			}
 		})
+	}
+}
+
+// TestSDKNoRetries guards consumed public tokens across transport and retryable HTTP failures.
+func TestSDKNoRetries(t *testing.T) {
+	for _, status := range []int{0, 429, 500, 503} {
+		calls := 0
+		p, err := NewHTTPProvider(config(), roundTripFunc(func(*http.Request) (*http.Response, error) {
+			calls++
+			if status == 0 {
+				return nil, errors.New("private-upstream-diagnostic")
+			}
+			return response(status, `{"error_message":"private-upstream-diagnostic"}`), nil
+		}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = p.Exchange(context.Background(), NewSecret("synthetic-public"))
+		if err == nil || err.Error() != "provider_unavailable" || calls != 1 {
+			t.Fatal("SDK retried or exposed upstream error", calls)
+		}
+	}
+}
+
+// TestSDKExplicitConfiguration prevents generated clients from discovering ambient credentials or versions.
+func TestSDKExplicitConfiguration(t *testing.T) {
+	t.Setenv("PLAID_SECRET", "ambient-secret")
+	t.Setenv("PLAID_CLIENT_ID", "ambient-client")
+	t.Setenv("PLAID_VERSION", "2099-01-01")
+	p, err := NewHTTPProvider(config(), roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Host != "sandbox.plaid.com" || r.Header.Get("PLAID-SECRET") != "synthetic-secret" || r.Header.Get("PLAID-CLIENT-ID") != "synthetic-client" || r.Header.Get("Plaid-Version") != "2020-09-14" {
+			t.Fatal("ambient configuration escaped")
+		}
+		return response(200, `{"access_token":"synthetic-access","item_id":"synthetic-item"}`), nil
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = p.Exchange(context.Background(), NewSecret("synthetic-public")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestSDKAccountProjection proves monetary fields never reach generated float models.
+func TestSDKAccountProjection(t *testing.T) {
+	transport := boundedPlaidTransport{roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return response(200, `{"item":{"item_id":"synthetic-item"},"accounts":[{"account_id":"one","type":"depository","name":"unused-private-name","balances":{"iso_currency_code":"USD","current":1e1000,"available":9007199254740993.01}}]}`), nil
+	})}
+	req, _ := http.NewRequest("POST", "https://sandbox.plaid.com/accounts/get", nil)
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil || strings.Contains(string(raw), "current") || strings.Contains(string(raw), "available") || strings.Contains(string(raw), "private-name") || !strings.Contains(string(raw), "USD") {
+		t.Fatal("account projection leaked unused data")
 	}
 }
