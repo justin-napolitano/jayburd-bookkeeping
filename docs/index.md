@@ -12,6 +12,7 @@ background work. The two predecessor repos are reference material only.
 | --- | --- |
 | How are per-account bank credentials encrypted? | [Encrypted credential contract](contracts/bank-token-vault.md) and [delivery ledger](runbooks/bank-token-vault.md) |
 | How does Connect account prepare a new creator-owned book? | [Self-service onboarding](contracts/self-service-connections.md) and [delivery evidence](runbooks/self-service-connections.md) |
+| Why does a fresh Sandbox bank attempt show link ready without connecting? | [Hosted Link enrollment and proposed restart contract](contracts/hosted-link-enrollment.md), [status UI gap](contracts/connection-status-ui.md), and [owner-observed recovery record](runbooks/hosted-link-enrollment.md) |
 | How does the owner retrieve a worker binding for a paused release? | [Read-only binding lookup](runbooks/worker-binding-lookup.md) |
 | How does the operator provision the first Sandbox principal and book? | [First Sandbox book bootstrap](runbooks/sandbox-book-bootstrap.md) |
 | What is the next product/data-collection sequence? | [Delivery milestones](plans/product-and-ingestion.md) |

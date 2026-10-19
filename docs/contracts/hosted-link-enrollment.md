@@ -36,6 +36,39 @@ No automatic polling/retry of exchange. An uncertain reply clears the browser
 handoff and requires existing attempt inspection/reconciliation. Reload drops
 unclaimed handoff; wait for expiry before restarting. Scope changes destroy it.
 
+## Proposed lost-handoff recovery (#187)
+
+The expiry wait above is the implemented behavior, not the desired self-service
+journey. A fresh `link_ready` attempt in discovery contains public status only;
+GET inspection must not be presented as a way to recover its URL, nonce or Link
+token. A successful Plaid screen also does not establish that Jayburd exchanged,
+stored or bound a credential.
+
+Proposed replacement: while the original tab retains a valid handoff, show
+**Open Plaid Sandbox** and **Check bank setup completion** as the next actions.
+If that handoff is lost, offer **Start over** only after an authoritative,
+actor-scoped server check proves this exact attempt is still unclaimed, has no
+recorded credential or exchange, and can be made terminal atomically against a
+concurrent claim. Re-read durable discovery and require zero unfinished attempts
+before a new Begin. A claim, stored credential, uncertain check, changed grant or
+concurrent transition must stop restart and direct the user to safe status review.
+The old `/execute` is never replayed. The new handoff remains memory-only; no
+browser persistence or token-reconstruction route is permitted.
+
+This is a proposed contract, not an implemented route. The existing
+`/abandon` operation is limited to `credential_recovery_required`; extending it
+to `link_ready` requires a reviewed SQL/API transition and tests. Waiting for
+expiry remains the current fallback until that transition ships. This proposal
+favors a guarded restart over persisting the Link token or allowing an unverified
+second Begin, which could lose authority or race a provider claim.
+
+Acceptance: a synthetic browser/API/PostgreSQL journey covers same-tab completion,
+reload or tab loss, guarded restart, concurrent claim, uncertain status, denied
+scope and repeated clicks. One old attempt becomes terminal and at most one new
+Begin occurs; no second exchange runs for the old attempt. Hosted owner
+acceptance still requires binding review and the separate encrypted-credential
+and acquisition gates in #160 and #164.
+
 Explicit account binding and existing acquisition/review remain separate. This
 change cannot post a journal. No SQL migration. Internal operational commands and
 Plaid proprietary JSON are not ISO 20022 messages; existing ISO 4217 mapping applies.

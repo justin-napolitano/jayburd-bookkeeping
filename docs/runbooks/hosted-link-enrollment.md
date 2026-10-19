@@ -134,3 +134,43 @@ The old provider exchange is never repeated; its audit history remains.
 Synthetic UI coverage checks the successful restart and uncertainty path.
 Fresh Hosted Link completion, encrypted persistence,
 binding review, and worker read remain separate hosted acceptance gates.
+
+## Fresh retry still blocked at attempt review (2026-10-18)
+
+After release #185, the owner used **Try connecting again**. Discovery showed
+new attempt `4d72d362-beae-47a9-a901-994137ba172b` as `link_ready`, one
+unfinished attempt, two older attempts (one expired unclaimed, one abandoned),
+and no connected Item. Clicking **Review attempt** for the new attempt showed
+“This operation could not be confirmed.” The screenshot did not contain the
+exact GET HTTP status, fixed problem code or response shape, so the cause is
+still unconfirmed. A `link_ready` row proves Begin persisted an attempt; it
+does not prove Plaid completion, exchange, ciphertext or account binding.
+
+Current source behavior: Review attempt calls an exact read. It does not reopen
+Plaid or call `/execute`. A hosted URL/nonce/token is held only in the browser
+component; reload, scope change or cancel can discard it. If the original tab
+still displays **Open Plaid Sandbox**, the owner can use it and then **Check bank
+setup completion**. Otherwise, the implemented fallback is to wait for the
+unclaimed attempt to expire, refresh discovery and start a fresh attempt. Do
+not repeat an old provider exchange or infer that an unresolved attempt is safe
+to abandon.
+
+[#186](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/186)
+owns the exact-read diagnosis and regression. Record only method, scoped route,
+HTTP status, fixed problem code and redacted trace metadata; never capture or
+post Authorization headers, Link/public tokens, provider payloads or financial
+data. [#187](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/187)
+owns the proposed guarded lost-handoff restart and user-facing flow. The
+[Hosted Link contract](../contracts/hosted-link-enrollment.md) and
+[connection status UI contract](../contracts/connection-status-ui.md) define
+acceptance. Keep [#160](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/160)
+and [#164](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/164)
+open until a fresh Sandbox session reaches binding review and the separate
+credential/worker evidence passes. No production account or automatic journal
+posting is implied by this plan.
+
+Documentation-only validation: `git diff --check` passed. `make check test
+build` stopped before project checks because the pinned Go 1.26.9 toolchain
+download failed (connection reset in the sandbox; HTTP 403 on approved retry).
+No application code, database migration, cloud resource or hosted connection
+was changed by this documentation update.

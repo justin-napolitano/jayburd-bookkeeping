@@ -78,3 +78,24 @@ claimed recovery, malformed/incomplete discovery, revoked and stale scope,
 late mutation responses, Item-wide confirmation, exact same-key unknown-result
 recovery, honest timestamps and no browser persistence. Existing explicit review
 and posting continue through source review and durable command recovery.
+
+## Fresh link-ready inspection gap (#186)
+
+The owner observed a new `link_ready` attempt after the 2026-10-18 Sandbox retry,
+then **Review attempt** produced the generic unconfirmed-operation banner. The
+screen still showed no connected Item. The screenshot does not establish the
+GET status, a malformed response or a provider outcome. Inspection is a
+read-only exact-attempt GET; it cannot finish Link or recover the memory-only
+handoff. The current UI catches most non-403/404 failures as the same generic
+message, so diagnosis must distinguish transport, API and response-validation
+failures using only a fixed status/problem code and redacted request metadata.
+
+Proposed UI acceptance: a fresh Begin followed by discovery and exact-attempt
+GET displays `link_ready` without an error; if the detail read fails, preserve
+independently valid discovery and show a safe action matched to the failure.
+For an active handoff, completion controls remain visible and named as the path
+forward. For a lost handoff, show the guarded restart option specified in
+[Hosted Link enrollment](hosted-link-enrollment.md), only when server evidence
+allows it. Technical attempt IDs belong in secondary details rather than the
+primary bank setup action. A successful GET alone must not mark an Item
+connected, authorize another exchange or close hosted acceptance.
