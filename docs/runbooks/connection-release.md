@@ -1,6 +1,18 @@
 <!-- stage-runbook: true -->
 # Connection release delivery
 
+## Canonical KMS and SDK runtime promotion (#187)
+
+Image build 39276797882 now reports success, and the full migration release
+validator accepted its retained metadata and candidate receipts. PR #198 merged;
+migration deployment 39287652038 is dispatched. Runtime promotion must wait for
+its successful execution receipt. This candidate pins the same API/web images
+and preserves the existing Sandbox configuration, with a status-only migration
+gate. Manifest SHA-256:
+`a68869aaf26d3a932366c18c723e73a664901fa0fe1e1db46e1dd46503df364c`.
+The acquisition Scheduler remains paused. A successful rollout still requires
+a fresh hosted enrollment to establish credential and connected-Item acceptance.
+
 ## Canonical KMS and official Plaid SDK release candidate (#187)
 
 Merged PRs #196 and #197 are included in source
