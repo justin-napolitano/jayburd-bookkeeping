@@ -21,7 +21,7 @@
     "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/187#issuecomment-6270495862"
   },
   "expiresAt": "2026-10-21T23:00:00Z",
-  "previousDeployment": "39291244312",
+  "previousDeployment": null,
   "connections": {
     "infisical_origin": "https://app.infisical.com",
     "infisical_project": "ec11c550-d143-4902-be67-e33266753539",
