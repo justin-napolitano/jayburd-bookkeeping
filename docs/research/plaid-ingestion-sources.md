@@ -93,3 +93,37 @@ acceptance would conceal new financial meaning. See the
 [decoder contract](../contracts/plaid-decoder.md) for validation evidence.
 Limits: no complete nested-schema validation, no private payload inspection, no
 claim that this is the specific field seen in the hosted rejection.
+
+## PI12 — Hosted Link completion and recovery refresh, 2026-10-18
+
+Official Plaid [Hosted Link integration guide](https://plaid.com/docs/link/hosted-link/),
+sections **Integration process** and **Obtaining a public token**; [Link API
+reference](https://plaid.com/docs/api/link/), `/link/token/create`,
+`/link/token/get` and `SESSION_FINISHED`; and [Link overview](https://plaid.com/docs/link/),
+flow overview. Relevant sections were read, not the entire API catalogue. Public
+HTML snapshots were downloaded on 2026-10-18 to a local temporary review folder,
+outside the repository; SHA-256 for Hosted Link `3ad60a510218e210f3f3bc9e6d2a1bebf548e3c19c5780e0f40fd1c58afc6792`,
+Link API `9c044adeebd88dd4403d489a4025033081ef572bc05beae827c0c5ca1e1e8e63`,
+and Link overview `0ad26b1ed8304efe8810c573d2da20f2cdd9301a9d5bf9f6702eb94074a07633`.
+The linked official pages remain the canonical source; snapshots are local
+review artifacts, not vendored or redistributed documentation.
+
+Plaid recommends storing a Hosted Link `link_token` associated with the
+application's user and strongly recommends a completion webhook. Hosted Link
+returns `hosted_link_url` at token creation. `/link/token/get` can supply
+completed-session results without a frontend callback; Plaid says detailed
+session data remain available for up to six hours after completion, and prefers
+`results.item_add_results` to deprecated `on_success`. A completion redirect can
+occur after success or exit and is not proof of success. The Link API documents
+that Hosted Link token expiry tracks its URL and that the lifetime can be
+configured. These are provider-documented mechanisms, not evidence that the
+owner's specific attempt completed or that Jayburd stored a credential.
+
+Our current memory-only token and explicit completion are project choices, not
+Plaid requirements. A scoped encrypted server-side token, verified webhook,
+retention policy, local authority check and one-shot exchange are design
+inferences needing review and synthetic tests. A fast restart cannot assume
+that `link_ready` or local expiry proves absence of a completed provider result.
+No Plaid account, token, private response or bank data was accessed in this
+review. See [Hosted Link contract](../contracts/hosted-link-enrollment.md) and
+[#187](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/187).

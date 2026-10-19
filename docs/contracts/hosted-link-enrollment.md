@@ -36,38 +36,59 @@ No automatic polling/retry of exchange. An uncertain reply clears the browser
 handoff and requires existing attempt inspection/reconciliation. Reload drops
 unclaimed handoff; wait for expiry before restarting. Scope changes destroy it.
 
-## Proposed lost-handoff recovery (#187)
+## Source-backed recovery proposal (#187; not implemented)
 
 The expiry wait above is the implemented behavior, not the desired self-service
-journey. A fresh `link_ready` attempt in discovery contains public status only;
-GET inspection must not be presented as a way to recover its URL, nonce or Link
-token. A successful Plaid screen also does not establish that Jayburd exchanged,
-stored or bound a credential.
+journey. [Plaid's Hosted Link guide](https://plaid.com/docs/link/hosted-link/)
+recommends retaining the Link token associated with the application's user,
+strongly recommends a completion webhook, and documents `/link/token/get` as a
+way to obtain completed-session results for up to six hours after the session
+ends. A redirect or Plaid success screen alone does not prove local exchange,
+storage or binding. The reviewed sections and limits are recorded as PI12 in
+[the Plaid source register](../research/plaid-ingestion-sources.md).
 
-Proposed replacement: while the original tab retains a valid handoff, show
-**Open Plaid Sandbox** and **Check bank setup completion** as the next actions.
-If that handoff is lost, offer **Start over** only after an authoritative,
-actor-scoped server check proves this exact attempt is still unclaimed, has no
-recorded credential or exchange, and can be made terminal atomically against a
-concurrent claim. Re-read durable discovery and require zero unfinished attempts
-before a new Begin. A claim, stored credential, uncertain check, changed grant or
-concurrent transition must stop restart and direct the user to safe status review.
-The old `/execute` is never replayed. The new handoff remains memory-only; no
-browser persistence or token-reconstruction route is permitted.
+This creates a design gap: the current server persists only a Link-token hash
+and the browser keeps the value in component memory. After a reload, the
+public `link_ready` projection cannot supply the token required by
+`/link/token/get`; GET inspection cannot resume completion. A guarded
+**Start over** action would improve the dead end but could discard a completed
+Plaid session whose result has not yet reached Jayburd.
 
-This is a proposed contract, not an implemented route. The existing
-`/abandon` operation is limited to `credential_recovery_required`; extending it
-to `link_ready` requires a reviewed SQL/API transition and tests. Waiting for
-expiry remains the current fallback until that transition ships. This proposal
-favors a guarded restart over persisting the Link token or allowing an unverified
-second Begin, which could lose authority or race a provider claim.
+Proposed primary path for review: retain a bounded, encrypted server-side Link
+token associated with the exact actor/entity/book/attempt, accessible only to
+the connection service. A same-origin, authenticated status/completion action
+would use it server-side to read Plaid session results, then follow the existing
+one-shot claim, exchange and encrypted-credential publication gates. The browser
+never receives a recovered Link token. Retention, KMS authority, expiry,
+revocation, current-grant checks, duplicate/ambiguous session handling and
+deletion must be specified before implementation. The provider's six-hour
+result window is not an automatic local authorization extension.
 
-Acceptance: a synthetic browser/API/PostgreSQL journey covers same-tab completion,
-reload or tab loss, guarded restart, concurrent claim, uncertain status, denied
-scope and repeated clicks. One old attempt becomes terminal and at most one new
-Begin occurs; no second exchange runs for the old attempt. Hosted owner
-acceptance still requires binding review and the separate encrypted-credential
-and acquisition gates in #160 and #164.
+Evaluate verified `SESSION_FINISHED` webhook delivery as the recommended
+provider path with `/link/token/get` as a bounded recovery/read path. This work
+depends on the separate webhook authenticity and durable processing gates in
+#103 and #87; an unverified webhook must not authorize exchange. Until that
+design is accepted, continue explicit user-driven completion for an intact
+same-tab handoff, showing **Open Plaid Sandbox** and **Check bank setup
+completion** prominently.
+
+Only after an authoritative check proves the exact attempt has no completed
+session, claim, exchange or stored credential may a future **Start over** make
+it terminal atomically against concurrent completion and then create one new
+attempt. If Plaid cannot supply definitive absence, this fast restart is not
+allowed. The existing `/abandon` operation covers only
+`credential_recovery_required`; extension to `link_ready` is a separate SQL/API
+decision. The old `/execute` is never replayed and tokens never enter browser
+persistence, logs or documentation. Waiting for expiry remains the current
+fallback, but expiry by itself is not proof that a completed provider result
+does not exist.
+
+Acceptance: synthetic browser/API/PostgreSQL fixtures cover same-tab completion,
+reload, completed session after reload, no completed result, duplicate results,
+concurrent claim, transport uncertainty, denied scope and repeated clicks.
+One old attempt can yield at most one exchange and one stored credential. A
+fresh Hosted Sandbox test must reach binding review; #160 and #164 remain open
+for separate hosted credential and worker evidence.
 
 Explicit account binding and existing acquisition/review remain separate. This
 change cannot post a journal. No SQL migration. Internal operational commands and
