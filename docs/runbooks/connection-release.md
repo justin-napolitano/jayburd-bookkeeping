@@ -1,6 +1,26 @@
 <!-- stage-runbook: true -->
 # Connection release delivery
 
+## Canonical KMS and official Plaid SDK release candidate (#187)
+
+Merged PRs #196 and #197 are included in source
+`c50044383052eba4b2bd89cc32d6b723000745c6`. Build 39276797882 attempt 1
+published all four image receipts. GitHub still reports the build in progress;
+these manifests are candidates and must not deploy until the successful build
+record passes the full receipt validator. Metadata-only validation and
+`make release-test` passed locally.
+
+The first release applies migration 20, allowing canonical project-ID KMS
+metadata. Its manifest SHA-256 is
+`4ac972092e762587211505e818f22a88876c512323de013f5b2a150ce6254b13`.
+After its successful execution receipt, promote the API/web from the same build
+using a separate runtime manifest. The worker candidate hash is
+`10889eb58d46aed7bfc6fdf365cf81a0dd1561c720ee39ef320a5a6d12f98027`;
+deploy it only after migration 20, keeping the acquisition Scheduler paused.
+The SDK-backed synthetic browser flow passed on the source branch. Fresh hosted
+enrollment, encrypted credential persistence and binding review remain required
+acceptance evidence for #187 after rollout.
+
 ## Hosted 503 stage-logging runtime candidate (#187)
 
 PR #192 passed all five required checks and merged as
