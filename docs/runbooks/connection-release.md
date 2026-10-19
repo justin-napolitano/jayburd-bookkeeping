@@ -1,6 +1,25 @@
 <!-- stage-runbook: true -->
 # Connection release delivery
 
+## Live Hosted completion failure triage (#187)
+
+The first fresh production-like Sandbox acceptance attempt after the migration
+and runtime rollout (`f9b70761-90b4-4988-9ecf-7d13c6f6fe95`) remained
+`link_ready`. Cloud Run request metadata recorded POST `/complete` returning
+503 in 0.13 seconds on 2026-10-19; the attempt GET returned 200. A connected
+Item, encrypted credential write, and binding review have **not** been observed.
+The 503 alone does not distinguish encrypted handoff read, Plaid session status,
+credential preflight, or a later execute step. A retry of the same attempt is
+safe only after checking it is still `link_ready`; never repeat an exchange after
+the claim state changes.
+
+This branch adds bounded, static server-side failure-stage logging for Hosted
+completion. Logs identify the attempt and fixed stage but never include Link or
+public tokens, provider responses, credentials, or error strings. The browser
+contract and provider call behavior remain unchanged. Acceptance requires a
+fresh Sandbox completion reaching `binding_review` with a stored credential and
+then a connected Item; diagnostics alone do not close #187.
+
 ## Hosted completion recovery migration 19 candidate (#187)
 
 PR #188 merged after all five checks passed. Owner-dispatched image build

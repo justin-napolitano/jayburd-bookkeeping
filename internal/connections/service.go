@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"regexp"
 	"sort"
 	"strconv"
@@ -229,6 +230,7 @@ func (s *Service) CompleteHosted(ctx context.Context, scope Scope, id string) (j
 	}
 	c, e := s.context(ctx, scope, id)
 	if e != nil {
+		slog.Warn("hosted completion unavailable", "stage", "attempt_context", "attempt_id", id)
 		return nil, e
 	}
 	if c.Mode != "new" || c.State != "link_ready" {
@@ -240,13 +242,19 @@ func (s *Service) CompleteHosted(ctx context.Context, scope Scope, id string) (j
 	}
 	link, e := store.ReadLink(ctx, id)
 	if e != nil {
+		slog.Warn("hosted completion unavailable", "stage", "handoff_read", "attempt_id", id)
 		return nil, failed("temporarily_unavailable")
 	}
 	var token string
 	if e = link.WithValue(func(v string) error { token = v; return nil }); e != nil || !secretValid(link) || hash(token) != value(c.LinkHash) {
+		slog.Warn("hosted completion unavailable", "stage", "handoff_validation", "attempt_id", id)
 		return nil, failed("invalid_metadata")
 	}
-	return s.Execute(ctx, scope, id, ExecuteRequest{Nonce: c.Nonce, LinkToken: token})
+	result, err := s.Execute(ctx, scope, id, ExecuteRequest{Nonce: c.Nonce, LinkToken: token})
+	if err != nil {
+		slog.Warn("hosted completion unavailable", "stage", "execute", "attempt_id", id)
+	}
+	return result, err
 }
 
 // Execute consumes a confirmed one-shot claim; replay never performs a remote mutation.
@@ -291,6 +299,7 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 			if errors.As(err, &failure) && failure.Code == "link_session_pending" {
 				return s.Attempt(ctx, scope, id)
 			}
+			slog.Warn("hosted completion unavailable", "stage", "plaid_link_status", "attempt_id", id)
 			return nil, failed("temporarily_unavailable")
 		}
 		if !secretValid(token) {
@@ -302,6 +311,9 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 	if before.ClaimID == nil && (before.Mode == "new" || before.Mode == "rotate") {
 		if checker, ok := s.secretStore(scope).(interface{ Check(context.Context) error }); ok {
 			if checker.Check(ctx) != nil {
+				if before.Mode == "new" {
+					slog.Warn("hosted completion unavailable", "stage", "credential_preflight", "attempt_id", id)
+				}
 				return nil, failed("temporarily_unavailable")
 			}
 		}
