@@ -254,3 +254,11 @@ so a correctly migrated version 21 fixture failed after all behavioral checks
 passed. The proof now derives the expected version from the embedded immutable
 migration set. The merged-main volume browser proof passed unchanged; no demo,
 runtime, migration SQL, or live database behavior changed.
+
+## Migration 21 development release
+
+Build run 39323912170 produced tested, digest-pinned API, migrator and web
+images from main commit 37803b5753cc649681dd42032151d82c8ce39e20. The staged
+migration-only release applies migration 21 before any runtime promotion. It
+does not change service traffic or claim a successful deployment until the
+separate deployment receipt passes.
