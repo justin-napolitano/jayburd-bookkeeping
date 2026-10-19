@@ -18,6 +18,34 @@ immutable version policy and retry rules are application design decisions.
 
 ## Persistence and authority
 
+### Canonical KMS project identifier correction (#194)
+
+Reviewed 2026-10-19: Cloud KMS [resource hierarchy](https://docs.cloud.google.com/kms/docs/resource-hierarchy)
+and [symmetric encryption](https://docs.cloud.google.com/kms/docs/encrypt-decrypt)
+use `projects/PROJECT_ID/.../cryptoKeys/KEY_NAME` for a key resource. Review covers
+the resource-name table and encrypt/decrypt request examples, not all API behavior.
+An operator-controlled probe encrypted only a fixed synthetic marker: the numeric
+project resource returned permission denied, while the project-ID form succeeded
+with the same principal and fixed key. The attempted API-account impersonation
+was denied; this probe does not independently qualify the runtime identity.
+
+Decision: compose API and acquisition KMS resources from their validated project
+ID. Secret Manager references continue using their separately validated numeric
+project number. Go checks the exact configured key and numeric immutable version;
+it does not rewrite a returned resource name because that name participates in AAD.
+Forward migration 20 permits canonical project IDs in both ciphertext-write
+functions while preserving existing numeric metadata for compatibility. Runtime
+key equality still rejects foreign projects/keys. No ciphertext or AAD is rewritten.
+The down migration refuses when canonical-ID envelopes exist, before restoring
+numeric-only write validation. This avoids claiming a compatible rollback after
+new envelopes have been written.
+
+Acceptance: canonical-ID KMS request/CRC/readback tests, numeric-key configuration
+rejection, SQL canonical and malformed-name cases, migration forward/down guards,
+and synthetic connection/binding/acquisition. A fresh Hosted Sandbox run remains
+required after migration and runtime promotion. Official Plaid SDK adoption is
+tracked separately in #195 and does not repair a KMS resource-name failure.
+
 Migration 18 adds integration.bank_credential, owned by bookkeeping_owner. Store
 only AES-256-GCM ciphertext, a random 96-bit nonce, KMS-wrapped random 256-bit data
 key, format version and wrapping-key-version resource. No token, unwrapped data

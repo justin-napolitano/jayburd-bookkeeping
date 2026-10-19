@@ -192,3 +192,28 @@ three retained candidate receipts. The exact manifest SHA-256 is
 `make release-test` passed (32 release/receipt tests, 11 worker release tests,
 and deploy orchestration checks). Release PR CI and owner-dispatched deployment
 must still pass before the URL is offered for a fresh test.
+
+## Canonical KMS key correction (#194)
+
+The deployed Begin request returned 503 before returning a Hosted Link URL.
+An operator-only synthetic encryption probe rejected the project-number resource
+and accepted the project-ID resource for the same development key. This does not
+qualify the runtime service account. The bank-token-vault contract records the
+source review and evidence limits.
+
+API and worker now construct canonical project-ID KMS resources. Migration 20
+accepts canonical key-version metadata while retaining numeric historical rows;
+its downgrade refuses to strand canonical encrypted rows. Tests exercise exact
+KMS routing, SQL key validation, immutable ciphertext, and the downgrade guard.
+Validation passed: `make check test build migration-test ledger-test`,
+`make connection-service-test provider-flow-test`, and
+`make app-integration connection-browser-test`. Local Go tests used installed
+Go 1.26.5 through an external modfile; repository toolchain pins are unchanged.
+A canonical-key synthetic encrypt/decrypt roundtrip also passed under the
+operator account. Runtime identity qualification remains outstanding.
+Deploy migration 20 before promoting API and worker
+images. Keep Scheduler paused until the separate acquisition acceptance.
+
+Official Plaid SDK adoption is tracked separately in #195. Fresh hosted enrollment
+and credential persistence remain unproved; passing unit tests or rollout alone
+does not close #187.

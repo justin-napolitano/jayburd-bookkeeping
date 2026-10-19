@@ -13,7 +13,7 @@ import (
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
 )
 
-const testKey = "projects/123456789/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials"
+const testKey = "projects/jayburd-synthetic-test/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials"
 
 // testWrapper independently authenticates wrapped keys and AAD using a fictional KEK.
 type testWrapper struct{}

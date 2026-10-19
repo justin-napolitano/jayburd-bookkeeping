@@ -98,7 +98,7 @@ func New(parent context.Context, c Config, db connections.Beginner, transport ht
 	if e != nil {
 		return nil, ErrConfiguration
 	}
-	wrapper, e := bankcredential.NewKMS("projects/"+c.ProjectNumber+"/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials", tokens, transport)
+	wrapper, e := bankcredential.NewKMS("projects/"+c.ProjectID+"/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials", tokens, transport)
 	if e != nil {
 		return nil, ErrConfiguration
 	}

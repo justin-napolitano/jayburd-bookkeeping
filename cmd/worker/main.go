@@ -125,7 +125,7 @@ func managed(ctx context.Context, o options) (*workerruntime.Runtime, func(), er
 		cleanup()
 		return nil, nil, workerruntime.ErrConfiguration
 	}
-	wrapper, e := bankcredential.NewKMS("projects/"+o.ProjectNumber+"/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials", tokens, t)
+	wrapper, e := bankcredential.NewKMS("projects/"+project(o.Worker.Instance)+"/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials", tokens, t)
 	if e != nil {
 		cleanup()
 		return nil, nil, workerruntime.ErrConfiguration
