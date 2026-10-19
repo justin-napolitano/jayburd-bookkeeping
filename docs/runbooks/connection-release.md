@@ -42,6 +42,27 @@ passed locally. Migration deployment 39201782204 produced a successful
 execution receipt. That receipt does not attest SQL version or replay; the
 promotion status gate supplies the schema check before service changes.
 
+## Hosted completion recovery deployment evidence (#187)
+
+Migration-only deployment
+[39201782204](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39201782204)
+completed with `migration-execution-passed` using the pinned migrator image.
+Its receipt does not independently attest the final SQL version. PR #190 then
+merged with all five checks passing, and owner-dispatched runtime deployment
+[39203258420](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39203258420)
+passed the status-only migration gate before service rollout. Its retained
+`transport-smoke-passed` receipt records ready API revision
+`jayburd-dev-api-00010-fj8` and web revision `jayburd-dev-web-00010-l28` from
+the approved build. The canonical public web origin returned HTTP 200 on
+2026-10-19. This release did not activate the acquisition Scheduler.
+
+A fresh user-driven Plaid Sandbox enrollment is now the outstanding acceptance
+test: create a new connection attempt, complete Hosted Link, use **Check bank
+setup completion**, and confirm binding review and a connected Item. Old
+attempts predate encrypted handoff storage and cannot validate reload recovery.
+Neither transport smoke nor a Plaid success screen proves exchange or a stored
+credential; #160/#164 remain open until those observations are recorded.
+
 ## Status and boundary
 
 Build on merged PR110 (60c0e3e). Fix explicit connection configuration through the
