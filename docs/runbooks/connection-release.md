@@ -23,6 +23,21 @@ Sandbox enrollment. Historical attempts created before migration 19 lack a
 recoverable token, and a successful release alone does not establish a
 completed Plaid exchange or connected Item.
 
+## Hosted completion recovery runtime candidate (#187)
+
+After migration 19's deployment receipt confirms the schema version, promote the
+matching API and web images from build 39199242284 with `sandbox-promote`.
+The manifest preserves the previously reviewed public identity, Infisical
+metadata, static Sandbox client pins, and explicit `link_events_qualified=false`.
+Its migration job performs status verification only; the acquisition Scheduler
+stays paused. Check the ready API/web revisions and public transport receipt
+before asking the owner to begin a fresh Hosted Sandbox attempt. A deployed
+service is not evidence that Plaid completion or token exchange succeeded.
+The runtime candidate manifest SHA-256 is
+`878e4d86a6740faa20c4945cbf2e9f757c7040624d57fd934d13c45f7486ac6e`.
+Exact build receipts passed the release validator, and `make release-test`
+passed locally. Promotion remains contingent on the migration receipt.
+
 ## Status and boundary
 
 Build on merged PR110 (60c0e3e). Fix explicit connection configuration through the
