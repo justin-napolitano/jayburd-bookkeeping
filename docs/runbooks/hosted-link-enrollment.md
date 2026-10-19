@@ -217,3 +217,21 @@ build` stopped before project checks because the pinned Go 1.26.9 toolchain
 download failed (connection reset in the sandbox; HTTP 403 on approved retry).
 No application code, database migration, cloud resource or hosted connection
 was changed by this documentation update.
+
+## In-app retry/cancel (#200)
+
+Owner requested application recovery instead of manual database operations.
+Migration 21 extends the existing scoped abandonment function to unclaimed new
+setup, under the same lock as exchange. Claimed states and existing credentials
+retain their protections. The browser exposes Try again/Cancel setup beside the
+blocking attempt, and same-tab cancel now persists cancellation. Lost replies
+are read back before a replacement is allowed. No hosted data has been edited.
+
+Validation passed: `make check test build`, connection-service tests (including
+real cancellation-versus-claim concurrency), migration fresh/replay/down/up,
+application integration, and the SDK-backed connection browser journey. The
+journey now cancels a reloaded attempt with a deliberately lost reply, then
+enrolls, acquires and posts synthetic transactions. Web API/type checks, all
+282 UI unit tests, production build and 17 component browser tests passed. The repository-pinned Go download
+failed; local validation uses installed Go 1.26.5 via an external modfile with
+current dependencies. CI remains the exact-toolchain check.

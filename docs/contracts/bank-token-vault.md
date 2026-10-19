@@ -104,15 +104,17 @@ connection/binding/acquisition. Hosted Sandbox acceptance remains separate.
 
 POST `connection-attempts/{attempt}/abandon` requires
 `{"confirm_unrecoverable":true}`. Current initiating-actor connection authority is
-rechecked. Only a new, unpublished credential-recovery attempt with no stored DB
-ciphertext can move to immutable `abandoned`. Preserve nonce/hash/claim/manifest
+rechecked. An unclaimed new setup, or a new unpublished credential-recovery
+attempt with no stored DB ciphertext, can move to immutable `abandoned`. Preserve nonce/hash/claim/manifest
 and append an audit event; do not delete or recycle anything. Discovery excludes
 this terminal state from unfinished_count. It never removes the provider Item;
 known orphaned Sandbox Item cleanup remains explicit. **Try connecting again** is
 the user's affirmative request to resolve and restart a failed new enrollment.
-The UI first reconciles the exact attempt; only a confirmed recovery conflict
+For claimed credential recovery the UI first reconciles the exact attempt; only a confirmed recovery conflict
 followed by an exact read of the still-unresolved attempt can invoke abandon.
 The server checks that no ciphertext or credential publication exists before
 accepting the command. An uncertain response or another unfinished attempt
 stops the restart. The old provider exchange is never repeated.
 This route is an internal operational command, not an ISO 20022 message.
+
+Unclaimed new-setup cancellation additionally follows [#200](hosted-link-enrollment.md#explicit-cancellation-and-retry-200); it cannot discard a claimed exchange or published credential.

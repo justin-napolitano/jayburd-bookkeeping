@@ -139,3 +139,76 @@ func TestAbandonUnavailableCredential(t *testing.T) {
 		t.Fatal("abandoned audit state reactivated")
 	}
 }
+
+// TestCancelUnclaimedSetup proves durable cancellation fences later completion,
+// remains idempotent, and releases enrollment without any provider exchange.
+func TestCancelUnclaimedSetup(t *testing.T) {
+	s, _, db, sc, provider := creatorFixture(t)
+	out, err := s.Begin(context.Background(), sc, "cancel-proof", BeginRequest{Mode: "new", ApprovedStreamIDs: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := proofObject(t, string(out.Attempt))["attempt_id"].(string)
+	if _, err = s.Abandon(context.Background(), Scope{Actor: reader, Entity: sc.Entity, Book: sc.Book}, id); err == nil {
+		t.Fatal("foreign cancellation accepted")
+	}
+	for i := 0; i < 2; i++ {
+		raw, e := s.Abandon(context.Background(), sc, id)
+		if e != nil || proofObject(t, string(raw))["state"] != "abandoned" {
+			t.Fatal("cancel failed", e)
+		}
+	}
+	_, err = s.Execute(context.Background(), sc, id, ExecuteRequest{Nonce: out.Nonce, LinkToken: out.LinkToken, PublicToken: "synthetic-public"})
+	if err == nil {
+		t.Fatal("canceled attempt exchanged")
+	}
+	if count(provider.calls, "exchange") != 0 {
+		t.Fatal("cancellation called provider exchange")
+	}
+	page := proofObject(t, proofCall(t, db, "synthetic_runtime", "SELECT integration.list_connection_attempts($1,$2,$3,100,NULL)::text", sc.Actor, sc.Entity, sc.Book))
+	if page["unfinished_count"] != "0" {
+		t.Fatal("canceled setup blocks enrollment")
+	}
+	next, err := s.Begin(context.Background(), sc, "after-cancel", BeginRequest{Mode: "new", ApprovedStreamIDs: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	nextID := proofObject(t, string(next.Attempt))["attempt_id"].(string)
+	if nextID == id {
+		t.Fatal("reused canceled setup")
+	}
+	_, err = s.Execute(context.Background(), sc, nextID, ExecuteRequest{Nonce: next.Nonce, LinkToken: next.LinkToken, PublicToken: "synthetic-public"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Abandon(context.Background(), sc, nextID); err == nil {
+		t.Fatal("completed exchange abandoned")
+	}
+}
+
+// TestCancelVersusClaim uses competing real SQL sessions; exactly one transition wins.
+func TestCancelVersusClaim(t *testing.T) {
+	s, _, db, sc, _ := creatorFixture(t)
+	out, err := s.Begin(context.Background(), sc, "cancel-race", BeginRequest{Mode: "new", ApprovedStreamIDs: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := proofObject(t, string(out.Attempt))["attempt_id"].(string)
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	go func() {
+		<-start
+		_, e := proofInvoke(t, db, "synthetic_runtime", "SELECT integration.abandon_connection($1,$2,$3,$4)::text", sc.Actor, sc.Entity, sc.Book, id)
+		results <- e
+	}()
+	go func() {
+		<-start
+		_, e := proofInvoke(t, db, "synthetic_runtime", "SELECT integration.claim_connection($1,$2,$3,$4,$5,$6)::text", sc.Actor, sc.Entity, sc.Book, id, out.Nonce, proofRaw(map[string]any{"link_token_sha256": hash(out.LinkToken), "public_token_sha256": hash("synthetic-public")}))
+		results <- e
+	}()
+	close(start)
+	first, second := <-results, <-results
+	if (first == nil) == (second == nil) {
+		t.Fatal("exactly one cancellation or claim must win", first, second)
+	}
+}
