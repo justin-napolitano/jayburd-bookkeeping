@@ -95,8 +95,9 @@ func (t boundedPlaidTransport) RoundTrip(r *http.Request) (*http.Response, error
 				ID string `json:"item_id"`
 			} `json:"item"`
 			Accounts []struct {
-				ID       string `json:"account_id"`
-				Type     string `json:"type"`
+				ID       string  `json:"account_id"`
+				Type     string  `json:"type"`
+				Subtype  *string `json:"subtype"`
 				Balances struct {
 					Currency   *string `json:"iso_currency_code"`
 					Unofficial *string `json:"unofficial_currency_code"`
@@ -272,7 +273,12 @@ func (p *HTTPProvider) Manifest(ctx context.Context, token Secret) (Manifest, er
 		if a.Balances.UnofficialCurrencyCode != nil {
 			currency = nil
 		}
-		m.Accounts = append(m.Accounts, Account{a.AccountID, string(a.Type), currency})
+		var subtype *string
+		if a.Subtype != nil {
+			value := string(*a.Subtype)
+			subtype = &value
+		}
+		m.Accounts = append(m.Accounts, Account{AccountID: a.AccountID, Type: string(a.Type), Subtype: subtype, Currency: currency})
 	}
 	if !validManifest(m) {
 		return Manifest{}, failed("provider_unavailable")

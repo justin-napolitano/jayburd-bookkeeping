@@ -2,10 +2,11 @@
 
 ## Purpose and reading order
 
-[Encrypted bank credentials](../contracts/bank-token-vault.md) records
-selected official Plaid persistent-token, Cloud KMS envelope-encryption and CRC32C
-sections reviewed 2026-10-15. It distinguishes secure datastore requirements from
-our scoped SQL/AAD/immutable-version design. KMS probe: 2026-10-19; runtime unproved.
+[Plaid account binding sources](automatic-account-binding-sources.md): reviewed
+subtype allowlist and limits.
+
+[Encrypted bank credentials](../contracts/bank-token-vault.md): Plaid storage and
+Cloud KMS envelope encryption/CRC32C (2026-10-15); runtime unproved.
 
 
 [First Sandbox reference bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review)

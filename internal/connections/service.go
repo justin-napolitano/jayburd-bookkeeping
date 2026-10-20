@@ -60,6 +60,7 @@ var keyRE = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
 var opaqueRE = regexp.MustCompile(`^[!-~]{1,256}$`)
 var tokenRE = regexp.MustCompile(`^[!-~]+$`)
 var currencyRE = regexp.MustCompile(`^[A-Z]{3}$`)
+var subtypeRE = regexp.MustCompile(`^[a-z0-9][a-z0-9 -]{0,63}$`)
 
 // validID restricts identifiers to canonical nonzero UUIDs.
 func validID(v string) bool {
@@ -522,8 +523,11 @@ func validManifest(m Manifest) bool {
 		}
 		seen[a.AccountID] = true
 		switch a.Type {
-		case "depository", "credit", "loan", "investment", "other":
+		case "depository", "credit", "loan", "investment", "other", "payroll":
 		default:
+			return false
+		}
+		if a.Subtype != nil && !subtypeRE.MatchString(*a.Subtype) {
 			return false
 		}
 		if a.Currency != nil && !currencyRE.MatchString(*a.Currency) {
@@ -569,10 +573,32 @@ func (s *Service) Bind(ctx context.Context, scope Scope, id, key string, input B
 	if e := s.ready(scope); e != nil {
 		return nil, e
 	}
-	if !validID(id) || !keyRE.MatchString(key) {
+	if !validID(id) || !keyRE.MatchString(key) || !validBindingRequest(input) {
 		return nil, failed("invalid_request")
 	}
 	return s.repo.call(ctx, "bind_connection", scope.Actor, scope.Entity, scope.Book, id, key, jsonText(input))
+}
+
+// validBindingRequest rejects malformed automatic account definitions before SQL mutation.
+func validBindingRequest(input BindingRequest) bool {
+	if !input.ConsentGrants || len(input.Bindings) < 1 || len(input.Bindings) > 25 {
+		return false
+	}
+	for _, binding := range input.Bindings {
+		if binding.NewLedgerAccount == nil {
+			continue
+		}
+		account := binding.NewLedgerAccount
+		if !validID(binding.LedgerAccountID) || account.AccountID != binding.LedgerAccountID ||
+			len(account.Code) < 1 || len(account.Code) > 64 || len(account.Name) < 1 || len(account.Name) > 200 ||
+			account.Category != "asset" || account.NormalSide != "debit" || !account.Monetary || account.ActiveFrom != binding.BindingDate {
+			return false
+		}
+		if _, err := time.Parse("2006-01-02", account.ActiveFrom); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 // Disconnect fences one stream and never performs an Item-wide provider operation.

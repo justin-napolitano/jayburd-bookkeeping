@@ -57,13 +57,25 @@ func (ExecuteRequest) GoString() string { return "[connection request redacted]"
 
 // Binding requires explicit account, currency, source and evidence selection.
 type Binding struct {
-	AccountID               string  `json:"account_id"`
-	LedgerAccountID         string  `json:"ledger_account_id"`
-	CurrencyVersionID       string  `json:"currency_version_id"`
-	SourceAccountID         *string `json:"source_account_id"`
-	ExpectedBindingRevision *string `json:"expected_binding_revision"`
-	BindingDate             string  `json:"binding_date"`
-	BindingEvidenceRef      string  `json:"binding_evidence_ref"`
+	AccountID               string            `json:"account_id"`
+	LedgerAccountID         string            `json:"ledger_account_id"`
+	CurrencyVersionID       string            `json:"currency_version_id"`
+	SourceAccountID         *string           `json:"source_account_id"`
+	ExpectedBindingRevision *string           `json:"expected_binding_revision"`
+	BindingDate             string            `json:"binding_date"`
+	BindingEvidenceRef      string            `json:"binding_evidence_ref"`
+	NewLedgerAccount        *NewLedgerAccount `json:"new_ledger_account,omitempty"`
+}
+
+// NewLedgerAccount is the reviewed chart definition created atomically with a new source binding.
+type NewLedgerAccount struct {
+	AccountID  string `json:"account_id"`
+	Code       string `json:"code"`
+	Name       string `json:"name"`
+	Category   string `json:"category"`
+	NormalSide string `json:"normal_side"`
+	Monetary   bool   `json:"monetary"`
+	ActiveFrom string `json:"active_from"`
 }
 
 // BindingRequest explicitly grants the selected source capabilities; it never posts journals.
@@ -115,6 +127,7 @@ type SecretStore interface {
 type Account struct {
 	AccountID string  `json:"account_id"`
 	Type      string  `json:"type"`
+	Subtype   *string `json:"subtype"`
 	Currency  *string `json:"iso_currency_code"`
 }
 

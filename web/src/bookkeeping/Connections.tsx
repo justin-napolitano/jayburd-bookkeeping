@@ -38,6 +38,12 @@ function validHostedURL(value: string): boolean {
   );
 }
 const revision = /^[1-9][0-9]*$/;
+const automaticDepositorySubtypes = new Set([
+  "checking",
+  "savings",
+  "money market",
+  "cash management",
+]);
 const states = [
   "link_pending",
   "link_ready",
@@ -128,7 +134,16 @@ function ConnectionWorkspace({
   const [inspectID, setInspectID] = useState("");
   const [message, setMessage] = useState("");
   const [selection, setSelection] = useState<
-    Record<string, { ledger: string; currency: string }>
+    Record<
+      string,
+      {
+        ledger: string;
+        currency: string;
+        create: boolean;
+        code: string;
+        name: string;
+      }
+    >
   >({});
   const [date, setDate] = useState("");
   const [consent, setConsent] = useState(false);
@@ -172,15 +187,60 @@ function ConnectionWorkspace({
             typeof a.account_id !== "string" ||
             !a.account_id.length ||
             a.account_id.length > 256 ||
-            !["depository", "credit", "loan", "investment", "other"].includes(
-              a.type,
-            ) ||
+            ![
+              "depository",
+              "credit",
+              "loan",
+              "investment",
+              "other",
+              "payroll",
+            ].includes(a.type) ||
+            (a.subtype !== null &&
+              !/^[a-z0-9][a-z0-9 -]{0,63}$/.test(a.subtype)) ||
             (a.iso_currency_code !== null &&
               !/^[A-Z]{3}$/.test(a.iso_currency_code)),
         ))
     )
       throw Error("response");
     return value;
+  };
+  // Proposals come only from the reviewed book/currency snapshot and remain editable before submission.
+  const proposeBindings = (bindingDate: string) => {
+    const used = new Set(book.accounts.map((account) => account.code));
+    let nextCode = 1100;
+    let ordinal = 0;
+    const proposals: typeof selection = {};
+    for (const account of attempt?.manifest?.accounts ?? []) {
+      if (
+        account.type !== "depository" ||
+        account.subtype === null ||
+        !automaticDepositorySubtypes.has(account.subtype) ||
+        !account.iso_currency_code
+      )
+        continue;
+      const currency = currencies.find(
+        (candidate) =>
+          candidate.alphabetic_code === account.iso_currency_code &&
+          candidate.minor_unit !== null &&
+          candidate.valid_from <= bindingDate &&
+          (!candidate.valid_to || bindingDate < candidate.valid_to),
+      );
+      if (!currency) continue;
+      while (used.has(String(nextCode))) nextCode += 1;
+      const code = String(nextCode);
+      used.add(code);
+      nextCode += 1;
+      ordinal += 1;
+      proposals[account.account_id] = {
+        ledger: crypto.randomUUID(),
+        currency: currency.currency_version_id,
+        create: true,
+        code,
+        name: `Bank ${account.subtype} ${ordinal}`,
+      };
+    }
+    setSelection(proposals);
+    setConsent(false);
   };
   // Never print error payloads, provider diagnostics or transient credentials.
   const fail = (error: unknown) => {
@@ -349,6 +409,20 @@ function ConnectionWorkspace({
     // Scope and lock are handled by the keyed outer component; API must be stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api]);
+  useEffect(() => {
+    if (
+      attempt?.state === "binding_review" &&
+      attempt.manifest &&
+      !bindingExpired &&
+      !date
+    ) {
+      const today = new Date().toISOString().slice(0, 10);
+      setDate(today);
+      proposeBindings(today);
+    }
+    // Proposal inputs are immutable within the keyed book workspace.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt, bindingExpired, date]);
   // Inspect does not recreate Link or replay exchange after uncertainty.
   const inspect = (id: string, expired = false, bindingExpiry = false) =>
     run(async () => {
@@ -737,6 +811,19 @@ function ConnectionWorkspace({
           expected_binding_revision: null,
           binding_date: date,
           binding_evidence_ref: crypto.randomUUID(),
+          ...(v.create
+            ? {
+                new_ledger_account: {
+                  account_id: v.ledger,
+                  code: v.code,
+                  name: v.name,
+                  category: "asset" as const,
+                  normal_side: "debit" as const,
+                  monetary: true as const,
+                  active_from: date,
+                },
+              }
+            : {}),
         }));
       if (
         !bindings.length ||
@@ -1237,39 +1324,55 @@ function ConnectionWorkspace({
                       value={date}
                       onChange={(e) => {
                         setDate(e.target.value);
-                        setSelection({});
-                        setConsent(false);
+                        proposeBindings(e.target.value);
                       }}
                     />
                   </label>
+                  <button
+                    type="button"
+                    disabled={!date}
+                    onClick={() => proposeBindings(date)}
+                  >
+                    Create distinct accounts for all supported bank accounts
+                  </button>
                   {attempt.manifest.accounts.map((account) => (
                     <div key={account.account_id}>
                       <p>
-                        {account.account_id} — {account.type},{" "}
+                        {account.account_id} — {account.type}
+                        {account.subtype ? ` / ${account.subtype}` : ""},{" "}
                         {account.iso_currency_code ?? "currency unavailable"}
                       </p>
                       {account.type === "depository" &&
+                      account.subtype !== null &&
+                      automaticDepositorySubtypes.has(account.subtype) &&
                       account.iso_currency_code ? (
                         <>
                           <label>
                             Ledger account for {account.account_id}
                             <select
-                              value={
-                                selection[account.account_id]?.ledger ?? ""
-                              }
+                              value={selection[account.account_id]?.create ? "new" : selection[account.account_id]?.ledger ?? ""}
                               onChange={(e) => {
+                                const previous = selection[account.account_id];
+                                const create = e.target.value === "new";
                                 setSelection((s) => ({
                                   ...s,
                                   [account.account_id]: {
-                                    ledger: e.target.value,
-                                    currency:
-                                      s[account.account_id]?.currency ?? "",
+                                    ledger: create
+                                      ? previous?.create && previous.ledger
+                                        ? previous.ledger
+                                        : crypto.randomUUID()
+                                      : e.target.value,
+                                    currency: previous?.currency ?? "",
+                                    create,
+                                    code: previous?.code ?? "",
+                                    name: previous?.name ?? "",
                                   },
                                 }));
                                 setConsent(false);
                               }}
                             >
                               <option value="">Do not bind</option>
+                              <option value="new">Create a new ledger account</option>
                               {book.accounts
                                 .filter(
                                   (a) =>
@@ -1290,6 +1393,46 @@ function ConnectionWorkspace({
                                 ))}
                             </select>
                           </label>
+                          {selection[account.account_id]?.create && (
+                            <>
+                              <label>
+                                Account code for {account.account_id}
+                                <input
+                                  required
+                                  maxLength={64}
+                                  value={selection[account.account_id]?.code ?? ""}
+                                  onChange={(e) => {
+                                    setSelection((current) => ({
+                                      ...current,
+                                      [account.account_id]: {
+                                        ...current[account.account_id],
+                                        code: e.target.value,
+                                      },
+                                    }));
+                                    setConsent(false);
+                                  }}
+                                />
+                              </label>
+                              <label>
+                                Account name for {account.account_id}
+                                <input
+                                  required
+                                  maxLength={200}
+                                  value={selection[account.account_id]?.name ?? ""}
+                                  onChange={(e) => {
+                                    setSelection((current) => ({
+                                      ...current,
+                                      [account.account_id]: {
+                                        ...current[account.account_id],
+                                        name: e.target.value,
+                                      },
+                                    }));
+                                    setConsent(false);
+                                  }}
+                                />
+                              </label>
+                            </>
+                          )}
                           <label>
                             Currency version for {account.account_id}
                             <select
@@ -1302,6 +1445,10 @@ function ConnectionWorkspace({
                                   [account.account_id]: {
                                     ledger: s[account.account_id]?.ledger ?? "",
                                     currency: e.target.value,
+                                    create:
+                                      s[account.account_id]?.create ?? false,
+                                    code: s[account.account_id]?.code ?? "",
+                                    name: s[account.account_id]?.name ?? "",
                                   },
                                 }));
                                 setConsent(false);
@@ -1352,6 +1499,9 @@ function ConnectionWorkspace({
                       ) ||
                       Object.values(selection).some(
                         (v) => !!v.ledger !== !!v.currency,
+                      ) ||
+                      Object.values(selection).some(
+                        (v) => v.create && (!v.code.trim() || !v.name.trim()),
                       )
                     }
                   >

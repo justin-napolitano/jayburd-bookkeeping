@@ -1442,7 +1442,8 @@ export interface components {
             accounts: {
                 account_id: string;
                 /** @enum {string} */
-                type: "depository" | "credit" | "loan" | "investment" | "other";
+                type: "depository" | "credit" | "loan" | "investment" | "other" | "payroll";
+                subtype: string | null;
                 iso_currency_code: string | null;
             }[];
             /** Format: date-time */
@@ -1514,6 +1515,20 @@ export interface components {
                 binding_date: string;
                 /** Format: uuid */
                 binding_evidence_ref: string;
+                new_ledger_account?: {
+                    /** Format: uuid */
+                    account_id: string;
+                    code: string;
+                    name: string;
+                    /** @constant */
+                    category: "asset";
+                    /** @constant */
+                    normal_side: "debit";
+                    /** @constant */
+                    monetary: true;
+                    /** Format: date */
+                    active_from: string;
+                };
             }[];
         };
         ConnectionBindingResult: {
