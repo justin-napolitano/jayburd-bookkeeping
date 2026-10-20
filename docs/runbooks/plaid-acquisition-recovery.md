@@ -3,7 +3,8 @@
 
 ## Status and boundary
 
-Issue #220, branch fix/plaid-acquisition-recovery. Development Sandbox only.
+Issue #220, release/acquisition-recovery-migration, following merged PR #221.
+Development Sandbox only.
 Existing enrollment retained; no raw provider access or live-account approval.
 
 ## Stage ledger
@@ -15,9 +16,16 @@ Existing enrollment retained; no raw provider access or live-account approval.
 3. **Implementation — complete.** Migration 24 appends diagnostic and recovery
    receipts. Manual request releases known failed slots; status distinguishes
    quarantine/retry from demand. Terminal attempts are preserved.
-4. **Validation — local pass; CI pending.** Synthetic decoder, SQL, browser and
-   repository gates listed below. Hosted compatibility is still unclassified.
-5. **Hosted acceptance — pending.** Classify and repair the precise failure, then
+4. **Validation — complete.** PR #221 checks passed at source `2d640267`.
+   Seed run 39451988284 verified pinned Go 1.26.9 and all SQL/browser gates.
+5. **Candidate images — complete.** Build run 39454157150 passed all validation,
+   exact-image runtime proofs, SBOM generation and HIGH/CRITICAL image scans.
+6. **Migration/worker release — staged.** Exact same-build migration and worker
+   manifests are pinned. Apply migration 24 before promoting the worker. Scheduler
+   is verified paused; exact scheduler/task-invoker service grants are present.
+7. **Application release — staged separately.** The matching API/web candidate
+   uses the reviewed finite Sandbox configuration and validates migration status.
+8. **Hosted acceptance — pending.** Classify and repair the precise failure, then
    prove publication and transaction review on the existing enrollment.
 
 ## Current evidence
@@ -33,7 +41,8 @@ quarantine recovery is separately proved with real restricted SQL sessions.
 
 Local Go checks used a cached, network-isolated Go 1.27.2 container and cached
 public modules because the Go 1.26.9 download was blocked. The repository toolchain
-pin is unchanged; GitHub CI must verify it. No tests accessed cloud/provider data.
+pin is unchanged and both PR/build CI verified Go 1.26.9. No tests accessed
+cloud/provider data.
 
 First CI pass reached the provider-publication privilege inventory and correctly
 rejected the additional diagnostic function until its exact signature was added
@@ -48,7 +57,7 @@ reproduced valid-response fix; hosted decoder classifications remain pending.
 
 ## Remaining work
 
-Run CI and release diagnostics/recovery, then reproduce and repair the precise
+Release diagnostics/recovery in the reviewed order, then reproduce and repair the precise
 hosted compatibility failure without another enrollment.
 No successful acquisition or complete history claim follows from existing 204s.
 
