@@ -26,9 +26,10 @@ approve live institutions.
    exact-image tests, SBOM generation, and HIGH/CRITICAL vulnerability scans for
    merge commit `fb78f77`. Deployment run 39367127863 applied migration 23 without
    changing service traffic.
-7. **Runtime release — staged.** The matching digest-pinned API/web candidate
-   preserves the reviewed Sandbox connection policy and runs bounded transport
-   verification after promotion.
+7. **Runtime release — complete.** Deployment run 39367505052 promoted the
+   matching digest-pinned API/web candidate from release commit `706ccf44`,
+   preserved the reviewed Sandbox connection policy, and passed bounded
+   anonymous transport verification.
 8. **Hosted acceptance — pending.** After runtime promotion succeeds, repeat the
    owner-driven Sandbox flow.
 
@@ -40,9 +41,8 @@ connection journey checks pass with migration 23.
 
 ## Remaining work
 
-Merge and dispatch the matching runtime promotion, then complete the owner-driven
-Plaid Sandbox acceptance check in development. Credit and loan binding remains
-outside this issue.
+Complete the owner-driven Plaid Sandbox acceptance check in development. Credit
+and loan binding remains outside this issue.
 
 ## PR handoff
 
