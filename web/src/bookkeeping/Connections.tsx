@@ -7,6 +7,16 @@ type Attempt = components["schemas"]["ConnectionAttempt"];
 type Listing = components["schemas"]["ConnectionList"];
 type Begin = components["schemas"]["ConnectionBeginResult"];
 type Binding = components["schemas"]["ConnectionBindingRequest"];
+type BindingSelection = Record<
+  string,
+  {
+    ledger: string;
+    currency: string;
+    create: boolean;
+    code: string;
+    name: string;
+  }
+>;
 // Public status and action shapes come only from the coordinator's frozen OpenAPI.
 type AttemptPage = components["schemas"]["ConnectionAttemptList"];
 type StreamStatus = components["schemas"]["ConnectionStreamStatus"];
@@ -44,6 +54,34 @@ const automaticDepositorySubtypes = new Set([
   "money market",
   "cash management",
 ]);
+// Readiness is visible beside the action; a disabled financial command never hides its cause.
+function bindingBlockers(
+  selection: BindingSelection,
+  date: string,
+  consent: boolean,
+): string[] {
+  const values = Object.values(selection);
+  const selected = values.filter((value) => value.ledger && value.currency);
+  const blockers: string[] = [];
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) blockers.push("choose a binding date");
+  if (!selected.length)
+    blockers.push("create or select a ledger account with a matching currency");
+  if (values.some((value) => !!value.ledger !== !!value.currency))
+    blockers.push("complete or clear every partial account selection");
+  if (new Set(selected.map((value) => value.ledger)).size !== selected.length)
+    blockers.push(
+      "use a distinct ledger account for each selected bank account",
+    );
+  if (
+    values.some(
+      (value) => value.create && (!value.code.trim() || !value.name.trim()),
+    )
+  )
+    blockers.push("provide a code and name for every new ledger account");
+  if (!consent)
+    blockers.push("acknowledge the source mappings and access grant");
+  return blockers;
+}
 const states = [
   "link_pending",
   "link_ready",
@@ -133,20 +171,10 @@ function ConnectionWorkspace({
   const [operation, setOperation] = useState<StreamAction | null>(null);
   const [inspectID, setInspectID] = useState("");
   const [message, setMessage] = useState("");
-  const [selection, setSelection] = useState<
-    Record<
-      string,
-      {
-        ledger: string;
-        currency: string;
-        create: boolean;
-        code: string;
-        name: string;
-      }
-    >
-  >({});
+  const [selection, setSelection] = useState<BindingSelection>({});
   const [date, setDate] = useState("");
   const [consent, setConsent] = useState(false);
+  const [cancelReview, setCancelReview] = useState("");
   const [disconnect, setDisconnect] = useState<
     Listing["items"][number]["accounts"][number] | null
   >(null);
@@ -433,6 +461,7 @@ function ConnectionWorkspace({
       setBindingExpired(discovered?.binding_expired ?? bindingExpiry);
       setSelection({});
       setConsent(false);
+      setCancelReview("");
       let value: Attempt;
       try {
         value = await api<Attempt>(`${base}/connection-attempts/${id}`);
@@ -463,6 +492,7 @@ function ConnectionWorkspace({
     setAttempt(null);
     setSelection({});
     setConsent(false);
+    setCancelReview("");
     const begun = await api<Begin>(
       `${base}/connection-attempts`,
       JSON.stringify({
@@ -565,6 +595,7 @@ function ConnectionWorkspace({
       }
       setHosted(null);
       setEnrollmentStarted(false);
+      setCancelReview("");
       setMessage(
         "Setup canceled. You can connect an account whenever you’re ready.",
       );
@@ -793,12 +824,13 @@ function ConnectionWorkspace({
   // Build only an explicit new-source mapping; SQL checks all current grants and pins.
   const bind = () =>
     run(async () => {
+      const blockers = bindingBlockers(selection, date, consent);
       if (
         !attempt ||
         bindingExpired ||
         attempt.state !== "binding_review" ||
-        !consent ||
-        pending
+        pending ||
+        blockers.length
       )
         return;
       const bindings: Binding["bindings"] = Object.entries(selection)
@@ -1350,7 +1382,12 @@ function ConnectionWorkspace({
                           <label>
                             Ledger account for {account.account_id}
                             <select
-                              value={selection[account.account_id]?.create ? "new" : selection[account.account_id]?.ledger ?? ""}
+                              value={
+                                selection[account.account_id]?.create
+                                  ? "new"
+                                  : (selection[account.account_id]?.ledger ??
+                                    "")
+                              }
                               onChange={(e) => {
                                 const previous = selection[account.account_id];
                                 const create = e.target.value === "new";
@@ -1372,7 +1409,9 @@ function ConnectionWorkspace({
                               }}
                             >
                               <option value="">Do not bind</option>
-                              <option value="new">Create a new ledger account</option>
+                              <option value="new">
+                                Create a new ledger account
+                              </option>
                               {book.accounts
                                 .filter(
                                   (a) =>
@@ -1400,7 +1439,9 @@ function ConnectionWorkspace({
                                 <input
                                   required
                                   maxLength={64}
-                                  value={selection[account.account_id]?.code ?? ""}
+                                  value={
+                                    selection[account.account_id]?.code ?? ""
+                                  }
                                   onChange={(e) => {
                                     setSelection((current) => ({
                                       ...current,
@@ -1418,7 +1459,9 @@ function ConnectionWorkspace({
                                 <input
                                   required
                                   maxLength={200}
-                                  value={selection[account.account_id]?.name ?? ""}
+                                  value={
+                                    selection[account.account_id]?.name ?? ""
+                                  }
                                   onChange={(e) => {
                                     setSelection((current) => ({
                                       ...current,
@@ -1490,25 +1533,70 @@ function ConnectionWorkspace({
                     I confirm these new source mappings and grant this account's
                     scoped acquisition access.
                   </label>
+                  {(() => {
+                    const blockers = bindingBlockers(selection, date, consent);
+                    return blockers.length ? (
+                      <p id="binding-readiness" role="status">
+                        To confirm: {blockers.join("; ")}.
+                      </p>
+                    ) : (
+                      <p id="binding-readiness" role="status">
+                        All selected bindings are ready to confirm.
+                      </p>
+                    );
+                  })()}
                   <button
+                    aria-describedby="binding-readiness"
                     disabled={
-                      !consent ||
-                      !date ||
-                      !Object.values(selection).some(
-                        (v) => v.ledger && v.currency,
-                      ) ||
-                      Object.values(selection).some(
-                        (v) => !!v.ledger !== !!v.currency,
-                      ) ||
-                      Object.values(selection).some(
-                        (v) => v.create && (!v.code.trim() || !v.name.trim()),
-                      )
+                      bindingBlockers(selection, date, consent).length > 0
                     }
                   >
                     Confirm selected bindings
                   </button>
                 </fieldset>
               </form>
+            )}
+          {attempt.mode === "new" &&
+            ["binding_review", "disconnect_pending"].includes(
+              attempt.state,
+            ) && (
+              <section aria-label="Cancel bank setup">
+                {attempt.state === "disconnect_pending" && (
+                  <p>
+                    Cancellation is waiting for Plaid Item removal. Resume the
+                    same cancellation; do not start another bank connection.
+                  </p>
+                )}
+                {cancelReview !== attempt.attempt_id ? (
+                  <button
+                    type="button"
+                    disabled={mutable}
+                    onClick={() => setCancelReview(attempt.attempt_id)}
+                  >
+                    {attempt.state === "disconnect_pending"
+                      ? "Resume canceling setup"
+                      : "Cancel setup and start over"}
+                  </button>
+                ) : (
+                  <fieldset disabled={mutable}>
+                    <legend>Confirm bank setup cancellation</legend>
+                    <p>
+                      Remove this unbound Plaid Item and keep its audit history.
+                      No ledger accounts or journals will be created. A new
+                      setup becomes available only after removal is confirmed.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void cancelSetup(attempt, !!link)}
+                    >
+                      Confirm cancellation
+                    </button>{" "}
+                    <button type="button" onClick={() => setCancelReview("")}>
+                      Keep this setup
+                    </button>
+                  </fieldset>
+                )}
+              </section>
             )}
         </article>
       )}

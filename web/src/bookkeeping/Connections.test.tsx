@@ -393,21 +393,50 @@ it("TestConnectionsAutomaticBinding proposes distinct accounts for every support
     target: { value: attempt.attempt_id },
   });
   fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
-  await screen.findByRole("group", { name: "Review verified account bindings" });
+  await screen.findByRole("group", {
+    name: "Review verified account bindings",
+  });
   fireEvent.change(screen.getByLabelText("Binding date"), {
     target: { value: "2026-10-19" },
   });
   expect(
     screen.getByText("This account cannot be bound in this profile."),
   ).not.toBeNull();
+  expect(
+    screen.getByText(/To confirm: acknowledge the source mappings/),
+  ).toBeTruthy();
+  expect(
+    (
+      screen.getByRole("button", {
+        name: "Confirm selected bindings",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
   fireEvent.click(screen.getByRole("checkbox"));
+  expect(
+    screen.getByText("All selected bindings are ready to confirm."),
+  ).toBeTruthy();
+  expect(
+    (
+      screen.getByRole("button", {
+        name: "Confirm selected bindings",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(false);
   fireEvent.click(
     screen.getByRole("button", { name: "Confirm selected bindings" }),
   );
   await waitFor(() => expect(submitted).toBeDefined());
   expect(submitted!.bindings).toHaveLength(3);
-  expect(new Set(submitted!.bindings.map((binding) => binding.ledger_account_id)).size).toBe(3);
-  expect(new Set(submitted!.bindings.map((binding) => binding.new_ledger_account?.code)).size).toBe(3);
+  expect(
+    new Set(submitted!.bindings.map((binding) => binding.ledger_account_id))
+      .size,
+  ).toBe(3);
+  expect(
+    new Set(
+      submitted!.bindings.map((binding) => binding.new_ledger_account?.code),
+    ).size,
+  ).toBe(3);
   expect(
     submitted!.bindings.every(
       (binding) =>
@@ -560,6 +589,62 @@ it.each([true, false])(
     ).toHaveLength(1);
   },
 );
+
+// A published but unbound Item is removed server-side before a fresh setup begins.
+it("cancels binding review with explicit confirmation and then starts over", async () => {
+  let abandoned = false;
+  const reviewed = {
+    ...attempt,
+    state: "binding_review",
+    sync_item_id: id(6),
+    manifest,
+    expired_unclaimed: false,
+    binding_expired: false,
+  };
+  const api = vi.fn(async (path: string, body?: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.includes("/connection-attempts?"))
+      return {
+        items: [
+          { ...reviewed, state: abandoned ? "abandoned" : "binding_review" },
+        ],
+        next_cursor: null,
+        unfinished_count: abandoned ? "0" : "1",
+      };
+    if (path.endsWith(`/connection-attempts/${attempt.attempt_id}`))
+      return { ...reviewed, state: abandoned ? "abandoned" : "binding_review" };
+    if (path.endsWith("/abandon")) {
+      expect(JSON.parse(body!)).toEqual({ confirm_unrecoverable: true });
+      abandoned = true;
+      return { ...reviewed, state: "abandoned" };
+    }
+    if (path.endsWith("/connection-attempts"))
+      return {
+        attempt: { ...attempt, attempt_id: id(10) },
+        nonce: id(9),
+        link_token: "synthetic-link",
+        expires_at: attempt.expires_at,
+        hosted_link_url: "https://secure.plaid.com/hl/synthetic",
+      };
+    throw Error(`unexpected ${path}`);
+  }) as unknown as API;
+  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: `Review attempt ${attempt.attempt_id}`,
+    }),
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Cancel setup and start over" }),
+  );
+  expect(screen.getByText(/Remove this unbound Plaid Item/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Confirm cancellation" }));
+  await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+  expect(abandoned).toBe(true);
+  expect(
+    vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/abandon")),
+  ).toHaveLength(1);
+});
 
 // A confirmed rejection needs a fresh review rather than an endless immutable retry envelope.
 it("TestConnectionsScopeAndRecovery clears confirmed disconnect rejection", async () => {
