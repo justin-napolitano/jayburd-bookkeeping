@@ -47,6 +47,8 @@ if rejection=$(identity -v source_release=wrong -v subject=fictional-private-sub
 actor=$(sql "SELECT principal_id FROM ledger.principal WHERE subject='fictional-owner'")
 [[ "$(sql 'SELECT count(*) FROM audit.identity_action')" == 1 ]]
 echo 'PASS TestIdentityInitialReplay'
+[[ "$(sql "SELECT count(*) FROM reference.currency WHERE currency_version_id='3a184659-cf9b-4b80-b140-3f7a7796cbbd' AND alphabetic_code='USD' AND numeric_code='840' AND minor_unit=2 AND valid_from=DATE '2001-01-01' AND valid_to=DATE '2026-09-17'")" == 1 ]]
+echo 'PASS TestBootstrapHistoricalCurrencyReplay'
 # Rejected source/version and alternate-ID overlap cannot leave partial enrollment.
 reject sandbox_reference_rejected identity -v source_release=synthetic-fixture
 reject "overlapping currency versions" identity -v currency_id=00000000-0000-4000-8000-000000000099 -v subject=not-enrolled
