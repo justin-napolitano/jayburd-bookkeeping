@@ -22,8 +22,12 @@ approve live institutions.
 5. **Integrated evidence — complete.** The disposable browser/API/PostgreSQL
    proof removes one unbound Item, starts a distinct replacement enrollment,
    binds three supported accounts, and completes acquisition and posting.
-6. **Hosted acceptance — pending release.** Apply migration 23 before the API
-   revision, then repeat the owner-driven Sandbox flow against development.
+6. **Migration release — staged.** Build run 39365706118 passed validation,
+   exact-image tests, SBOM generation, and HIGH/CRITICAL vulnerability scans for
+   merge commit `fb78f77`. The digest-pinned migration candidate applies migration
+   23 without changing service traffic.
+7. **Runtime and hosted acceptance — pending.** After migration 23 succeeds,
+   promote the matching API/web images and repeat the owner-driven Sandbox flow.
 
 ## Current evidence
 
@@ -33,9 +37,9 @@ connection journey checks pass with migration 23.
 
 ## Remaining work
 
-Apply migration 23 before the API revision, then complete the owner-driven
-Plaid Sandbox acceptance check in development. Credit and loan binding remains
-outside this issue.
+Merge and dispatch the migration candidate, then prepare a separate matching
+runtime promotion. Complete the owner-driven Plaid Sandbox acceptance check in
+development. Credit and loan binding remains outside this issue.
 
 ## PR handoff
 
