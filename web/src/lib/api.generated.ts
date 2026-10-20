@@ -1621,6 +1621,16 @@ export interface components {
             unfinished_count: string;
         };
         ConnectionStreamStatus: {
+            /**
+             * @description Durable delivery disposition; HTTP acknowledgement is not publication.
+             * @enum {string|null}
+             */
+            delivery_state?: "ready" | "running" | "retry_wait" | "succeeded" | "quarantined" | null;
+            /**
+             * @description Fixed classification from the latest acquisition; never provider data.
+             * @enum {string|null}
+             */
+            decoder_error?: "invalid_json" | "duplicate_key" | "limit_exceeded" | "invalid_number" | "invalid_expectation" | "invalid_field" | "unknown_field" | "unknown_enum" | "invalid_cursor_encoding" | "invalid_cursor_progress" | "account_mismatch" | "unsupported_account" | "invalid_identity" | "duplicate_identity" | "invalid_lineage" | "invalid_date" | "unsupported_currency" | "amount_out_of_range" | null;
             /** Format: uuid */
             stream_id: string;
             /** Format: uuid */
@@ -1645,6 +1655,7 @@ export interface components {
             readiness: "TRANSACTIONS_UPDATE_STATUS_UNKNOWN" | "NOT_READY" | "INITIAL_UPDATE_COMPLETE" | "HISTORICAL_UPDATE_COMPLETE";
             last_error: ("pagination_mutation" | "provider_failure" | "decoder_rejected" | "cancelled" | "item_changed" | "lease_expired" | "account_disconnected" | "account_paused") | null;
         };
+        /** @description Explicit scoped control. A request signals new demand and may release a proven permanent acquisition failure for a fresh attempt; unknown outcomes remain quarantined. Exact-key replay preserves the original receipt. */
         ConnectionStreamOperation: {
             /** @enum {string} */
             action: "pause" | "resume" | "request";

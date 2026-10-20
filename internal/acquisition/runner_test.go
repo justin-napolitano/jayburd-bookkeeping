@@ -46,6 +46,7 @@ func fixturePage(id, amount, currency, cursor string, more bool) []byte {
 
 // fakeRepository models metadata/commit faults while real SQL is tested separately.
 type fakeRepository struct {
+	decoderCode                   string
 	context                       workContext
 	state                         string
 	key                           string
@@ -54,6 +55,15 @@ type fakeRepository struct {
 	calls, claims                 int
 	denied                        bool
 	stageUnknown, completeUnknown bool
+}
+
+// RejectDecode models an atomic fixed-code diagnostic and abandonment without provider data.
+func (f *fakeRepository) RejectDecode(ctx context.Context, s Scope, a attempt, code string) error {
+	if err := f.Abandon(ctx, s, a, "decoder_rejected"); err != nil {
+		return err
+	}
+	f.decoderCode = code
+	return nil
 }
 
 // contextFixture supplies independent trusted metadata and exact engineering limits.
@@ -296,6 +306,19 @@ func TestPlaidCompleteUpdate(t *testing.T) {
 }
 
 // TestRunnerUnknownCommitAndRevocation suppresses refetch on uncertain stage/completion and external calls on denied scope.
+// TestRunnerDecodeDiagnostic keeps a fixed reason and abandons before any publication.
+func TestRunnerDecodeDiagnostic(t *testing.T) {
+	repo := &fakeRepository{context: contextFixture()}
+	repo.context.Currency.ValidFrom = "2026-09-17"
+	runner := runnerFixture(t, repo, providerFunc(func(context.Context, FetchRequest) ([]byte, error) {
+		return fixturePage("Txn-A", "1.01", "USD", "C1", false), nil
+	}))
+	out, err := runner.Run(context.Background(), scopeFixture(), testClaim)
+	if err == nil || err.Error() != "decoder_rejected" || out.Status != "abandoned" || repo.decoderCode != "unsupported_currency" || len(repo.pages) != 0 {
+		t.Fatal("decoder reason lost or partially published", out, err, repo.decoderCode)
+	}
+}
+
 func TestRunnerUnknownCommitAndRevocation(t *testing.T) {
 	for _, where := range []string{"stage", "complete"} {
 		t.Run(where, func(t *testing.T) {
