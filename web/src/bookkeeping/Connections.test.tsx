@@ -801,6 +801,30 @@ it("TestConnectionsDiscovery shows expired unclaimed without replay and paginate
   );
 });
 // Request receipt is never rendered as a provider timestamp or posted amount.
+it("shows quarantined decoding as stopped instead of promising queued work", async () => {
+  const api = vi.fn(async (path: string) =>
+    path.endsWith("/status")
+      ? {
+          ...status,
+          delivery_state: "quarantined",
+          decoder_error: "unsupported_currency",
+          last_error: "decoder_rejected",
+        }
+      : listing,
+  ) as unknown as API;
+  render(<Connections {...props(api)} />);
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: "View sync status for synthetic-account",
+    }),
+  );
+  await screen.findByText(/Sync stopped after a failure/);
+  expect(screen.queryByText(/Sync work is queued/)).toBeNull();
+  expect(
+    screen.getByText("Data validation: unsupported currency."),
+  ).toBeTruthy();
+});
+
 it("TestConnectionsStreamStatus shows exact generations and honest unknown timestamps", async () => {
   const api = vi.fn(async (path: string) =>
     path.endsWith("/status") ? status : listing,
