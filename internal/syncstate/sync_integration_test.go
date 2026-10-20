@@ -506,6 +506,23 @@ func TestSyncLimitsAndNullInput(t *testing.T) {
 	}
 }
 
+// TestSyncEmptyAccountItemReadiness keeps Item status distinct from filtered-account cursor availability.
+func TestSyncEmptyAccountItemReadiness(t *testing.T) {
+	for _, readiness := range []string{"TRANSACTIONS_UPDATE_STATUS_UNKNOWN", "NOT_READY", "INITIAL_UPDATE_COMPLETE", "HISTORICAL_UPDATE_COMPLETE"} {
+		t.Run(readiness, func(t *testing.T) {
+			_, db, s := setup(t)
+			x := claim(t, db, s, claimID)
+			p := page(0, nil, "", false, nil, nil, nil)
+			p["transactions_update_status"] = readiness
+			stageOK(t, db, s, x, p)
+			result := object(t, completeOK(t, db, s, x))
+			if result["cursor"] != nil || result["changed_count"] != "0" || result["readiness"] != readiness {
+				t.Fatal("empty account mapping changed", result)
+			}
+		})
+	}
+}
+
 func TestSyncPrivileges(t *testing.T) {
 	c, db, _ := setup(t)
 	_, guardErr := c.Exec(context.Background(), "UPDATE integration.sync_stream SET account_id='rewritten'")

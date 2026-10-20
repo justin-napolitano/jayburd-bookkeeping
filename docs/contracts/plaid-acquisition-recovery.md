@@ -17,6 +17,15 @@ cursors. Transactions can precede enrollment (default history request 90 days).
 ISO currency validity must still cover the source date. A successful response is
 not evidence that our bounded schema/date profile accepts it.
 
+Confirmed compatibility defect: SQL staging rejects an empty first/final account
+page with INITIAL_UPDATE_COMPLETE or HISTORICAL_UPDATE_COMPLETE even though the
+reviewed Go decoder accepts it. The Item status and filtered account's cursor are
+independent (decoder contract's 2026-10-14 correction). Migration 24 accepts these
+two known statuses only for the existing strictly empty initial page; it never
+permits an empty cursor after a nonempty page or when has_more is true. Named
+regression: TestSyncEmptyAccountItemReadiness, all four known Item statuses.
+This reproduces a valid-response mismatch, not proof of the actual private page.
+
 Keep strict material validation; do not guess the rejected field or relax money,
 currency dates, source ownership, duplicate keys or account filtering. Persist a
 closed decoder classification atomically with abandonment; expose only the safe
