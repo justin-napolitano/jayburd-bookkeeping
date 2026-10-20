@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -43,6 +44,8 @@ type connectionProofProvider struct {
 	*connections.HTTPProvider
 	exchanges   atomic.Int64
 	completions atomic.Int64
+	removals    atomic.Int64
+	sessions    atomic.Int64
 }
 
 // RoundTrip counts provider effects and never sends a request outside the synthetic fixture.
@@ -57,25 +60,50 @@ func (p *connectionProofProvider) RoundTrip(r *http.Request) (*http.Response, er
 	data := ""
 	switch r.URL.Path {
 	case "/link/token/create":
-		data = `{"link_token":"synthetic-link","hosted_link_url":"https://secure.plaid.com/hl/synthetic","expiration":"` + time.Now().Add(5*time.Minute).UTC().Format(time.RFC3339) + `"}`
+		p.completions.Store(0)
+		session := p.sessions.Add(1)
+		data = `{"link_token":"synthetic-link-` + fmt.Sprint(session) + `","hosted_link_url":"https://secure.plaid.com/hl/synthetic","expiration":"` + time.Now().Add(5*time.Minute).UTC().Format(time.RFC3339) + `"}`
 	case "/link/token/get":
-		if string(body["link_token"]) != `"synthetic-link"` {
+		linkToken := strings.Trim(string(body["link_token"]), `"`)
+		if !strings.HasPrefix(linkToken, "synthetic-link-") {
 			return nil, errors.New("wrong link token")
 		}
-		data = `{"link_token":"synthetic-link","link_sessions":[]}`
+		publicToken := strings.Replace(linkToken, "synthetic-link-", "synthetic-public-", 1)
+		data = `{"link_token":"` + linkToken + `","link_sessions":[]}`
 		if p.completions.Add(1) > 1 {
-			data = `{"link_token":"synthetic-link","link_sessions":[{"finished_at":"` + time.Now().Add(-time.Second).UTC().Format(time.RFC3339) + `","results":{"item_add_results":[{"public_token":"synthetic-public"}]}}]}`
+			data = `{"link_token":"` + linkToken + `","link_sessions":[{"finished_at":"` + time.Now().Add(-time.Second).UTC().Format(time.RFC3339) + `","results":{"item_add_results":[{"public_token":"` + publicToken + `"}]}}]}`
 		}
 	case "/item/public_token/exchange":
-		if string(body["public_token"]) != `"synthetic-public"` {
+		publicToken := strings.Trim(string(body["public_token"]), `"`)
+		if !strings.HasPrefix(publicToken, "synthetic-public-") {
 			return nil, errors.New("wrong public token")
 		}
 		p.exchanges.Add(1)
-		data = `{"access_token":"synthetic-access","item_id":"synthetic-flow-item"}`
+		if publicToken == "synthetic-public-2" {
+			data = `{"access_token":"synthetic-cancel-access","item_id":"synthetic-cancel-item"}`
+		} else {
+			data = `{"access_token":"synthetic-access","item_id":"synthetic-flow-item"}`
+		}
 	case "/item/get":
-		data = `{"item":{"item_id":"synthetic-flow-item","error":null}}`
+		itemID := "synthetic-flow-item"
+		if string(body["access_token"]) == `"synthetic-cancel-access"` {
+			itemID = "synthetic-cancel-item"
+		}
+		data = `{"item":{"item_id":"` + itemID + `","error":null}}`
 	case "/accounts/get":
-		data = `{"item":{"item_id":"synthetic-flow-item"},"accounts":[{"account_id":"synthetic-flow-account","type":"depository","subtype":"checking","balances":{"iso_currency_code":"USD","current":9007199254740993.01}},{"account_id":"synthetic-savings-account","type":"depository","subtype":"savings","balances":{"iso_currency_code":"USD","current":100.00}},{"account_id":"synthetic-market-account","type":"depository","subtype":"money market","balances":{"iso_currency_code":"USD","current":200.00}}]}`
+		itemID := "synthetic-flow-item"
+		accountPrefix := "synthetic"
+		if string(body["access_token"]) == `"synthetic-cancel-access"` {
+			itemID = "synthetic-cancel-item"
+			accountPrefix = "synthetic-cancel"
+		}
+		data = `{"item":{"item_id":"` + itemID + `"},"accounts":[{"account_id":"` + accountPrefix + `-flow-account","type":"depository","subtype":"checking","balances":{"iso_currency_code":"USD","current":9007199254740993.01}},{"account_id":"` + accountPrefix + `-savings-account","type":"depository","subtype":"savings","balances":{"iso_currency_code":"USD","current":100.00}},{"account_id":"` + accountPrefix + `-market-account","type":"depository","subtype":"money market","balances":{"iso_currency_code":"USD","current":200.00}}]}`
+	case "/item/remove":
+		if string(body["access_token"]) != `"synthetic-cancel-access"` {
+			return nil, errors.New("wrong access token")
+		}
+		p.removals.Add(1)
+		data = `{"request_id":"synthetic-remove"}`
 	default:
 		return nil, errors.New("unexpected provider operation")
 	}
@@ -245,7 +273,7 @@ func (f *connectionBrowserFixture) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"status": result.Status, "changed_count": result.ChangedCount, "fetch_count": f.transport.calls.Load(), "exchange_count": f.provider.exchanges.Load(), "journal_count": journals, "created_account_count": createdAccounts, "source_count": sources, "stream_count": streams})
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": result.Status, "changed_count": result.ChangedCount, "fetch_count": f.transport.calls.Load(), "exchange_count": f.provider.exchanges.Load(), "removal_count": f.provider.removals.Load(), "journal_count": journals, "created_account_count": createdAccounts, "source_count": sources, "stream_count": streams})
 }
 
 // wrap installs the synthetic trigger behind the same origin boundary, only in this test executable.

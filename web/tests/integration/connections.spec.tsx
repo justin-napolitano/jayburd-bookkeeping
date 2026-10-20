@@ -33,20 +33,45 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page.getByRole("button", { name: "Cancel setup", exact: true }).click();
   await expect(connect).toBeEnabled();
   await page.unroute("**/connection-attempts/*/abandon");
+  // A completed Link handoff can still be canceled from binding review. The
+  // application removes the unbound Item before opening the replacement setup.
+  await connect.click();
+  await page
+    .getByRole("button", { name: "Check bank setup completion" })
+    .click();
+  await expect(
+    page.getByText(/Plaid has not reported completion yet/),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Check bank setup completion" })
+    .click();
+  await expect(
+    page.getByRole("group", { name: "Review verified account bindings" }),
+  ).toBeVisible();
+  await expect(page.getByRole("status")).toContainText(
+    "acknowledge the source mappings and access grant",
+  );
+  await page
+    .getByRole("button", { name: "Cancel setup and start over" })
+    .click();
+  await page.getByRole("button", { name: "Confirm cancellation" }).click();
+  await expect(
+    page.getByRole("link", { name: "Open Plaid Sandbox" }),
+  ).toBeVisible();
   // Lose the exchange response after its commit: reload must discover recovery without a saved UUID.
   let exchangeDropped = false;
   await page.route("**/connection-attempts/*/complete", async (route) => {
     if (exchangeDropped) return route.continue();
     const response = await route.fetch();
-    expect(response.ok()).toBe(true);
+    if (!response.ok())
+      throw new Error(
+        `connection completion failed: ${response.status()} ${await response.text()}`,
+      );
     const result = await response.json();
     if (result.state === "link_ready") return route.fulfill({ response });
     exchangeDropped = true;
     await route.abort("failed");
   });
-  await expect(connect).toBeEnabled();
-  await connect.focus();
-  await page.keyboard.press("Enter");
   await expect(
     page.getByRole("link", { name: "Open Plaid Sandbox" }),
   ).toHaveAttribute("rel", "noopener noreferrer");
@@ -177,7 +202,8 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   expect(first.ok()).toBe(true);
   expect(await first.json()).toMatchObject({
     fetch_count: 1,
-    exchange_count: 1,
+    exchange_count: 2,
+    removal_count: 1,
     journal_count: "0",
     created_account_count: "3",
     source_count: "3",
@@ -228,7 +254,8 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   expect(replay.ok()).toBe(true);
   expect(await replay.json()).toMatchObject({
     fetch_count: 1,
-    exchange_count: 1,
+    exchange_count: 2,
+    removal_count: 1,
     journal_count: "1",
   });
   await page.getByRole("button", { name: "Connections", exact: true }).click();

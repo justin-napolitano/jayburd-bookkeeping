@@ -280,6 +280,88 @@ func TestConnectionAutoAccountAtomicity(t *testing.T) {
 	}
 }
 
+// TestBindingReviewCancelSQL proves provider removal precedes terminal local abandonment.
+func TestBindingReviewCancelSQL(t *testing.T) {
+	s, admin, provider, _ := sqlService(t)
+	id, input := sqlBegin(t, s, "cancel-binding-review")
+	if _, err := s.Execute(context.Background(), scope, id, input); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Abandon(context.Background(), Scope{Actor: reader, Entity: entity, Book: book}, id); err == nil {
+		t.Fatal("foreign actor canceled binding review")
+	}
+	result, err := s.Abandon(context.Background(), scope, id)
+	if err != nil || proofObject(t, string(result))["state"] != "abandoned" {
+		t.Fatal("binding review cancellation failed", err)
+	}
+	if count(provider.calls, "remove") != 1 ||
+		proofValue(t, admin, "SELECT state FROM integration.sync_item") != "disconnected" ||
+		proofValue(t, admin, "SELECT count(*)::text FROM integration.sync_stream") != "0" ||
+		proofValue(t, admin, "SELECT count(*)::text FROM banking.source_account") != "0" ||
+		proofValue(t, admin, "SELECT count(*)::text FROM ledger.journal_entry") != "0" {
+		t.Fatal("binding cancellation left active or financial state")
+	}
+	if _, err = s.Abandon(context.Background(), scope, id); err != nil || count(provider.calls, "remove") != 1 {
+		t.Fatal("terminal cancellation replayed provider removal", err)
+	}
+	if proofValue(t, admin, "SELECT count(*)::text FROM integration.connection_attempt a WHERE integration.connection_unfinished(a)") != "0" {
+		t.Fatal("confirmed cancellation still blocks enrollment")
+	}
+}
+
+// TestBindingReviewCancelFailure keeps the fenced Item recoverable until removal succeeds.
+func TestBindingReviewCancelFailure(t *testing.T) {
+	s, admin, provider, _ := sqlService(t)
+	id, input := sqlBegin(t, s, "cancel-binding-failure")
+	if _, err := s.Execute(context.Background(), scope, id, input); err != nil {
+		t.Fatal(err)
+	}
+	provider.fail = "remove"
+	if _, err := s.Abandon(context.Background(), scope, id); err == nil {
+		t.Fatal("provider failure reported cancellation")
+	}
+	if proofValue(t, admin, "SELECT state FROM integration.connection_attempt") != "disconnect_pending" ||
+		proofValue(t, admin, "SELECT state FROM integration.sync_item") != "disconnect_pending" {
+		t.Fatal("provider failure released fenced Item")
+	}
+	provider.fail = ""
+	if _, err := s.Abandon(context.Background(), scope, id); err != nil || proofValue(t, admin, "SELECT state FROM integration.connection_attempt") != "abandoned" {
+		t.Fatal("fenced cancellation did not resume", err)
+	}
+}
+
+// TestBindingReviewBindCancelRace proves the database lock admits one terminal direction.
+func TestBindingReviewBindCancelRace(t *testing.T) {
+	s, admin, _, _ := sqlService(t)
+	id, input := sqlBegin(t, s, "binding-cancel-race")
+	if _, err := s.Execute(context.Background(), scope, id, input); err != nil {
+		t.Fatal(err)
+	}
+	request := BindingRequest{ConsentGrants: true, Bindings: []Binding{{AccountID: "account-one", LedgerAccountID: account, CurrencyVersionID: currency, BindingDate: "2026-01-05", BindingEvidenceRef: "00000000-0000-4000-8000-000000000081"}}}
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	db := admin.Config().Database
+	go func() {
+		<-start
+		_, err := proofInvoke(t, db, "synthetic_runtime", "SELECT integration.begin_binding_abandon($1,$2,$3,$4)::text", actor, entity, book, id)
+		results <- err
+	}()
+	go func() {
+		<-start
+		_, err := proofInvoke(t, db, "synthetic_runtime", "SELECT integration.bind_connection($1,$2,$3,$4,$5,$6)::text", actor, entity, book, id, "race-bind", proofRaw(request))
+		results <- err
+	}()
+	close(start)
+	first, second := <-results, <-results
+	if (first == nil) == (second == nil) {
+		t.Fatal("binding and cancellation did not serialize", first, second)
+	}
+	state := proofValue(t, admin, "SELECT state FROM integration.connection_attempt WHERE attempt_id=$1", id)
+	if state != "active" && state != "disconnect_pending" {
+		t.Fatal("unexpected race winner", state)
+	}
+}
+
 // TestConnectionServiceSQLSecretUncertainty recovers a committed immutable secret write without exchanging again.
 func TestConnectionServiceSQLSecretUncertainty(t *testing.T) {
 	s, admin, p, store := sqlService(t)
