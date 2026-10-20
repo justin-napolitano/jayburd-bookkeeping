@@ -10,6 +10,7 @@ background work. The two predecessor repos are reference material only.
 
 | Question | Authoritative document |
 | --- | --- |
+| Why is active account sync stuck after an acknowledged worker request? | [Acquisition recovery](contracts/plaid-acquisition-recovery.md) and [delivery evidence](runbooks/plaid-acquisition-recovery.md) |
 | How are per-account bank credentials encrypted? | [Encrypted credential contract](contracts/bank-token-vault.md) and [delivery ledger](runbooks/bank-token-vault.md) |
 | How does Connect account prepare a new creator-owned book? | [Self-service onboarding](contracts/self-service-connections.md) and [delivery evidence](runbooks/self-service-connections.md) |
 | How will one Plaid enrollment create distinct ledger accounts for several selected accounts? | [Automatic account binding contract](contracts/automatic-account-binding.md), [Plaid source review](research/automatic-account-binding-sources.md), [delivery plan](plans/automatic-account-binding.md), and [stage evidence](runbooks/automatic-account-binding.md) |

@@ -506,18 +506,36 @@ func TestSyncLimitsAndNullInput(t *testing.T) {
 	}
 }
 
+// TestSyncEmptyAccountItemReadiness keeps Item status distinct from filtered-account cursor availability.
+func TestSyncEmptyAccountItemReadiness(t *testing.T) {
+	for _, readiness := range []string{"TRANSACTIONS_UPDATE_STATUS_UNKNOWN", "NOT_READY", "INITIAL_UPDATE_COMPLETE", "HISTORICAL_UPDATE_COMPLETE"} {
+		t.Run(readiness, func(t *testing.T) {
+			_, db, s := setup(t)
+			x := claim(t, db, s, claimID)
+			p := page(0, nil, "", false, nil, nil, nil)
+			p["transactions_update_status"] = readiness
+			stageOK(t, db, s, x, p)
+			result := object(t, completeOK(t, db, s, x))
+			if result["cursor"] != nil || result["changed_count"] != "0" || result["readiness"] != readiness {
+				t.Fatal("empty account mapping changed", result)
+			}
+		})
+	}
+}
+
 func TestSyncPrivileges(t *testing.T) {
 	c, db, _ := setup(t)
 	_, guardErr := c.Exec(context.Background(), "UPDATE integration.sync_stream SET account_id='rewritten'")
 	requireCode(t, guardErr, "P2602")
-	// Migration 18 grants the sync worker one additional lease-scoped credential reader.
-	if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','banking','integration','reference') AND has_function_privilege('synthetic_sync',p.oid,'EXECUTE')`) != "11" ||
-		value(t, c, `SELECT has_function_privilege('synthetic_sync','integration.worker_bank_credential(uuid,uuid,uuid,uuid,bigint)'::regprocedure,'EXECUTE')::text`) != "true" {
+	// Migration 24 adds exactly one fenced diagnostic entrypoint; tables and recovery stay private.
+	if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','banking','integration','reference') AND has_function_privilege('synthetic_sync',p.oid,'EXECUTE')`) != "12" ||
+		value(t, c, `SELECT has_function_privilege('synthetic_sync','integration.worker_bank_credential(uuid,uuid,uuid,uuid,bigint)'::regprocedure,'EXECUTE')::text`) != "true" ||
+		value(t, c, `SELECT has_function_privilege('synthetic_sync','integration.reject_sync_decode(uuid,uuid,uuid,uuid,bigint,text)'::regprocedure,'EXECUTE')::text`) != "true" {
 		t.Fatal("unexpected worker execute privilege")
 	}
 	worker := connect(t, db, "synthetic_sync")
 	defer worker.Close(context.Background())
-	for _, q := range []string{"SELECT * FROM integration.sync_item", "UPDATE banking.source_account SET source_revision=8", "SELECT integration.enroll_sync_stream(NULL,NULL,NULL,'x','{}')", "SELECT integration.sync_login('synthetic_sync')", "SELECT banking.get_review_item(NULL,NULL,NULL,NULL)"} {
+	for _, q := range []string{"SELECT * FROM integration.sync_item", "SELECT * FROM integration.sync_decode_diagnostic", "SELECT * FROM integration.sync_delivery_recovery", "SELECT integration.recover_failed_sync(NULL::integration.sync_stream)", "UPDATE banking.source_account SET source_revision=8", "SELECT integration.enroll_sync_stream(NULL,NULL,NULL,'x','{}')", "SELECT integration.sync_login('synthetic_sync')", "SELECT banking.get_review_item(NULL,NULL,NULL,NULL)"} {
 		_, e := worker.Exec(context.Background(), q)
 		requireCode(t, e, "42501")
 	}
