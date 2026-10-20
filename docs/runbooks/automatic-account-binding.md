@@ -17,6 +17,8 @@ balance or live-account approval is part of this delivery.
    and binding functions. Fresh install, replay and latest down/up passed with the
    exact pinned locally cached images. Focused SQL tests prove three-account
    creation, same-key replay, unsupported-subtype rollback and zero journals.
+   Legacy manifests without subtype remain valid for existing-account binding;
+   only automatic account creation requires an allowlisted subtype.
 3. **Service and browser review — complete.** Go/OpenAPI/browser changes preserve
    existing-account requests, carry bounded subtype metadata, propose distinct
    accounts for every eligible account and keep unsupported types visible.
@@ -40,6 +42,8 @@ balance or live-account approval is part of this delivery.
 - The connection-service suite passes, including legacy credential, lifecycle,
   cancellation and HTTP adapter cases. Frontend unit/type/OpenAPI checks pass with
   284 tests, including three distinct automatic proposals and an unbound credit.
+- The connection-state suite passes all legacy manifest, reconnect, rotation,
+  expiry, privilege and malformed-container cases after migration 22.
 - `make app-integration` passes, and its focused `--connections` journey proves
   the complete three-account enrollment, acquisition, posting and recovery path.
 - `make check`, `make test`, `make build` and `make web-browser` pass; the browser

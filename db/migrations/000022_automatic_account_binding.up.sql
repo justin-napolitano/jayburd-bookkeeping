@@ -9,8 +9,8 @@ BEGIN
  expiry:=integration.connection_expiry(v->'consent_expires_at');IF expiry<=clock_timestamp() THEN PERFORM integration.connection_error('P2703');END IF;
  FOR r IN SELECT value FROM jsonb_array_elements(v->'accounts') LOOP
   IF jsonb_typeof(r) IS DISTINCT FROM 'object' THEN PERFORM integration.connection_error('P2700');END IF;
-  IF NOT(r ?& ARRAY['account_id','type','subtype','iso_currency_code']) OR EXISTS(SELECT FROM jsonb_object_keys(r) z WHERE z<>ALL(ARRAY['account_id','type','subtype','iso_currency_code'])) THEN PERFORM integration.connection_error('P2700');END IF;
-  PERFORM integration.sync_text(r->'account_id',256);IF ledger.text_value(r->'type') NOT IN ('depository','credit','loan','investment','other','payroll') OR r->'subtype'<>'null'::jsonb AND ledger.text_value(r->'subtype') !~ '^[a-z0-9][a-z0-9 -]{0,63}$' OR r->'iso_currency_code'<>'null'::jsonb AND ledger.text_value(r->'iso_currency_code') !~ '^[A-Z]{3}$' THEN PERFORM integration.connection_error('P2700');END IF;
+  IF NOT(r ?& ARRAY['account_id','type','iso_currency_code']) OR EXISTS(SELECT FROM jsonb_object_keys(r) z WHERE z<>ALL(ARRAY['account_id','type','subtype','iso_currency_code'])) THEN PERFORM integration.connection_error('P2700');END IF;
+  PERFORM integration.sync_text(r->'account_id',256);IF ledger.text_value(r->'type') NOT IN ('depository','credit','loan','investment','other','payroll') OR r?'subtype' AND r->'subtype'<>'null'::jsonb AND ledger.text_value(r->'subtype') !~ '^[a-z0-9][a-z0-9 -]{0,63}$' OR r->'iso_currency_code'<>'null'::jsonb AND ledger.text_value(r->'iso_currency_code') !~ '^[A-Z]{3}$' THEN PERFORM integration.connection_error('P2700');END IF;
  END LOOP;
  IF EXISTS(SELECT FROM jsonb_array_elements(v->'accounts') z GROUP BY value->>'account_id' HAVING count(*)>1) THEN PERFORM integration.connection_error('P2700');END IF;
  IF a.claim_id IS DISTINCT FROM claim_value OR claim_value IS NULL OR a.mode='remove' THEN PERFORM integration.connection_error('P2703');END IF;
