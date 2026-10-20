@@ -30,8 +30,9 @@ balance or live-account approval is part of this delivery.
 5. **Hosted acceptance — in progress.** Build run 39355209782 passed repeated
    repository gates, exact-image tests and vulnerability scans for merge commit
    `dfc1772`. Migration-only deployment 39357128631 applied migration 22
-   successfully. The matching digest-pinned runtime promotion is staged next;
-   a fresh fictional Plaid Sandbox enrollment follows its successful receipt.
+   successfully. Matching runtime deployment 39358665783 and its bounded
+   anonymous transport verification succeeded. A fresh owner-driven fictional
+   Plaid Sandbox enrollment is the remaining hosted acceptance evidence.
 
 ## Current evidence
 
@@ -51,11 +52,14 @@ balance or live-account approval is part of this delivery.
   the complete three-account enrollment, acquisition, posting and recovery path.
 - `make check`, `make test`, `make build` and `make web-browser` pass; the browser
   suite reports 17 passing scenarios.
+- Build run 39355209782 published the exact tested image digests. Migration run
+  39357128631 completed before runtime run 39358665783, which passed bounded
+  anonymous transport verification.
 
 ## Remaining work
 
-Apply the reviewed matching runtime release, then repeat the fresh three-account
-Sandbox enrollment. Hosted success must omit provider identifiers and payloads. Live
+Repeat the fresh three-account Sandbox enrollment and record only bounded results.
+Hosted success must omit provider identifiers and payloads. Live
 institutions remain out of scope. Docker Hub's redundant pull returned EOF during
 local validation; the same exact pinned digests were already cached and executed.
 
