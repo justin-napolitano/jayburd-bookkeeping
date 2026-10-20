@@ -6093,7 +6093,19 @@
                     "credit",
                     "loan",
                     "investment",
-                    "other"
+                    "other",
+                    "payroll"
+                  ]
+                },
+                "subtype": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9 -]{0,63}$"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "iso_currency_code": {
@@ -6111,6 +6123,7 @@
               "required": [
                 "account_id",
                 "type",
+                "subtype",
                 "iso_currency_code"
               ]
             }
@@ -6398,6 +6411,51 @@
                 "binding_evidence_ref": {
                   "type": "string",
                   "format": "uuid"
+                },
+                "new_ledger_account": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "account_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "code": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "category": {
+                      "type": "string",
+                      "const": "asset"
+                    },
+                    "normal_side": {
+                      "type": "string",
+                      "const": "debit"
+                    },
+                    "monetary": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "active_from": {
+                      "type": "string",
+                      "format": "date"
+                    }
+                  },
+                  "required": [
+                    "account_id",
+                    "code",
+                    "name",
+                    "category",
+                    "normal_side",
+                    "monetary",
+                    "active_from"
+                  ]
                 }
               },
               "required": [

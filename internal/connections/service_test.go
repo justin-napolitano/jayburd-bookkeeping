@@ -331,8 +331,32 @@ func TestPlaidConnectionLifecycle(t *testing.T) {
 			t.Fatal("private result")
 		}
 	}
-	if _, e = s.Bind(context.Background(), scope, attemptID, "bind", BindingRequest{ConsentGrants: true}); e != nil || r.c.State != "active" {
+	if _, e = s.Bind(context.Background(), scope, attemptID, "bind", BindingRequest{ConsentGrants: true, Bindings: []Binding{{AccountID: "account-one", LedgerAccountID: "00000000-0000-4000-8000-000000000010", CurrencyVersionID: "00000000-0000-4000-8000-000000000011", BindingDate: "2026-01-01", BindingEvidenceRef: "00000000-0000-4000-8000-000000000012"}}}); e != nil || r.c.State != "active" {
 		t.Fatal("explicit binding failed")
+	}
+}
+
+// TestAutomaticBindingValidation rejects altered accounting semantics before the database boundary.
+func TestAutomaticBindingValidation(t *testing.T) {
+	base := Binding{AccountID: "account-one", LedgerAccountID: "00000000-0000-4000-8000-000000000010", CurrencyVersionID: "00000000-0000-4000-8000-000000000011", BindingDate: "2026-01-01", BindingEvidenceRef: "00000000-0000-4000-8000-000000000012"}
+	valid := NewLedgerAccount{AccountID: base.LedgerAccountID, Code: "1100", Name: "Bank checking 1", Category: "asset", NormalSide: "debit", Monetary: true, ActiveFrom: base.BindingDate}
+	for name, alter := range map[string]func(*NewLedgerAccount){
+		"identifier": func(account *NewLedgerAccount) { account.AccountID = "00000000-0000-4000-8000-000000000099" },
+		"category":   func(account *NewLedgerAccount) { account.Category = "liability" },
+		"side":       func(account *NewLedgerAccount) { account.NormalSide = "credit" },
+		"monetary":   func(account *NewLedgerAccount) { account.Monetary = false },
+		"date":       func(account *NewLedgerAccount) { account.ActiveFrom = "2026-01-02" },
+		"code":       func(account *NewLedgerAccount) { account.Code = "" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			s, _, _, _ := fixture()
+			candidate := valid
+			alter(&candidate)
+			binding := base
+			binding.NewLedgerAccount = &candidate
+			_, err := s.Bind(context.Background(), scope, attemptID, "bind", BindingRequest{ConsentGrants: true, Bindings: []Binding{binding}})
+			code(t, err, "invalid_request")
+		})
 	}
 }
 
