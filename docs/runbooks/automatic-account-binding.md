@@ -29,9 +29,9 @@ balance or live-account approval is part of this delivery.
    explicit posting and response-loss recovery.
 5. **Hosted acceptance — in progress.** Build run 39355209782 passed repeated
    repository gates, exact-image tests and vulnerability scans for merge commit
-   `dfc1772`. The digest-pinned migration-only release is staged first; matching
-   runtime promotion and a fresh fictional Plaid Sandbox enrollment follow only
-   after its receipt succeeds.
+   `dfc1772`. Migration-only deployment 39357128631 applied migration 22
+   successfully. The matching digest-pinned runtime promotion is staged next;
+   a fresh fictional Plaid Sandbox enrollment follows its successful receipt.
 
 ## Current evidence
 
@@ -54,9 +54,8 @@ balance or live-account approval is part of this delivery.
 
 ## Remaining work
 
-Apply the reviewed migration-only release, then stage the matching runtime from
-the same build receipts. Hosted success must omit provider identifiers and
-payloads. Live
+Apply the reviewed matching runtime release, then repeat the fresh three-account
+Sandbox enrollment. Hosted success must omit provider identifiers and payloads. Live
 institutions remain out of scope. Docker Hub's redundant pull returned EOF during
 local validation; the same exact pinned digests were already cached and executed.
 
