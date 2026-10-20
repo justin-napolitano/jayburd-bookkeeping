@@ -56,6 +56,13 @@ select a principal, provider account, credentials, handler or SQL scope.
 
 ## State, authority and recovery
 
+Migration 24 adds [explicit known-failure recovery](plaid-acquisition-recovery.md).
+Terminal operations and receipts remain immutable. A separate recovery receipt
+releases only a proven failed slot after an authorized manual request; automatic
+discovery still leaves unresolved quarantine alone. Stream status exposes the
+durable disposition and a fixed decoder diagnostic instead of equating queued
+demand with running work.
+
 The binding links one actual publisher login and the configured acquisition worker
 login/service principal to one book. Disabling either binding or connection worker
 mandate stops dispatch and consumption. Every replay rechecks role separation,

@@ -259,7 +259,17 @@ func (r *SQLRepository) Complete(ctx context.Context, s Scope, a attempt) (compl
 
 // Abandon fences the entire update before cleanup or a new C0 attempt.
 func (r *SQLRepository) Abandon(ctx context.Context, s Scope, a attempt, reason string) error {
-	raw, e := r.call(ctx, "SELECT integration.abandon_sync($1,$2,$3,$4,$5,$6)", s.EntityID, s.BookID, s.StreamID, a.SetID, a.Fence, reason)
+	return r.abandon(ctx, s, a, "SELECT integration.abandon_sync($1,$2,$3,$4,$5,$6)", reason)
+}
+
+// RejectDecode commits only a closed decoder code together with fenced abandonment.
+func (r *SQLRepository) RejectDecode(ctx context.Context, s Scope, a attempt, code string) error {
+	return r.abandon(ctx, s, a, "SELECT integration.reject_sync_decode($1,$2,$3,$4,$5,$6)", code)
+}
+
+// abandon validates the committed result for either fixed SQL abandonment entrypoint.
+func (r *SQLRepository) abandon(ctx context.Context, s Scope, a attempt, query, reason string) error {
+	raw, e := r.call(ctx, query, s.EntityID, s.BookID, s.StreamID, a.SetID, a.Fence, reason)
 	if e != nil {
 		return e
 	}

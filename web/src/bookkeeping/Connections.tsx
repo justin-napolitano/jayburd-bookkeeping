@@ -384,6 +384,35 @@ function ConnectionWorkspace({
       BigInt(value.completed_generation) > BigInt(value.requested_generation) ||
       typeof value.queued !== "boolean" ||
       typeof value.lease_active !== "boolean" ||
+      (value.delivery_state != null &&
+        ![
+          "ready",
+          "running",
+          "retry_wait",
+          "succeeded",
+          "quarantined",
+        ].includes(value.delivery_state)) ||
+      (value.decoder_error != null &&
+        ![
+          "invalid_json",
+          "duplicate_key",
+          "limit_exceeded",
+          "invalid_number",
+          "invalid_expectation",
+          "invalid_field",
+          "unknown_field",
+          "unknown_enum",
+          "invalid_cursor_encoding",
+          "invalid_cursor_progress",
+          "account_mismatch",
+          "unsupported_account",
+          "invalid_identity",
+          "duplicate_identity",
+          "invalid_lineage",
+          "invalid_date",
+          "unsupported_currency",
+          "amount_out_of_range",
+        ].includes(value.decoder_error)) ||
       value.provider_updated_at !== null ||
       (value.last_completed_at !== null &&
         !Number.isFinite(Date.parse(value.last_completed_at))) ||
@@ -1097,9 +1126,13 @@ function ConnectionWorkspace({
             generation {status.completed_generation}.
           </p>
           <p>
-            {status.queued
-              ? "Sync work is queued."
-              : "No newer sync request is queued."}{" "}
+            {status.delivery_state === "quarantined"
+              ? "Sync stopped after a failure. Request sync again after the cause is fixed."
+              : status.delivery_state === "retry_wait"
+                ? "Sync is waiting for a worker retry."
+                : status.queued
+                  ? "Sync work is queued."
+                  : "No newer sync request is queued."}{" "}
             {status.lease_active
               ? "A worker lease is active; publication is not yet confirmed."
               : "No active worker lease."}
@@ -1109,6 +1142,11 @@ function ConnectionWorkspace({
             {status.last_completed_at ?? "None recorded"}
           </p>
           <p>Last provider update: Unknown — this timestamp is not supplied.</p>
+          {status.decoder_error && status.delivery_state !== "succeeded" && (
+            <p role="status">
+              Data validation: {status.decoder_error.replaceAll("_", " ")}.
+            </p>
+          )}
           {status.last_error && (
             <p>
               Last acquisition outcome: {status.last_error.replaceAll("_", " ")}

@@ -214,4 +214,5 @@ type repository interface {
 	Stage(context.Context, Scope, attempt, int, json.RawMessage) error
 	Complete(context.Context, Scope, attempt) (completion, error)
 	Abandon(context.Context, Scope, attempt, string) error
+	RejectDecode(context.Context, Scope, attempt, string) error
 }

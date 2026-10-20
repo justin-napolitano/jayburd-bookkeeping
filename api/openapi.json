@@ -6865,6 +6865,49 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "delivery_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "ready",
+              "running",
+              "retry_wait",
+              "succeeded",
+              "quarantined",
+              null
+            ],
+            "description": "Durable delivery disposition; HTTP acknowledgement is not publication."
+          },
+          "decoder_error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "invalid_json",
+              "duplicate_key",
+              "limit_exceeded",
+              "invalid_number",
+              "invalid_expectation",
+              "invalid_field",
+              "unknown_field",
+              "unknown_enum",
+              "invalid_cursor_encoding",
+              "invalid_cursor_progress",
+              "account_mismatch",
+              "unsupported_account",
+              "invalid_identity",
+              "duplicate_identity",
+              "invalid_lineage",
+              "invalid_date",
+              "unsupported_currency",
+              "amount_out_of_range",
+              null
+            ],
+            "description": "Fixed classification from the latest acquisition; never provider data."
+          },
           "stream_id": {
             "type": "string",
             "format": "uuid"
@@ -6985,6 +7028,7 @@
       },
       "ConnectionStreamOperation": {
         "type": "object",
+        "description": "Explicit scoped control. A request signals new demand and may release a proven permanent acquisition failure for a fresh attempt; unknown outcomes remain quarantined. Exact-key replay preserves the original receipt.",
         "additionalProperties": false,
         "properties": {
           "action": {

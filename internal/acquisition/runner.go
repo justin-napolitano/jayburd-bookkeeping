@@ -211,7 +211,7 @@ func (r *Runner) acquire(ctx context.Context, s Scope, a attempt) (Outcome, bool
 		}
 		page, e := plaid.DecodePage(raw, c.expected())
 		if e != nil {
-			return r.abort(ctx, s, a, "decoder_rejected", failure("decoder_rejected", false))
+			return r.abort(ctx, s, a, "decoder_rejected", failure("decoder_rejected", false), plaid.ErrorCode(e))
 		}
 		body, e := json.Marshal(pageWire{PageIndex: c.NextPageIndex, RequestCursor: c.RequestCursor, Page: page})
 		if e != nil {
@@ -247,12 +247,18 @@ func (r *Runner) cleanup(ctx context.Context, s Scope, a attempt) error {
 }
 
 // abort commits abandonment before cleanup; uncertain abandonment never authorizes restart.
-func (r *Runner) abort(ctx context.Context, s Scope, a attempt, reason string, cause error) (Outcome, bool, error) {
+func (r *Runner) abort(ctx context.Context, s Scope, a attempt, reason string, cause error, decoderCode ...string) (Outcome, bool, error) {
 	if ctx.Err() != nil {
 		return Outcome{}, false, failure("cancelled", true)
 	}
-	if e := r.repo.Abandon(ctx, s, a, reason); e != nil {
-		return Outcome{}, false, e
+	var abandonErr error
+	if len(decoderCode) == 1 {
+		abandonErr = r.repo.RejectDecode(ctx, s, a, decoderCode[0])
+	} else {
+		abandonErr = r.repo.Abandon(ctx, s, a, reason)
+	}
+	if abandonErr != nil {
+		return Outcome{}, false, abandonErr
 	}
 	if e := r.cleanup(ctx, s, a); e != nil {
 		return Outcome{Status: "abandoned"}, false, e
