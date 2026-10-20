@@ -35,6 +35,11 @@ Local Go checks used a cached, network-isolated Go 1.27.2 container and cached
 public modules because the Go 1.26.9 download was blocked. The repository toolchain
 pin is unchanged; GitHub CI must verify it. No tests accessed cloud/provider data.
 
+First CI pass reached the provider-publication privilege inventory and correctly
+rejected the additional diagnostic function until its exact signature was added
+to the expected count. The test still denies table access and direct recovery.
+This is an intentional one-function grant; no role or direct DML grant is added.
+
 ## Remaining work
 
 Run CI and release diagnostics/recovery, then reproduce and repair the precise
