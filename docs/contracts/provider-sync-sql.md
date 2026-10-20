@@ -148,7 +148,9 @@ Engineering bounds: **10 pages, 1000 changes, 2 MiB normalized complete set;
 without cursor advancement. Page index 10 is malformed, whole-set/page size overflow
 is bounded overflow. These are project bounds, not provider guarantees or a claimed
 50,000-change proof. Empty initialization is exactly one empty first/final page with
-NOT_READY or TRANSACTIONS_UPDATE_STATUS_UNKNOWN; it retains C0=null and is not ready.
+any known Item update status; it retains C0=null. Item readiness does not establish
+account-specific history completeness. Migration 24 aligns this with the reviewed
+[decoder correction](plaid-decoder.md#account-readiness-correction--2026-10-14).
 An empty initialization response cannot terminate an earlier nonempty page sequence.
 
 Private normalized pages retain raw SHA256 and request ID. Exact raw page bytes are

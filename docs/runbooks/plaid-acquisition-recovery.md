@@ -40,6 +40,12 @@ rejected the additional diagnostic function until its exact signature was added
 to the expected count. The test still denies table access and direct recovery.
 This is an intentional one-function grant; no role or direct DML grant is added.
 
+Source review also found SQL's empty-account initialization rule disagreed with
+the reviewed Go decoder. Migration 24 now permits all known Item readiness states
+for that strictly empty first/final page; TestSyncEmptyAccountItemReadiness proves
+zero changes and an unchanged null account cursor for each state. This is a
+reproduced valid-response fix; hosted decoder classifications remain pending.
+
 ## Remaining work
 
 Run CI and release diagnostics/recovery, then reproduce and repair the precise
