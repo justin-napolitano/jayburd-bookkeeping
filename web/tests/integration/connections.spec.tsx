@@ -87,17 +87,21 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     page.getByRole("group", { name: "Review verified account bindings" }),
   ).toBeVisible();
   await page.getByLabel("Binding date").fill("2026-10-13");
-  await page
-    .getByLabel(/^Ledger account for/)
-    .selectOption("10000000-0000-4000-8000-000000000011");
-  await page
-    .getByLabel(/^Currency version for/)
-    .selectOption("00000000-0000-4000-8000-000000000002");
+  await expect(page.getByLabel(/^Ledger account for/)).toHaveCount(3);
+  await expect(page.getByLabel(/^Account code for/)).toHaveCount(3);
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Confirm selected bindings" }).click();
-  const review = page.getByRole("button", { name: /^Review transactions for/ });
+  const review = page.getByRole("button", {
+    name: "Review transactions for synthetic-flow-account",
+    exact: true,
+  });
   await expect(review).toBeVisible();
-  await page.getByRole("button", { name: /^View sync status for/ }).click();
+  await page
+    .getByRole("button", {
+      name: "View sync status for synthetic-flow-account",
+      exact: true,
+    })
+    .click();
   const status = page.getByRole("region", { name: "Account sync status" });
   await expect(status).toContainText("None recorded");
   await expect(status).toContainText("Unknown");
@@ -175,6 +179,9 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     fetch_count: 1,
     exchange_count: 1,
     journal_count: "0",
+    created_account_count: "3",
+    source_count: "3",
+    stream_count: "3",
   });
   await review.click();
   await page
@@ -225,7 +232,12 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     journal_count: "1",
   });
   await page.getByRole("button", { name: "Connections", exact: true }).click();
-  await page.getByRole("button", { name: /^Review transactions for/ }).click();
+  await page
+    .getByRole("button", {
+      name: "Review transactions for synthetic-flow-account",
+      exact: true,
+    })
+    .click();
   await page.getByLabel("Review status").selectOption("posted");
   await page
     .getByRole("button", { name: "Review Fictional purchase A", exact: true })
