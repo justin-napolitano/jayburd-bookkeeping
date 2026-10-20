@@ -620,13 +620,52 @@ func (s *Service) secretStore(scope Scope) SecretStore {
 	return s.secrets
 }
 
-// Abandon serializes explicit new-setup cancellation against exchange and stored credentials.
-func (s *Service) Abandon(ctx context.Context, scope Scope, id string) (json.RawMessage, error) {
+// Abandon serializes setup cancellation and removes an already exchanged unbound Item.
+func (s *Service) Abandon(parent context.Context, scope Scope, id string) (json.RawMessage, error) {
 	if e := s.ready(scope); e != nil {
 		return nil, e
 	}
 	if !validID(id) {
 		return nil, failed("invalid_request")
 	}
-	return s.repo.call(ctx, "abandon_connection", scope.Actor, scope.Entity, scope.Book, id)
+	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
+	defer cancel()
+	c, e := s.context(ctx, scope, id)
+	if e != nil {
+		return nil, e
+	}
+	if c.State == "abandoned" {
+		return s.Attempt(ctx, scope, id)
+	}
+	if c.Mode != "new" || c.State != "binding_review" && c.State != "disconnect_pending" {
+		return s.repo.call(ctx, "abandon_connection", scope.Actor, scope.Entity, scope.Book, id)
+	}
+	c, e = s.privateCall(ctx, scope, id, "begin_binding_abandon", scope.Actor, scope.Entity, scope.Book, id)
+	if e != nil {
+		return nil, e
+	}
+	if c.State == "abandoned" {
+		return s.Attempt(ctx, scope, id)
+	}
+	if c.State != "disconnect_pending" || !c.ExecuteProvider || !validID(value(c.ClaimID)) {
+		return nil, failed("invalid_metadata")
+	}
+	ref, e := reference(c, false)
+	if e != nil {
+		return nil, e
+	}
+	stored, e := s.secretStore(scope).Read(ctx, ref)
+	if e != nil || !matches(stored, ref) {
+		return nil, failed("credential_recovery_required")
+	}
+	if _, e = s.context(ctx, scope, id); e != nil {
+		return nil, e
+	}
+	if e = s.provider.Remove(ctx, stored.Token); e != nil || ctx.Err() != nil {
+		return nil, failed("temporarily_unavailable")
+	}
+	if _, e = s.repo.call(ctx, "confirm_binding_abandoned", scope.Actor, scope.Entity, scope.Book, id, value(c.ClaimID)); e != nil {
+		return nil, e
+	}
+	return s.Attempt(ctx, scope, id)
 }

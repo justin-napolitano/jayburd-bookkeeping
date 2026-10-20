@@ -97,6 +97,22 @@ func TestPlaidHTTPEnrollmentWire(t *testing.T) {
 	}
 }
 
+// TestPlaidRemoveAlreadyAbsent treats only the exact removal Item-not-found response as terminal.
+func TestPlaidRemoveAlreadyAbsent(t *testing.T) {
+	p, e := NewHTTPProvider(config(), roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Path != "/item/remove" {
+			t.Fatal("unexpected endpoint", r.URL.Path)
+		}
+		return response(http.StatusBadRequest, `{"error_type":"ITEM_ERROR","error_code":"ITEM_NOT_FOUND","error_message":"private","request_id":"synthetic-request"}`), nil
+	}))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = p.Remove(context.Background(), NewSecret("synthetic-access")); e != nil {
+		t.Fatal("already removed Item rejected", e)
+	}
+}
+
 // TestPlaidHTTPFailsClosed rejects ambiguity, malformed bodies and redirects without retries or diagnostics.
 func TestPlaidHTTPFailsClosed(t *testing.T) {
 	for _, tc := range []struct {

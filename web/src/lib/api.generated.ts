@@ -766,8 +766,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Abandon an unavailable new Sandbox credential without deleting its audit history
-         * @description Explicit owner acknowledgement. Unclaimed new link_pending/link_ready attempts, or new credential_recovery_required attempts without stored ciphertext or published credentials, can be abandoned under the current actor scope. Does not remove the Plaid Item, replay exchange, or post journals. See docs/contracts/bank-token-vault.md.
+         * Cancel a new Sandbox setup without deleting its audit history
+         * @description Explicit owner acknowledgement. Unclaimed new link_pending/link_ready attempts and new credential_recovery_required attempts without a stored credential are abandoned locally. A new binding_review or disconnect_pending attempt is fenced, its exact Plaid Item is removed with the stored encrypted credential, and only then is the attempt abandoned. Cancellation never replays exchange or posts journals. See docs/contracts/binding-review-recovery.md.
          */
         post: operations["abandonConnection"];
         delete?: never;

@@ -110,6 +110,15 @@ func (r *memoryRepo) call(_ context.Context, op string, args ...any) (json.RawMe
 	case "confirm_item_removed":
 		r.c.State = "disconnected"
 		c = r.c
+	case "begin_binding_abandon":
+		if r.c.State == "binding_review" {
+			r.c.State = "disconnect_pending"
+		}
+		c = r.c
+		c.ExecuteProvider = r.c.State == "disconnect_pending"
+	case "confirm_binding_abandoned":
+		r.c.State = "abandoned"
+		c = r.c
 	case "connection_failure":
 		r.c.State = "credential_recovery_required"
 		if r.c.Mode == "remove" {
@@ -507,6 +516,50 @@ func TestPlaidStreamAndCredentials(t *testing.T) {
 			_, e = s.Disconnect(context.Background(), scope, refID, "disconnect", "1")
 			if e != nil || len(p.calls) != before {
 				t.Fatal("account disconnect touched provider")
+			}
+		})
+	}
+}
+
+// TestBindingReviewCancellation removes the exact published Item before releasing enrollment.
+func TestBindingReviewCancellation(t *testing.T) {
+	for _, phase := range []string{"success", "provider_retry", "missing_credential"} {
+		t.Run(phase, func(t *testing.T) {
+			s, r, p, store := fixture()
+			r.c.State = "binding_review"
+			r.c.ClaimID = ptr(claimID)
+			r.c.SyncItemID = ptr("00000000-0000-4000-8000-000000000009")
+			r.c.ItemGeneration = ptr("1")
+			r.c.Manifest = &p.manifest
+			ref := CredentialReference{refID, "1", "synthetic-item", "sandbox"}
+			if phase != "missing_credential" {
+				store.values[ref] = NewSecret("synthetic-access")
+			}
+			if phase == "provider_retry" {
+				p.fail = "remove"
+			}
+			_, err := s.Abandon(context.Background(), scope, attemptID)
+			if phase == "missing_credential" {
+				code(t, err, "credential_recovery_required")
+				if count(p.calls, "remove") != 0 || r.c.State != "disconnect_pending" {
+					t.Fatal("missing credential reached provider or released setup")
+				}
+				return
+			}
+			if phase == "provider_retry" {
+				code(t, err, "temporarily_unavailable")
+				if r.c.State != "disconnect_pending" {
+					t.Fatal("provider failure released setup")
+				}
+				p.fail = ""
+				_, err = s.Abandon(context.Background(), scope, attemptID)
+			}
+			if err != nil || r.c.State != "abandoned" {
+				t.Fatal("binding cancellation did not finish", err)
+			}
+			before := count(p.calls, "remove")
+			if _, err = s.Abandon(context.Background(), scope, attemptID); err != nil || count(p.calls, "remove") != before {
+				t.Fatal("terminal cancellation replayed provider removal", err)
 			}
 		})
 	}

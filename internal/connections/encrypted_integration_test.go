@@ -181,8 +181,11 @@ func TestCancelUnclaimedSetup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.Abandon(context.Background(), sc, nextID); err == nil {
-		t.Fatal("completed exchange abandoned")
+	if _, err = s.Abandon(context.Background(), sc, nextID); err != nil {
+		t.Fatal("binding review could not be canceled", err)
+	}
+	if count(provider.calls, "remove") != 1 {
+		t.Fatal("binding cancellation did not remove provider Item")
 	}
 }
 
