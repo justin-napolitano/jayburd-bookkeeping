@@ -44,6 +44,11 @@ committed receipt. Completed replay returns that receipt without provider access
 approved account/currency metadata, opaque credential reference/version, Item pins,
 cursor/page/counts, lease and exact limits. No token crosses SQL.
 
+Issue #225 adds bounded `currency_versions` for the bound monetary identity.
+Resolve each source date against its installed version; retain singleton `currency`
+for compatibility. [History contract](plaid-history-currency.md) defines source
+evidence, migration ordering and unchanged bookkeeping-date gates.
+
 Order: resume/claim COMMIT → context → existing evidence lookup. For a missing page:
 context → credential read → fresh context → provider request → exact decode → fresh
 context → durable private evidence. Then stage COMMIT; after the final page, complete

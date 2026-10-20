@@ -1,5 +1,9 @@
 # Provider synchronization SQL
 
+Migration 25 [dated-currency history](plaid-history-currency.md) replaces singleton
+source-version equality with bound monetary identity plus exact source-date version
+validation. Complete-set atomicity and all posting gates remain unchanged.
+
 Migration 13 extends this merged foundation through the
 [connection lifecycle contract](connection-sql.md): provider-first binding,
 credential references, individual account disconnect, and scoped worker context

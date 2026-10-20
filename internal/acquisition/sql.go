@@ -212,15 +212,52 @@ func (r *SQLRepository) Context(ctx context.Context, s Scope, a attempt) (workCo
 	return out, nil
 }
 
-// validContext fails closed on malformed scope, references, lease and engineering limits.
-func validContext(c workContext, s Scope, a attempt) bool {
-	from, e := time.Parse("2006-01-02", c.Currency.ValidFrom)
+// validCurrency checks reference shape without treating publication as currency inception.
+func validCurrency(c currencyMetadata) bool {
+	from, e := time.Parse("2006-01-02", c.ValidFrom)
 	toOK := true
-	if c.Currency.ValidTo != nil {
-		to, x := time.Parse("2006-01-02", *c.Currency.ValidTo)
+	if c.ValidTo != nil {
+		to, x := time.Parse("2006-01-02", *c.ValidTo)
 		toOK = x == nil && to.After(from)
 	}
-	return c.StreamID == s.StreamID && c.SetID == a.SetID && c.Fence == a.Fence && c.Provider == "plaid" && c.Environment == "sandbox" && opaque.MatchString(c.AccountID) && opaque.MatchString(c.ItemID) && validID(c.CredentialRef) && positive(c.CredentialVersion) && positive(c.ItemGeneration) && positive(c.BindingRevision) && validCursor(c.StartingCursor) && validCursor(c.RequestCursor) && c.PageCount == c.NextPageIndex && c.PageCount >= 0 && c.PageCount <= 10 && c.ChangeCount >= 0 && c.ChangeCount <= 1000 && c.ByteCount >= 0 && c.ByteCount <= 2<<20 && c.LeaseUntil.After(time.Now()) && c.LeaseUntil.Before(time.Now().Add(91*time.Second)) && validID(c.Currency.VersionID) && regexpCurrency(c.Currency.Code) && c.Currency.MinorUnit >= 0 && c.Currency.MinorUnit <= 9 && e == nil && toOK && c.Limits.MaxPages == 10 && c.Limits.MaxChanges == 1000 && c.Limits.MaxBytes == 2<<20 && c.Limits.MaxPageChanges == 500
+	return validID(c.VersionID) && regexpCurrency(c.Code) && c.MinorUnit >= 0 && c.MinorUnit <= 9 && e == nil && toOK
+}
+
+// validCurrencies requires bounded ordered history and an unchanged binding reference.
+func validCurrencies(c workContext) bool {
+	if !validCurrency(c.Currency) {
+		return false
+	}
+	if c.CurrencyVersions == nil {
+		return true // Older SQL exposes the exact singleton reference only.
+	}
+	if len(c.CurrencyVersions) == 0 || len(c.CurrencyVersions) > 32 {
+		return false
+	}
+	seen := make(map[string]bool)
+	found := false
+	for i, v := range c.CurrencyVersions {
+		if !validCurrency(v) || v.Code != c.Currency.Code || seen[v.VersionID] {
+			return false
+		}
+		seen[v.VersionID] = true
+		if i > 0 {
+			previous := c.CurrencyVersions[i-1]
+			if previous.ValidTo == nil || *previous.ValidTo > v.ValidFrom {
+				return false
+			}
+		}
+		if v.VersionID == c.Currency.VersionID {
+			toEqual := v.ValidTo == nil && c.Currency.ValidTo == nil || v.ValidTo != nil && c.Currency.ValidTo != nil && *v.ValidTo == *c.Currency.ValidTo
+			found = v.ValidFrom == c.Currency.ValidFrom && v.MinorUnit == c.Currency.MinorUnit && toEqual
+		}
+	}
+	return found
+}
+
+// validContext fails closed on malformed scope, references, lease and engineering limits.
+func validContext(c workContext, s Scope, a attempt) bool {
+	return c.StreamID == s.StreamID && c.SetID == a.SetID && c.Fence == a.Fence && c.Provider == "plaid" && c.Environment == "sandbox" && opaque.MatchString(c.AccountID) && opaque.MatchString(c.ItemID) && validID(c.CredentialRef) && positive(c.CredentialVersion) && positive(c.ItemGeneration) && positive(c.BindingRevision) && validCursor(c.StartingCursor) && validCursor(c.RequestCursor) && c.PageCount == c.NextPageIndex && c.PageCount >= 0 && c.PageCount <= 10 && c.ChangeCount >= 0 && c.ChangeCount <= 1000 && c.ByteCount >= 0 && c.ByteCount <= 2<<20 && c.LeaseUntil.After(time.Now()) && c.LeaseUntil.Before(time.Now().Add(91*time.Second)) && validCurrencies(c) && c.Limits.MaxPages == 10 && c.Limits.MaxChanges == 1000 && c.Limits.MaxBytes == 2<<20 && c.Limits.MaxPageChanges == 500
 }
 
 // regexpCurrency checks the fixed ISO alphabetic shape without inventing a catalog.

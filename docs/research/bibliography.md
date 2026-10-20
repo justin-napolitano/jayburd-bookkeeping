@@ -2,7 +2,7 @@
 
 ## Purpose and reading order
 
-[Recovery review](../contracts/plaid-acquisition-recovery.md).
+[History](../contracts/plaid-history-currency.md).
 
 [Plaid account binding](automatic-account-binding-sources.md): subtype limits.
 [Binding-review recovery](binding-review-recovery-sources.md): official Item
