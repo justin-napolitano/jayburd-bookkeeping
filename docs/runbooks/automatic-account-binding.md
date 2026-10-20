@@ -20,9 +20,11 @@ balance or live-account approval is part of this delivery.
 3. **Service and browser review — complete.** Go/OpenAPI/browser changes preserve
    existing-account requests, carry bounded subtype metadata, propose distinct
    accounts for every eligible account and keep unsupported types visible.
-4. **Integrated evidence — in progress.** Focused SQL/Go/UI tests pass. A synthetic
-   browser→API→PostgreSQL journey must prove three accounts, response-loss
-   recovery, distinct active streams and zero automatic journals.
+4. **Integrated evidence — complete.** The synthetic browser→API→PostgreSQL
+   journey binds checking, savings and money-market accounts to three distinct
+   newly created ledger accounts. It observes three source accounts, three active
+   streams and zero enrollment journals before continuing through acquisition,
+   explicit posting and response-loss recovery.
 5. **Hosted acceptance — pending.** Migration must precede matching runtime. The
    owner will repeat a fresh fictional Plaid Sandbox enrollment after deployment.
 
@@ -38,11 +40,15 @@ balance or live-account approval is part of this delivery.
 - The connection-service suite passes, including legacy credential, lifecycle,
   cancellation and HTTP adapter cases. Frontend unit/type/OpenAPI checks pass with
   284 tests, including three distinct automatic proposals and an unbound credit.
+- `make app-integration` passes, and its focused `--connections` journey proves
+  the complete three-account enrollment, acquisition, posting and recovery path.
+- `make check`, `make test`, `make build` and `make web-browser` pass; the browser
+  suite reports 17 passing scenarios.
 
 ## Remaining work
 
-Complete the browser/API/PostgreSQL journey and repository gates, then implement
-stage 5. Hosted success must omit provider identifiers and payloads. Live
+Open the reviewed PR and implement stage 5 after merge. Hosted success must omit
+provider identifiers and payloads. Live
 institutions remain out of scope. Docker Hub's redundant pull returned EOF during
 local validation; the same exact pinned digests were already cached and executed.
 

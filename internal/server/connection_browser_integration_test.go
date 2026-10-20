@@ -75,7 +75,7 @@ func (p *connectionProofProvider) RoundTrip(r *http.Request) (*http.Response, er
 	case "/item/get":
 		data = `{"item":{"item_id":"synthetic-flow-item","error":null}}`
 	case "/accounts/get":
-		data = `{"item":{"item_id":"synthetic-flow-item"},"accounts":[{"account_id":"synthetic-flow-account","type":"depository","balances":{"iso_currency_code":"USD","current":9007199254740993.01}}]}`
+		data = `{"item":{"item_id":"synthetic-flow-item"},"accounts":[{"account_id":"synthetic-flow-account","type":"depository","subtype":"checking","balances":{"iso_currency_code":"USD","current":9007199254740993.01}},{"account_id":"synthetic-savings-account","type":"depository","subtype":"savings","balances":{"iso_currency_code":"USD","current":100.00}},{"account_id":"synthetic-market-account","type":"depository","subtype":"money market","balances":{"iso_currency_code":"USD","current":200.00}}]}`
 	default:
 		return nil, errors.New("unexpected provider operation")
 	}
@@ -210,7 +210,7 @@ func (f *connectionBrowserFixture) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
 	var stream, source, revision string
-	err = f.admin.QueryRow(ctx, `SELECT s.stream_id::text,s.source_account_id::text,a.binding_revision::text FROM integration.sync_stream s JOIN banking.source_account a USING(entity_id,book_id,source_account_id) WHERE s.entity_id=$1 AND s.book_id=$2`, connectionProofEntity, connectionProofBook).Scan(&stream, &source, &revision)
+	err = f.admin.QueryRow(ctx, `SELECT s.stream_id::text,s.source_account_id::text,a.binding_revision::text FROM integration.sync_stream s JOIN banking.source_account a USING(entity_id,book_id,source_account_id) WHERE s.entity_id=$1 AND s.book_id=$2 AND s.account_id='synthetic-flow-account'`, connectionProofEntity, connectionProofBook).Scan(&stream, &source, &revision)
 	if err != nil {
 		writeProblem(w, 409, "binding_required")
 		return
@@ -235,13 +235,17 @@ func (f *connectionBrowserFixture) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		writeProblem(w, 500, "proof_failed")
 		return
 	}
-	var journals string
-	if err = f.admin.QueryRow(ctx, `SELECT count(*)::text FROM ledger.journal_entry WHERE entity_id=$1 AND book_id=$2`, connectionProofEntity, connectionProofBook).Scan(&journals); err != nil {
+	var journals, createdAccounts, sources, streams string
+	if err = f.admin.QueryRow(ctx, `SELECT
+  (SELECT count(*)::text FROM ledger.journal_entry WHERE entity_id=$1 AND book_id=$2),
+  (SELECT count(*)::text FROM ledger.account WHERE entity_id=$1 AND book_id=$2 AND code LIKE '11%'),
+  (SELECT count(*)::text FROM banking.source_account WHERE entity_id=$1 AND book_id=$2),
+  (SELECT count(*)::text FROM integration.sync_stream WHERE entity_id=$1 AND book_id=$2 AND state='active')`, connectionProofEntity, connectionProofBook).Scan(&journals, &createdAccounts, &sources, &streams); err != nil {
 		writeProblem(w, 500, "proof_failed")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"status": result.Status, "changed_count": result.ChangedCount, "fetch_count": f.transport.calls.Load(), "exchange_count": f.provider.exchanges.Load(), "journal_count": journals})
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": result.Status, "changed_count": result.ChangedCount, "fetch_count": f.transport.calls.Load(), "exchange_count": f.provider.exchanges.Load(), "journal_count": journals, "created_account_count": createdAccounts, "source_count": sources, "stream_count": streams})
 }
 
 // wrap installs the synthetic trigger behind the same origin boundary, only in this test executable.
