@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import { Connections, type ConnectionsProps } from "./Connections";
 import { APIError, type API } from "./api";
+import type { components } from "../lib/api.generated";
 afterEach(cleanup);
 const id = (n: number) =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -64,6 +65,7 @@ const manifest = {
     {
       account_id: "synthetic-account",
       type: "depository",
+      subtype: "checking",
       iso_currency_code: "USD",
     },
   ],
@@ -336,6 +338,85 @@ it("TestConnectionsEnrollmentBinding explicitly maps verified account and opens 
   expect(p.onReview).toHaveBeenCalledWith(id(8));
   expect(localStorage.length).toBe(0);
   expect(sessionStorage.length).toBe(0);
+});
+it("TestConnectionsAutomaticBinding proposes distinct accounts for every supported provider account", async () => {
+  let submitted: components["schemas"]["ConnectionBindingRequest"] | undefined;
+  const accounts = ["checking", "savings", "money market"].map(
+    (subtype, index) => ({
+      account_id: `provider-${index + 1}`,
+      type: "depository" as const,
+      subtype,
+      iso_currency_code: "USD",
+    }),
+  );
+  const reviewed = {
+    ...attempt,
+    state: "binding_review" as const,
+    manifest: {
+      item_id: "synthetic-item",
+      consent_expires_at: "2030-01-01T00:00:00Z",
+      accounts: [
+        ...accounts,
+        {
+          account_id: "provider-credit",
+          type: "credit" as const,
+          subtype: "credit card",
+          iso_currency_code: "USD",
+        },
+      ],
+    },
+  };
+  const api = vi.fn(async (path: string, body?: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.endsWith(`/connection-attempts/${attempt.attempt_id}`))
+      return reviewed;
+    if (path.endsWith("/bindings")) {
+      submitted = JSON.parse(body!);
+      return {
+        ...reviewed,
+        state: "active",
+        sync_item_id: id(6),
+        streams: accounts.map((_, index) => ({
+          stream_id: id(20 + index),
+          source_account_id: id(30 + index),
+          namespace_id: id(40 + index),
+          binding_revision: "1",
+          overlap_review_required: false,
+        })),
+      };
+    }
+    throw Error("unexpected");
+  }) as unknown as API;
+  render(<Connections {...props(api)} />);
+  await screen.findByText("No connected Items in this book.");
+  fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
+    target: { value: attempt.attempt_id },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
+  await screen.findByRole("group", { name: "Review verified account bindings" });
+  fireEvent.change(screen.getByLabelText("Binding date"), {
+    target: { value: "2026-10-19" },
+  });
+  expect(
+    screen.getByText("This account cannot be bound in this profile."),
+  ).not.toBeNull();
+  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Confirm selected bindings" }),
+  );
+  await waitFor(() => expect(submitted).toBeDefined());
+  expect(submitted!.bindings).toHaveLength(3);
+  expect(new Set(submitted!.bindings.map((binding) => binding.ledger_account_id)).size).toBe(3);
+  expect(new Set(submitted!.bindings.map((binding) => binding.new_ledger_account?.code)).size).toBe(3);
+  expect(
+    submitted!.bindings.every(
+      (binding) =>
+        binding.new_ledger_account?.account_id === binding.ledger_account_id &&
+        binding.new_ledger_account.category === "asset" &&
+        binding.new_ledger_account.normal_side === "debit" &&
+        binding.new_ledger_account.monetary,
+    ),
+  ).toBe(true);
 });
 
 // Lost Begin has no rediscoverable ID in this profile, so a new key cannot be an implicit retry.

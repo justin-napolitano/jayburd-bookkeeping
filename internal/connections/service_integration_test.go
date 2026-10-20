@@ -218,6 +218,68 @@ func TestConnectionServiceSQLLifecycle(t *testing.T) {
 	}
 }
 
+// TestConnectionAutoAccountBinding proves three reviewed depository accounts create distinct chart and source accounts atomically.
+func TestConnectionAutoAccountBinding(t *testing.T) {
+	s, admin, provider, _ := sqlService(t)
+	checking, savings, moneyMarket := "checking", "savings", "money market"
+	provider.manifest.Accounts = []Account{
+		{AccountID: "checking-one", Type: "depository", Subtype: &checking, Currency: ptr("USD")},
+		{AccountID: "savings-one", Type: "depository", Subtype: &savings, Currency: ptr("USD")},
+		{AccountID: "market-one", Type: "depository", Subtype: &moneyMarket, Currency: ptr("USD")},
+	}
+	id, input := sqlBegin(t, s, "auto-three")
+	if _, err := s.Execute(context.Background(), scope, id, input); err != nil {
+		t.Fatal(err)
+	}
+	ids := []string{"00000000-0000-4000-8000-000000000031", "00000000-0000-4000-8000-000000000032", "00000000-0000-4000-8000-000000000033"}
+	accounts := []Account{provider.manifest.Accounts[0], provider.manifest.Accounts[1], provider.manifest.Accounts[2]}
+	bindings := make([]Binding, 0, len(accounts))
+	for index, providerAccount := range accounts {
+		ledgerAccount := &NewLedgerAccount{AccountID: ids[index], Code: fmt.Sprintf("11%02d", index), Name: fmt.Sprintf("Sandbox depository %d", index+1), Category: "asset", NormalSide: "debit", Monetary: true, ActiveFrom: "2026-01-05"}
+		bindings = append(bindings, Binding{AccountID: providerAccount.AccountID, LedgerAccountID: ids[index], CurrencyVersionID: currency, BindingDate: "2026-01-05", BindingEvidenceRef: fmt.Sprintf("00000000-0000-4000-8000-00000000009%d", index), NewLedgerAccount: ledgerAccount})
+	}
+	request := BindingRequest{ConsentGrants: true, Bindings: bindings}
+	first, err := s.Bind(context.Background(), scope, id, "bind-auto-three", request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayed, err := s.Bind(context.Background(), scope, id, "bind-auto-three", request)
+	if err != nil || string(replayed) != string(first) {
+		t.Fatal("automatic binding replay changed result", err)
+	}
+	if proofValue(t, admin, "SELECT count(*)::text FROM ledger.account WHERE code LIKE '11%'") != "3" ||
+		proofValue(t, admin, "SELECT count(*)::text FROM ledger.account WHERE account_id=ANY($1::uuid[]) AND category='asset' AND normal_side='debit' AND monetary", ids) != "3" ||
+		proofValue(t, admin, "SELECT count(*)::text FROM banking.source_account") != "3" ||
+		proofValue(t, admin, "SELECT count(*)::text FROM integration.sync_stream WHERE state='active'") != "3" ||
+		proofValue(t, admin, "SELECT count(*)::text FROM ledger.journal_entry") != "0" {
+		t.Fatal("automatic binding did not preserve its account and journal invariants")
+	}
+}
+
+// TestConnectionAutoAccountAtomicity proves an unsupported subtype rolls back all requested chart changes.
+func TestConnectionAutoAccountAtomicity(t *testing.T) {
+	s, admin, provider, _ := sqlService(t)
+	checking, prepaid := "checking", "prepaid"
+	provider.manifest.Accounts = []Account{
+		{AccountID: "checking-one", Type: "depository", Subtype: &checking, Currency: ptr("USD")},
+		{AccountID: "prepaid-one", Type: "depository", Subtype: &prepaid, Currency: ptr("USD")},
+	}
+	id, input := sqlBegin(t, s, "auto-reject")
+	if _, err := s.Execute(context.Background(), scope, id, input); err != nil {
+		t.Fatal(err)
+	}
+	bindings := []Binding{
+		{AccountID: "checking-one", LedgerAccountID: "00000000-0000-4000-8000-000000000041", CurrencyVersionID: currency, BindingDate: "2026-01-05", BindingEvidenceRef: "00000000-0000-4000-8000-000000000091", NewLedgerAccount: &NewLedgerAccount{AccountID: "00000000-0000-4000-8000-000000000041", Code: "1200", Name: "Sandbox checking", Category: "asset", NormalSide: "debit", Monetary: true, ActiveFrom: "2026-01-05"}},
+		{AccountID: "prepaid-one", LedgerAccountID: "00000000-0000-4000-8000-000000000042", CurrencyVersionID: currency, BindingDate: "2026-01-05", BindingEvidenceRef: "00000000-0000-4000-8000-000000000092", NewLedgerAccount: &NewLedgerAccount{AccountID: "00000000-0000-4000-8000-000000000042", Code: "1201", Name: "Sandbox prepaid", Category: "asset", NormalSide: "debit", Monetary: true, ActiveFrom: "2026-01-05"}},
+	}
+	if _, err := s.Bind(context.Background(), scope, id, "bind-auto-reject", BindingRequest{ConsentGrants: true, Bindings: bindings}); err == nil {
+		t.Fatal("unsupported subtype accepted")
+	}
+	if proofValue(t, admin, "SELECT count(*)::text FROM ledger.account WHERE code IN ('1200','1201')") != "0" || proofValue(t, admin, "SELECT count(*)::text FROM banking.source_account") != "0" {
+		t.Fatal("failed automatic binding left partial state")
+	}
+}
+
 // TestConnectionServiceSQLSecretUncertainty recovers a committed immutable secret write without exchanging again.
 func TestConnectionServiceSQLSecretUncertainty(t *testing.T) {
 	s, admin, p, store := sqlService(t)

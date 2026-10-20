@@ -268,7 +268,7 @@ func TestSDKExplicitConfiguration(t *testing.T) {
 // TestSDKAccountProjection proves monetary fields never reach generated float models.
 func TestSDKAccountProjection(t *testing.T) {
 	transport := boundedPlaidTransport{roundTripFunc(func(*http.Request) (*http.Response, error) {
-		return response(200, `{"item":{"item_id":"synthetic-item"},"accounts":[{"account_id":"one","type":"depository","name":"unused-private-name","balances":{"iso_currency_code":"USD","current":1e1000,"available":9007199254740993.01}}]}`), nil
+		return response(200, `{"item":{"item_id":"synthetic-item"},"accounts":[{"account_id":"one","type":"depository","subtype":"checking","name":"unused-private-name","balances":{"iso_currency_code":"USD","current":1e1000,"available":9007199254740993.01}}]}`), nil
 	})}
 	req, _ := http.NewRequest("POST", "https://sandbox.plaid.com/accounts/get", nil)
 	resp, err := transport.RoundTrip(req)
@@ -277,7 +277,7 @@ func TestSDKAccountProjection(t *testing.T) {
 	}
 	defer resp.Body.Close()
 	raw, err := io.ReadAll(resp.Body)
-	if err != nil || strings.Contains(string(raw), "current") || strings.Contains(string(raw), "available") || strings.Contains(string(raw), "private-name") || !strings.Contains(string(raw), "USD") {
+	if err != nil || strings.Contains(string(raw), "current") || strings.Contains(string(raw), "available") || strings.Contains(string(raw), "private-name") || !strings.Contains(string(raw), "USD") || !strings.Contains(string(raw), "checking") {
 		t.Fatal("account projection leaked unused data")
 	}
 }
