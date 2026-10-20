@@ -305,7 +305,6 @@ func TestPlaidCompleteUpdate(t *testing.T) {
 	}
 }
 
-// TestRunnerUnknownCommitAndRevocation suppresses refetch on uncertain stage/completion and external calls on denied scope.
 // TestRunnerDecodeDiagnostic keeps a fixed reason and abandons before any publication.
 func TestRunnerDecodeDiagnostic(t *testing.T) {
 	repo := &fakeRepository{context: contextFixture()}
@@ -319,6 +318,7 @@ func TestRunnerDecodeDiagnostic(t *testing.T) {
 	}
 }
 
+// TestRunnerUnknownCommitAndRevocation suppresses refetch on uncertain commits and denied scope.
 func TestRunnerUnknownCommitAndRevocation(t *testing.T) {
 	for _, where := range []string{"stage", "complete"} {
 		t.Run(where, func(t *testing.T) {
