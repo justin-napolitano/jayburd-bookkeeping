@@ -57,7 +57,9 @@ were reviewed for agency ownership, publication and the US Dollar record, not th
 full ISO text. The local approved validity is `[2026-09-17,2027-01-01)`; publication
 does not establish USD's historical inception. This narrow local window is policy,
 not an ISO effective-date claim. Earlier books/import dates need separate reviewed
-reference history. `source_release` retains publication/hash provenance, never a
+reference history. [Issue #225](plaid-history-currency.md) adds an owner-only
+historical USD interval without changing current-reference replay.
+`source_release` retains publication/hash provenance, never a
 synthetic-fixture claim. No exchange rates or financial messages are introduced;
 ISO 20022 does not apply to these internal provisioning controls.
 
