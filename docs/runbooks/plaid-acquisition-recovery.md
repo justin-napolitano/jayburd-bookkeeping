@@ -3,7 +3,7 @@
 
 ## Status and boundary
 
-Issue #220, release/acquisition-recovery-migration, following merged PR #221.
+Issue #220, release/acquisition-recovery-runtime, stacked after release PR #222.
 Development Sandbox only.
 Existing enrollment retained; no raw provider access or live-account approval.
 
@@ -23,8 +23,10 @@ Existing enrollment retained; no raw provider access or live-account approval.
 6. **Migration/worker release — staged.** Exact same-build migration and worker
    manifests are pinned. Apply migration 24 before promoting the worker. Scheduler
    is verified paused; exact scheduler/task-invoker service grants are present.
-7. **Application release — staged separately.** The matching API/web candidate
-   uses the reviewed finite Sandbox configuration and validates migration status.
+7. **Application release — staged.** The matching API/web candidate from build
+   39454157150 uses the reviewed finite Sandbox configuration and validates
+   migration status before promotion. Dispatch only after migration 24 succeeds;
+   this Sandbox application operation checks status rather than applying SQL.
 8. **Hosted acceptance — pending.** Classify and repair the precise failure, then
    prove publication and transaction review on the existing enrollment.
 
