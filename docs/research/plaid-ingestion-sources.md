@@ -1,5 +1,11 @@
 # Plaid ingestion sources
 
+2026-10-20 history refresh: [history/currency decision evidence](../contracts/plaid-history-currency.md#decision-and-source-evidence)
+records selected official sync cursor, account_id, days_requested, has_more and
+history-availability sections; also ISO 4217 MA amendment 115 page 1 and the prior
+SIX bootstrap publication. It distinguishes provider lookback, local currency
+coverage and bookkeeping dates. No private response or full normative ISO text read.
+
 Reviewed 2026-10-13 for [#70](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/70).
 Only public documentation was read; no provider endpoint, credentials, Sandbox or
 bank account was accessed. The [contract](../contracts/provider-ingestion.md)

@@ -75,6 +75,16 @@ if ((${#migrations[@]})); then
   run_migrate db/migrations migration_product down 1
   run_migrate db/migrations migration_product up
   echo 'PASS: latest product migration empty-database down/up roundtrip.'
+  # #225: a forward upgrade appends reviewed reference history and refuses erasure.
+  sql postgres 'CREATE DATABASE migration_currency_history' >/dev/null
+  run_migrate db/migrations migration_currency_history up 24
+  sql migration_currency_history "INSERT INTO reference.currency VALUES('00000000-0000-4000-8000-000000000025','USD','840',2,'2026-09-17','2027-01-01','SIX-list-one:2026-09-17:sha256:33139b438657d1cee116ba737807ea71d19d6de4b90f799a09c56f0cc6a1b0ff')" >/dev/null
+  run_migrate db/migrations migration_currency_history up 1
+  [[ "$(sql migration_currency_history 'SELECT count(*) FROM reference.currency')" == 2 ]]
+  [[ "$(sql migration_currency_history "SELECT valid_from::text FROM reference.currency WHERE currency_version_id='00000000-0000-4000-8000-000000000025'")" == '2026-09-17' ]]
+  if run_migrate db/migrations migration_currency_history down 1; then echo 'FAIL: reference history was erased.' >&2; exit 1; fi
+  [[ "$(sql migration_currency_history 'SELECT count(*) FROM reference.currency')" == 2 ]]
+  echo 'PASS: dated currency forward upgrade preserves existing references and guards rollback.'
 else
   echo 'SKIP: no approved product schema yet; this proves tooling only.'
 fi

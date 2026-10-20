@@ -149,35 +149,39 @@ type resume struct {
 	Completion *completion `json:"completion"`
 }
 
+// currencyMetadata identifies installed monetary precision over a half-open date interval.
+type currencyMetadata struct {
+	Code      string  `json:"code"`
+	VersionID string  `json:"version_id"`
+	MinorUnit int     `json:"minor_unit"`
+	ValidFrom string  `json:"valid_from"`
+	ValidTo   *string `json:"valid_to"`
+}
+
 // workContext contains only fresh SQL-authorized metadata for one live attempt.
 type workContext struct {
-	StreamID          string    `json:"stream_id"`
-	SetID             string    `json:"set_id"`
-	Fence             string    `json:"fence"`
-	Provider          string    `json:"provider"`
-	Environment       string    `json:"environment"`
-	ItemID            string    `json:"item_id"`
-	AccountID         string    `json:"account_id"`
-	ItemGeneration    string    `json:"item_generation"`
-	CredentialRef     string    `json:"credential_ref"`
-	CredentialVersion string    `json:"credential_version"`
-	BindingRevision   string    `json:"binding_revision"`
-	StartingCursor    *string   `json:"starting_cursor"`
-	RequestCursor     *string   `json:"request_cursor"`
-	NextPageIndex     int       `json:"next_page_index"`
-	PageCount         int       `json:"page_count"`
-	ChangeCount       int       `json:"change_count"`
-	ByteCount         int       `json:"byte_count"`
-	FinalPage         bool      `json:"final_page"`
-	LeaseUntil        time.Time `json:"lease_until"`
-	Currency          struct {
-		Code      string  `json:"code"`
-		VersionID string  `json:"version_id"`
-		MinorUnit int     `json:"minor_unit"`
-		ValidFrom string  `json:"valid_from"`
-		ValidTo   *string `json:"valid_to"`
-	} `json:"currency"`
-	Limits struct {
+	StreamID          string             `json:"stream_id"`
+	SetID             string             `json:"set_id"`
+	Fence             string             `json:"fence"`
+	Provider          string             `json:"provider"`
+	Environment       string             `json:"environment"`
+	ItemID            string             `json:"item_id"`
+	AccountID         string             `json:"account_id"`
+	ItemGeneration    string             `json:"item_generation"`
+	CredentialRef     string             `json:"credential_ref"`
+	CredentialVersion string             `json:"credential_version"`
+	BindingRevision   string             `json:"binding_revision"`
+	StartingCursor    *string            `json:"starting_cursor"`
+	RequestCursor     *string            `json:"request_cursor"`
+	NextPageIndex     int                `json:"next_page_index"`
+	PageCount         int                `json:"page_count"`
+	ChangeCount       int                `json:"change_count"`
+	ByteCount         int                `json:"byte_count"`
+	FinalPage         bool               `json:"final_page"`
+	LeaseUntil        time.Time          `json:"lease_until"`
+	Currency          currencyMetadata   `json:"currency"`
+	CurrencyVersions  []currencyMetadata `json:"currency_versions,omitempty"`
+	Limits            struct {
 		MaxPages       int `json:"max_pages"`
 		MaxChanges     int `json:"max_changes"`
 		MaxBytes       int `json:"max_bytes"`
@@ -187,11 +191,19 @@ type workContext struct {
 
 // expected translates trusted currency metadata without deriving it from provider amounts.
 func (c workContext) expected() plaid.Expected {
-	to := ""
-	if c.Currency.ValidTo != nil {
-		to = *c.Currency.ValidTo
+	versions := c.CurrencyVersions
+	if versions == nil {
+		versions = []currencyMetadata{c.Currency}
 	}
-	return plaid.Expected{AccountID: c.AccountID, Currencies: []plaid.Currency{{Code: c.Currency.Code, VersionID: c.Currency.VersionID, MinorUnit: c.Currency.MinorUnit, ValidFrom: c.Currency.ValidFrom, ValidTo: to}}}
+	out := plaid.Expected{AccountID: c.AccountID}
+	for _, v := range versions {
+		to := ""
+		if v.ValidTo != nil {
+			to = *v.ValidTo
+		}
+		out.Currencies = append(out.Currencies, plaid.Currency{Code: v.Code, VersionID: v.VersionID, MinorUnit: v.MinorUnit, ValidFrom: v.ValidFrom, ValidTo: to})
+	}
+	return out
 }
 
 // reference exposes only the currently authorized secret-store lookup key.

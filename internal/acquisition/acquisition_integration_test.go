@@ -69,7 +69,7 @@ func requireCode(t testing.TB, e error, want string) {
 }
 
 // fixture installs only fictional ownership and independently chosen currency metadata.
-func fixture(t *testing.T) (*pgx.Conn, string) {
+func fixture(t *testing.T, history ...bool) (*pgx.Conn, string) {
 	t.Helper()
 	db := "acq_" + strings.ReplaceAll(strings.ToLower(t.Name()), "/", "_")
 	root := connect(t, "postgres", "postgres")
@@ -81,7 +81,14 @@ func fixture(t *testing.T) (*pgx.Conn, string) {
 	exec(t, c, `INSERT INTO ledger.entity(entity_id,name,kind) VALUES($1,'Fictional LLC','legal')`, entity)
 	exec(t, c, `INSERT INTO ledger.membership VALUES($1,$2,'read',NULL),($1,$3,'read',NULL),($1,$4,'read',NULL)`, entity, actor, reader, other)
 	exec(t, c, `INSERT INTO ledger.book(entity_id,book_id,name) VALUES($1,$2,'Synthetic book')`, entity, book)
-	exec(t, c, `INSERT INTO reference.currency VALUES($1,'USD','840',2,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000006','JPY','392',0,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000007','KWD','414',3,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000008','XXX','999',NULL,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000009','EUR','978',2,'2020-01-01','2025-01-01','synthetic')`, currency)
+	usdFrom, usdEnd := "2000-01-01", ""
+	if len(history) > 0 && history[0] {
+		usdFrom = "2026-09-17"
+	}
+	exec(t, c, `INSERT INTO reference.currency VALUES($1,'USD','840',2,$2::date,nullif($3,'')::date,'synthetic'),('00000000-0000-4000-8000-000000000006','JPY','392',0,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000007','KWD','414',3,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000008','XXX','999',NULL,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000009','EUR','978',2,'2020-01-01','2025-01-01','synthetic')`, currency, usdFrom, usdEnd)
+	if len(history) > 0 && history[0] {
+		exec(t, c, `INSERT INTO reference.currency VALUES('00000000-0000-4000-8000-000000000090','USD','840',2,'2001-01-01','2026-09-17','synthetic-history')`)
+	}
 	exec(t, c, `INSERT INTO ledger.account VALUES($1,$2,$3,'1000','Fictional cash','asset','debit',true,'2026-01-01',NULL),($1,$2,'00000000-0000-4000-8000-000000000012','2000','Fictional liability','liability','credit',true,'2026-01-01',NULL),($1,$2,'00000000-0000-4000-8000-000000000013','1001','Fictional nonmonetary','asset','debit',false,'2026-01-01',NULL),($1,$2,'00000000-0000-4000-8000-000000000014','1002','Fictional contra','asset','credit',true,'2026-01-01',NULL),($1,$2,'00000000-0000-4000-8000-000000000015','1003','Fictional second deposit','asset','debit',true,'2026-01-01',NULL)`, entity, book, account)
 	return c, db
 }
@@ -166,8 +173,8 @@ func enrollment() map[string]any {
 func setup(t *testing.T) (*pgx.Conn, string, map[string]any) { return setupCurrency(t, currency) }
 
 // setupCurrency binds one source to independently installed currency metadata.
-func setupCurrency(t *testing.T, currencyValue string) (*pgx.Conn, string, map[string]any) {
-	c, db := fixture(t)
+func setupCurrency(t *testing.T, currencyValue string, history ...bool) (*pgx.Conn, string, map[string]any) {
+	c, db := fixture(t, history...)
 	exec(t, c, `INSERT INTO ledger.membership VALUES($1,$2,'import',NULL),($1,$3,'import',NULL)`, entity, actor, reader)
 	exec(t, c, `INSERT INTO banking.source_account(entity_id,book_id,source_account_id,ledger_account_id,currency_version_id,binding_date,binding_evidence_ref,created_by) VALUES($1,$2,$3,$4,$5,'2026-01-05',$6,$7)`, entity, book, sourceID, account, currencyValue, csvNS, actor)
 	exec(t, c, `INSERT INTO banking.source_namespace(entity_id,book_id,namespace_id,source_account_id,profile,synthetic_dataset_id,source_account_ref,overlap_review_required,created_by) VALUES($1,$2,$3,$4,'jayburd-synthetic-statement-csv/1',$3,'SYNTHETIC',false,$5)`, entity, book, csvNS, sourceID, actor)

@@ -30,6 +30,8 @@ DO $$ DECLARE c reference.currency; id uuid:=current_setting('jayburd.bootstrap.
    ROW('USD'::text,'840'::text,2::smallint,'2026-09-17'::date,'2027-01-01'::date,current_setting('jayburd.bootstrap.source')) THEN RAISE EXCEPTION 'sandbox_reference_conflict'; END IF;
  ELSE INSERT INTO reference.currency(currency_version_id,alphabetic_code,numeric_code,minor_unit,valid_from,valid_to,source_release) VALUES(id,'USD','840',2,'2026-09-17','2027-01-01',current_setting('jayburd.bootstrap.source')); END IF;
 END $$;
+-- Append separately reviewed history without changing the exact current reference.
+SELECT reference.install_sandbox_usd_history() \gset
 SET LOCAL ROLE bookkeeping_identity_operator;
 SELECT ledger.enroll_principal('https://securetoken.google.com/jayburd-bookkeeping-dev',current_setting('jayburd.bootstrap.subject')) AS principal_id \gset
 COMMIT;
