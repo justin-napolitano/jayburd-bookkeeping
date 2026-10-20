@@ -3,7 +3,7 @@
 
 ## Status and boundary
 
-Issue #220, release/acquisition-recovery-runtime, stacked after release PR #222.
+Issue #220, docs/acquisition-recovery-deployment, following merged PRs #221–#223.
 Development Sandbox only.
 Existing enrollment retained; no raw provider access or live-account approval.
 
@@ -20,13 +20,15 @@ Existing enrollment retained; no raw provider access or live-account approval.
    Seed run 39451988284 verified pinned Go 1.26.9 and all SQL/browser gates.
 5. **Candidate images — complete.** Build run 39454157150 passed all validation,
    exact-image runtime proofs, SBOM generation and HIGH/CRITICAL image scans.
-6. **Migration/worker release — staged.** Exact same-build migration and worker
-   manifests are pinned. Apply migration 24 before promoting the worker. Scheduler
-   is verified paused; exact scheduler/task-invoker service grants are present.
-7. **Application release — staged.** The matching API/web candidate from build
-   39454157150 uses the reviewed finite Sandbox configuration and validates
-   migration status before promotion. Dispatch only after migration 24 succeeds;
-   this Sandbox application operation checks status rather than applying SQL.
+6. **Migration/worker release — complete.** Migration run 39463801478 returned
+   migration-execution-passed before worker run 39464344246 returned
+   paused-workers-observed. Publisher revision 00003-9kb and consumer revision
+   00003-rls match the pinned build. Exact scheduler/task-invoker grants were
+   verified; scheduler remains paused pending the controlled owner retry.
+7. **Application release — complete.** Run 39464770297 returned
+   transport-smoke-passed for API revision 00016-vnr and web revision 00016-xv8.
+   The receipt images match build 39454157150. The Sandbox release verified
+   migration status and retained the reviewed finite connection configuration.
 8. **Hosted acceptance — pending.** Classify and repair the precise failure, then
    prove publication and transaction review on the existing enrollment.
 
@@ -59,8 +61,10 @@ reproduced valid-response fix; hosted decoder classifications remain pending.
 
 ## Remaining work
 
-Release diagnostics/recovery in the reviewed order, then reproduce and repair the precise
-hosted compatibility failure without another enrollment.
+The owner submits Request sync now through their verified application session;
+then run one controlled publisher tick and inspect the safe diagnostic/publication
+status. Reproduce and repair the precise remaining hosted compatibility failure
+without another enrollment. Deployment alone does not complete #220 or #88.
 No successful acquisition or complete history claim follows from existing 204s.
 
 ## PR handoff
