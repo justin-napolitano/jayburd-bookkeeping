@@ -2,18 +2,16 @@
 
 ## Purpose and reading order
 
-[Plaid account binding sources](automatic-account-binding-sources.md): reviewed
-subtype allowlist and limits.
-
-[Encrypted bank credentials](../contracts/bank-token-vault.md): Plaid storage and
-Cloud KMS envelope encryption/CRC32C (2026-10-15); runtime unproved.
-
+[Plaid account binding](automatic-account-binding-sources.md): subtype limits.
+[Binding-review recovery](binding-review-recovery-sources.md): official Item
+removal and `ITEM_NOT_FOUND` semantics for #215.
+[Encrypted bank credentials](../contracts/bank-token-vault.md): Plaid storage,
+Cloud KMS envelope encryption, and CRC32C; runtime unproved (2026-10-15).
 
 [First Sandbox reference bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review)
 records SIX's official ISO 4217 List One XML publication (2026-09-17), retrieved
-2026-10-15 with SHA256, and the reviewed USD/840/2 record. Use it for this bounded
-local reference installation, not historical validity or full ISO certification.
-The maintenance page and selected XML record were reviewed; paid ISO text was not.
+2026-10-15 with SHA256, and the reviewed USD/840/2 record. This supports the
+bounded local reference installation; paid ISO text was not reviewed.
 
 [Plaid Link browser](../contracts/plaid-link-browser.md) reviews official Web SDK
 loading/callbacks (2026-10-14) and pinned Go SDK source (2026-10-19). Use it to distinguish

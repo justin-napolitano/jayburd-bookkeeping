@@ -92,6 +92,12 @@ state and refreshed zero unfinished count. A lost reply reads that exact attempt
 failed reads or a competing claim never authorize a new enrollment. Cancel does
 not create a replacement. Terminal attempts remain audit history.
 
+Issue #215 extends this boundary after a credential has been published. A
+`binding_review` attempt cannot be abandoned by a local state update alone: the
+application follows the provider-backed prepare/remove/finalize contract in
+[binding review recovery](binding-review-recovery.md). The earlier unclaimed and
+unrecoverable-credential paths remain unchanged.
+
 This is an internal operational state change, not an ISO 20022 financial
 message. Existing currency and ledger contracts are unchanged. Migration 21
 updates the function through release tooling; no operator record edits occur.

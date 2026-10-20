@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"regexp"
@@ -73,11 +74,21 @@ func (t boundedPlaidTransport) RoundTrip(r *http.Request) (*http.Response, error
 		return nil, failed("provider_unavailable")
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return nil, failed("provider_unavailable")
-	}
 	data, e := io.ReadAll(io.LimitReader(resp.Body, 262145))
 	if e != nil || len(data) > 262144 || r.Context().Err() != nil || !validResponseJSON(data) {
+		return nil, failed("provider_unavailable")
+	}
+	if resp.StatusCode != 200 {
+		if r.URL.Path == "/item/remove" && resp.StatusCode == http.StatusBadRequest {
+			var v struct {
+				ErrorType string `json:"error_type"`
+				ErrorCode string `json:"error_code"`
+				RequestID string `json:"request_id"`
+			}
+			if json.Unmarshal(data, &v) == nil && v.ErrorType == "ITEM_ERROR" && v.ErrorCode == "ITEM_NOT_FOUND" && opaqueRE.MatchString(v.RequestID) {
+				return nil, failed("provider_item_absent")
+			}
+		}
 		return nil, failed("provider_unavailable")
 	}
 	if r.URL.Path == "/item/get" {
@@ -312,6 +323,10 @@ func (p *HTTPProvider) Remove(ctx context.Context, token Secret) error {
 		return failed("invalid_request")
 	}
 	response, e := p.item.Remove(ctx, &plaid.ItemRemoveRequest{AccessToken: token.value})
+	var failure *Failure
+	if errors.As(e, &failure) && failure.Code == "provider_item_absent" {
+		return nil
+	}
 	if e != nil || response == nil {
 		return failed("provider_unavailable")
 	}
