@@ -16,7 +16,7 @@ inferred approval.
 | Contract choice | Coordinator agreed to existing balance-sheet authority, explicit classified cash IDs, point comparison, and separate attention states. | Complete |
 | Fixed examples | Hand-fixed two-date and reversal totals, original EUR and functional USD, empty/denied/stale/source-only cases. | Complete |
 | Validation | Local link/whitespace review completed. `make check test build` attempted; all blocked before execution by Go 1.26.10 toolchain download/permissions. | Blocked by environment |
-| Handoff | Commit SHA and unresolved decisions reported to coordinator. | Pending |
+| Handoff | Contract, source record and navigation links prepared for draft PR; unresolved decisions identified. | In review |
 
 ## Current evidence
 
@@ -54,7 +54,7 @@ web and app-integration gates do not apply to this documentation-only commit.
 
 ## PR handoff
 
-Coordinator owns any PR and integration. This branch changes only the three
-new contract/research/runbook files. No migration impact. Required Go gates
+Coordinator owns any PR and integration. This branch changes contract, source,
+runbook and navigation files. No migration impact. Required Go gates
 must be rerun when the pinned toolchain becomes available; owner vocabulary
 review remains open.

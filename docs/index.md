@@ -1,5 +1,10 @@
 # Project context
 
+Position-first finance workbench: [proposed Position read model](contracts/position-read-model.md),
+[fixed synthetic examples and source review](research/position-sources.md), and
+[delivery evidence](runbooks/position-contract.md), issue #248. Cash classification
+and attention status remain pending owner review.
+
 Historical bank acquisition: [dated-currency contract](contracts/plaid-history-currency.md)
 and [delivery ledger](runbooks/plaid-history-currency.md), issues #225/#226.
 
