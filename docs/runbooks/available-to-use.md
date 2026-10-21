@@ -16,6 +16,7 @@ Contract remains proposed pending owner/accountant review and #248/#1/#56.
 | Research | [ATU-01–07](../research/available-to-use-sources.md) give selected portions, source limits and design inferences. |
 | Contract | [Proposal](../contracts/available-to-use.md) compares models, defines provenance and unknown states, and fixes independent synthetic expected outcomes. |
 | Validation | `git diff --check` passed. `make check test build` blocked at pinned Go 1.26.10 download; default proxy socket disconnected, then approved alternate proxy connection reset. Installed Go is 1.26.5 and cannot satisfy `go.mod`. No product tests ran. |
+| Navigation | Added index and bibliography pointers to the bounded proposal and reviewed source record. |
 
 ## Current evidence
 
