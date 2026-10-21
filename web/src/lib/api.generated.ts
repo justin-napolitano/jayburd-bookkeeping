@@ -1520,10 +1520,10 @@ export interface components {
                     account_id: string;
                     code: string;
                     name: string;
-                    /** @constant */
-                    category: "asset";
-                    /** @constant */
-                    normal_side: "debit";
+                    /** @enum {string} */
+                    category: "asset" | "liability";
+                    /** @enum {string} */
+                    normal_side: "debit" | "credit";
                     /** @constant */
                     monetary: true;
                     /** Format: date */

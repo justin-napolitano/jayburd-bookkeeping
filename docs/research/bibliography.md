@@ -4,7 +4,7 @@
 
 [History](../contracts/plaid-history-currency.md).
 
-[Plaid account binding](automatic-account-binding-sources.md): subtype limits.
+[Plaid types](automatic-account-binding-sources.md), [loans](plaid-liability-sources.md).
 [Binding-review recovery](binding-review-recovery-sources.md): official Item
 removal and `ITEM_NOT_FOUND` semantics for #215.
 [Encrypted bank credentials](../contracts/bank-token-vault.md): Plaid storage,

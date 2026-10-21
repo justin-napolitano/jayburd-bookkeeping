@@ -3,6 +3,10 @@
 Historical bank acquisition: [dated-currency contract](contracts/plaid-history-currency.md)
 and [delivery ledger](runbooks/plaid-history-currency.md), issues #225/#226.
 
+Reviewed Plaid credit-card and student/mortgage loan enrollment: [liability
+contract](contracts/plaid-liability-bindings.md), [source record](research/plaid-liability-sources.md)
+and [delivery ledger](runbooks/plaid-liability-bindings.md), issue #210.
+
 ## Decision
 
 Build actual bookkeeping software, learning through small, testable slices.

@@ -363,6 +363,18 @@ it("TestConnectionsAutomaticBinding proposes distinct accounts for every support
           subtype: "credit card",
           iso_currency_code: "USD",
         },
+        {
+          account_id: "provider-student",
+          type: "loan" as const,
+          subtype: "student",
+          iso_currency_code: "USD",
+        },
+        {
+          account_id: "provider-auto",
+          type: "loan" as const,
+          subtype: "auto",
+          iso_currency_code: "USD",
+        },
       ],
     },
   };
@@ -427,25 +439,40 @@ it("TestConnectionsAutomaticBinding proposes distinct accounts for every support
     screen.getByRole("button", { name: "Confirm selected bindings" }),
   );
   await waitFor(() => expect(submitted).toBeDefined());
-  expect(submitted!.bindings).toHaveLength(3);
+  expect(submitted!.bindings).toHaveLength(5);
   expect(
     new Set(submitted!.bindings.map((binding) => binding.ledger_account_id))
       .size,
-  ).toBe(3);
+  ).toBe(5);
   expect(
     new Set(
       submitted!.bindings.map((binding) => binding.new_ledger_account?.code),
     ).size,
-  ).toBe(3);
+  ).toBe(5);
   expect(
-    submitted!.bindings.every(
-      (binding) =>
-        binding.new_ledger_account?.account_id === binding.ledger_account_id &&
-        binding.new_ledger_account.category === "asset" &&
-        binding.new_ledger_account.normal_side === "debit" &&
-        binding.new_ledger_account.monetary,
-    ),
+    submitted!.bindings
+      .slice(0, 3)
+      .every(
+        (binding) =>
+          binding.new_ledger_account?.account_id ===
+            binding.ledger_account_id &&
+          binding.new_ledger_account.category === "asset" &&
+          binding.new_ledger_account.normal_side === "debit" &&
+          binding.new_ledger_account.monetary,
+      ),
   ).toBe(true);
+  expect(
+    submitted!.bindings.filter(
+      (binding) =>
+        binding.new_ledger_account?.category === "liability" &&
+        binding.new_ledger_account?.normal_side === "credit",
+    ),
+  ).toHaveLength(2);
+  expect(
+    submitted!.bindings.some(
+      (binding) => binding.account_id === "provider-auto",
+    ),
+  ).toBe(false);
 });
 
 // Lost Begin has no rediscoverable ID in this profile, so a new key cannot be an implicit retry.
