@@ -3,7 +3,7 @@
 
 ## Status and boundary
 
-Issue #156 on `feat/shared-acquisition-publisher`, following merged #229.
+Issue #156 on merged PR #230, following merged #229.
 Sandbox scheduling only; no automatic journals or live
 bank activation.
 
@@ -16,10 +16,16 @@ bank activation.
 3. **Implementation — complete.** Migration 27 adds login-scoped durable
    selection; shared-v1 runs a bounded rotation through the existing SQL relay.
    The worker release policy selects shared-v1 or the binding-v1 rollback mode.
-4. **Synthetic validation — complete locally.** Migration fresh/replay/roundtrip,
-   restricted SQL dispatch, repository check/test/build, release, and Terraform
-   infrastructure suites pass. CI remains to run.
-5. **Hosted qualification — pending.** Migration first, deploy shared-v1,
+4. **Synthetic validation and candidate build — complete.** Migration
+   fresh/replay/roundtrip, restricted SQL dispatch, repository check/test/build,
+   release and Terraform infrastructure suites passed. Candidate build
+   [39530293602](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39530293602)
+   passed all validation and image jobs on the merged source commit.
+5. **Migration release — prepared.** The reviewed migration-only manifest pins
+   that build's API, migrate and web image receipts and fresh compatibility
+   [evidence](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/156#issuecomment-6306325433).
+   Dispatch and immutable execution verification are pending.
+6. **Hosted qualification — pending.** Migration first, deploy shared-v1,
    verify Scheduler/IAM, then prove an enrolled second Sandbox book progresses.
 
 ## Current evidence
