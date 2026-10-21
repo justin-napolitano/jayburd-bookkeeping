@@ -1,5 +1,10 @@
 # Annotated bibliography and reading guide
 
+The [Position source review](position-sources.md) records P01–P05, selected
+accounting, PostgreSQL and public ISO sections reviewed 2026-10-21, plus fixed
+synthetic USD/EUR examples. Its Position vocabulary and cash classification are
+proposed project choices, not accounting or ISO approvals.
+
 ## Purpose and reading order
 
 [History](../contracts/plaid-history-currency.md).
