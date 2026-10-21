@@ -30,6 +30,8 @@ including five-plus-one rotation, login scope and disabled exclusion. Worker
 release/receipt Node tests, `make check`, `make test`, `make build`,
 `make release-test` and `make infra-test` passed. Local Go 1.26.5 uses a temporary modfile
 because pinned Go 1.26.9 download returned HTTP 403; CI remains authoritative.
+The worker release instructions and contract now describe both explicit
+publisher policies, including the shared empty-binding requirement.
 No hosted scheduler acceptance is yet claimed.
 
 ## Remaining work
