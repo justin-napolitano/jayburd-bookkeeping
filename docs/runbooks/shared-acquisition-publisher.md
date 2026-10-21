@@ -38,6 +38,14 @@ gate; they were formatted and that gate was rerun before merge.
 The pinned-toolchain validation job then found the observer's exact publisher
 function allowlist omitted the new selector. The allowlist now names only
 `sync_delivery_bindings`; observer permissions remain unchanged.
+The next CI run passed integration but `govulncheck` flagged GO-2026-6809 in
+Go 1.26.9's standard library. The official Go downloads list 1.26.10; all
+toolchain and build-image pins were advanced together. The new pinned toolchain
+must pass CI before merge. Local toolchain auto-download still returns HTTP 403,
+so this security result cannot be claimed from the local Go 1.26.5 suite.
+The pinned `golang:1.26.10-alpine` digest reports Go 1.26.10 in a local
+container. Full local worker image build still fails at module download due
+container certificate trust; the hosted container/security gates are required.
 No hosted scheduler acceptance is yet claimed.
 
 ## Remaining work
