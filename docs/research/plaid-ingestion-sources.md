@@ -1,5 +1,31 @@
 # Plaid ingestion sources
 
+## PI13 — Source-first account/history refresh, 2026-10-21
+
+Reviewed official Plaid [Transactions API](https://plaid.com/docs/api/products/transactions/)
+sections `/transactions/sync` request, pagination, account filtering, early empty
+results and readiness; [Accounts API](https://plaid.com/docs/api/accounts/)
+`/accounts/get` and `account_id`; and [Link API](https://plaid.com/docs/api/link/)
+`/link/token/create` `transactions.days_requested`. Relevant public sections were
+read on 2026-10-21; no private Item, credential, payload or institution was used.
+The docs state that sync is Item-cursor based, supports credit/depository/loan
+accounts, and requires whole-loop restart on mutation during pagination. A new
+Item can return empty arrays before history is ready. One Item exposes multiple
+accounts; account IDs can change when Plaid cannot reconcile an account or after
+token recreation. Link's Transactions initialization accepts a history request,
+default 90 and maximum 730 days; an initialized Item's window cannot simply be
+changed. These statements are provider behavior, not local correctness proof.
+
+Project inference for [ADR 0006](../decisions/0006-source-first-workspace.md):
+maintain owner-private Item/account/transaction provenance before book setup;
+request up to 90 days for new Items and show actual received/readiness separately;
+use a stable local source identity, explicit reconnect/overlap decisions and
+replay-safe complete-set publication. Plaid account metadata does not attest
+legal LLC ownership; Plaid categories do not determine ledger treatment. The
+source-first privacy, grants, schema, retention and multi-book disposition rules
+are our proposed decisions, not guarantees in Plaid documentation. Existing
+PI01–PI12 and the pinned public OpenAPI remain relevant for exact decoder fields.
+
 2026-10-20 history refresh: [history/currency decision evidence](../contracts/plaid-history-currency.md#decision-and-source-evidence)
 records selected official sync cursor, account_id, days_requested, has_more and
 history-availability sections; also ISO 4217 MA amendment 115 page 1 and the prior

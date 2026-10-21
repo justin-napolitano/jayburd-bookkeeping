@@ -3,6 +3,7 @@
 ## Purpose and reading order
 
 [History](../contracts/plaid-history-currency.md).
+[PI13 source-first Plaid review](plaid-ingestion-sources.md#pi13--source-first-accounthistory-refresh-2026-10-21): Item/account/history mechanics; ownership remains project policy.
 
 [Plaid types](automatic-account-binding-sources.md), [loans](plaid-liability-sources.md).
 [Shared sync](shared-acquisition-sources.md): Plaid cursor/webhooks.
@@ -430,9 +431,7 @@ The [Plaid source register](plaid-ingestion-sources.md) records the 2026-10-14
 PI01 review of nullable transaction classification and its bounded inert mapping.
 This supports issue #118's synthetic regression, not full Sandbox qualification.
 
-PI11 in the [Plaid source register](plaid-ingestion-sources.md) adds a pinned
-public OpenAPI review of the complete direct sync-response field inventory,
-including inherited transaction fields omitted from rendered documentation.
+PI11 in the [Plaid source register](plaid-ingestion-sources.md) reviews OpenAPI sync fields.
 
 ### Sandbox Hosted Link completion
 

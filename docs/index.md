@@ -33,6 +33,7 @@ background work. The two predecessor repos are reference material only.
 | What must pass before live sync, and how will scaling be measured? | [Sync quality gates](plans/sync-quality.md) and [validation evidence](runbooks/sync-quality.md) |
 | What works now, and how do I review it? | [Project status and frontend guide](project-status.md) |
 | What are we building? | [Product scope](product.md) |
+| What is the proposed connect-first and global transaction boundary? | [Source-first decision](decisions/0006-source-first-workspace.md) and [authority matrix](contracts/source-first-workspace.md); proposal under #238, not implemented |
 | Why this stack and boundaries? | [Architecture](decisions/0001-architecture.md) |
 | What research supports the database direction? | [Research review](research/database-foundations.md) |
 | Which source sections were reviewed? | [Source register](research/database-sources.md) |
