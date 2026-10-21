@@ -26,19 +26,29 @@ bank activation.
    [evidence](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/156#issuecomment-6306325433).
    [Dispatch 39533392678](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39533392678)
    emitted a matching `migration-execution-passed` receipt for execution
-   `jayburd-dev-migrate-5kmwk`. SQL version/checksum readback remains separate.
-6. **Worker release — prepared.** The reviewed paused worker manifest pins the
+   `jayburd-dev-migrate-5kmwk`. The later application promotion passed the
+   status-only migration gate before replacing services.
+6. **Worker release — paused and observed.** The reviewed worker manifest pins the
    same build's worker image, selects `shared-v1` with empty binding ID, and links
    fresh compatibility
    [evidence](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/156#issuecomment-6306325433).
    Dispatch followed the successful migration-only release receipt.
    [Dispatch 39535192782](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39535192782)
    applied the worker runtime but its final readback rejected because the
-   projection omitted container arguments required by `shared-v1`. The release
-   has no accepted receipt; this branch adds that projection and a regression
-   assertion before retry.
-7. **Hosted qualification — pending.** Migration first, deploy shared-v1,
-   verify Scheduler/IAM, then prove an enrolled second Sandbox book progresses.
+   projection omitted container arguments required by `shared-v1`. PR #233
+   repaired the projection. [Retry 39537175963](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39537175963)
+   emitted `paused-workers-observed` for publisher revision
+   `jayburd-dev-acquisition-publisher-00005-w97` and consumer revision
+   `jayburd-dev-acquisition-sync-00005-66v`. The Scheduler was PAUSED.
+7. **Application release — transport passed.**
+   [Promotion 39537836698](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39537836698)
+   passed its schema status gate and transport smoke on API revision
+   `jayburd-dev-api-00017-znq` and web revision `jayburd-dev-web-00017-b42`.
+   Loan and credit enrollment is deployed; liability posting remains blocked.
+8. **Hosted qualification — pending.** Review Scheduler invoker IAM and OIDC,
+   then owner-activate the Sandbox job and prove a newly enrolled second book
+   progresses through publisher HTTP 200, consumer HTTP 204, and completed
+   generations. No live bank or automatic journal follows from these receipts.
 
 ## Current evidence
 
@@ -56,10 +66,10 @@ gate; they were formatted and that gate was rerun before merge.
 The pinned-toolchain validation job then found the observer's exact publisher
 function allowlist omitted the new selector. The allowlist now names only
 `sync_delivery_bindings`; observer permissions remain unchanged.
-The next CI run passed integration but `govulncheck` flagged GO-2026-6809 in
+An earlier CI run passed integration but `govulncheck` flagged GO-2026-6809 in
 Go 1.26.9's standard library. The official Go downloads list 1.26.10; all
-toolchain and build-image pins were advanced together. The new pinned toolchain
-must pass CI before merge. Local toolchain auto-download still returns HTTP 403,
+toolchain and build-image pins were advanced together. The pinned 1.26.10
+toolchain passed PR and candidate CI. Local toolchain auto-download returns HTTP 403,
 so this security result cannot be claimed from the local Go 1.26.5 suite.
 The pinned `golang:1.26.10-alpine` digest reports Go 1.26.10 in a local
 container. Full local worker image build still fails at module download due
@@ -68,8 +78,10 @@ No hosted scheduler acceptance is yet claimed.
 
 ## Remaining work
 
-Validate and review the bounded shared publisher. Activate the
-Sandbox scheduler only after migration/runtime order and exact cloud IAM review.
+Use owner-controlled Cloud Shell to verify exact Scheduler target/OIDC and both
+Cloud Run invoker bindings, then resume the Sandbox Scheduler. Observe a fresh
+enrolled second book and record only redacted HTTP/status/generation evidence.
+Keep #156 open until that qualification passes.
 
 ## PR handoff
 
