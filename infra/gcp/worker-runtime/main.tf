@@ -45,7 +45,7 @@ resource "google_cloud_run_v2_service" "worker" {
         "-caller-email=${local.accounts[each.value == "publisher" ? "scheduler" : "task-invoker"]}",
         "-caller-subject=${data.google_service_account.caller[each.value == "publisher" ? "scheduler" : "task-invoker"].unique_id}"
         ], each.value == "publisher" ? [
-        "-binding-id=${var.runtime.binding_id}", "-queue-location=${var.region}", "-queue-name=jayburd-dev-acquisition",
+        "-publisher-policy=${var.runtime.publisher_policy}", "-binding-id=${var.runtime.binding_id}", "-queue-location=${var.region}", "-queue-name=jayburd-dev-acquisition",
         "-consumer-url=${local.origins.sync}/internal/acquisition/consume", "-consumer-audience=${local.origins.sync}", "-task-service-account=${local.accounts["task-invoker"]}"
         ] : [
         "-project-number=${var.project_number}",

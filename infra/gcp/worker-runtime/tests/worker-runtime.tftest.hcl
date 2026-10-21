@@ -53,6 +53,35 @@ run "reject_mutable_image" {
   }
   expect_failures = [var.runtime]
 }
+run "shared_publisher_has_no_fixed_binding" {
+  command = plan
+  variables {
+    runtime = {
+      image                 = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      binding_id            = ""
+      publisher_policy      = "shared-v1"
+      client_id_version     = "7"
+      client_secret_version = "23"
+    }
+  }
+  assert {
+    condition     = contains(google_cloud_run_v2_service.worker["publisher"].template[0].containers[0].args, "-publisher-policy=shared-v1") && contains(google_cloud_run_v2_service.worker["publisher"].template[0].containers[0].args, "-binding-id=")
+    error_message = "Shared publisher must be explicitly selected without one binding UUID."
+  }
+}
+run "reject_shared_with_fixed_binding" {
+  command = plan
+  variables {
+    runtime = {
+      image                 = "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      binding_id            = "00000000-0000-4000-8000-000000000001"
+      publisher_policy      = "shared-v1"
+      client_id_version     = "7"
+      client_secret_version = "23"
+    }
+  }
+  expect_failures = [var.runtime]
+}
 run "reject_alias_version" {
   command = plan
   variables {

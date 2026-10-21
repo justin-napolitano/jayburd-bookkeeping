@@ -23,7 +23,7 @@ case "${1:-}" in
   case "$proof_arch" in arm64|amd64) ;; *) echo 'Unsupported Docker architecture' >&2; exit 1 ;; esac
   CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go build -trimpath -ldflags='-s -w' -o "$proof_dir/migrate" ./cmd/migrate
   cat > "$proof_dir/Dockerfile" <<'DOCKERFILE'
-FROM golang:1.26.9-alpine@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade AS certificates
+FROM golang:1.26.10-alpine@sha256:9ce231b28998b32e116927c61aa5c406183061d4f3f2d61b292c88e7f6bdf7ca AS certificates
 FROM scratch
 COPY --from=certificates /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY migrate /migrate

@@ -57,10 +57,17 @@ test('CLI emits only worker inputs with exact version strings after evidence val
     assert.equal(result.status,0,result.stderr);
     assert.deepEqual(readdirSync(join(dir,'out')).sort(),['approved.json','worker-runtime.tfvars.json']);
     const tf=JSON.parse(readFileSync(join(dir,'out','worker-runtime.tfvars.json')));
-    assert.deepEqual(tf,{project_id:m.project,project_number:m.projectNumber,region:'us-central1',runtime:{image:m.image,binding_id:m.binding_id,client_id_version:m.client_id_version,client_secret_version:m.client_secret_version}});
+    assert.deepEqual(tf,{project_id:m.project,project_number:m.projectNumber,region:'us-central1',runtime:{image:m.image,binding_id:m.binding_id,publisher_policy:'binding-v1',client_id_version:m.client_id_version,client_secret_version:m.client_secret_version}});
     // Missing retained build evidence must fail without writing a new approved directory.
     const denied=spawnSync(process.execPath,['scripts/worker-release-manifest.mjs',join(dir,'manifest.json'),hash,join(dir,'denied'),join(dir,'missing')],{encoding:'utf8'});
     assert.equal(denied.status,1);assert.equal(denied.stderr.trim(),'BLOCKED: worker release metadata or evidence rejected');
     assert.ok(!readdirSync(dir).includes('denied'));
   } finally {rmSync(dir,{recursive:true,force:true});}
+});
+test('shared publisher requires no pinned binding and changes the approval digest',()=>{
+  const m={...manifest(),publisher_policy:'shared-v1',binding_id:''};
+  assert.deepEqual(validate(m),m);
+  assert.throws(()=>validate({...m,binding_id:manifest().binding_id}));
+  assert.throws(()=>validate({...m,publisher_policy:'unknown'}));
+  assert.notEqual(workerConfigDigest(m),workerConfigDigest(manifest()));
 });
