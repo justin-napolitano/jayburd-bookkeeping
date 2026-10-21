@@ -12,7 +12,7 @@ permission grant or posting policy.
 | Verified principal | Exact trusted issuer+subject enrolled by an operator; current owner-private workspace access | Can begin private collection only through an explicit permission; email, caller actor ID and Plaid metadata grant nothing. |
 | Plaid Item/consent | One provider/environment/Item identity with one credential reference and lifecycle generation, owned by the private collection workspace | Authorizes provider acquisition only while current principal/consent/service authority holds; one Item may expose accounts of different legal owners. |
 | Source account | Stable local identity for one institution account and its provider aliases/reconnect evidence | Holds source transactions and cursor lineage; legal owner is separately asserted, never inferred from name/mask/type. |
-| Source observation | One provider transaction identity with immutable acquired revisions, original amount/currency/dates/status and source account | Remains private evidence; pending, modified or removed provider facts do not mutate a posted journal. |
+| Source observation | One provider transaction identity with immutable acquired revisions, original amount/currency/dates/status and source account | Remains private evidence; pending, modified or removed provider facts do not mutate a posted journal. A new identity after reconnect is held until overlap review. |
 | Legal owner assertion | Effective-dated claim for a source account, reviewer, evidence reference and revision | Informs reconciliation proposals; grants no source, entity or book access. Does not post or certify live ownership. Conflicts/overlaps hold review. |
 | Topic/strategy label | Versioned owner taxonomy and audited observation label | Analytic only; can span entity views authorized to the principal; changes do not move a book or journal. |
 | Suggestion | Provider category or owner rule output with origin/version/confidence or abstention and reviewer decision | Inert until reviewed; no automatic draft, account mapping or posting. Future models have a separate privacy and quality gate. |
@@ -48,24 +48,35 @@ provider payloads and financial requests never enter browser persistence or logs
   sync page is not complete history. Preserve original units with ISO 4217 code
   and applicable dated currency reference; never use floating point for money.
 - Use provider/environment/Item/account/transaction plus local identity and
-  revision provenance to deduplicate. A changed account ID, Item or filter cannot
-  inherit a cursor without explicit overlap proof. Page mutation restarts the
-  complete filtered pagination loop from its original cursor; publication is
-  atomic and replay-safe.
+  revision provenance to deduplicate within a provider identity. A changed
+  account ID, Item or filter cannot inherit a cursor or silently identify an
+  older transaction. New IDs stay distinct and held until explicit overlap
+  review. Page mutation restarts the complete filtered pagination loop from its
+  original cursor; publication is atomic and replay-safe.
 - Current book-scoped Items and posted source anchors remain accessible through
-  compatibility reads. The forward migration does not reparent, delete or
-  silently copy existing observations, journals or source links. New collection
-  and old book-scoped streams can coexist only with explicit duplicate/overlap
-  detection and permission checks.
-- Account disconnect is account-scoped when consent permits, while Item removal,
-  rotation and consent revocation are Item-wide fences. Credential cleanup and
-  retained evidence follow a reviewed retention policy, not a UI assumption.
+  compatibility reads. Adoption of the same provider/environment/Item identity
+  uses one audited authority transition, not a second Item row. The forward
+  migration does not reparent, delete or silently copy existing observations,
+  journals or source links. Before adoption succeeds, legacy streams keep their
+  current behavior; any newly linked Item requires overlap detection and current
+  permission checks before combining its history with legacy evidence.
+- An account disconnect is a local stream fence; it does not call Plaid Item
+  removal or imply provider-side consent revocation. Item removal, rotation and
+  consent revocation fence all sibling streams. Credential cleanup and retained
+  evidence follow a reviewed retention policy, not a UI assumption.
+- A missing dated ISO 4217 reference or unofficial/unsupported currency cannot
+  be silently converted or omitted while advancing a cursor. Publish the whole
+  acquired change set into private evidence or quarantine with a fixed hold
+  reason; mark affected observations visible as held in All Transactions, with
+  original units only where validated. They cannot enter book review, draft or
+  journal until currency mapping is reviewed. #239 must define atomic cursor/
+  hold storage and bounded retention without weakening existing checks.
 
 ## Global review and classification boundaries
 
 All Transactions must include unassigned, reviewable, held, draft and posted
 observations from every source the principal may currently read. Display source
-account, original amount/currency/date, provider pending/modified/removed status,
+account, original amount/currency/date, provider pending/modified/removed/held status,
 acquisition freshness, legal-owner assertion, topic labels, suggestion provenance,
 book disposition and journal status as separate fields. Support bounded server
 filters and stable pagination; no empty-state claim of complete history before

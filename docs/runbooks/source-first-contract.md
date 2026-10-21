@@ -22,6 +22,9 @@ implementation is part of this branch.
 - A second read-only accounting/identity review found four wording risks;
   corrected grant, reconciliation, cross-entity and standards applicability
   language before handoff.
+- A provider/storage review after the first commit found reconnect ID churn,
+  legacy Item adoption, local account disconnect and unsupported-currency gaps;
+  the follow-up contract amendment records explicit holds and one Item authority.
 - Refreshed selected public Plaid Link, Accounts and Transactions sections in
   PI13. No provider payload or live account was inspected.
 

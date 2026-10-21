@@ -25,8 +25,10 @@ review/label/account for the observations without changing posted history?
 2. Each institution account has a stable local source identity. Plaid account IDs
    and transaction IDs are external identifiers with recorded Item/environment and
    revision provenance; reconnect or ID churn cannot silently reuse an old cursor
-   or duplicate posted evidence. Every acquired transaction is recorded once
-   under its local source account, including before entity/book setup.
+   or duplicate posted evidence. Each provider identity is recorded once under
+   its local source account, including before entity/book setup. New IDs after
+   reconnect remain distinct held evidence until an explicit overlap/link
+   review; no universal cross-Item transaction identity is assumed.
 3. The source account's **legal owner** is a separate, explicit, effective-dated
    assertion with reviewer and evidence reference. Plaid type, mask, name and
    `holder_category` do not prove LLC ownership. Unknown ownership is an allowed
@@ -48,9 +50,14 @@ review/label/account for the observations without changing posted history?
    draft or post automatically. A reviewer chooses book-specific accounting
    treatment; explicit posting remains the only journal mutation path.
 6. Existing book-scoped Items, sources, observations, cursors and posted links
-   remain valid and immutable. #239 must specify an additive migration/coexistence
-   path and compatibility read behavior, with no journal or source-anchor rewrite.
-   Credentials remain opaque references under the existing secret authority.
+   remain valid and immutable. An existing Item is adopted through one audited
+   transition of its current credential/consent authority, never by creating a
+   second row with the same global provider/environment/Item identity. Until
+   adoption succeeds, its legacy book-scoped path continues; a newly linked Item
+   has distinct identity and requires overlap review before shared history is
+   treated as one account. #239 must specify the additive physical migration and
+   compatibility reads without journal or source-anchor rewrite. Credentials
+   remain opaque references under the existing secret authority.
 
 The detailed proposed authority matrix and acceptance cases are in
 [source-first workspace](../contracts/source-first-workspace.md). This ADR does
