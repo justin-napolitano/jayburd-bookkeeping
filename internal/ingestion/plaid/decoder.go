@@ -41,6 +41,9 @@ func validExpected(e Expected) bool {
 	if !validID(e.AccountID) || len(e.Currencies) == 0 || len(e.Currencies) > 1000 {
 		return false
 	}
+	if e.AccountType != "" && e.AccountType != "depository" && !(e.AccountType == "credit" && e.AccountSubtype == "credit card") && !(e.AccountType == "loan" && (e.AccountSubtype == "student" || e.AccountSubtype == "mortgage")) {
+		return false
+	}
 	ids := map[string]bool{}
 	for _, c := range e.Currencies {
 		if !iso.MatchString(c.Code) || !uuid.MatchString(c.VersionID) || c.VersionID == "00000000-0000-0000-0000-000000000000" || ids[c.VersionID] || c.MinorUnit < 0 || c.MinorUnit > 9 || !validDate(c.ValidFrom) || c.ValidTo != "" && (!validDate(c.ValidTo) || c.ValidTo <= c.ValidFrom) {
@@ -99,8 +102,18 @@ func decode(raw []byte, e Expected) (Page, error) {
 		if x != nil {
 			return p, x
 		}
-		if kind != "depository" {
+		expectedType := e.AccountType
+		if expectedType == "" {
+			expectedType = "depository"
+		}
+		if kind != expectedType {
 			return p, fail("unsupported_account")
+		}
+		if e.AccountSubtype != "" {
+			subtype, x := text(fields, "subtype", 1, 64)
+			if x != nil || subtype != e.AccountSubtype {
+				return p, fail("unsupported_account")
+			}
 		}
 	}
 	added, err := array(v["added"])

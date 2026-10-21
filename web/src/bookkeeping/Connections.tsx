@@ -54,6 +54,35 @@ const automaticDepositorySubtypes = new Set([
   "money market",
   "cash management",
 ]);
+// A reviewed product/subtype pair determines only the proposed chart shape.
+function automaticClassification(type: string, subtype: string | null) {
+  if (
+    type === "depository" &&
+    subtype &&
+    automaticDepositorySubtypes.has(subtype)
+  )
+    return {
+      category: "asset" as const,
+      side: "debit" as const,
+      code: 1100,
+      label: "Bank",
+    };
+  if (type === "credit" && subtype === "credit card")
+    return {
+      category: "liability" as const,
+      side: "credit" as const,
+      code: 2100,
+      label: "Credit card",
+    };
+  if (type === "loan" && (subtype === "student" || subtype === "mortgage"))
+    return {
+      category: "liability" as const,
+      side: "credit" as const,
+      code: 2200,
+      label: "Loan",
+    };
+  return null;
+}
 // Readiness is visible beside the action; a disabled financial command never hides its cause.
 function bindingBlockers(
   selection: BindingSelection,
@@ -235,17 +264,15 @@ function ConnectionWorkspace({
   // Proposals come only from the reviewed book/currency snapshot and remain editable before submission.
   const proposeBindings = (bindingDate: string) => {
     const used = new Set(book.accounts.map((account) => account.code));
-    let nextCode = 1100;
+    const nextCode = { asset: 1100, credit: 2100, loan: 2200 };
     let ordinal = 0;
     const proposals: typeof selection = {};
     for (const account of attempt?.manifest?.accounts ?? []) {
-      if (
-        account.type !== "depository" ||
-        account.subtype === null ||
-        !automaticDepositorySubtypes.has(account.subtype) ||
-        !account.iso_currency_code
-      )
-        continue;
+      const classification = automaticClassification(
+        account.type,
+        account.subtype,
+      );
+      if (!classification || !account.iso_currency_code) continue;
       const currency = currencies.find(
         (candidate) =>
           candidate.alphabetic_code === account.iso_currency_code &&
@@ -254,17 +281,23 @@ function ConnectionWorkspace({
           (!candidate.valid_to || bindingDate < candidate.valid_to),
       );
       if (!currency) continue;
-      while (used.has(String(nextCode))) nextCode += 1;
-      const code = String(nextCode);
+      const group =
+        account.type === "depository"
+          ? "asset"
+          : account.type === "credit"
+            ? "credit"
+            : "loan";
+      while (used.has(String(nextCode[group]))) nextCode[group] += 1;
+      const code = String(nextCode[group]);
       used.add(code);
-      nextCode += 1;
+      nextCode[group] += 1;
       ordinal += 1;
       proposals[account.account_id] = {
         ledger: crypto.randomUUID(),
         currency: currency.currency_version_id,
         create: true,
         code,
-        name: `Bank ${account.subtype} ${ordinal}`,
+        name: `${classification.label} ${account.subtype} ${ordinal}`,
       };
     }
     setSelection(proposals);
@@ -864,28 +897,36 @@ function ConnectionWorkspace({
         return;
       const bindings: Binding["bindings"] = Object.entries(selection)
         .filter(([, v]) => v.ledger && v.currency)
-        .map(([account_id, v]) => ({
-          account_id,
-          ledger_account_id: v.ledger,
-          currency_version_id: v.currency,
-          source_account_id: null,
-          expected_binding_revision: null,
-          binding_date: date,
-          binding_evidence_ref: crypto.randomUUID(),
-          ...(v.create
-            ? {
-                new_ledger_account: {
-                  account_id: v.ledger,
-                  code: v.code,
-                  name: v.name,
-                  category: "asset" as const,
-                  normal_side: "debit" as const,
-                  monetary: true as const,
-                  active_from: date,
-                },
-              }
-            : {}),
-        }));
+        .map(([account_id, v]) => {
+          const account = attempt.manifest?.accounts.find(
+            (item) => item.account_id === account_id,
+          );
+          const classification =
+            account && automaticClassification(account.type, account.subtype);
+          if (v.create && !classification) throw Error("binding");
+          return {
+            account_id,
+            ledger_account_id: v.ledger,
+            currency_version_id: v.currency,
+            source_account_id: null,
+            expected_binding_revision: null,
+            binding_date: date,
+            binding_evidence_ref: crypto.randomUUID(),
+            ...(v.create
+              ? {
+                  new_ledger_account: {
+                    account_id: v.ledger,
+                    code: v.code,
+                    name: v.name,
+                    category: classification!.category,
+                    normal_side: classification!.side,
+                    monetary: true as const,
+                    active_from: date,
+                  },
+                }
+              : {}),
+          };
+        });
       if (
         !bindings.length ||
         new Set(bindings.map((b) => b.ledger_account_id)).size !==
@@ -1412,9 +1453,7 @@ function ConnectionWorkspace({
                         {account.subtype ? ` / ${account.subtype}` : ""},{" "}
                         {account.iso_currency_code ?? "currency unavailable"}
                       </p>
-                      {account.type === "depository" &&
-                      account.subtype !== null &&
-                      automaticDepositorySubtypes.has(account.subtype) &&
+                      {automaticClassification(account.type, account.subtype) &&
                       account.iso_currency_code ? (
                         <>
                           <label>
@@ -1454,8 +1493,16 @@ function ConnectionWorkspace({
                                 .filter(
                                   (a) =>
                                     date &&
-                                    a.category === "asset" &&
-                                    a.normal_side === "debit" &&
+                                    a.category ===
+                                      automaticClassification(
+                                        account.type,
+                                        account.subtype,
+                                      )?.category &&
+                                    a.normal_side ===
+                                      automaticClassification(
+                                        account.type,
+                                        account.subtype,
+                                      )?.side &&
                                     a.monetary &&
                                     a.active_from <= date &&
                                     (!a.active_to || date < a.active_to),

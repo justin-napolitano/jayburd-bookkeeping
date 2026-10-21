@@ -19,8 +19,10 @@ type Currency struct {
 
 // Expected comes from the approved account-filtered stream, not provider or queue input.
 type Expected struct {
-	AccountID  string
-	Currencies []Currency
+	AccountID      string
+	AccountType    string
+	AccountSubtype string
+	Currencies     []Currency
 }
 
 // Transaction preserves exact source values. EligibleForReview is source readiness only, not authorization.
