@@ -42,7 +42,7 @@ Stop with Ctrl+C; restart `make demo` to reset. See the
 Use **Watch a few transactions** for step-by-step request/commit/replay evidence,
 or **Run thousands** for 1,000/5,000/10,000 real postings with a final balance check.
 
-Requires Go 1.26.9 and Git. These commands need no cloud account or credentials.
+Requires Go 1.26.10 and Git. These commands need no cloud account or credentials.
 
 ```sh
 make check

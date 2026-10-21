@@ -2,7 +2,7 @@
 # Build only the allowlisted source, then prove inert defaults on an internal network.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-probe_image='golang:1.26.9-alpine@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade'
+probe_image='golang:1.26.10-alpine@sha256:9ce231b28998b32e116927c61aa5c406183061d4f3f2d61b292c88e7f6bdf7ca'
 proof_id="jayburd-api-proof-$$-$(date +%s)"
 proof_image="$proof_id:local"
 proof_dir=""

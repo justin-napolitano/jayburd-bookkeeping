@@ -30,3 +30,15 @@ does not force a new bank pull or prove complete provider history.
 authority, 25-candidate bound, replay and lease behavior. The fixed binding
 is a deployment choice, not a SQL requirement for financial correctness.
 Changing selection must preserve per-binding SQL authorization.
+
+## SA04 — Go patch release and container provenance
+
+The [official Go downloads](https://go.dev/dl/) list 1.26.10 for supported
+platforms. The PR #230 `govulncheck` run identified GO-2026-6809 in the pinned
+1.26.9 standard library and named 1.26.10 as fixed. Reviewed 2026-10-20 at
+release listing and CI symbol-result depth; the vulnerability page was not
+accessible through the source browser. `docker buildx imagetools inspect`
+resolved the official `golang:1.26.10-alpine` multi-platform index to
+`sha256:9ce231b28998b32e116927c61aa5c406183061d4f3f2d61b292c88e7f6bdf7ca`.
+Inference: update all build/test toolchain pins together, then require the
+repository security and container gates to prove the new pin.
