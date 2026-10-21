@@ -21,11 +21,18 @@ bank activation.
    release and Terraform infrastructure suites passed. Candidate build
    [39530293602](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39530293602)
    passed all validation and image jobs on the merged source commit.
-5. **Migration release — prepared.** The reviewed migration-only manifest pins
+5. **Migration release — execution passed.** The reviewed migration-only manifest pins
    that build's API, migrate and web image receipts and fresh compatibility
    [evidence](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/156#issuecomment-6306325433).
-   Dispatch and immutable execution verification are pending.
-6. **Hosted qualification — pending.** Migration first, deploy shared-v1,
+   [Dispatch 39533392678](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39533392678)
+   emitted a matching `migration-execution-passed` receipt for execution
+   `jayburd-dev-migrate-5kmwk`. SQL version/checksum readback remains separate.
+6. **Worker release — prepared.** The reviewed paused worker manifest pins the
+   same build's worker image, selects `shared-v1` with empty binding ID, and links
+   fresh compatibility
+   [evidence](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/156#issuecomment-6306325433).
+   Dispatch remains contingent on the migration-only release receipt.
+7. **Hosted qualification — pending.** Migration first, deploy shared-v1,
    verify Scheduler/IAM, then prove an enrolled second Sandbox book progresses.
 
 ## Current evidence
