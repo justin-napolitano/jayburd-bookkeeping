@@ -19,6 +19,7 @@ Wait for the entire run to succeed. Prepare `deploy/worker-release.json` in a PR
   "build": {"run": "123", "attempt": "1", "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
   "image": "us-central1-docker.pkg.dev/jayburd-synthetic-test/jayburd-dev/worker@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "binding_id": "11111111-1111-4111-8111-111111111111",
+  "publisher_policy": "binding-v1",
   "client_id_version": "1",
   "client_secret_version": "2",
   "evidence": {
@@ -31,6 +32,11 @@ Wait for the entire run to succeed. Prepare `deploy/worker-release.json` in a PR
   "previousDeployment": null
 }
 ```
+
+For shared Sandbox acquisition, select `"publisher_policy": "shared-v1"` and
+`"binding_id": ""`. The approved SQL publisher login discovers enrolled books
+through the [shared acquisition contract](../docs/contracts/shared-acquisition-publisher.md).
+The fixed `binding-v1` policy remains the rollback choice.
 
 These are fictional examples, not a dispatchable approval. Replace every pin
 with reviewed public metadata. Versions are numeric GSM version identifiers in

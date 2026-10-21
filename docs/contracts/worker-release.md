@@ -22,7 +22,10 @@ pause is verified. This flag is not a CI input.
 `infra/gcp/worker-runtime` owns only two Cloud Run services. Its isolated backend
 uses prefix `worker-runtime`. It never reads bootstrap remote state. Inputs are
 `project_id`, positive canonical int64 `project_number`, fixed `region=us-central1`,
-and required `runtime={image,binding_id,client_id_version,client_secret_version}`.
+and required `runtime={image,binding_id,publisher_policy,client_id_version,client_secret_version}`.
+`binding-v1` requires an enrolled binding UUID. `shared-v1` requires an empty
+binding ID and uses the publisher login's enrolled bindings through
+[shared acquisition](shared-acquisition-publisher.md).
 Image must be a worker digest in this project's repository. Secret versions are
 positive canonical int64 identifiers, never aliases or values. No activation flag
 exists. Runtime capacity remains one instance and one concurrent request per
