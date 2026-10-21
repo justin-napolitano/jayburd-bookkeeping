@@ -12,8 +12,10 @@ function generation(value) {
 export function workerConfigDigest(m) {
   const keys=['projectNumber','binding_id','client_id_version','client_secret_version'];
   if(!m || keys.some(k=>typeof m[k]!=='string')) throw new Error('Worker readback rejected');
-  return createHash('sha256').update(JSON.stringify({projectNumber:m.projectNumber,binding_id:m.binding_id,
-    client_id_version:m.client_id_version,client_secret_version:m.client_secret_version,scheduler:'PAUSED'})).digest('hex');
+  const policy={projectNumber:m.projectNumber,binding_id:m.binding_id,
+    client_id_version:m.client_id_version,client_secret_version:m.client_secret_version,scheduler:'PAUSED'};
+  if(m.publisher_policy!==undefined && m.publisher_policy!=='binding-v1') policy.publisher_policy=m.publisher_policy;
+  return createHash('sha256').update(JSON.stringify(policy)).digest('hex');
 }
 // Selected control-plane metadata proves reconciled images/traffic and paused scheduling, never provider readiness or IAM.
 export function validateWorkerDeployment(m,observed) {
@@ -40,6 +42,11 @@ export function validateWorkerDeployment(m,observed) {
     // A pinned template revision name, when supplied, must describe this reconciled revision.
     const desired=service?.spec?.template?.metadata?.name;
     if(desired!==undefined && desired!=='' && desired!==ready) throw new Error('Worker readback rejected');
+    if(component==='publisher' && m.publisher_policy==='shared-v1') {
+      const args=containers[0]?.args;
+      if(!Array.isArray(args) || args.filter(a=>a==='-publisher-policy=shared-v1').length!==1 ||
+        args.filter(a=>a==='-binding-id=').length!==1 || args.some(a=>typeof a!=='string' || (a.startsWith('-binding-id=') && a!=='-binding-id='))) throw new Error('Worker readback rejected');
+    }
     revisions[component]=ready;
   }
   const scheduler=observed?.scheduler;
