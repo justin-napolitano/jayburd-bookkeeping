@@ -1,6 +1,27 @@
 <!-- stage-runbook: true -->
 # Connection release delivery
 
+## Shared acquisition and liability Sandbox runtime candidate (#156, #210)
+
+Migration-only run
+[39533392678](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39533392678)
+emitted a matching `migration-execution-passed` receipt for migrations 26 and 27.
+Build [39530293602](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39530293602)
+passed all image and validation jobs on merged source
+`4dde571e54e9f015c9e08bed5870117f36b63131`.
+The `sandbox-promote` manifest pins that build's API, migrator and web digests.
+It preserves the last reviewed public identity, Infisical and Sandbox client
+metadata, with release expiry before the existing consent expiry. The promotion
+uses a status-only migration check before replacing the API/web revisions.
+
+This makes loan/credit account enrollment available in the application while
+liability transactions remain review-only pending sign/principal/interest policy.
+It does not activate the Scheduler, post journals, qualify Plaid history or prove
+hosted multi-book acquisition. Worker release
+[39535192782](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39535192782)
+has no accepted receipt; readback repair PR #233 and a subsequent successful
+paused-worker receipt are required before activation review.
+
 ## Canonical KMS and SDK runtime promotion (#187)
 
 Image build 39276797882 now reports success, and the full migration release
