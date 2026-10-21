@@ -100,7 +100,11 @@ func TestSharedPublisherSelection(t *testing.T) {
 		if i == 7 {
 			login = "bookkeeping_publisher"
 		}
-		exec(t, c, "INSERT INTO integration.sync_delivery_binding(entity_id,book_id,binding_id,service_principal,publisher_login,worker_login,enabled) VALUES($1,$2,$3,$4,$5,'synthetic_sync',$6)", entity, bookID, bid, reader, login, i != 8)
+		principal := reader
+		if i%2 == 0 {
+			principal = other
+		}
+		exec(t, c, "INSERT INTO integration.sync_delivery_binding(entity_id,book_id,binding_id,service_principal,publisher_login,worker_login,enabled) VALUES($1,$2,$3,$4,$5,'synthetic_sync',$6)", entity, bookID, bid, principal, login, i != 8)
 	}
 	page := func() []any {
 		return object(t, call(t, db, "synthetic_publisher", "SELECT integration.sync_delivery_bindings(5)::text"))["binding_ids"].([]any)
@@ -115,6 +119,9 @@ func TestSharedPublisherSelection(t *testing.T) {
 	}
 	if len(first) != 5 || len(second) != 5 || len(unique) != 6 {
 		t.Fatalf("unfair or unbounded selection: %v %v", first, second)
+	}
+	if value(t, c, "SELECT count(DISTINCT service_principal)::text FROM integration.sync_delivery_binding WHERE publisher_login='synthetic_publisher' AND enabled") != "2" {
+		t.Fatal("distinct service principals not enrolled")
 	}
 	_, e := invoke(t, db, "synthetic_runtime", "SELECT integration.sync_delivery_bindings(5)::text")
 	requireCode(t, e, "42501")

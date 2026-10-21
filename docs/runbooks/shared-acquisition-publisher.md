@@ -26,7 +26,8 @@ bank activation.
 
 `make migration-test` passed, including migration 27 fresh/replay/roundtrip.
 `scripts/test-sync-dispatch.sh` passed in a disposable PostgreSQL container,
-including five-plus-one rotation, login scope and disabled exclusion. Worker
+including five-plus-one rotation across distinct service principals, login
+scope and disabled exclusion. Worker
 release/receipt Node tests, `make check`, `make test`, `make build`,
 `make release-test` and `make infra-test` passed. Local Go 1.26.5 uses a temporary modfile
 because pinned Go 1.26.9 download returned HTTP 403; CI remains authoritative.
