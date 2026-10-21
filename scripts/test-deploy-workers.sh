@@ -89,7 +89,7 @@ for(const call of calls) {
   if(call.startsWith('terraform')) assert.ok(call.includes('-chdir=infra/gcp/worker-runtime '));
 }
 for(const call of calls.slice(5,7)) {
-  for(const field of ['containers[].image','conditions[].type','conditions[].status','status.latestReadyRevisionName','spec.template.spec.serviceAccountName']) assert.ok(call.includes(field));
+  for(const field of ['containers[].image','containers[].args','conditions[].type','conditions[].status','status.latestReadyRevisionName','spec.template.spec.serviceAccountName']) assert.ok(call.includes(field));
   assert.doesNotMatch(call,/\.env|\.message/);
 }
 JS

@@ -31,7 +31,12 @@ bank activation.
    same build's worker image, selects `shared-v1` with empty binding ID, and links
    fresh compatibility
    [evidence](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/156#issuecomment-6306325433).
-   Dispatch remains contingent on the migration-only release receipt.
+   Dispatch followed the successful migration-only release receipt.
+   [Dispatch 39535192782](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39535192782)
+   applied the worker runtime but its final readback rejected because the
+   projection omitted container arguments required by `shared-v1`. The release
+   has no accepted receipt; this branch adds that projection and a regression
+   assertion before retry.
 7. **Hosted qualification — pending.** Migration first, deploy shared-v1,
    verify Scheduler/IAM, then prove an enrolled second Sandbox book progresses.
 
