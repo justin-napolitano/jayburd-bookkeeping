@@ -5,10 +5,9 @@
 [History](../contracts/plaid-history-currency.md).
 
 [Plaid types](automatic-account-binding-sources.md), [loans](plaid-liability-sources.md).
-[Binding-review recovery](binding-review-recovery-sources.md): official Item
-removal and `ITEM_NOT_FOUND` semantics for #215.
-[Encrypted bank credentials](../contracts/bank-token-vault.md): Plaid storage,
-Cloud KMS envelope encryption, and CRC32C; runtime unproved (2026-10-15).
+[Shared sync](shared-acquisition-sources.md): Plaid cursor/webhooks.
+[Removal](binding-review-recovery-sources.md): Item removal and `ITEM_NOT_FOUND` #215.
+[Credentials](../contracts/bank-token-vault.md): Plaid/KMS/CRC32C (2026-10-15).
 
 [First Sandbox reference bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review)
 records SIX's official ISO 4217 List One XML publication (2026-09-17), retrieved

@@ -29,6 +29,13 @@ test('accepts reconciled sole-ready image and paused exact scheduler with bounde
   assert.equal(r.approvedWorkerConfigSHA256,createHash('sha256').update('{"projectNumber":"123456789012","binding_id":"11111111-1111-4111-8111-111111111111","client_id_version":"2","client_secret_version":"3","scheduler":"PAUSED"}').digest('hex'));
   assert.equal(Object.hasOwn(r,'httpTarget'),false);assert.equal(Object.hasOwn(r,'observed'),false);
 });
+test('shared publisher readback requires the selected policy and empty binding',()=>{
+  const {m,observed}=fixture();m.publisher_policy='shared-v1';m.binding_id='';
+  observed.publisher.spec.template.spec.containers[0].args=['-publisher-policy=shared-v1','-binding-id='];
+  assert.equal(validateWorkerDeployment(m,observed).status,'paused-workers-observed');
+  observed.publisher.spec.template.spec.containers[0].args[1]='-binding-id=11111111-1111-4111-8111-111111111111';
+  assert.throws(()=>validateWorkerDeployment(m,observed));
+});
 test('rejects stale generation unready desired revisions and precision-losing generations',()=>{
   for(const mutate of [o=>o.publisher.status.observedGeneration=6,o=>o.consumer.status.latestCreatedRevisionName+='new',o=>o.publisher.status.conditions[0].status='False',o=>o.publisher.status.conditions.push({type:'Ready',status:'True'}),o=>o.consumer.metadata.generation=9007199254740992,o=>o.consumer.metadata.generation='07',o=>o.consumer.metadata.generation='0',o=>o.consumer.metadata.generation='9223372036854775808',o=>o.publisher.spec.template.metadata={name:'other'}]) {
     const {m,observed}=fixture();mutate(observed);assert.throws(()=>validateWorkerDeployment(m,observed));

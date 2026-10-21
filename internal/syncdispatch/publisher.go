@@ -11,7 +11,16 @@ import (
 type Publisher struct {
 	sql       adapter
 	binding   string
+	shared    bool
 	transport observer.Transport
+}
+
+// NewSharedPublisher selects only login-enrolled bindings through SQL on each tick.
+func NewSharedPublisher(db acquisition.Beginner, t observer.Transport) (*Publisher, error) {
+	if db == nil || t == nil {
+		return nil, failure("invalid_request", false)
+	}
+	return &Publisher{sql: adapter{db, "bookkeeping_publisher"}, shared: true, transport: t}, nil
 }
 
 // NewPublisher validates injected configuration without retrieving credentials or opening transactions.
@@ -19,7 +28,7 @@ func NewPublisher(db acquisition.Beginner, binding string, t observer.Transport)
 	if db == nil || t == nil || !validID(binding) {
 		return nil, failure("invalid_request", false)
 	}
-	return &Publisher{adapter{db, "bookkeeping_publisher"}, binding, t}, nil
+	return &Publisher{sql: adapter{db, "bookkeeping_publisher"}, binding: binding, transport: t}, nil
 }
 
 // dispatch contains committed enqueue ownership, never authority supplied by a queue request.
@@ -39,26 +48,68 @@ type dispatch struct {
 func (p *Publisher) Tick(parent context.Context) (observer.TickResult, error) {
 	ctx, cancel := context.WithTimeout(parent, 60*time.Second)
 	defer cancel()
+	if !p.shared {
+		return p.tickBinding(ctx, p.binding, 25)
+	}
+	var out observer.TickResult
+	var selection struct {
+		IDs []string `json:"binding_ids"`
+	}
+	raw, err := p.sql.call(ctx, "SELECT integration.sync_delivery_bindings(5)")
+	if err != nil {
+		return out, err
+	}
+	if metadata(raw, &selection) != nil || selection.IDs == nil || len(selection.IDs) > 5 {
+		return out, failure("invalid_metadata", false)
+	}
+	seen := map[string]bool{}
+	var first error
+	for _, binding := range selection.IDs {
+		if !validID(binding) || seen[binding] {
+			return out, failure("invalid_metadata", false)
+		}
+		seen[binding] = true
+		part, e := p.tickBinding(ctx, binding, 5)
+		out.Discovered += part.Discovered
+		out.Candidates += part.Candidates
+		out.EnqueueCalls += part.EnqueueCalls
+		out.Recorded += part.Recorded
+		out.Skipped += part.Skipped
+		if f, ok := e.(*Failure); ok && f.Code == "not_authorized" {
+			e = nil
+		}
+		if e != nil && first == nil {
+			first = e
+		}
+		if ctx.Err() != nil {
+			break
+		}
+	}
+	return out, first
+}
+
+// tickBinding rechecks one selected binding through the existing SQL authority boundary.
+func (p *Publisher) tickBinding(ctx context.Context, binding string, limit int) (observer.TickResult, error) {
 	var out observer.TickResult
 	var discovered struct {
 		Created int `json:"created_count"`
 	}
-	raw, e := p.sql.call(ctx, "SELECT integration.sync_delivery_discover($1,25)", p.binding)
+	raw, e := p.sql.call(ctx, "SELECT integration.sync_delivery_discover($1,$2)", binding, limit)
 	if e != nil {
 		return out, e
 	}
-	if metadata(raw, &discovered) != nil || discovered.Created < 0 || discovered.Created > 25 {
+	if metadata(raw, &discovered) != nil || discovered.Created < 0 || discovered.Created > limit {
 		return out, failure("invalid_metadata", false)
 	}
 	out.Discovered = discovered.Created
 	var candidates struct {
 		IDs []string `json:"operation_ids"`
 	}
-	raw, e = p.sql.call(ctx, "SELECT integration.sync_delivery_candidates($1,25)", p.binding)
+	raw, e = p.sql.call(ctx, "SELECT integration.sync_delivery_candidates($1,$2)", binding, limit)
 	if e != nil {
 		return out, e
 	}
-	if metadata(raw, &candidates) != nil || candidates.IDs == nil || len(candidates.IDs) > 25 {
+	if metadata(raw, &candidates) != nil || candidates.IDs == nil || len(candidates.IDs) > limit {
 		return out, failure("invalid_metadata", false)
 	}
 	seen := map[string]bool{}

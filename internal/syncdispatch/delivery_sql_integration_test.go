@@ -89,6 +89,44 @@ func fixture(t *testing.T) (*pgx.Conn, string) {
 	return c, db
 }
 
+// TestSharedPublisherSelection proves login scope, bounded wraparound and disabled exclusion in SQL.
+func TestSharedPublisherSelection(t *testing.T) {
+	c, db := fixture(t)
+	for i := 1; i <= 8; i++ {
+		bid := fmt.Sprintf("00000000-0000-4000-8000-%012x", 0x300+i)
+		bookID := fmt.Sprintf("00000000-0000-4000-8000-%012x", 0x400+i)
+		exec(t, c, "INSERT INTO ledger.book(entity_id,book_id,name) VALUES($1,$2,$3)", entity, bookID, fmt.Sprintf("Fictional shared book %d", i))
+		login := "synthetic_publisher"
+		if i == 7 {
+			login = "bookkeeping_publisher"
+		}
+		principal := reader
+		if i%2 == 0 {
+			principal = other
+		}
+		exec(t, c, "INSERT INTO integration.sync_delivery_binding(entity_id,book_id,binding_id,service_principal,publisher_login,worker_login,enabled) VALUES($1,$2,$3,$4,$5,'synthetic_sync',$6)", entity, bookID, bid, principal, login, i != 8)
+	}
+	page := func() []any {
+		return object(t, call(t, db, "synthetic_publisher", "SELECT integration.sync_delivery_bindings(5)::text"))["binding_ids"].([]any)
+	}
+	first, second := page(), page()
+	unique := map[any]bool{}
+	for _, id := range append(first, second...) {
+		unique[id] = true
+		if id == "00000000-0000-4000-8000-000000000307" || id == "00000000-0000-4000-8000-000000000308" {
+			t.Fatal("foreign or disabled binding selected")
+		}
+	}
+	if len(first) != 5 || len(second) != 5 || len(unique) != 6 {
+		t.Fatalf("unfair or unbounded selection: %v %v", first, second)
+	}
+	if value(t, c, "SELECT count(DISTINCT service_principal)::text FROM integration.sync_delivery_binding WHERE publisher_login='synthetic_publisher' AND enabled") != "2" {
+		t.Fatal("distinct service principals not enrolled")
+	}
+	_, e := invoke(t, db, "synthetic_runtime", "SELECT integration.sync_delivery_bindings(5)::text")
+	requireCode(t, e, "42501")
+}
+
 // raw encodes synthetic exact values without floating-point amounts.
 func raw(v any) string {
 	b, e := json.Marshal(v)

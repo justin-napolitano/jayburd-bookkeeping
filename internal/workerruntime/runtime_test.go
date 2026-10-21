@@ -33,6 +33,31 @@ func config(mode string) Config {
 	return c
 }
 
+// TestSharedPublisherConfiguration pins explicit shared mode and excludes a configured binding.
+func TestSharedPublisherConfiguration(t *testing.T) {
+	c := config("publisher")
+	c.PublisherPolicy = "shared-v1"
+	if c.Validate() == nil {
+		t.Fatal("shared mode accepted fixed binding")
+	}
+	c.BindingID = ""
+	if e := c.Validate(); e != nil {
+		t.Fatal(e)
+	}
+	if _, e := New(c, Dependencies{DB: &blockedDB{}, Verifier: &badVerifier{}, Transport: inertTransport{}}); e != nil {
+		t.Fatal(e)
+	}
+	c.PublisherPolicy = "unknown"
+	if c.Validate() == nil {
+		t.Fatal("unknown policy accepted")
+	}
+	c = config("consumer")
+	c.PublisherPolicy = "shared-v1"
+	if c.Validate() == nil {
+		t.Fatal("consumer accepted publisher policy")
+	}
+}
+
 // blockedDB fails if rejected HTTP requests reach the database.
 type blockedDB struct{ calls atomic.Int32 }
 

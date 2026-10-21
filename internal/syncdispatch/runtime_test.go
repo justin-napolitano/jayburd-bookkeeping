@@ -106,6 +106,8 @@ func jsonBytes(v any) []byte {
 // fixtureAnswer provides a complete publisher and consumer path with fixed stable identities.
 func fixtureAnswer(q string, _ []any) []byte {
 	switch {
+	case strings.Contains(q, "sync_delivery_bindings"):
+		return jsonBytes(map[string]any{"binding_ids": []string{testID}})
 	case strings.Contains(q, "discover"):
 		return []byte(`{"created_count":1}`)
 	case strings.Contains(q, "candidates"):
@@ -204,6 +206,43 @@ func TestExternalCallsOutsideTransactions(t *testing.T) {
 	}))
 	if e = c.Handle(context.Background(), encode(testID, "1")); e != nil {
 		t.Fatal(e)
+	}
+}
+
+// TestSharedPublisherBoundsAndIsolation proves that one failed binding does not block another.
+func TestSharedPublisherBoundsAndIsolation(t *testing.T) {
+	const second = "22222222-2222-4222-8222-222222222222"
+	db := &fakeDB{answer: func(q string, args []any) []byte {
+		if strings.Contains(q, "sync_delivery_bindings") {
+			return jsonBytes(map[string]any{"binding_ids": []string{testID, second}})
+		}
+		if strings.Contains(q, "discover") {
+			if len(args) != 2 || args[1] != 5 {
+				t.Fatal("unbounded shared discovery")
+			}
+			if args[0] == testID {
+				return nil
+			}
+			return []byte(`{"created_count":0}`)
+		}
+		if strings.Contains(q, "candidates") {
+			return []byte(`{"operation_ids":[]}`)
+		}
+		return fixtureAnswer(q, args)
+	}}
+	p, err := NewSharedPublisher(db, transportFunc(func(context.Context, observer.Task) (observer.EnqueueResult, error) {
+		t.Fatal("unexpected enqueue")
+		return "", nil
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = p.Tick(context.Background())
+	if err == nil || db.active != 0 {
+		t.Fatalf("failure not reported or transaction leaked: %v", err)
+	}
+	if !strings.Contains(db.last, "candidates") {
+		t.Fatal("healthy binding was not visited")
 	}
 }
 

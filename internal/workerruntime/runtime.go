@@ -27,9 +27,9 @@ var uuid = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-
 
 // Config contains identifiers only; mode chooses an exact private route and database capability.
 type Config struct {
-	Mode, Instance, Listen, BindingID string
-	Caller                            observer.CallerPolicy
-	Queue                             observer.QueueConfig
+	Mode, Instance, Listen, BindingID, PublisherPolicy string
+	Caller                                             observer.CallerPolicy
+	Queue                                              observer.QueueConfig
 }
 
 // component separates publisher delivery from the sync login that can acquire source observations.
@@ -54,10 +54,12 @@ func (c Config) Validate() error {
 		return ErrConfiguration
 	}
 	if c.Mode == "publisher" {
-		if !uuid.MatchString(c.BindingID) || c.BindingID == "00000000-0000-0000-0000-000000000000" || c.Queue.Project != (clouddb.Config{Instance: c.Instance}).Project() {
+		fixed := (c.PublisherPolicy == "" || c.PublisherPolicy == "binding-v1") && uuid.MatchString(c.BindingID) && c.BindingID != "00000000-0000-0000-0000-000000000000"
+		shared := c.PublisherPolicy == "shared-v1" && c.BindingID == ""
+		if (!fixed && !shared) || c.Queue.Project != (clouddb.Config{Instance: c.Instance}).Project() {
 			return ErrConfiguration
 		}
-	} else if c.BindingID != "" || c.Queue != (observer.QueueConfig{}) {
+	} else if c.BindingID != "" || c.PublisherPolicy != "" || c.Queue != (observer.QueueConfig{}) {
 		return ErrConfiguration
 	}
 	return nil
@@ -92,7 +94,13 @@ func New(c Config, d Dependencies) (*Runtime, error) {
 		if d.Runner != nil || d.Transport == nil {
 			return nil, ErrConfiguration
 		}
-		p, err := syncdispatch.NewPublisher(d.DB, c.BindingID, d.Transport)
+		var p *syncdispatch.Publisher
+		var err error
+		if c.PublisherPolicy == "shared-v1" {
+			p, err = syncdispatch.NewSharedPublisher(d.DB, d.Transport)
+		} else {
+			p, err = syncdispatch.NewPublisher(d.DB, c.BindingID, d.Transport)
+		}
 		if err != nil {
 			return nil, ErrConfiguration
 		}
