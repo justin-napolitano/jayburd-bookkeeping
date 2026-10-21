@@ -1,5 +1,10 @@
 # Annotated bibliography and reading guide
 
+The [available-to-use source record](available-to-use-sources.md) records
+ATU-01–07 from selected accounting, reporting, identity and public ISO sections
+reviewed 2026-10-21. Its dated headroom formula is a project proposal, not a
+source-defined accounting measure or authorization to spend.
+
 ## Purpose and reading order
 
 [History](../contracts/plaid-history-currency.md).
