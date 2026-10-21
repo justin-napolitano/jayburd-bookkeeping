@@ -39,6 +39,9 @@ alternate download reset its TCP connection. This is an environment gate, not
 passing product evidence. Local Markdown relative links and whitespace were
 reviewed separately; no SQL/API/browser files changed, so migration, ledger,
 web and app-integration gates do not apply to this documentation-only commit.
+The first PR CI check reached Go and found that the annotated bibliography had
+crossed its 32 KiB context limit. Its index entry was condensed below the cap;
+the follow-up CI run is the validation source for this correction.
 
 ## Remaining work
 
