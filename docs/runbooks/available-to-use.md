@@ -17,6 +17,7 @@ Contract remains proposed pending owner/accountant review and #248/#1/#56.
 | Contract | [Proposal](../contracts/available-to-use.md) compares models, defines provenance and unknown states, and fixes independent synthetic expected outcomes. |
 | Validation | `git diff --check` passed. `make check test build` blocked at pinned Go 1.26.10 download; default proxy socket disconnected, then approved alternate proxy connection reset. Installed Go is 1.26.5 and cannot satisfy `go.mod`. No product tests ran. |
 | Navigation | Added index and bibliography pointers to the bounded proposal and reviewed source record. |
+| CI correction | The first PR check found the shared bibliography over its 32 KiB context limit. Condensed the new index entry and existing intro below the cap; follow-up CI is pending. |
 
 ## Current evidence
 

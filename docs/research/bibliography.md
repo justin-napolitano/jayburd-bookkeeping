@@ -1,9 +1,6 @@
 # Annotated bibliography and reading guide
 
-The [available-to-use source record](available-to-use-sources.md) records
-ATU-01–07 from selected accounting, reporting, identity and public ISO sections
-reviewed 2026-10-21. Its dated headroom formula is a project proposal, not a
-source-defined accounting measure or authorization to spend.
+[Available-to-use sources](available-to-use-sources.md): ATU-01–07; model proposed.
 
 ## Purpose and reading order
 
@@ -111,9 +108,8 @@ For bank sync qualification and measurable scaling, read the
 lifecycle/Sandbox and Google Cloud concurrency/queue sections, reviewed
 2026-10-13. These constrain test design; they do not certify live readiness.
 
-Shared resource index for the owner and agents, maintained with the contracts.
-Updated 2026-10-11. Sources explain or constrain decisions; listing a source
-does not approve a design or establish compliance.
+Shared resource index, updated 2026-10-21. Listings constrain decisions; they
+do not approve designs or establish compliance.
 
 Start with these six reading steps:
 
