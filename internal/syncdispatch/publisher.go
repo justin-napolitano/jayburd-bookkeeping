@@ -75,7 +75,9 @@ func (p *Publisher) Tick(parent context.Context) (observer.TickResult, error) {
 		out.EnqueueCalls += part.EnqueueCalls
 		out.Recorded += part.Recorded
 		out.Skipped += part.Skipped
-		if f, ok := e.(*Failure); ok && f.Code == "not_authorized" { e = nil }
+		if f, ok := e.(*Failure); ok && f.Code == "not_authorized" {
+			e = nil
+		}
 		if e != nil && first == nil {
 			first = e
 		}

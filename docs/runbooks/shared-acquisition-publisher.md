@@ -33,6 +33,8 @@ release/receipt Node tests, `make check`, `make test`, `make build`,
 because pinned Go 1.26.9 download returned HTTP 403; CI remains authoritative.
 The worker release instructions and contract now describe both explicit
 publisher policies, including the shared empty-binding requirement.
+PR #230 CI found two Go files missed the separate `gofmt -l cmd internal`
+gate; they were formatted and that gate was rerun before merge.
 No hosted scheduler acceptance is yet claimed.
 
 ## Remaining work
