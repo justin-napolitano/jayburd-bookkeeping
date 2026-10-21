@@ -6432,11 +6432,11 @@
                     },
                     "category": {
                       "type": "string",
-                      "const": "asset"
+                      "enum": ["asset", "liability"]
                     },
                     "normal_side": {
                       "type": "string",
-                      "const": "debit"
+                      "enum": ["debit", "credit"]
                     },
                     "monetary": {
                       "type": "boolean",

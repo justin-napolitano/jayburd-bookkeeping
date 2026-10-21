@@ -167,6 +167,8 @@ type workContext struct {
 	Environment       string             `json:"environment"`
 	ItemID            string             `json:"item_id"`
 	AccountID         string             `json:"account_id"`
+	AccountType       string             `json:"account_type"`
+	AccountSubtype    *string            `json:"account_subtype"`
 	ItemGeneration    string             `json:"item_generation"`
 	CredentialRef     string             `json:"credential_ref"`
 	CredentialVersion string             `json:"credential_version"`
@@ -195,7 +197,10 @@ func (c workContext) expected() plaid.Expected {
 	if versions == nil {
 		versions = []currencyMetadata{c.Currency}
 	}
-	out := plaid.Expected{AccountID: c.AccountID}
+	out := plaid.Expected{AccountID: c.AccountID, AccountType: c.AccountType}
+	if c.AccountType != "depository" && c.AccountSubtype != nil {
+		out.AccountSubtype = *c.AccountSubtype
+	}
 	for _, v := range versions {
 		to := ""
 		if v.ValidTo != nil {

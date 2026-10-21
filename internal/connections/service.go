@@ -591,7 +591,7 @@ func validBindingRequest(input BindingRequest) bool {
 		account := binding.NewLedgerAccount
 		if !validID(binding.LedgerAccountID) || account.AccountID != binding.LedgerAccountID ||
 			len(account.Code) < 1 || len(account.Code) > 64 || len(account.Name) < 1 || len(account.Name) > 200 ||
-			account.Category != "asset" || account.NormalSide != "debit" || !account.Monetary || account.ActiveFrom != binding.BindingDate {
+			!((account.Category == "asset" && account.NormalSide == "debit") || (account.Category == "liability" && account.NormalSide == "credit")) || !account.Monetary || account.ActiveFrom != binding.BindingDate {
 			return false
 		}
 		if _, err := time.Parse("2006-01-02", account.ActiveFrom); err != nil {
