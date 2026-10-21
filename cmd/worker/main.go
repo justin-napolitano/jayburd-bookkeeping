@@ -37,6 +37,7 @@ func parse(args []string) (options, error) {
 	f.StringVar(&o.Worker.Caller.Email, "caller-email", "", "authorized workload service account")
 	f.StringVar(&o.Worker.Caller.Subject, "caller-subject", "", "immutable numeric workload subject")
 	f.StringVar(&o.Worker.BindingID, "binding-id", "", "enrolled publisher book binding")
+	f.StringVar(&o.Worker.PublisherPolicy, "publisher-policy", "", "binding-v1 or shared-v1")
 	f.StringVar(&o.Worker.Queue.Location, "queue-location", "", "explicit queue location")
 	f.StringVar(&o.Worker.Queue.Queue, "queue-name", "", "fixed queue name")
 	f.StringVar(&o.Worker.Queue.ConsumerURL, "consumer-url", "", "fixed acquisition consumer URL")

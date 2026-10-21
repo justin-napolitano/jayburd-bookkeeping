@@ -16,7 +16,8 @@ function integer(value, max=9223372036854775807n) {
 export function validateWorkerManifest(bytes, hash, now=Date.now()) {
   if (!/^[a-f0-9]{64}$/.test(hash) || createHash('sha256').update(bytes).digest('hex') !== hash) throw new Error('Worker release rejected');
   const m=JSON.parse(bytes);
-  keys(m,['schemaVersion','project','projectNumber','operation','build','image','binding_id','client_id_version','client_secret_version','evidence','expiresAt','previousDeployment']);
+  const common=['schemaVersion','project','projectNumber','operation','build','image','binding_id','client_id_version','client_secret_version','evidence','expiresAt','previousDeployment'];
+  keys(m,m.publisher_policy===undefined?common:[...common,'publisher_policy']);
   keys(m.build,['run','attempt','commit']);
   keys(m.evidence,['bootstrap','compatibility','identity','secrets']);
   if (m.schemaVersion!==1 || typeof m.project!=='string' || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(m.project) ||
@@ -24,8 +25,9 @@ export function validateWorkerManifest(bytes, hash, now=Date.now()) {
       !integer(m.build.run) || !integer(m.build.attempt,9999n) || typeof m.build.commit!=='string' || !/^[a-f0-9]{40}$/.test(m.build.commit)) throw new Error('Worker release rejected');
   const prefix=`us-central1-docker.pkg.dev/${m.project}/jayburd-dev/worker@sha256:`;
   if (typeof m.image!=='string' || !m.image.startsWith(prefix) || !/^[a-f0-9]{64}$/.test(m.image.slice(prefix.length)) ||
-      typeof m.binding_id!=='string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(m.binding_id) ||
-      m.binding_id==='00000000-0000-0000-0000-000000000000' || !integer(m.client_id_version) || !integer(m.client_secret_version)) throw new Error('Worker release rejected');
+      typeof m.binding_id!=='string' || !['binding-v1','shared-v1'].includes(m.publisher_policy??'binding-v1') ||
+      ((m.publisher_policy??'binding-v1')==='shared-v1' ? m.binding_id!=='' : (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(m.binding_id) || m.binding_id==='00000000-0000-0000-0000-000000000000')) ||
+      !integer(m.client_id_version) || !integer(m.client_secret_version)) throw new Error('Worker release rejected');
   const expiry=Date.parse(m.expiresAt);
   if (typeof m.expiresAt!=='string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(m.expiresAt) || !Number.isFinite(expiry) ||
       new Date(expiry).toISOString().replace('.000Z','Z')!==m.expiresAt || expiry<=now || expiry>now+7*86400000) throw new Error('Worker release rejected');
@@ -71,7 +73,7 @@ if (process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
       if(isRollback(m.operation)) validateWorkerRollback(m,json('previous-run.json'),json('previous/worker-deployment.json'));
     }
     mkdirSync(destination,{recursive:true,mode:0o700});
-    writeFileSync(`${destination}/worker-runtime.tfvars.json`,JSON.stringify({project_id:m.project,project_number:m.projectNumber,region:'us-central1',runtime:{image:m.image,binding_id:m.binding_id,client_id_version:m.client_id_version,client_secret_version:m.client_secret_version}}),{mode:0o600});
+    writeFileSync(`${destination}/worker-runtime.tfvars.json`,JSON.stringify({project_id:m.project,project_number:m.projectNumber,region:'us-central1',runtime:{image:m.image,binding_id:m.binding_id,publisher_policy:m.publisher_policy??'binding-v1',client_id_version:m.client_id_version,client_secret_version:m.client_secret_version}}),{mode:0o600});
     writeFileSync(`${destination}/approved.json`,JSON.stringify(m),{mode:0o600});
     console.log('PASS: paused worker release metadata validated');
   } catch {console.error('BLOCKED: worker release metadata or evidence rejected');process.exitCode=1;}

@@ -7,6 +7,10 @@ Reviewed Plaid credit-card and student/mortgage loan enrollment: [liability
 contract](contracts/plaid-liability-bindings.md), [source record](research/plaid-liability-sources.md)
 and [delivery ledger](runbooks/plaid-liability-bindings.md), issue #210.
 
+Automatic multi-book Sandbox acquisition: [shared publisher
+contract](contracts/shared-acquisition-publisher.md), [source record](research/shared-acquisition-sources.md)
+and [delivery ledger](runbooks/shared-acquisition-publisher.md), issue #156.
+
 ## Decision
 
 Build actual bookkeeping software, learning through small, testable slices.
