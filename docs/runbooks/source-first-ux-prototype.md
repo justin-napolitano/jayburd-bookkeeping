@@ -24,6 +24,9 @@ has been implemented or that any account is ready for live bookkeeping.
   accounting state. A book-first layout was considered, but it cannot show
   unassigned source history as the owner requested. A single merged financial
   total was rejected because separate entities and currencies cannot be pooled.
+- First-release suggestions in this fixture come from owner rules or inert
+  provider metadata. Model suggestions remain future work until a separate
+  evaluation and authority contract is reviewed; no model result is simulated.
 - The initial history request can be up to 90 days; the interface reports only
   observed coverage. A simulated Item includes checking, credit card and student
   loan accounts. Liability entries stay held for later accounting policy. Source
@@ -39,6 +42,7 @@ has been implemented or that any account is ready for live bookkeeping.
 | Source and issue review | Read issue #246 and current docs/index, bibliography, source-review, history and liability contracts before implementation. |
 | Prototype | `docs/prototypes/source-first-workspace.html` shows first-run simulated Connect, three account statuses, two entity books, six fictional transactions, global search/filter, detail, topic toggle and distinct classification authority. No network or browser persistence. |
 | Display states | Loading, empty, unavailable and denied replace prior transaction content. Native controls, skip link, focus transfer, semantic tables, labels and mobile layout are built in. |
+| Rule-first review correction | TX-101 now shows an owner rule suggestion. No active model result appears; later model proposals require evaluation and a reviewed contract. Focused static assertion and `make check` pass. |
 | Browser review | Pending. CUA blocked the local `file://` URL and explicitly disallowed an indirect browser workaround, so there are no verified desktop/mobile captures or visual keyboard/overflow claims. |
 | Repository gates | `make check`, `make test`, and `make build` PASS with local Go 1.26.5 and a temporary modfile outside the repository. `make test` required approved unsandboxed execution for synthetic localhost listeners. Script syntax and fixture interaction smoke PASS. Staged runbook guard recorded at commit. |
 
