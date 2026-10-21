@@ -41,7 +41,7 @@ for component in publisher consumer; do
   suffix="$component"
   [[ "$component" != consumer ]] || suffix=sync
   if ! gcloud run services describe "jayburd-dev-acquisition-$suffix" --project "$project" --region us-central1 \
-    --format='json(metadata.name,metadata.generation,status.observedGeneration,status.conditions[].type,status.conditions[].status,status.latestCreatedRevisionName,status.latestReadyRevisionName,status.traffic,spec.template.metadata.name,spec.template.spec.serviceAccountName,spec.template.spec.containers[].image)' \
+    --format='json(metadata.name,metadata.generation,status.observedGeneration,status.conditions[].type,status.conditions[].status,status.latestCreatedRevisionName,status.latestReadyRevisionName,status.traffic,spec.template.metadata.name,spec.template.spec.serviceAccountName,spec.template.spec.containers[].image,spec.template.spec.containers[].args)' \
     > "$release_dir/$component-revision.json" 2> "$release_dir/provider-private.log"; then
     echo 'BLOCKED: worker revision readback failed' >&2; exit 1
   fi
