@@ -359,6 +359,20 @@ func TestPlaidEmptyAccountReadiness(t *testing.T) {
 	}
 }
 
+// TestPlaidLiabilityAccountPin requires the returned account to match trusted type and subtype.
+func TestPlaidLiabilityAccountPin(t *testing.T) {
+	for _, tc := range []struct{ kind, subtype string }{{"credit", "credit card"}, {"loan", "student"}, {"loan", "mortgage"}} {
+		e := expected()
+		e.AccountType, e.AccountSubtype = tc.kind, tc.subtype
+		raw := []byte(strings.Replace(string(page(row("1", "USD"), "", "")), `"type":"depository"`, `"type":"`+tc.kind+`","subtype":"`+tc.subtype+`"`, 1))
+		if _, err := plaid.DecodePage(raw, e); err != nil {
+			t.Fatal(tc, err)
+		}
+		rejected(t, []byte(strings.Replace(string(raw), tc.subtype, "other", 1)), e)
+		rejected(t, page(row("1", "USD"), "", ""), e)
+	}
+}
+
 // TestPlaidReviewedEnrichment keeps every reviewed field inert and preserves exact provider balance numbers.
 func TestPlaidReviewedEnrichment(t *testing.T) {
 	for _, metadata := range []string{
