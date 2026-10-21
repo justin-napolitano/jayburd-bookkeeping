@@ -43,18 +43,36 @@ has been implemented or that any account is ready for live bookkeeping.
 | Prototype | `docs/prototypes/source-first-workspace.html` shows first-run simulated Connect, three account statuses, two entity books, six fictional transactions, global search/filter, detail, topic toggle and distinct classification authority. No network or browser persistence. |
 | Display states | Loading, empty, unavailable and denied replace prior transaction content. Native controls, skip link, focus transfer, semantic tables, labels and mobile layout are built in. |
 | Rule-first review correction | TX-101 now shows an owner rule suggestion. No active model result appears; later model proposals require evaluation and a reviewed contract. Focused static assertion and `make check` pass. |
-| Browser review | Pending. CUA blocked the local `file://` URL and explicitly disallowed an indirect browser workaround, so there are no verified desktop/mobile captures or visual keyboard/overflow claims. |
-| Repository gates | `make check`, `make test`, and `make build` PASS with local Go 1.26.5 and a temporary modfile outside the repository. `make test` required approved unsandboxed execution for synthetic localhost listeners. Script syntax and fixture interaction smoke PASS. Staged runbook guard recorded at commit. |
+| Browser review | Owner explicitly requested an HTTP-hosted walkthrough. Localhost Edge rendered the fixture at `http://127.0.0.1:8765/source-first-workspace.html`. Desktop and 390×844 mobile views, keyboard activation, search/filter, detail, topic edit, ownership notice, and replacement loading/empty/error/denied states were inspected. |
+| Browser corrections | The sidebar now reports three fictional accounts after simulated Connect; the topic notice clears when returning to the list; mobile book cards stack instead of squeezing into two columns. The mobile document width stayed at the viewport width while its transaction table scrolled inside its wrapper. |
+| Repository gates | `make check`, `make test`, and `make build` PASS with local Go 1.26.5 and a temporary modfile outside the repository. `make test` required approved unsandboxed execution for synthetic localhost listeners. Locked `npm ci` and `make web-check web-test web-build web-browser` PASS (286 unit and 17 browser tests). Script syntax and fixture interaction smoke PASS. Staged runbook guard recorded at commit. |
 
 ## Current evidence
 
 Static script syntax and required control IDs passed with Node's `vm.Script`.
 A DOM stub exercised first-run Connect → All Transactions → card detail → Books
 → denied-state clearing; all assertions passed. `git diff --check` passed.
-Browser visual inspection is pending because CUA rejected opening the local
-`file://` prototype: “The requested URL protocol is not allowed. Allowed
-protocols: `http:`, `https:`.” The tool explicitly prohibited using a localhost
-or alternate-browser workaround.
+The original `file://` preview was rejected by CUA: “The requested URL protocol
+is not allowed. Allowed protocols: `http:`, `https:`.” On the owner's subsequent
+explicit request to host and use the fixture, a local HTTP listener and Edge
+browser opened it successfully. The desktop screenshot showed the source-first
+overview and cross-account table. A mobile viewport showed the transaction
+detail, scrollable table, and corrected single-column entity cards. Browser
+DOM measurements showed no document-level horizontal overflow at the mobile
+viewport; the transaction table itself had an internal horizontal scroll area.
+The browser images were inspected in-session and a separate Playwright capture
+saved `/private/tmp/jayburd-246-{desktop,mobile}-{transactions,books}.png` for
+local owner review; no image artifact is committed. That script checked six
+rows, document width, connection-status text and mobile book grid columns.
+
+Keyboard Enter activated All Transactions and a filtered Review button. Search
+for `TX-099` selected one cross-entity posted example; loan + Held selected
+one EUR fixture; loan + Posted produced the explicit no-match state. The card
+topic toggle changed only its topic while its held accounting state stayed
+unchanged. A posted cross-entity example likewise kept its journal evidence
+after a topic toggle. The ownership action reported that no assignment was made.
+Loading, empty, unavailable, and denied previews replaced prior transaction
+content rather than leaving stale rows visible.
 
 The pinned Go 1.26.10 download failed due unavailable network access. A copy
 of `go.mod`/`go.sum` under `/private/tmp` changed only the Go directive to the
@@ -78,7 +96,8 @@ bind localhost; the approved unsandboxed rerun passed.
    are separately explained, with no automated allocation asserted.
 5. Preview loading, error and denied; prior transaction rows disappear. On a
    narrow screen, navigation and table remain reachable by keyboard and the
-   document itself should not overflow.
+   document itself should not overflow. These behaviors were observed in Edge
+   on the local HTTP fixture; no production accessibility certification follows.
 
 ## Remaining work
 
@@ -94,4 +113,5 @@ does not prove accessibility, permissions, sync completeness or posted balances.
 
 This bounded branch changes only the prototype and this stage runbook. The
 coordinator owns shared index updates, issue discussion, PR creation and any
-production implementation. Visual acceptance remains pending.
+production implementation. The browser walkthrough is complete; product and
+accounting acceptance remain separate.
