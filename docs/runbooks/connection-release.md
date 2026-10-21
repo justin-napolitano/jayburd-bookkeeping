@@ -1,7 +1,7 @@
 <!-- stage-runbook: true -->
 # Connection release delivery
 
-## Shared acquisition and liability Sandbox runtime candidate (#156, #210)
+## Shared acquisition and liability Sandbox runtime deployment (#156, #210)
 
 Migration-only run
 [39533392678](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39533392678)
@@ -12,15 +12,25 @@ passed all image and validation jobs on merged source
 The `sandbox-promote` manifest pins that build's API, migrator and web digests.
 It preserves the last reviewed public identity, Infisical and Sandbox client
 metadata, with release expiry before the existing consent expiry. The promotion
-uses a status-only migration check before replacing the API/web revisions.
+used a status-only migration check before replacing the API/web revisions.
+
+Application promotion
+[39537836698](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39537836698)
+emitted `transport-smoke-passed` for API revision `jayburd-dev-api-00017-znq`
+and web revision `jayburd-dev-web-00017-b42`. It records the approved connection
+policy digest, not provider or user acceptance. The schema status gate ran
+before service rollout.
 
 This makes loan/credit account enrollment available in the application while
 liability transactions remain review-only pending sign/principal/interest policy.
 It does not activate the Scheduler, post journals, qualify Plaid history or prove
-hosted multi-book acquisition. Worker release
+hosted multi-book acquisition. First worker release
 [39535192782](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39535192782)
-has no accepted receipt; readback repair PR #233 and a subsequent successful
-paused-worker receipt are required before activation review.
+has no accepted receipt; readback repair PR #233 was merged. Worker retry
+[39537175963](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39537175963)
+emitted `paused-workers-observed` for both worker revisions and Scheduler PAUSED.
+Owner IAM/OIDC review, Scheduler activation, and new-book delivery evidence
+remain open in #156.
 
 ## Canonical KMS and SDK runtime promotion (#187)
 
