@@ -30,21 +30,46 @@ provider/cloud execution, public exposure or Production scope is supplied here.
   exact source/manifest/claim pins, selected role/config readback and mock proof.
 - Added dedicated verifier Cloud SQL constructor support; role provision and
   finite mandate enrollment remain separate explicit operations.
+- Added sandbox-verify to the explicit worker image source/build/binary allowlist.
+  Extended the network-disabled nonroot smoke harness with exact inert-default
+  output and rejected compare-without-manifest/DSN/secret flags. Shell syntax and
+  diff checks passed; final source integrated as b7b5776.
 
 ## Current evidence
 
 Root connector/API capability guard: focused race tests and `make check test build`
 passed with the local Go1.26.5 override; tracked toolchain remains1.26.10 and CI
 must validate it. Logs: `/private/tmp/jayburd-wave2-capability.log` and
-`/private/tmp/jayburd-wave2-root-core.log`. No network/provider/cloud actions ran.
+`/private/tmp/jayburd-wave2-root-core.log`. No provider/cloud actions ran.
 Locked frontend dependencies installed successfully for the later integration.
+Root repeated generated/type checks,326 web units and production build;24 browser
+tests and both full-stack journeys passed after integrating migration30. Sandbox
+loopback denials were retried outside the sandbox without weakening tests.
+Release tests and isolated webhook-delivery mock infrastructure passed. Actionlint
+found two masked shell assignment statuses; separating assignment/export corrected
+them and the full workflow lint passed. Independent read-only rollout review found
+no blocker; verifier review prompted exact review identity/multiplicity checks and
+additional scope/revocation negatives. Root repeated the actual-role SQL proof.
+Logs: `/private/tmp/jayburd-wave2-{web,browser,app,release,infra,actionlint,verifier}.log`.
+Read-only Dashboard review is recorded in [LC01](../research/plaid-launch-center-review.md):
+Production-approved account signal, selected details across all12 tasks, and
+remaining applicability/hosted gaps. Created native child issues274/275/276 and
+updated88/187 current-state headers while preserving original acceptance/history.
 Existing270/273 evidence is the baseline, not proof
 that the new verifier, recovery correction or updater has shipped or run hosted.
+Final combined `make check test build` passed, including the new verifier command;
+final author adapter/SQL/race and migration/cloud-SQL/ledger gates passed.
+Root also repeated migration/cloud-SQL/ledger gates successfully before the
+four typed profile guard changes; final author proof covers those changes.
+Worker image build was attempted with the tracked pinned Go1.26.10 image but
+stopped at dependency download with an unknown certificate authority in this local
+Docker environment. No TLS bypass or dependency substitution was used. Local image
+smoke is therefore BLOCKED, not PASS; the CI pinned image/build smoke gate is required.
 
 ## Remaining work
 
-Integrate reviewed child commits, run required gates, independently review and
-submit the combined PR. Prepare concrete release artifacts before owner approval
+Submit the integrated PR and require exact-head CI, including pinned image smoke,
+plus human review of sensitive SQL/IAM/runtime changes. Prepare concrete release artifacts before owner approval
 of actual cloud/provider execution. #88/#271/#272/#187 remain open until their
 own acceptance is evidenced; missing/canceled work is never counted complete.
 

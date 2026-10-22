@@ -46,7 +46,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/webhook-evidence"
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN/attempts/$BUILD_ATTEMPT" > "$RUNNER_TEMP/webhook-evidence/build-run.json"
           gh run download "$BUILD_RUN" --repo "$GITHUB_REPOSITORY" --name "image-worker-$BUILD_COMMIT-$BUILD_RUN-$BUILD_ATTEMPT" --dir "$RUNNER_TEMP/webhook-evidence/worker"
-          export CURRENT_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          CURRENT_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          export CURRENT_MAIN_SHA
           node scripts/prepare-webhook-rollout.mjs deploy/webhook-release.json "$RELEASE_SHA256" "$RUNNER_TEMP/webhook-release" "$RUNNER_TEMP/webhook-evidence"
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
@@ -60,7 +61,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          export CURRENT_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          CURRENT_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          export CURRENT_MAIN_SHA
           node scripts/prepare-webhook-rollout.mjs deploy/webhook-release.json "$RELEASE_SHA256" "$RUNNER_TEMP/webhook-release" "$RUNNER_TEMP/webhook-evidence"
       - id: auth
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
