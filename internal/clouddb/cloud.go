@@ -24,7 +24,7 @@ type Config struct{ Instance, Component string }
 
 // Validate confines callers to the reviewed region and the explicitly implemented identities.
 func (c Config) Validate() error {
-	if !instancePattern.MatchString(c.Instance) || (c.Component != "api" && c.Component != "migrator" && c.Component != "publisher" && c.Component != "sync" && c.Component != "webhook") {
+	if !instancePattern.MatchString(c.Instance) || (c.Component != "api" && c.Component != "migrator" && c.Component != "publisher" && c.Component != "sync" && c.Component != "webhook" && c.Component != "verifier") {
 		return ErrConfiguration
 	}
 	return nil
@@ -51,6 +51,10 @@ func PoolConfig(c Config, dial func(context.Context, string, string) (net.Conn, 
 	p.MaxConns = 5
 	if c.Component != "api" {
 		p.MaxConns = 2
+	}
+	// The finite verifier performs one controlled comparison, never parallel acquisition or posting.
+	if c.Component == "verifier" {
+		p.MaxConns = 1
 	}
 	p.MinConns = 0
 	p.MaxConnLifetime = 30 * time.Minute
