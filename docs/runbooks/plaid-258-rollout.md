@@ -24,20 +24,32 @@ quiescence and restore that same schedule only as bounded rollout controls.
    Duplicate push validation 39704176243 was canceled to release the shared
    main-branch concurrency slot. It is not passing evidence; the candidate's own
    complete validation remains mandatory. Position CI was left running.
-3. **Migration — prepared.** Exact-image migration-only manifest hash
+3. **Migration — executed.** Exact-image migration-only manifest hash
    `5b6a88a2c6d3c0a85c393e884c2cdeb6ee0a84d8a919d995ef15aca7d3f5946d`
    passes strict metadata and same-build receipt validation. Worker manifest hash
    `579254e64c77244927bbcabfdf50d304133556d4931f60e596d0ca64bed9feb8`
    is prepared for the later paused rollout. Both expire 2026-10-22T12:00Z.
-   Confirm immutable successful execution
-   before runtime promotion; never infer success from dispatch.
-4. **Application and paused workers — pending.** Reuse unchanged approved
+   PR #261 merged as `0292c2d`; deployment39706130730 succeeded. Its validated
+   receipt reports `migration-execution-passed`, execution
+   `jayburd-dev-migrate-r9hsl`, exact migrate image
+   `c41940cd583fc0f3934d686534c2ab0e86a8476df9aa1753c0e9b9a8d672159e`,
+   completed `2026-10-22T01:34:13.166403Z` on the same build/source.
+4. **Application and paused workers — prepared.** App promotion manifest hash
+   `99dd25963b6925b48e0513b6ec6ee9ae6c578ff018914cce1486d9e1b898c825`
+   passes strict same-build metadata/evidence validation. Reuse unchanged approved
    identity/secret-version metadata. Review additive schema/API compatibility,
    exact digests and expiry. Pause scheduling before application promotion;
    check queue empty and known account leases inactive before worker replacement.
    This prevents new UI-supported loans being acquired by an older worker.
    A paused Scheduler alone is not
    drain evidence. Restore its prior state only after successful readback.
+   Scheduler paused at `2026-10-22T01:34:40Z`; readback PAUSED and first BASIC
+   queue-name count zero. Second BASIC count zero at `01:36:21Z`, more than the
+   90-second scheduling deadline later; pipeline failures were checked. No task
+   payload was requested. Fresh known-account UI lease reread was unavailable:
+   managed browser session expired before the read. Do not claim all SQL slots
+   were inspected. Runtime safety also depends on the reviewed unchanged old-work
+   semantics and existing fence/retry proofs, not a universal drain assertion.
 5. **Diagnosis and registration — pending.** Retry checking once, inspect only
    fixed diagnostic/status fields, and repair based on evidence. Register only
    auto, consumer and line of credit in a fresh reviewed fictional attempt; keep
@@ -65,6 +77,10 @@ secret-version policy is unchanged. Strict release CLI evidence checks pass for
 both manifests. `make check test build release-test`, diff validation and the
 staged runbook guard pass locally; candidate CI provides the pinned-toolchain
 and full-stack/runtime evidence for the unchanged product source.
+The application-promotion manifest independently passes the same strict evidence
+checks and local core/release gates. It uses the same candidate, current consent
+and identity/secret metadata. Owner re-sign-in is required after new-web reload;
+no token, password or test identity substitutes for verified access.
 
 ## Remaining work
 
