@@ -31,6 +31,7 @@ check_rejected() {
   local entrypoint=()
   if [[ "$case_name" == delivery-* ]]; then entrypoint=(--entrypoint /deliver); fi
   if [[ "$case_name" == probe-* ]]; then entrypoint=(--entrypoint /sandbox-probe); fi
+  if [[ "$case_name" == webhook-* ]]; then entrypoint=(--entrypoint /webhook); fi
   docker run --cidfile "$work_dir/$case_name.cid" --rm --pull=never --network=none --read-only --cap-drop=ALL \
     --security-opt=no-new-privileges:true --user=65532:65532 --pids-limit=64 \
     --memory=128m --cpus=1 "${entrypoint[@]}" "$candidate_id" "$@" >"$work_dir/$case_name" 2>&1 &
@@ -53,6 +54,8 @@ check_rejected() {
   fi
   if [[ "$case_name" == delivery-* ]]; then
     printf 'BLOCKED: delivery configuration\n' >"$work_dir/expected"
+  elif [[ "$case_name" == webhook-* ]]; then
+    printf 'webhook initialization or service failed\n' >"$work_dir/expected"
   else
     printf 'worker initialization or service failed\n' >"$work_dir/expected"
   fi
@@ -66,4 +69,7 @@ check_rejected delivery-default
 check_rejected delivery-secret-flag -secret=synthetic-rejected-value
 check_rejected probe-default
 check_rejected probe-no-pins -allow-sandbox
-printf 'PASS: worker, delivery and probe commands reject eight invalid configurations offline with fixed diagnostics.\n'
+check_rejected webhook-default
+check_rejected webhook-secret-flag -secret=synthetic-rejected-value
+check_rejected webhook-mutable-secret -cloud-sql-instance=synthetic-project:us-central1:jayburd-dev -project-number=123456789012 -plaid-client-id-version=projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1 -plaid-client-secret-version=projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/latest
+printf 'PASS: worker, delivery, probe and webhook commands reject eleven invalid configurations offline with fixed diagnostics.\n'

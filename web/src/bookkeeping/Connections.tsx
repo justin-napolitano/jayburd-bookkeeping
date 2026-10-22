@@ -769,6 +769,36 @@ function ConnectionWorkspace({
           "Setup canceled. You can connect an account whenever you’re ready.",
         );
     });
+  // A conflict requires inspection of this exact attempt, never another exchange or automatic restart.
+  const inspectCompletionConflict = async (
+    error: unknown,
+    id: string,
+    current: typeof life.current,
+  ): Promise<boolean> => {
+    if (!(error instanceof APIError) || error.status !== 409 || !current.live)
+      return false;
+    const recovered = checkedAttempt(
+      await api<Attempt>(`${base}/connection-attempts/${id}`),
+      id,
+    );
+    if (!current.live) return true;
+    setAttempt(recovered);
+    setInspectID(id);
+    if (recovered.state === "link_ready") {
+      await readList();
+      if (!current.live) return true;
+      setMessage(
+        "This bank setup has not been completed in Jayburd. If you exited Plaid, use Cancel setup or Try again below. Otherwise finish Plaid and check this attempt again.",
+      );
+    } else if (recovered.state === "credential_recovery_required") {
+      setMessage(
+        "Bank setup needs credential recovery. Review this attempt below; do not start another bank connection.",
+      );
+    } else {
+      await readList();
+    }
+    return true;
+  };
   // An explicit check uses the server-retained encrypted Link token; reload does not lose it.
   const completeHosted = () =>
     run(async () => {
@@ -783,25 +813,14 @@ function ConnectionWorkspace({
           "{}",
         );
       } catch (error) {
-        // A 409 can follow a committed exchange. Inspect that exact attempt;
-        // never restore the handoff or repeat the provider mutation.
-        if (error instanceof APIError && error.status === 409 && current.live) {
-          const recovered = checkedAttempt(
-            await api<Attempt>(
-              `${base}/connection-attempts/${handoff.attempt.attempt_id}`,
-            ),
+        if (
+          await inspectCompletionConflict(
+            error,
             handoff.attempt.attempt_id,
-          );
-          if (!current.live) return;
-          setAttempt(recovered);
-          setInspectID(recovered.attempt_id);
-          if (recovered.state === "credential_recovery_required") {
-            setMessage(
-              "Bank setup needs credential recovery. Review this attempt below; do not start another bank connection.",
-            );
-            return;
-          }
-        }
+            current,
+          )
+        )
+          return;
         throw error;
       }
       if (!current.live) return;
@@ -820,10 +839,19 @@ function ConnectionWorkspace({
   const checkHostedAttempt = (id: string) =>
     run(async () => {
       const current = life.current;
-      const value = checkedAttempt(
-        await api<Attempt>(`${base}/connection-attempts/${id}/complete`, "{}"),
-        id,
-      );
+      let value: Attempt;
+      try {
+        value = checkedAttempt(
+          await api<Attempt>(
+            `${base}/connection-attempts/${id}/complete`,
+            "{}",
+          ),
+          id,
+        );
+      } catch (error) {
+        if (await inspectCompletionConflict(error, id, current)) return;
+        throw error;
+      }
       if (!current.live) return;
       setAttempt(value);
       setInspectID(id);

@@ -189,3 +189,57 @@ it("rejects script failure without retaining failed script handlers", async () =
   await done;
   expect(document.scripts.length).toBe(0);
 });
+
+// E03–E05: each error fixture must terminate locally without leaking diagnostics or reopening Link.
+it.each([
+  "ACCESS_NOT_GRANTED",
+  "COUNTRY_NOT_SUPPORTED",
+  "INSTITUTION_NOT_RESPONDING",
+  "INSTITUTION_NO_LONGER_SUPPORTED",
+  "INSTITUTION_REGISTRATION_REQUIRED",
+  "INSUFFICIENT_CREDENTIALS",
+  "INTERNAL_SERVER_ERROR",
+  "INVALID_CREDENTIALS",
+  "INVALID_MFA",
+  "INVALID_SEND_METHOD",
+  "ITEM_LOCKED",
+  "ITEM_NOT_SUPPORTED",
+  "MFA_NOT_SUPPORTED",
+  "NO_ACCOUNTS",
+  "UNAUTHORIZED_INSTITUTION",
+  "USER_INPUT_TIMEOUT",
+  "USER_SETUP_REQUIRED",
+])(
+  "fences %s exit and allows only a fresh explicit session",
+  async (errorCode) => {
+    const link = createPlaidLink();
+    const first = link.open({
+      linkToken: "synthetic-link",
+      signal: new AbortController().signal,
+    });
+    const sdk = install();
+    const old = callbacks;
+    const failure = expect(first).rejects.toThrow(
+      "Bank setup could not complete. Inspect the existing attempt before trying again.",
+    );
+    old.onExit({ error_code: errorCode, error_message: "private-diagnostic" });
+    await failure;
+    old.onSuccess("late-private-token");
+    expect(sdk).toHaveBeenCalledOnce();
+    expect(handler.destroy).toHaveBeenCalledOnce();
+    expect(localStorage.length + sessionStorage.length).toBe(0);
+    expect(document.body.textContent).not.toContain("private-diagnostic");
+
+    const second = link.open({
+      linkToken: "synthetic-fresh-link",
+      signal: new AbortController().signal,
+    });
+    expect(sdk).toHaveBeenCalledTimes(2);
+    old.onSuccess("late-private-token");
+    callbacks.onSuccess("synthetic-fresh-public");
+    await expect(second).resolves.toEqual({
+      publicToken: "synthetic-fresh-public",
+    });
+    expect(handler.destroy).toHaveBeenCalledTimes(2);
+  },
+);
