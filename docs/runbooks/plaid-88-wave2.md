@@ -68,6 +68,13 @@ smoke is therefore BLOCKED, not PASS; the CI pinned image/build smoke gate is re
 Final independent review found that the image-source comparison omitted the newly
 packaged verifier command directory. Added it and a Dockerfile-source coverage
 regression so future copied commands cannot escape the artifact provenance guard.
+CI39850298040 passed frontend/application integration and earlier core/migration/
+ledger proofs but failed the full acquisition package: its existing harness did
+not create the new exact verifier test login, although the dedicated proof did.
+Added the same restricted synthetic login to the full acquisition harness. No test
+was skipped or weakened; the complete acquisition suite must run before resubmission.
+Complete acquisition suite and required core gates then passed locally; logs
+`/private/tmp/jayburd-wave2-acquisition.log` and `/private/tmp/jayburd-wave2-core.log`.
 
 ## Remaining work
 
