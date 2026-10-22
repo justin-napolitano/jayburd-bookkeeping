@@ -9,7 +9,7 @@ import (
 
 // TestConnectorConfiguration proves exact identifiers, pool bounds and absence of raw TCP fallback.
 func TestConnectorConfiguration(t *testing.T) {
-	for _, component := range []string{"api", "migrator", "publisher", "sync"} {
+	for _, component := range []string{"api", "migrator", "publisher", "sync", "webhook"} {
 		called := false
 		cfg, err := PoolConfig(Config{"synthetic-project:us-central1:jayburd-dev", component}, func(context.Context, string, string) (net.Conn, error) {
 			called = true
@@ -34,7 +34,7 @@ func TestConnectorConfiguration(t *testing.T) {
 
 // TestConnectorRejectsAmbiguity verifies malformed metadata cannot reach any credential source.
 func TestConnectorRejectsAmbiguity(t *testing.T) {
-	for _, c := range []Config{{}, {"synthetic-project:europe-west1:db", "api"}, {"synthetic-project:us-central1:db", "owner"}, {"synthetic-project:us-central1:db password=hidden", "api"}} {
+	for _, c := range []Config{{}, {"synthetic-project:europe-west1:db", "api"}, {"synthetic-project:us-central1:db", "owner"}, {"synthetic-project:us-central1:db password=hidden", "api"}, {"synthetic-project:us-central1:db", "webhook-api"}, {"synthetic-project:us-central1:db", "webhook@other-project.iam"}} {
 		if c.Validate() == nil {
 			t.Fatal("unsafe metadata accepted")
 		}
