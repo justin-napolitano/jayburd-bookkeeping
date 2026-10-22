@@ -305,16 +305,39 @@ checks and local core/release gates. It uses the same candidate, current consent
 and identity/secret metadata. Owner re-sign-in is required after new-web reload;
 no token, password or test identity substitutes for verified access.
 
+## Final comparison — complete, 2026-10-22T14:52Z
+
+Lease `PLAID-258-COMPARE-20261022T1452Z` covers this documentation-only
+follow-up. The owner was already authenticated in another existing Edge tab;
+the earlier authenticator handoff inspected the wrong tab. The signed-in tab
+was reused without reloading, collecting credentials or bypassing identity.
+No additional acquisition was requested during this comparison.
+
+Checking's previously requested generation4 is now completed4, HISTORICAL
+UPDATE COMPLETE, with no newer queued request or active worker lease. Last
+complete publication is `2026-10-22T03:54:05.483719Z`. Its source revision remains1:
+33 needs-review rows,36 source-correction-held rows and69 all-status rows
+(pages50+19, final Next disabled), matching the pre-repeat baseline. Held rows
+are not all asserted to have the same cause.
+
+The other six already-completed repeats retain source revision1 and the same
+needs-review counts: credit card55 (pages50+5), mortgage47, student6, auto47,
+consumer47 and line of credit47. Each final page has Next disabled. These
+bounded UI comparisons show no added rows or revision change for the observed
+repeats; they do not prove raw-provider reconciliation or ninety-day coverage.
+The checking needs-review list was left open for owner review. No journal was
+prepared or posted.
+Documentation follow-up validation: `make check test build`, `git diff --check`
+and the staged runbook guard passed with the same external local Go modfile
+described above. No product source, SQL, runtime or security controls changed.
+
 ## Remaining work
 
 Source, migration29 and matching application/workers are merged/deployed and
 verified; original scheduling is restored. Do not redispatch the expired release
-manifests. After owner authenticator verification, read checking generation4
-without requesting another sync; compare its source revision and69-row baseline,
-then compare the six completed repeats' review counts/revisions. The additional
-loan baseline is source revision1 and47 needs-review rows each; card55,
-mortgage47 and student6. Checking generation3 publication/held-row visibility and
-all six other completed generations are recorded above.
+manifests. Final checking generation4 and all six repeat count/revision
+comparisons are complete above. Owner transaction review and separately scoped
+Production readiness remain next; the deployed runtime remains Sandbox-only.
 Preserve every unproved #88 webhook/lifecycle/reconciliation/no-journal gate.
 
 ## PR handoff
