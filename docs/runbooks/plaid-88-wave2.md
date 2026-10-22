@@ -65,6 +65,9 @@ Worker image build was attempted with the tracked pinned Go1.26.10 image but
 stopped at dependency download with an unknown certificate authority in this local
 Docker environment. No TLS bypass or dependency substitution was used. Local image
 smoke is therefore BLOCKED, not PASS; the CI pinned image/build smoke gate is required.
+Final independent review found that the image-source comparison omitted the newly
+packaged verifier command directory. Added it and a Dockerfile-source coverage
+regression so future copied commands cannot escape the artifact provenance guard.
 
 ## Remaining work
 

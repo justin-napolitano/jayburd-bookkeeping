@@ -5,7 +5,7 @@ import {validateWebhookManifest,validateWebhookBuild} from './webhook-release-ma
 
 // These immutable merged prerequisites contain the actual host and exact release contract.
 export const requiredWebhookAncestors=['a2c9dee793f81ed483055b0ee916876b59265d27','24f263ef2cde697cf0f8cf51c1176d5c1521e679'];
-export const webhookSourcePaths=['Dockerfile.worker','go.mod','go.sum','internal','cmd/worker','cmd/webhook','cmd/deliver','cmd/sandbox-probe'];
+export const webhookSourcePaths=['Dockerfile.worker','go.mod','go.sum','internal','cmd/worker','cmd/webhook','cmd/deliver','cmd/sandbox-probe','cmd/sandbox-verify'];
 // Workflow context is an additional guard; cloud WIF independently enforces owner/main/exact workflow SHA.
 export function ownerContext(e){
   if(e.GITHUB_ACTIONS!=='true'||e.GITHUB_EVENT_NAME!=='workflow_dispatch'||e.GITHUB_REF!=='refs/heads/main'||e.GITHUB_ACTOR_ID!=='55423093'||e.GITHUB_REPOSITORY_ID!=='1414515318'||e.GITHUB_TRIGGERING_ACTOR!=='justin-napolitano'||

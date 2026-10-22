@@ -46,6 +46,12 @@ test('collector transport is bounded and never accepts redirects, errors or over
     globalThis.fetch=async()=>new Response('x'.repeat(131073));await assert.rejects(cloudReader('synthetic')(webhookReadURLs[0]));
   }finally{globalThis.fetch=original;}
 });
+// Every command copied into the worker image must participate in artifact source equality.
+test('worker image source copies remain covered by provenance guards',()=>{
+  const copied=[...readFileSync('Dockerfile.worker','utf8').matchAll(/^COPY (cmd\/[^/\s]+|internal)\//gm)].map(m=>m[1]);
+  assert.ok(copied.length>0);
+  for(const path of copied)assert.ok(webhookSourcePaths.includes(path),`unguarded image input: ${path}`);
+});
 test('owner context, immutable prerequisites and binary-source equality fail closed',()=>{
   ownerContext(context());for(const name of Object.keys(context())){const e=context();e[name]='wrong';assert.throws(()=>ownerContext(e));}
   const calls=[];validateAncestry(manifest(),head,args=>calls.push(args));
