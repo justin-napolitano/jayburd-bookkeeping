@@ -149,3 +149,34 @@ posting must change absolute financial counters and fail zero-journal certificat
 No output may contain input source markers. Permission denials require exact
 SQLSTATE or closed classification, not connection errors. Migration, ledger, runtime
 adapter and CLI inertness gates remain required. No hosted qualification from these.
+
+## Bounded operator command
+
+`cmd/sandbox-verify` without flags prints only `{"offline":true}` and performs no
+file, identity, network or database operation. Explicit execution requires
+`-action=compare -manifest=/absolute/clean/path/manifest.json`. The <=8KiB strict
+metadata manifest has exactly these string fields: `profile` equal to
+`jayburd-sandbox-verification-manifest/1`, `instance` for the reviewed development
+Cloud SQL instance, `mandate_id`, positive canonical `mandate_revision`, and
+lowercase raw-byte `fixture_sha256` / `identity_map_sha256`. It accepts no DSN,
+caller actor, secret, provider or sync option. The component derives the verifier
+IAM login; its pool has max1/min0.
+
+The command reads only fixed siblings `fixture.json` and `identity-map.json`,
+checks each final path is a regular nonsymlink file, enforces the combined2MiB
+bound and verifies both digests before creating transport. Ancestor path symlinks
+are not a security boundary; the owner supplies the reviewed absolute directory.
+No financial values are normalized in Go. The adapter starts its four-second
+context **before BeginTx**, applies local3s statement/1s lock limits, checks actual
+session identity and runs one SERIALIZABLE comparison/commit attempt. Rollback has
+an independent one-second cleanup context. The CLI has an overall15s transport
+context; a function-local setting is not claimed to bound an already-running
+statement from a direct SQL caller.
+
+Successful committed equal/unequal comparisons print exactly the two booleans and
+seven count strings. Unequal results exit nonzero after emitting that bounded
+result. Invalid input, denied access, cancellation or uncertain commit emit no
+prepared comparison and a fixed diagnostic; no automatic transaction retry occurs.
+Owner enrollment/revocation is separate from this read-only command. Unit fakes
+prove transport/commit failure handling; the disposable real-login integration
+proof also invokes this Go adapter against the real comparison function.

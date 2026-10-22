@@ -82,3 +82,41 @@ SQL slice final local evidence:
 - Independent peer review found no confirmed SQL blocker; identified missing named
   evidence for pins, foreign history, array bound and concurrent revoke was added
   and passed. Staged runbook guard and diff check before SQL commit.
+
+## Adapter and command follow-up
+
+6. Added `internal/sandboxverification` and explicit `cmd/sandbox-verify` command.
+   Default invocation is offline/inert. Closed metadata manifest and fixed sibling
+   files are bounded/hash-checked before transport. Actual IAM identity is checked
+   before comparison; only committed validated Boolean/count results are emitted.
+   Four-second deadline starts before BeginTx; failed/uncertain commit returns no
+   prepared result, rollback is independently bounded, and there is no auto-retry.
+   Root connector dependency a1a4116 is present locally as d703b33; do not pick it
+   again. Root owns build/CI/index integration and any hosted approval.
+7. Coordinator authorized a follow-up of unmerged migration30's four exact
+   profile/fixture-ID predicates to typed `ledger.text_value` plus null-safe
+   `IS DISTINCT FROM`. Existing `ledger.keys` already rejected null fields; this
+   hardens string typing/predicate clarity, not a demonstrated bypass. Added all
+   four fixture/map null-profile/null-ID negatives. Nullable history fields remain
+   intentional and presence-checked. No other SQL contract changed.
+
+Follow-up validation results are recorded below after execution. Hosted inputs,
+identity/bootstrap and execution remain unprovisioned; #272/#88 remain open.
+
+Follow-up evidence at source handoff:
+
+- `go test -race -count=1 ./internal/sandboxverification ./cmd/sandbox-verify`
+  PASS; `/private/tmp/jayburd-272-go-focused.log`. Tests cover identity/transport/
+  cancellation/uncertain commit, closed output parsing and CLI input/cleanup paths.
+- `bash scripts/test-sandbox-verification.sh` PASS with actual Go adapter plus all
+  six SQL groups/four pin subcases and four null metadata negatives;
+  `/private/tmp/jayburd-272-go-integration.log`.
+- Latest core attempt reached existing HTTP tests but sandbox denied loopback
+  bind (`operation not permitted`); escalated retry was interrupted before a
+  session/result returned. No latest core PASS is claimed. Coordinator completes
+  required core/build and packaged-command gates before PR handoff.
+- Follow-up disposable migration/cloud-SQL/ledger gate log:
+  `/private/tmp/jayburd-272-followup-permissions.log`; terminal status reported to
+  coordinator separately. Earlier full SQL gates remain recorded above.
+- Source frozen for coordinator handoff; staged runbook guard and diff check run
+  immediately before commit. No hosted execution or real financial input used.
