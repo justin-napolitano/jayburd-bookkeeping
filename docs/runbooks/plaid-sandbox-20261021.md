@@ -19,18 +19,19 @@ No agent retrieves credentials, raw provider responses, or private records.
    records a paused Scheduler; current metadata readback below supersedes that
    historical state. The separate source-first preview is a fixture and cannot
    connect to Plaid.
-2. **Owner sign-in — pending.** The canonical deployed application is at its
-   sign-in screen. The owner was asked to complete sign-in/MFA in Edge and reply;
-   passwords and authenticator codes are not collected by the agent.
+2. **Owner sign-in — complete.** The owner completed managed sign-in in Edge.
+   No owner password or authenticator code was collected by the agent.
 3. **Synthetic regression — complete with one volume failure.** Core and
    provider suites passed. The final 1,000-command browser volume check timed
    out; results below distinguish this from hosted qualification.
 4. **Hosted API smoke — partial, expected boundary.** The existing diagnostic
    authenticated to Plaid, exchanged a disposable fictional Item, decoded initial
    and repeat sync, and removed that Item. Details below.
-5. **Hosted application journey — pending sign-in.** No interactive Link session,
-   application binding, acquisition, review or posting has been performed by
-   this pass. The owner sign-in question remains pending.
+5. **Hosted application journey — partial with checking failure.** Interactive
+   fictional Link and four reviewed bindings committed. Card, mortgage and
+   student acquisition completed; checking failed exact decoding and published
+   nothing. Card repeat acquisition completed. Read-only review evidence below;
+   no draft creation or posting was attempted.
 
 ## Current evidence
 
@@ -47,7 +48,9 @@ No agent retrieves credentials, raw provider responses, or private records.
 | `FuzzPlaidMoney` (`60s`, two workers) | PASS; 3,084,897 executions, 377 total interesting inputs, independent rational quantity oracle. |
 | `FuzzPlaidPage` (`30s`, two workers) | PASS; 1,759,029 executions, 112 total interesting inputs, atomic rejection and source-byte checks. |
 | Existing hosted Sandbox API smoke | PARTIAL by diagnostic design. Workflow [39698259990](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/39698259990) and execution `jayburd-dev-sandbox-probe-cvg7n` succeeded; fixed receipt outcomes below. |
-| Real Hosted Link, initial/incremental sync, pending-to-posted, signed webhook, durable replay and provider-to-review/no-journal evidence | Pending. Synthetic passes do not satisfy these hosted stages. |
+| Real Hosted Link and reviewed bindings | PASS for four supported fictional accounts; three other loan subtypes explicitly unsupported. |
+| Hosted account acquisition and read-only review | PARTIAL: card, mortgage and student complete; checking held on decoder rejection. Card repeat generation completed with source revision unchanged. |
+| Dynamic pending-to-posted, signed webhook, durable replay and database-level provider-to-review/no-journal evidence | Pending. UI observations and synthetic passes do not satisfy these hosted stages. |
 
 ### Execution environment
 
@@ -132,14 +135,52 @@ bridge, SQL and resources. The test timeout was not raised and no retry was
 used to relabel the failed gate. The synthetic error artifact is retained
 locally as `/private/tmp/jayburd-88-volume-error-context.md`.
 
+### Interactive hosted application — 2026-10-22 UTC
+
+Resumed under lease `PLAID-88-INTERACTIVE-20261022T0028Z`, after owner sign-in
+and explicit approval to use the public fictional Sandbox phone shown by Link.
+Used First Platypus Bank, non-OAuth `ins_109508`, with its public dynamic
+Transactions Sandbox user. No personal phone, real bank credential, private
+financial record, raw provider response or credential store was inspected.
+
+Plaid displayed seven fictional account types and reached its success screen.
+The application then reached verified binding review and committed four selected
+bindings: checking, credit card, mortgage and student loan. Auto, consumer and
+line-of-credit accounts explicitly could not bind. The selected pre-existing
+Sandbox book and its dated currency policy were retained; enrollment did not
+create a new entity or book. The attempt became active with no unfinished attempt.
+One completion/status read initially showed the generic unconfirmed outcome;
+subsequent explicit inspection recovered the completed state. No duplicate
+enrollment or exchange was initiated to work around uncertainty.
+
+| Account | Observed acquisition and review outcome |
+| --- | --- |
+| Credit card | Initial generation 1/1, HISTORICAL UPDATE COMPLETE, publication `00:38:27.856894Z`. Explicit scoped repeat request completed generation 2/2 at `00:42:06.619626Z`, no queued request or active lease. Source revision remained 1. After repeat, needs-review pagination contained 50 + 5 rows; posted filter contained zero rows. The full pre-repeat count was not measured, so no count-equality assertion is claimed. |
+| Mortgage | Generation 1/1, HISTORICAL UPDATE COMPLETE, publication `00:38:23.450744Z`; source revision 1 and 47 needs-review rows visible. A transaction detail opened its category/accounting form; no category selection, draft creation or posting was performed. |
+| Student loan | Generation 1/1, HISTORICAL UPDATE COMPLETE, publication `00:38:21.929770Z`; six needs-review rows visible. |
+| Checking | Generation 1/0, NOT READY; stopped after failure, no active lease or completed publication. Fixed UI reason `Data validation: amount out of range`; last outcome `decoder rejected`. All-status review showed source revision 0 and no transactions. Left held; no retry or rounding workaround. |
+
+The checking result is a qualification failure with an undiagnosed cause, not
+proof that the provider value was invalid or that the configured money limit is
+correct. A bounded follow-up must distinguish provider decimal representation,
+approved range and decoder behavior using synthetic reproductions and redacted
+runtime evidence. Preserve exact money and atomic publication requirements.
+
+Read-only review demonstrated imported unposted observations, including card
+dates before the book's current policy start. It did not prove a full 90-day
+window, exact provider-to-review equality, cursor state or absence of all
+database journals. UI posted-filter evidence is narrower than SQL evidence.
+The application's scoped sync request does not invoke the Sandbox refresh tool;
+dynamic pending-to-posted changes were not induced. Signed webhook delivery,
+restart/replay and fixture-known reconciliation remain open. No deployment,
+configuration, Scheduler, IAM, disconnect or posting action occurred.
+
 ## Remaining work
 
-Complete owner sign-in, verify the selected application environment, then follow
-the Hosted Link operator journey. Record redacted stage outcomes only. A queued
-sync request is not import evidence, and Plaid's success screen is not durable
-credential/binding proof. The Scheduler is currently enabled, but the selected
-account's worker and publication evidence still require observation. Do not
-alter infrastructure under this lease. Keep #88 open for every unproved hosted stage and #90 blocked for
+Resolve the held checking decoder failure under a separate bounded lease;
+qualify dynamic transitions, signed delivery, persisted cursor/replay and exact
+provider-to-review/no-journal SQL evidence. Record redacted outcomes only.
+Do not alter infrastructure under this lease. Keep #88 open for every unproved hosted stage and #90 blocked for
 live-account qualification. The separate #89 capacity/overload matrix is not
 implemented by these checks; the observed browser volume timeout remains an
 open finding. No hosted scaling or cost/SLA result is claimed.
