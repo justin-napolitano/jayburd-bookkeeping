@@ -46,6 +46,13 @@ metadata and unchanged private API IAM; separately review public invocation of
 this one host and enrollment webhook URL. Default local/CI commands stay offline
 and use only synthetic keys and disposable databases.
 
+The existing worker image packages `/webhook` alongside its other explicit
+executables. Default entrypoint stays `/worker`; a separately reviewed webhook
+service must explicitly select `/webhook`. Reuse the trusted worker-image build,
+scan/SBOM and immutable candidate receipt without inventing a fifth unreviewed
+image promotion channel. Offline exact-image startup proof covers invalid webhook
+configuration and proves no network/default enrollment behavior.
+
 ## Standards, sources and alternatives
 
 This is an internal operational capability and proprietary Plaid notification,
