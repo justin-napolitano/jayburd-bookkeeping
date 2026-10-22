@@ -1,0 +1,4 @@
+# Owner-only separate PROJECT-jayburd-dev-webhook-delivery-state, prefix webhook-delivery.
+terraform {
+  backend "gcs" {}
+}

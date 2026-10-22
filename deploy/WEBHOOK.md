@@ -1,8 +1,29 @@
 # Review the dedicated Sandbox webhook release
 
-Issue #271 remains open. This change prepares offline tools and inert Terraform
-roots; it does not deploy or expand existing deployment federation. Current
-source consent and old release manifests are expired. Production is excluded.
+Issue #271 remains open. Offline tools and inert infrastructure now have a
+[dedicated existing-service updater](../docs/contracts/webhook-rollout.md).
+Its new federation root is inactive by default; nothing has been deployed or
+activated. Current source consent and old release manifests are expired.
+Production is excluded.
+
+## Executable updater after first owner bootstrap
+
+First private creation, isolated runtime-state handoff, SQL mandate and separately
+approved public invocation remain owner operations below. Owner then reviews
+`infra/gcp/webhook-delivery` with exact main workflow SHA and independent federation
+activation. This grants update/read on the one existing service, not create/delete,
+public IAM, SQL or secret administration. The actual custom-role definition is
+verified during selected readback; a matching role name alone is insufficient.
+
+For a fresh reviewed tracked `deploy/webhook-release.json`, dispatch the new
+`deploy-webhook.yml` on that exact owner-approved main commit with its SHA256.
+No enabled manifest is supplied here. It verifies build provenance, merged270/273
+ancestry, unchanged binary inputs, latest main and expiry before explicit WIF,
+then preflights the existing host, updates only the fixed runtime root/backend,
+and retains only a strict public receipt. No raw state/plan or provider response
+is inspected/uploaded. Source consent and actual signed delivery need separate
+finite approval/evidence. See the updater contract for failures, token expiry,
+owner deactivation and rollback; do not widen privileges when a permission fails.
 
 ## Prepare a concrete owner review
 
@@ -55,7 +76,8 @@ source consent and old release manifests are expired. Production is excluded.
   reconciliation and traffic fields) and this service's IAM bindings into
   private staging files. Do not substitute default gcloud v1 output, a plan, full
   state, logs or a claimed readiness boolean. No token should appear in a file
-  or command argument. Owner-controlled retrieval is not implemented here.
+  or command argument. The new updater performs selected retrieval in memory after
+  explicit WIF injection; manual offline receipt validation below remains available.
 
   ```sh
   node scripts/webhook-deployment-receipt.mjs PREPARED_DIRECTORY/approved.json SELECTED_V2_SERVICE_JSON SELECTED_SERVICE_IAM_JSON PUBLIC_RECEIPT_JSON
