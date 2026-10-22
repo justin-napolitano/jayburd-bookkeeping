@@ -28,8 +28,8 @@ including the unchanged npm audit. All four image proofs/scans passed; each scan
 reported zero HIGH/CRITICAL findings. Native run metadata and component receipts
 passed the strict migration and worker validators independently.
 Superseded build39714745765 and duplicate main-push runs were cancelled; they
-are not passing evidence. Migration29 remains unapplied until an exact candidate
-and execution receipt are verified. Existing Scheduler state is unchanged.
+are not passing evidence. The migration execution result is recorded below;
+matching application schema-status and worker/transaction acceptance follow it.
 
 The managed browser session expired during the review read. Re-sign-in will be
 needed after the matching frontend is deployed; no token or identity substitute
@@ -64,6 +64,27 @@ Local `make check test build release-test`, exact-byte validators, diff check
 and staged runbook guard pass for this metadata stage. The documented external
 Go1.26.5 modfile is used locally; the successful candidate provides pinned
 Go1.26.10 evidence. No security workflow or dependency was changed.
+
+PR265 merged as ba82a3f. Migration-only workflow39717677086 succeeded. Its
+validated receipt reports `migration-execution-passed`, exact approved migrator
+digest28b21087…, execution `jayburd-dev-migrate-cwkwx`, completed
+2026-10-22T03:37:26.338233Z on the same build/source. No service update occurred
+in that operation. Application schema-status verification is the separate next
+gate, not inferred from the transport receipt. Application manifest hash
+`b5768900ab9a6de5f162f05c7e398f9faf4436f6e26ca033a3fd34418f9a56de`
+is prepared for the same build; strict validation passes. Independent comparison
+preserves connection-policy digest
+`d1b79512c169809470eb3071755fb963d4b4b7542edb0e5836e93af810d72148`
+and worker-policy digest
+`ab3b19d91dbd682e6b2f3945a8fb718e39bb3e3de475ae78246e9b8617e54688`.
+Fresh Scheduler readback was ENABLED on the reviewed one-minute/90-second
+schedule; paused at2026-10-22T03:36:07Z, readback PAUSED, first BASIC queue-name
+count zero. No task payload was requested. Fresh known-account lease reads
+remain unavailable because the managed browser session expired. No universal
+drain claim is made.
+Second BASIC queue-name count zero at03:37:56Z, over90seconds after the pause;
+pipeline errors were checked and Scheduler readback remained PAUSED. The
+application metadata also passed local `make check test build release-test`.
 
 **Historical disposition (2026-10-22T02:48Z):** three additional fictional loans
 are registered and synced. The shared checking repair is PR #263 (`d88d8a0`),
