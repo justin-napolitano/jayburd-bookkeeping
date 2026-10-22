@@ -53,6 +53,7 @@ func TestPlaidExactMoney(t *testing.T) {
 		ready                               bool
 	}{
 		{"12.50", "USD", "12.5", "outflow", true}, {"-1.255e2", "USD", "125.5", "inflow", true}, {"125", "JPY", "125", "outflow", true}, {"1.005", "KWD", "1.005", "outflow", true},
+		{"0.001", "USD", "0.001", "outflow", false}, {"-1.1", "JPY", "1.1", "inflow", false}, {"1.0001", "KWD", "1.0001", "outflow", false},
 		{"9007199254740993.01", "USD", "9007199254740993.01", "outflow", true}, {"99999999999999999999999999999.99", "USD", "99999999999999999999999999999.99", "outflow", true},
 		{"0", "USD", "0", "zero", false}, {"-0.00e100", "USD", "0", "zero", false}, {"0e-100", "JPY", "0", "zero", false},
 		{"1.000000000000000000000000000000000000000000000000000000", "USD", "1", "outflow", true}, {"100000000000000000000000000000000000000000000000000000e-53", "USD", "1", "outflow", true},
@@ -80,7 +81,7 @@ func TestPlaidExactMoney(t *testing.T) {
 			}
 		})
 	}
-	for _, bad := range []struct{ amount, currency string }{{"0.001", "USD"}, {"1.1", "JPY"}, {"1.0001", "KWD"}, {"1e29", "USD"}, {"1e-10", "USD"}, {"1e101", "USD"}, {"0e-101", "USD"}, {"1e999999999999999999", "USD"}, {"NaN", "USD"}, {"+1", "USD"}, {"01", "USD"}, {`"12.50"`, "USD"}, {"null", "USD"}, {strings.Repeat("1", 129), "USD"}} {
+	for _, bad := range []struct{ amount, currency string }{{"1e29", "USD"}, {"1e-10", "USD"}, {"1e101", "USD"}, {"0e-101", "USD"}, {"1e999999999999999999", "USD"}, {"NaN", "USD"}, {"+1", "USD"}, {"01", "USD"}, {`"12.50"`, "USD"}, {"null", "USD"}, {strings.Repeat("1", 129), "USD"}} {
 		t.Run("reject_"+bad.amount, func(t *testing.T) { rejected(t, page(row(bad.amount, bad.currency), "", ""), expected()) })
 	}
 }
@@ -273,8 +274,8 @@ func FuzzPlaidMoney(f *testing.F) {
 		units := map[string]int64{"USD": 100, "JPY": 1, "KWD": 1000}
 		n, _ := new(big.Rat).SetString(r.Amount)
 		n.Mul(n, new(big.Rat).SetInt64(units[code]))
-		if !n.IsInt() {
-			t.Fatal("fractional minor unit")
+		if r.EligibleForReview != (n.IsInt() && r.Amount != "0") {
+			t.Fatal("source precision eligibility differs from independent rational oracle")
 		}
 	})
 }
@@ -308,7 +309,9 @@ func assertQuantity(t *testing.T, r plaid.Transaction) {
 	if result.Cmp(source) != 0 {
 		t.Fatal("exact quantity changed")
 	}
-	if r.EligibleForReview != (source.Sign() != 0 && !r.Pending) {
+	minorUnits := map[string]int64{"USD": 100, "JPY": 1, "KWD": 1000}
+	units := new(big.Rat).Mul(new(big.Rat).Set(source), new(big.Rat).SetInt64(minorUnits[r.ISOCurrencyCode]))
+	if r.EligibleForReview != (source.Sign() != 0 && !r.Pending && units.IsInt()) {
 		t.Fatal("source readiness changed")
 	}
 }
@@ -332,7 +335,7 @@ func TestPlaidTransactionCode(t *testing.T) {
 			t.Fatal("inert classification mapped")
 		}
 		rejected(t, bytes.Replace(raw, []byte("Account-A"), []byte("Other-A"), 1), expected())
-		rejected(t, bytes.Replace(raw, []byte("9007199254740993.01"), []byte("1.001"), 1), expected())
+		rejected(t, bytes.Replace(raw, []byte("9007199254740993.01"), []byte("1e-10"), 1), expected())
 	}
 	for _, value := range []string{`42`, `{}`, `true`, `"` + strings.Repeat("x", 257) + `"`} {
 		rejected(t, page(strings.Replace(row("1", "USD"), `"name":`, `"transaction_code":`+value+`,"name":`, 1), "", ""), expected())
@@ -426,9 +429,6 @@ func TestPlaidMoneyDiagnostics(t *testing.T) {
 		{"1e29", "USD", "amount_magnitude_exceeded"},
 		{"12345678901234567890123456789.1234567891", "USD", "amount_magnitude_exceeded"},
 		{"1e-10", "USD", "amount_scale_exceeded"},
-		{"1.001", "USD", "currency_precision_exceeded"},
-		{"1.1", "JPY", "currency_precision_exceeded"},
-		{"1.0001", "KWD", "currency_precision_exceeded"},
 	} {
 		p, err := plaid.DecodePage(page(row(tc.amount, tc.currency), "", ""), expected())
 		if plaid.ErrorCode(err) != tc.code || !reflect.DeepEqual(p, plaid.Page{}) {
