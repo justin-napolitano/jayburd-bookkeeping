@@ -74,3 +74,28 @@ Sandbox qualification. #271/#88/#272 remain open; no cloud execution authorized.
 Dedicated branch `issue/271-webhook-release`, root worktree
 `/private/tmp/jayburd-271-release`. Original checkout/lock untouched. New roots and
 bootstrap are explicit operator tools; no active release file or WIF expansion.
+
+## 2026-10-22 merge-blocker patch stage
+
+Owner approved merge via “merge em”. Original headed59164 passed infrastructure
+and secret scanning; frontend CI39832934816 failed its unchanged npm audit gate
+on critical Next16.4.0 advisories. This is an actual finding, not an audit-service
+outage; no retry/waiver is treated as clearance. Claimed bounded #65 successor
+`PLAID-273-NEXT-PATCH-20261022T1842Z`, expiry22:00Z, root sole writer on this branch.
+Reviewed selected official advisory/release sections in the canonical
+[frontend source record](../research/frontend-sources.md#nextjs-patch-review--2026-10-22-271273).
+Prepare exact Next16.4.2 package/lock update and revalidate the affected frontend
+and full-stack paths. No webhook grant/DDL/financial contract changes in this
+follow-up; source consent/public release scope remains unchanged and expired.
+
+Patched package/lock pin16.4.2, matching @next/env/SWC packages; sharp remains
+patched0.35.5. Diff contains only the Next family, with no broad dependency churn.
+Fresh installation used ignored lifecycle scripts; initial sandbox DNS denial
+was retried with approval. Current unchanged npm audit gate PASS, zero findings.
+
+Refreshed local gates PASS: core check/test/build; web generated contract/type
+checks,324 units, production build and24 actual Chromium tests; both real
+Next→Go→PostgreSQL journeys. Loopback/Docker sandbox failures were retried with
+approval, never counted as passes. No new test mirrors package versions; existing
+runtime/user journeys exercise the upgraded framework. Clean locked CI install,
+standalone Linux frontend image and final full CI remain required before merge.
