@@ -445,7 +445,11 @@ function Inbox({
             {detail.state.replaceAll("_", " ")}
           </p>
           {detail.blockers.length > 0 && (
-            <p role="alert">Review blocked: {detail.blockers.join(", ")}</p>
+            <p role="alert">
+              {detail.blockers.includes("source_precision_review_required")
+                ? "This source amount has extra decimal places for its currency. All digits are preserved. Review the source before creating a journal."
+                : `Review blocked: ${detail.blockers.join(", ")}`}
+            </p>
           )}
           {detail.provider_exceptions &&
             detail.provider_exceptions.total_count !== "0" && (

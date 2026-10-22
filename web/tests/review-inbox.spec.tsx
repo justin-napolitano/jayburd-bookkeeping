@@ -1,6 +1,39 @@
 import { test, expect } from "@playwright/experimental-ct-react";
 import { ReviewInboxHarness } from "./ReviewInboxHarness";
 
+// Source precision is visible on both viewports without permitting draft creation.
+test("source precision hold preserves all digits and blocks drafting", async ({ mount, page }, info) => {
+  const requests: string[] = [];
+  const held = { ...row, state: "correction_hold", amount: "1.001000001" };
+  await page.route("**/v1/entities/e/books/b/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    requests.push(`${route.request().method()} ${path}`);
+    const value = path.endsWith("/sources") ? {
+      items: [{ source_account_id: "s", display_name: "Fictional checking", currency: "USD", state: "active" }],
+    } : path.endsWith("/review-items") ? {
+      source_account_id: "s", source_revision: "2", items: [held], next_cursor: null,
+    } : {
+      ...held, source_account_id: "s", source_revision: "2", binding_revision: "1",
+      book_revision: "4", ledger_account_id: "cash", draft: null,
+      blockers: ["provider_correction_required", "source_precision_review_required"],
+    };
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(value) });
+  });
+  await mount(<ReviewInboxHarness />);
+  await page.getByLabel("Source account").selectOption("s");
+  await page.getByLabel("Review status").selectOption("correction_hold");
+  await page.getByRole("button", { name: "Review Synthetic supplies" }).click();
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(page.getByRole("alert")).toContainText("All digits are preserved");
+    await expect(page.getByText(/1\.001000001/).first()).toBeVisible();
+    await expect(page.getByLabel("Category account")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Review posting command" })).toHaveCount(0);
+  }
+  expect(requests.every((request) => request.startsWith("GET ") && !request.endsWith("/categories"))).toBe(true);
+  await page.screenshot({ path: info.outputPath("source-precision-mobile.png"), fullPage: true });
+});
+
 // A changed bank source must not visually replace the original posted evidence.
 test("posted source changes show separate revision references without draft actions", async ({ mount, page }, info) => {
   const requests: string[] = [];

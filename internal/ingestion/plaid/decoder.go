@@ -278,10 +278,15 @@ func transaction(raw []byte, e Expected) (Transaction, error) {
 	}
 	t.CurrencyVersionID = selected.VersionID
 	t.AmountLexeme = string(f["amount"])
-	if t.Amount, t.Direction, err = exactAmount(t.AmountLexeme, selected.MinorUnit); err != nil {
+	if t.Amount, t.Direction, err = exactAmount(t.AmountLexeme); err != nil {
 		return t, err
 	}
-	t.EligibleForReview = !t.Pending && t.Direction != "zero"
+	// Preserve bounded source precision; sub-minor-unit evidence cannot become a draft.
+	fraction := 0
+	if i := strings.IndexByte(t.Amount, '.'); i >= 0 {
+		fraction = len(t.Amount) - i - 1
+	}
+	t.EligibleForReview = !t.Pending && t.Direction != "zero" && fraction <= selected.MinorUnit
 	if t.Name, err = text(f, "name", 1, 500); err != nil {
 		return t, err
 	}
@@ -307,7 +312,7 @@ func transaction(raw []byte, e Expected) (Transaction, error) {
 }
 
 // exactAmount normalizes bounded decimal tokens with integer decimal-position arithmetic only.
-func exactAmount(lexeme string, minor int) (string, string, error) {
+func exactAmount(lexeme string) (string, string, error) {
 	if len(lexeme) > 128 || !number.MatchString(lexeme) {
 		return "", "", fail("invalid_number")
 	}
@@ -348,9 +353,6 @@ func exactAmount(lexeme string, minor int) (string, string, error) {
 	}
 	if scale > 9 {
 		return "", "", fail("amount_scale_exceeded")
-	}
-	if scale > minor {
-		return "", "", fail("currency_precision_exceeded")
 	}
 	var result string
 	if scale <= 0 {
