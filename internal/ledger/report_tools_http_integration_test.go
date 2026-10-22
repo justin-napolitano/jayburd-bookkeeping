@@ -3,10 +3,14 @@
 package ledger
 
 import (
+	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"io"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -78,11 +82,100 @@ func TestReportReviewHTTPPostgres(t *testing.T) {
 	sql(t, c, "UPDATE ledger.book SET revision=revision+1 WHERE entity_id=$1 AND book_id=$2", entity, book)
 	for _, path := range []string{drillPath, exportPath} {
 		w := call(path, 409)
-		if w.Header().Get("Content-Disposition") != "" || strings.Contains(w.Body.String(), "1300") {
+		if !staleReportProblem(w) {
 			t.Fatal("stale report data exposed")
 		}
 	}
 	sql(t, c, "UPDATE ledger.membership SET revoked_at=now() WHERE principal_id=$1 AND permission='read'", actor)
 	call(exportPath, 403)
 	call(drillPath, 403)
+}
+
+// staleReportProblem proves a closed diagnostic envelope, excluding financial payload fields.
+// Numeric substrings in the independent diagnostic UUID are not report amounts.
+func staleReportProblem(w *httptest.ResponseRecorder) bool {
+	if w.Code != http.StatusConflict || w.Header().Get("Content-Type") != "application/problem+json" || w.Header().Get("Content-Disposition") != "" {
+		return false
+	}
+	d := json.NewDecoder(bytes.NewReader(w.Body.Bytes()))
+	token, err := d.Token()
+	if err != nil || token != json.Delim('{') {
+		return false
+	}
+	fields := map[string]json.RawMessage{}
+	for d.More() {
+		token, err = d.Token()
+		key, ok := token.(string)
+		if err != nil || !ok {
+			return false
+		}
+		if _, exists := fields[key]; exists {
+			return false
+		}
+		var value json.RawMessage
+		if d.Decode(&value) != nil {
+			return false
+		}
+		fields[key] = value
+	}
+	if token, err = d.Token(); err != nil || token != json.Delim('}') {
+		return false
+	}
+	if _, err = d.Token(); err != io.EOF || len(fields) != 5 {
+		return false
+	}
+	for key, want := range map[string]string{"type": "https://bookkeeping.example.invalid/problems/report_snapshot_changed", "title": "Conflict", "code": "report_snapshot_changed"} {
+		var got string
+		if json.Unmarshal(fields[key], &got) != nil || got != want {
+			return false
+		}
+	}
+	var status int
+	var id string
+	return json.Unmarshal(fields["status"], &status) == nil && status == http.StatusConflict && json.Unmarshal(fields["request_id"], &id) == nil && regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`).MatchString(id)
+}
+
+// TestStaleReportProblemDiagnosticID reproduces the numeric-sentinel collision deterministically.
+func TestStaleReportProblemDiagnosticID(t *testing.T) {
+	response := func() *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		problem(w, "00001300-0000-4000-8000-000000000001", &Failure{http.StatusConflict, "report_snapshot_changed"})
+		return w
+	}
+	if w := response(); !strings.Contains(w.Body.String(), "1300") || !staleReportProblem(w) {
+		t.Fatal("safe diagnostic identifier rejected")
+	}
+	for _, field := range []string{"totals", "rows", "journal"} {
+		w := response()
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(w.Body.Bytes(), &fields) != nil {
+			t.Fatal("invalid problem fixture")
+		}
+		fields[field] = json.RawMessage(`{"amount":"1300"}`)
+		raw, err := json.Marshal(fields)
+		if err != nil {
+			t.Fatal("invalid financial fixture")
+		}
+		w.Body.Reset()
+		_, _ = w.Body.Write(raw)
+		if staleReportProblem(w) {
+			t.Fatal("financial field accepted")
+		}
+	}
+	for _, mutate := range []func(*httptest.ResponseRecorder){
+		func(w *httptest.ResponseRecorder) { w.Body.Reset(); _, _ = w.Body.WriteString("amount\r\n1300\r\n") },
+		func(w *httptest.ResponseRecorder) { w.Header().Set("Content-Disposition", "attachment") },
+		func(w *httptest.ResponseRecorder) { w.Header().Set("Content-Type", "text/csv") },
+		func(w *httptest.ResponseRecorder) { w.Code = http.StatusOK },
+		func(w *httptest.ResponseRecorder) {
+			w.Body.Reset()
+			_, _ = w.Body.WriteString(`{"type":"https://bookkeeping.example.invalid/problems/report_snapshot_changed","title":"Conflict","code":"report_snapshot_changed","status":409,"request_id":"00001300-0000-4000-8000-000000000001","status":409}`)
+		},
+	} {
+		w := response()
+		mutate(w)
+		if staleReportProblem(w) {
+			t.Fatal("unsafe response accepted")
+		}
+	}
 }
