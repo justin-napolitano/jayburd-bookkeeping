@@ -24,7 +24,7 @@ type Config struct{ Instance, Component string }
 
 // Validate confines callers to the reviewed region and the explicitly implemented identities.
 func (c Config) Validate() error {
-	if !instancePattern.MatchString(c.Instance) || (c.Component != "api" && c.Component != "migrator" && c.Component != "publisher" && c.Component != "sync") {
+	if !instancePattern.MatchString(c.Instance) || (c.Component != "api" && c.Component != "migrator" && c.Component != "publisher" && c.Component != "sync" && c.Component != "webhook") {
 		return ErrConfiguration
 	}
 	return nil
