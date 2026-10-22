@@ -14,7 +14,7 @@ BEGIN
  END IF;
  IF EXISTS(SELECT FROM pg_roles WHERE (rolsuper OR rolcreatedb OR rolcreaterole OR rolbypassrls OR rolreplication OR rolname='cloudsqlsuperuser') AND (pg_has_role(api_name,oid,'MEMBER') OR pg_has_role(migrator_name,oid,'MEMBER'))) THEN RAISE EXCEPTION 'unsafe inherited authority'; END IF;
  -- Capability roles exist before restricted migrations; no worker login or binding is provisioned.
- FOREACH role_name IN ARRAY ARRAY['bookkeeping_owner','bookkeeping_api','bookkeeping_identity_operator','bookkeeping_publisher','bookkeeping_observer','bookkeeping_sync','bookkeeping_webhook'] LOOP
+ FOREACH role_name IN ARRAY ARRAY['bookkeeping_owner','bookkeeping_api','bookkeeping_identity_operator','bookkeeping_publisher','bookkeeping_observer','bookkeeping_sync','bookkeeping_webhook','bookkeeping_verifier'] LOOP
   IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname=role_name) THEN
    EXECUTE format('CREATE ROLE %I NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS',role_name);
   END IF;
@@ -22,7 +22,7 @@ BEGIN
  END LOOP;
  -- Reject existing privilege inheritance instead of silently downgrading an unsafe account.
  IF pg_has_role(api_name,'bookkeeping_owner','MEMBER') OR pg_has_role(api_name,'bookkeeping_identity_operator','MEMBER')
- OR pg_has_role(api_name,'bookkeeping_publisher','MEMBER') OR pg_has_role(api_name,'bookkeeping_observer','MEMBER') OR pg_has_role(api_name,'bookkeeping_sync','MEMBER') OR pg_has_role(api_name,'bookkeeping_webhook','MEMBER') THEN RAISE EXCEPTION 'unsafe runtime membership'; END IF;
+ OR pg_has_role(api_name,'bookkeeping_publisher','MEMBER') OR pg_has_role(api_name,'bookkeeping_observer','MEMBER') OR pg_has_role(api_name,'bookkeeping_sync','MEMBER') OR pg_has_role(api_name,'bookkeeping_webhook','MEMBER') OR pg_has_role(api_name,'bookkeeping_verifier','MEMBER') THEN RAISE EXCEPTION 'unsafe runtime membership'; END IF;
  EXECUTE format('GRANT bookkeeping_owner TO %I WITH INHERIT FALSE, SET TRUE',migrator_name);
  EXECUTE format('GRANT bookkeeping_api TO %I WITH INHERIT TRUE, SET FALSE',api_name);
  EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC',current_database());
