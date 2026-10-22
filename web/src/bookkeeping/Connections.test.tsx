@@ -375,6 +375,18 @@ it("TestConnectionsAutomaticBinding proposes distinct accounts for every support
           subtype: "auto",
           iso_currency_code: "USD",
         },
+        ...["mortgage", "consumer", "line of credit"].map((subtype) => ({
+          account_id: `provider-${subtype}`,
+          type: "loan" as const,
+          subtype,
+          iso_currency_code: "USD",
+        })),
+        {
+          account_id: "provider-other",
+          type: "loan" as const,
+          subtype: "other",
+          iso_currency_code: "USD",
+        },
       ],
     },
   };
@@ -439,16 +451,16 @@ it("TestConnectionsAutomaticBinding proposes distinct accounts for every support
     screen.getByRole("button", { name: "Confirm selected bindings" }),
   );
   await waitFor(() => expect(submitted).toBeDefined());
-  expect(submitted!.bindings).toHaveLength(5);
+  expect(submitted!.bindings).toHaveLength(9);
   expect(
     new Set(submitted!.bindings.map((binding) => binding.ledger_account_id))
       .size,
-  ).toBe(5);
+  ).toBe(9);
   expect(
     new Set(
       submitted!.bindings.map((binding) => binding.new_ledger_account?.code),
     ).size,
-  ).toBe(5);
+  ).toBe(9);
   expect(
     submitted!.bindings
       .slice(0, 3)
@@ -467,10 +479,10 @@ it("TestConnectionsAutomaticBinding proposes distinct accounts for every support
         binding.new_ledger_account?.category === "liability" &&
         binding.new_ledger_account?.normal_side === "credit",
     ),
-  ).toHaveLength(2);
+  ).toHaveLength(6);
   expect(
     submitted!.bindings.some(
-      (binding) => binding.account_id === "provider-auto",
+      (binding) => binding.account_id === "provider-other",
     ),
   ).toBe(false);
 });
@@ -828,29 +840,37 @@ it("TestConnectionsDiscovery shows expired unclaimed without replay and paginate
   );
 });
 // Request receipt is never rendered as a provider timestamp or posted amount.
-it("shows quarantined decoding as stopped instead of promising queued work", async () => {
-  const api = vi.fn(async (path: string) =>
-    path.endsWith("/status")
-      ? {
-          ...status,
-          delivery_state: "quarantined",
-          decoder_error: "unsupported_currency",
-          last_error: "decoder_rejected",
-        }
-      : listing,
-  ) as unknown as API;
-  render(<Connections {...props(api)} />);
-  fireEvent.click(
-    await screen.findByRole("button", {
-      name: "View sync status for synthetic-account",
-    }),
-  );
-  await screen.findByText(/Sync stopped after a failure/);
-  expect(screen.queryByText(/Sync work is queued/)).toBeNull();
-  expect(
-    screen.getByText("Data validation: unsupported currency."),
-  ).toBeTruthy();
-});
+it.each([
+  "unsupported_currency",
+  "amount_magnitude_exceeded",
+  "amount_scale_exceeded",
+  "currency_precision_exceeded",
+])(
+  "shows quarantined %s as stopped instead of promising queued work",
+  async (diagnostic) => {
+    const api = vi.fn(async (path: string) =>
+      path.endsWith("/status")
+        ? {
+            ...status,
+            delivery_state: "quarantined",
+            decoder_error: diagnostic,
+            last_error: "decoder_rejected",
+          }
+        : listing,
+    ) as unknown as API;
+    render(<Connections {...props(api)} />);
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "View sync status for synthetic-account",
+      }),
+    );
+    await screen.findByText(/Sync stopped after a failure/);
+    expect(screen.queryByText(/Sync work is queued/)).toBeNull();
+    expect(
+      screen.getByText(`Data validation: ${diagnostic.replaceAll("_", " ")}.`),
+    ).toBeTruthy();
+  },
+);
 
 it("TestConnectionsStreamStatus shows exact generations and honest unknown timestamps", async () => {
   const api = vi.fn(async (path: string) =>

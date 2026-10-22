@@ -472,66 +472,70 @@ func TestDeliveryNullStateConstraints(t *testing.T) {
 
 // TestDeliveryManualRecovery retains terminal receipts and starts a distinct business claim.
 func TestDeliveryManualRecovery(t *testing.T) {
-	c, db, bid, op := delivery(t)
-	r := take(t, db, op, 1, holder)
-	x := acquire(t, db, r, r["claim_id"])
-	_, err := invoke(t, db, "synthetic_sync", "SELECT integration.reject_sync_decode($1,$2,$3,$4,$5,'raw-provider-value')::text", entity, book, r["stream_id"], x["set_id"], x["fence"])
-	requireCode(t, err, "P2600")
-	if value(t, c, "SELECT state FROM integration.sync_set WHERE set_id=$1", x["set_id"]) != "staging" {
-		t.Fatal("invalid diagnostic mutated set")
-	}
-	call(t, db, "synthetic_sync", "SELECT integration.reject_sync_decode($1,$2,$3,$4,$5,'unsupported_currency')::text", entity, book, r["stream_id"], x["set_id"], x["fence"])
-	settle(t, db, op, r, "permanent", 0)
-	st := object(t, call(t, db, "synthetic_runtime", "SELECT integration.connection_stream_status($1,$2,$3,$4)::text", actor, entity, book, r["stream_id"]))
-	if st["delivery_state"] != "quarantined" || st["decoder_error"] != "unsupported_currency" {
-		t.Fatal("failure hidden", st)
-	}
-	body := raw(map[string]any{"action": "request", "expected_item_generation": st["item_generation"], "expected_binding_revision": st["binding_revision"], "expected_stream_revision": st["stream_revision"]})
-	q := "SELECT integration.mutate_connection_stream($1,$2,$3,$4,$5,$6)::text"
-	_, err = invoke(t, db, "synthetic_runtime", q, other, entity, book, r["stream_id"], "recovery", body)
-	requireCode(t, err, "P2701")
-	results := make(chan struct {
-		receipt string
-		err     error
-	}, 2)
-	for i := 0; i < 2; i++ {
-		go func() {
-			receipt, err := invoke(t, db, "synthetic_runtime", q, actor, entity, book, r["stream_id"], "recovery", body)
-			results <- struct {
+	for _, diagnostic := range []string{"unsupported_currency", "amount_magnitude_exceeded", "amount_scale_exceeded", "currency_precision_exceeded"} {
+		t.Run(diagnostic, func(t *testing.T) {
+			c, db, bid, op := delivery(t)
+			r := take(t, db, op, 1, holder)
+			x := acquire(t, db, r, r["claim_id"])
+			_, err := invoke(t, db, "synthetic_sync", "SELECT integration.reject_sync_decode($1,$2,$3,$4,$5,'raw-provider-value')::text", entity, book, r["stream_id"], x["set_id"], x["fence"])
+			requireCode(t, err, "P2600")
+			if value(t, c, "SELECT state FROM integration.sync_set WHERE set_id=$1", x["set_id"]) != "staging" {
+				t.Fatal("invalid diagnostic mutated set")
+			}
+			call(t, db, "synthetic_sync", "SELECT integration.reject_sync_decode($1,$2,$3,$4,$5,$6)::text", entity, book, r["stream_id"], x["set_id"], x["fence"], diagnostic)
+			settle(t, db, op, r, "permanent", 0)
+			st := object(t, call(t, db, "synthetic_runtime", "SELECT integration.connection_stream_status($1,$2,$3,$4)::text", actor, entity, book, r["stream_id"]))
+			if st["delivery_state"] != "quarantined" || st["decoder_error"] != diagnostic {
+				t.Fatal("failure hidden", st)
+			}
+			body := raw(map[string]any{"action": "request", "expected_item_generation": st["item_generation"], "expected_binding_revision": st["binding_revision"], "expected_stream_revision": st["stream_revision"]})
+			q := "SELECT integration.mutate_connection_stream($1,$2,$3,$4,$5,$6)::text"
+			_, err = invoke(t, db, "synthetic_runtime", q, other, entity, book, r["stream_id"], "recovery", body)
+			requireCode(t, err, "P2701")
+			results := make(chan struct {
 				receipt string
 				err     error
-			}{receipt, err}
-		}()
-	}
-	first, again := <-results, <-results
-	if first.err != nil || again.err != nil || first.receipt != again.receipt {
-		t.Fatal("recovery replay changed receipt")
-	}
-	if value(t, c, "SELECT count(*)::text FROM integration.sync_delivery_recovery WHERE operation_id=$1", op) != "1" {
-		t.Fatal("missing recovery")
-	}
-	if value(t, c, "SELECT state||':'||terminal_code FROM integration.sync_delivery_operation WHERE operation_id=$1", op) != "quarantined:permanent_failure" {
-		t.Fatal("terminal history rewritten")
-	}
-	_, err = c.Exec(context.Background(), "DELETE FROM integration.sync_delivery_recovery WHERE operation_id=$1", op)
-	requireCode(t, err, "P2108")
-	_, err = c.Exec(context.Background(), "UPDATE integration.sync_decode_diagnostic SET code='invalid_field' WHERE set_id=$1", x["set_id"])
-	requireCode(t, err, "P2108")
-	call(t, db, "synthetic_publisher", "SELECT integration.sync_delivery_discover($1,25)::text", bid)
-	fresh := value(t, c, "SELECT operation_id::text FROM integration.sync_delivery_operation WHERE stream_id=$1 AND state='ready'", r["stream_id"])
-	next := take(t, db, fresh, 1, holder2)
-	if next["claim_id"] == r["claim_id"] {
-		t.Fatal("failed claim reused")
-	}
-	// Old queued work cannot acquire or publish into the replacement.
-	old := take(t, db, op, 1, holder)
-	if old["status"] != "quarantined" {
-		t.Fatal("old task resumed")
-	}
-	nx := acquire(t, db, next, next["claim_id"])
-	finish(t, db, next, nx)
-	if settleWithHolder(t, db, fresh, next, holder2)["status"] != "done" {
-		t.Fatal("replacement failed")
+			}, 2)
+			for i := 0; i < 2; i++ {
+				go func() {
+					receipt, err := invoke(t, db, "synthetic_runtime", q, actor, entity, book, r["stream_id"], "recovery", body)
+					results <- struct {
+						receipt string
+						err     error
+					}{receipt, err}
+				}()
+			}
+			first, again := <-results, <-results
+			if first.err != nil || again.err != nil || first.receipt != again.receipt {
+				t.Fatal("recovery replay changed receipt")
+			}
+			if value(t, c, "SELECT count(*)::text FROM integration.sync_delivery_recovery WHERE operation_id=$1", op) != "1" {
+				t.Fatal("missing recovery")
+			}
+			if value(t, c, "SELECT state||':'||terminal_code FROM integration.sync_delivery_operation WHERE operation_id=$1", op) != "quarantined:permanent_failure" {
+				t.Fatal("terminal history rewritten")
+			}
+			_, err = c.Exec(context.Background(), "DELETE FROM integration.sync_delivery_recovery WHERE operation_id=$1", op)
+			requireCode(t, err, "P2108")
+			_, err = c.Exec(context.Background(), "UPDATE integration.sync_decode_diagnostic SET code='invalid_field' WHERE set_id=$1", x["set_id"])
+			requireCode(t, err, "P2108")
+			call(t, db, "synthetic_publisher", "SELECT integration.sync_delivery_discover($1,25)::text", bid)
+			fresh := value(t, c, "SELECT operation_id::text FROM integration.sync_delivery_operation WHERE stream_id=$1 AND state='ready'", r["stream_id"])
+			next := take(t, db, fresh, 1, holder2)
+			if next["claim_id"] == r["claim_id"] {
+				t.Fatal("failed claim reused")
+			}
+			// Old queued work cannot acquire or publish into the replacement.
+			old := take(t, db, op, 1, holder)
+			if old["status"] != "quarantined" {
+				t.Fatal("old task resumed")
+			}
+			nx := acquire(t, db, next, next["claim_id"])
+			finish(t, db, next, nx)
+			if settleWithHolder(t, db, fresh, next, holder2)["status"] != "done" {
+				t.Fatal("replacement failed")
+			}
+		})
 	}
 }
 
