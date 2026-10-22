@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/justin-napolitano/jayburd-bookkeeping/db/migrations"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/sandboxverification"
 	"io/fs"
 	"net/http"
 	"strings"
@@ -97,6 +98,12 @@ func TestSandboxVerificationExact(t *testing.T) {
 	got := object(t, out)
 	if got["equal"] != true || got["no_automatic_journals"] != true {
 		t.Fatal("complete fixed fixture failed", out)
+	}
+	actualVerifier := connect(t, db, verifierLogin)
+	defer actualVerifier.Close(context.Background())
+	adapted, e := sandboxverification.Compare(context.Background(), actualVerifier, sandboxverification.Request{MandateID: id, Revision: "1", Fixture: verificationFixture, IdentityMap: verificationIdentityMap})
+	if e != nil || !adapted.Equal || !adapted.NoAutomaticJournals {
+		t.Fatal("actual bounded Go adapter failed", e)
 	}
 	for k, v := range got {
 		if k == "equal" || k == "no_automatic_journals" {
@@ -226,6 +233,24 @@ func TestSandboxVerificationRejectsShapes(t *testing.T) {
 		id := enrollVerification(t, owner, db, stream, fmt.Sprintf("shape%d", n), fixture, verificationIdentityMap)
 		_, e := compareVerification(t, db, id, fixture, verificationIdentityMap)
 		requireCode(t, e, "P3100")
+	}
+	// Required profile/fixture IDs are typed strings; null must never become an unknown predicate.
+	for _, field := range []string{"profile", "fixture_id"} {
+		for _, target := range []string{"fixture", "map"} {
+			fixture, identities := verificationFixture, verificationIdentityMap
+			if target == "fixture" {
+				v := object(t, string(fixture))
+				v[field] = nil
+				fixture = []byte(raw(v))
+			} else {
+				v := object(t, string(identities))
+				v[field] = nil
+				identities = []byte(raw(v))
+			}
+			id := enrollVerification(t, owner, db, stream, "null-"+target+"-"+field, fixture, identities)
+			_, e := compareVerification(t, db, id, fixture, identities)
+			requireCode(t, e, "P3100")
+		}
 	}
 	largeFixture := object(t, string(verificationFixture))
 	largeMap := object(t, string(verificationIdentityMap))
