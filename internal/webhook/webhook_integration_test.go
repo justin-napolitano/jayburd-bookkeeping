@@ -331,7 +331,7 @@ func TestWebhookPostgresCatchup(t *testing.T) {
 	}
 }
 
-// TestWebhookPostgresRoleIsolation denies API, sync, mixed-role and unknown Item ingress without receipts.
+// TestWebhookPostgresRoleIsolation denies cross-role and later predefined-role drift without receipts.
 func TestWebhookPostgresRoleIsolation(t *testing.T) {
 	owner, db, _ := setup(t)
 	_, _, _, _ = signedPostgres(t, db, "")
@@ -353,10 +353,13 @@ func TestWebhookPostgresRoleIsolation(t *testing.T) {
 		t.Fatal("unknown Item did not deny uniformly")
 	}
 	verified.ItemID = "synthetic-item"
-	exec(t, owner, "GRANT bookkeeping_api TO synthetic_webhook")
-	defer exec(t, owner, "REVOKE bookkeeping_api FROM synthetic_webhook")
-	if _, e := receiver.Receive(context.Background(), verified); !errors.Is(e, errDenied) {
-		t.Fatal("mixed role ingress accepted")
+	for _, role := range []string{"bookkeeping_api", "pg_execute_server_program", "pg_read_server_files", "pg_write_server_files", "pg_read_all_data", "pg_write_all_data"} {
+		// Fixed test-owned identifiers only; never execute a program or access any server file.
+		exec(t, owner, "GRANT "+role+" TO synthetic_webhook WITH ADMIN FALSE, INHERIT TRUE, SET FALSE")
+		if _, e := receiver.Receive(context.Background(), verified); !errors.Is(e, errDenied) {
+			t.Fatal("mixed or predefined role ingress accepted", role)
+		}
+		exec(t, owner, "REVOKE "+role+" FROM synthetic_webhook")
 	}
 	if value(t, owner, "SELECT count(*)::text FROM integration.webhook_receipt") != "0" {
 		t.Fatal("denied ingress stored receipt")

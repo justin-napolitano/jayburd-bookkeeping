@@ -15,12 +15,24 @@ Terraform provider reference below is pinned to repository Google8.6.0.
 | WR05 [Google provider8.6.0 Cloud Run service reference](https://raw.githubusercontent.com/hashicorp/terraform-provider-google/v8.6.0/website/docs/r/cloud_run_v2_service.html.markdown) | command/args, invoker_iam_disabled, scaling, request concurrency, timeout, resources, startup probe and traffic descriptions; selected relevant fields read. Registry HTML was unavailable; official tagged source used. | Dedicated service root, fixed bounds and TCP probe; mock tests verify requested configuration only. Actual traffic/Ready/image identity and effective IAM remain separate qualification. |
 | WR06 [Google provider8.6.0 SQL user reference](https://raw.githubusercontent.com/hashicorp/terraform-provider-google/v8.6.0/website/docs/r/sql_user.html.markdown) | IAM service-account example, username suffix, password/type argument descriptions. Relevant sections read in full. | Derive `.iam` SQL username from dedicated service identity; no password field. Bootstrap mock test verifies type/name/no password. |
 | WR07 [Terraform provider mocking](https://developer.hashicorp.com/terraform/language/tests/mocking) | Mock provider data and override timing sections read in full. Computed mock values default to unknown during plan; `override_during=plan` provides synthetic values without real provider operations. Mutable documentation; verified with pinned Terraform1.15.7. | Both suites keep `command=plan` and explicit mock provider. Mock SA email is synthetic; no real apply is needed to assert derived IAM identities. |
+| WR08 [Cloud Run v2 Service](https://docs.cloud.google.com/run/docs/reference/rest/v2/projects.locations.services) | Selected Service reconciliation, RevisionTemplate, ServiceScaling and TrafficTargetStatus JSON/field sections reviewed. Generation strings, readiness and serving traffic must agree after reconciliation; manual scaling ignores the maximum. | Offline receipt checks complete fixed runtime settings, serving canonical URL, automatic capacity and isolated public IAM. Synthetic drift tests; actual selected v2 readback remains unqualified. |
+| WR09 [ContainerPort](https://docs.cloud.google.com/run/docs/reference/rest/v2/Container#ContainerPort) and [ProtoJSON](https://protobuf.dev/programming-guides/json/#presence-and-default-values) | Selected HTTP protocol and omitted implicit-default descriptions, independently reviewed by the enrollment peer. No full API specification review. | Accept absent false/zero defaults only; reject null/wrong types, h2c, manual scaling and disabled URL/IAP. Fixed mutation fixtures cover these readback decisions. |
 
 Existing P88-14/15 in [Plaid source register](plaid-88-test-sources.md) govern
 webhook receipt/verification; [managed runtime](../contracts/webhook-managed-runtime.md)
 records the existing proprietary-notification/ISO applicability. No financial
 message, currency semantics, SQL schema or accounting policy changes here. Full
 ISO text was not reviewed and no conformance is claimed.
+
+The [SQL bootstrap source assessment](../contracts/webhook-bootstrap.md#sources-standards-and-alternatives)
+records selected PostgreSQL17 grant, role, libpq and existing owner-function
+sections and named synthetic acceptance; source review does not authorize grants.
+
+WR10 [PostgreSQL17 predefined roles](https://www.postgresql.org/docs/17/predefined-roles.html):
+reviewed Table21.1 and file/program privilege discussion. Such memberships can
+carry authority without superuser attributes. Bootstrap and per-request receiver
+therefore reject inherited `pg_` roles. Tests grant/revoke fixed roles only; no
+server file access or program execution is attempted.
 
 Alternative of widening worker/API roots was rejected because it couples private
 IAM, caller policy and scheduler authority to a public notification boundary.

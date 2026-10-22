@@ -84,6 +84,7 @@ release-test:
 	node --test scripts/sandbox-release.test.mjs scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs scripts/migration-receipt.test.mjs scripts/database-probe-receipt.test.mjs
 	bash scripts/test-deploy-dev.sh
 	node --test scripts/worker-release-manifest.test.mjs scripts/worker-deployment-receipt.test.mjs
+	node --test scripts/webhook-release.test.mjs
 	bash scripts/test-deploy-workers.sh
 
 .PHONY: identity-rehearsal identity-rehearsal-test
@@ -144,6 +145,10 @@ sync-dispatch-test:
 .PHONY: worker-bootstrap-test sandbox-qualification-test
 worker-bootstrap-test:
 	bash scripts/test-worker-bootstrap.sh
+
+.PHONY: webhook-bootstrap-test
+webhook-bootstrap-test:
+	bash scripts/test-webhook-bootstrap.sh
 
 sandbox-qualification-test:
 	bash scripts/test-sandbox-qualification.sh

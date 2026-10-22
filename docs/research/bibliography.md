@@ -12,6 +12,8 @@
 2026-10-22; Launch Center unreviewed, hosted proof incomplete.
 
 [PL04](plaid-liability-sources.md): selected loan/product review, 2026-10-22.
+[Webhook release](webhook-release-sources.md), [enrollment](webhook-enrollment-sources.md):
+selected official sections,2026-10-22; synthetic proof, hosted acceptance open.
 
 [History](../contracts/plaid-history-currency.md).
 [PI13 source-first Plaid review](plaid-ingestion-sources.md#pi13--source-first-accounthistory-refresh-2026-10-21): Item/account/history mechanics; ownership remains project policy.
@@ -42,11 +44,9 @@ targets. Our receipt requires reconciled desired/ready generations, one exact-im
 100% target and paused exact Scheduler target. That is a project acceptance policy,
 not a claim of queue drain, IAM qualification or a provider transaction test.
 
-[Explicit connection release policy](../contracts/connection-release.md) reviews
-HashiCorp variable defaults/assignment precedence and Cloud Run revision management
-(selected official sections,2026-10-14). These explain the omitted-input reset and
-configuration capture; manifest versioning/digest policy is our design inference.
-No hosted state or provider readiness was established by this source review.
+[Connection release](../contracts/connection-release.md): selected HashiCorp
+variable precedence/Cloud Run revision sections,2026-10-14. Omitted inputs reset;
+version/digest policy is our inference, not hosted/provider proof.
 
 Hosted/Sandbox source review (2026-10-14):
 
