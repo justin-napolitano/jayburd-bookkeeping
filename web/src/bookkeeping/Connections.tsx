@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { APIError, type API } from "./api";
 import type { Book, Currency, Entity } from "./types";
 import type { components } from "../lib/api.generated";
@@ -195,6 +195,7 @@ function ConnectionWorkspace({
   });
   const [busy, setBusy] = useState(false);
   const [hosted, setHosted] = useState<Begin | null>(null);
+  const [hostedURLExpired, setHostedURLExpired] = useState(false);
   const [enrollmentStarted, setEnrollmentStarted] = useState(false);
   const [list, setList] = useState<Listing | null>(null);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
@@ -225,6 +226,20 @@ function ConnectionWorkspace({
       sync_item_id: string;
     };
   } | null>(null);
+  // URL expiry disables navigation only; server recovery has its own authoritative deadline.
+  useEffect(() => {
+    setHostedURLExpired(false);
+    if (!hosted?.expires_at) return;
+    const expires = Date.parse(hosted.expires_at);
+    let timer: ReturnType<typeof setTimeout>;
+    const update = () => {
+      const remaining = expires - Date.now();
+      if (remaining <= 0) setHostedURLExpired(true);
+      else timer = setTimeout(update, Math.min(remaining, 2_147_483_647));
+    };
+    update();
+    return () => clearTimeout(timer);
+  }, [hosted?.attempt.attempt_id, hosted?.expires_at]);
   // Public attempt metadata is checked before it can select a mutation path.
   const checkedAttempt = (value: Attempt, id?: string): Attempt => {
     if (
@@ -508,7 +523,8 @@ function ConnectionWorkspace({
     // Scope and lock are handled by the keyed outer component; API must be stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api]);
-  useEffect(() => {
+  // Finish defaults before the review form becomes interactive; never overwrite a reviewed user date later.
+  useLayoutEffect(() => {
     if (
       attempt?.state === "binding_review" &&
       attempt.manifest &&
@@ -785,8 +801,21 @@ function ConnectionWorkspace({
     setAttempt(recovered);
     setInspectID(id);
     if (recovered.state === "link_ready") {
-      await readList();
+      const discovery = await readList();
       if (!current.live) return true;
+      const discovered = discovery?.items.find(
+        (item) => item.attempt_id === id,
+      );
+      const expired =
+        discovered?.expired_unclaimed ??
+        Date.parse(recovered.expires_at) <= Date.now();
+      setExpiredAttempt(expired);
+      if (expired) {
+        setMessage(
+          "This setup's recovery window has ended. Its exchange will not be retried. Review the current connection list before explicitly starting a fresh setup.",
+        );
+        return true;
+      }
       setMessage(
         "This bank setup has not been completed in Jayburd. If you exited Plaid, use Cancel setup or Try again below. Otherwise finish Plaid and check this attempt again.",
       );
@@ -988,17 +1017,37 @@ function ConnectionWorkspace({
     <section aria-label="Connections" aria-busy={busy}>
       {hosted?.hosted_link_url && (
         <div role="group" aria-label="Complete Sandbox bank setup">
-          <p>
-            Keep this tab open while you complete fictional bank setup in Plaid.
-          </p>
-          <a
-            href={hosted.hosted_link_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            referrerPolicy="no-referrer"
-          >
-            Open Plaid Sandbox
-          </a>
+          {hostedURLExpired ? (
+            <p>
+              This Plaid link has expired. If you already finished there, check
+              completion below while the setup recovery window remains open.
+            </p>
+          ) : (
+            <>
+              <p>
+                Finish fictional bank setup in Plaid, then return here. If this
+                tab closes, sign in and review the unfinished setup to check
+                completion.
+              </p>
+              <a
+                href={hosted.hosted_link_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                referrerPolicy="no-referrer"
+                onClick={(event) => {
+                  // Background tabs may delay timers; recheck expiry at the navigation boundary.
+                  const expiry = Date.parse(hosted.expires_at ?? "");
+                  if (!Number.isFinite(expiry) || expiry <= Date.now()) {
+                    event.preventDefault();
+                    setHostedURLExpired(true);
+                  }
+                }}
+              >
+                Open Plaid Sandbox
+              </a>
+              <p>Plaid link expires: {hosted.expires_at}</p>
+            </>
+          )}
           <button
             disabled={locked || busy}
             onClick={() => void completeHosted()}
@@ -1389,7 +1438,7 @@ function ConnectionWorkspace({
           <h3>Connection attempt</h3>
           <p>Attempt ID: {attempt.attempt_id}</p>
           <p>Historical attempt status: {attempt.state.replaceAll("_", " ")}</p>
-          <p>Handoff expires: {attempt.expires_at}</p>
+          <p>Setup recovery ends: {attempt.expires_at}</p>
           {bindingExpired && (
             <p>
               Binding review expired; start a fresh connection. The known
