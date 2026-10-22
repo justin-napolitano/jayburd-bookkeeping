@@ -49,7 +49,7 @@ requested cutoff, not a shared transaction. Books read before/after concurrent
 postings can have different revisions and generation times: label the overview
 **Independent book snapshots** and never assign a common report revision.
 
-Successful rows remain visible when another book fails; pending, empty, denied,
+Successful rows remain visible when another book fails; pending, valid zero, denied,
 stale and unsupported rows are distinct. An unavailable row contains no current,
 prior or change substitute zero and no retained stale amounts. Each row is either
 a complete accepted comparison response or unavailable; do not splice totals
@@ -98,8 +98,12 @@ contra balances. The existing unclassified balance-sheet categories define:
 Never take absolute values to force a pleasant presentation. Account code/name,
 provider type and source account links cannot substitute for reviewed cash
 membership. A credit-balance cash account stays negative. Inactive historical
-accounts remain in totals. Empty valid books return exact zero statement totals,
-with a visible `No posted entries` status; this is not an unavailable read.
+accounts remain in totals. Empty valid books return exact zero statement totals;
+this is not an unavailable read. Zero totals or an empty report selection cannot
+prove that no journals were posted: offsetting entries can have the same result.
+The existing balance-sheet API has no authoritative journal-count flag. Display
+exact zero without a `No posted entries` claim. Such a status requires separately
+owned authoritative metadata before it can be shown.
 
 ## Deferred cash and evidence extensions
 
@@ -162,7 +166,7 @@ change a valid posted balance into zero or imply a complete review.
 
 | Condition | Required result |
 | --- | --- |
-| No readable books / authorized book with no posted journals | Empty workspace state / exact-zero row with `No posted entries` |
+| No readable books / valid authorized book returning zero totals | Empty workspace state / exact-zero row; no inference about posted-entry count |
 | Unknown or inaccessible scope | 404 with no totals or existence hint |
 | Missing credentials / read grant denied | 401 / 403 with no financial body |
 | Revision changed between views | 409 `report_snapshot_changed`; discard old evidence and offer explicit refresh |
@@ -213,7 +217,8 @@ must name tests for: exact server-string totals and comparison mapping
 (`PositionOverview` fixed values); max-four scheduling and queued completeness;
 current membership and per-request denied/global identity results; independent
 book revision/date/currency metadata; partial failure without zero substitution;
-empty versus unsupported policy; stale/scope-change late-response rejection;
+valid zero versus unsupported policy, without inferring no posted entries;
+stale/scope-change late-response rejection;
 no cross-book total or client financial arithmetic; and direct top navigation
 with explicit scope/date handoff. Browser screenshots at desktop and 390px must
 show approved type, row bands, keyboard labels and readable signed changes.

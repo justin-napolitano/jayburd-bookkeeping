@@ -73,7 +73,7 @@ an unbounded subtotal-to-journal shortcut.
 
 | Fixture | Fixed expectation |
 | --- | --- |
-| Authorized empty book with supported policy | Assets/liabilities/equity all exact string `"0"`; `No posted entries`; cash `Not configured` if no membership policy; no journal links. |
+| Authorized empty book with supported policy | Assets/liabilities/equity all exact string `"0"`; fixture setup proves emptiness, but UI makes no no-entry claim from totals. Cash remains deferred; no journal links are invented. |
 | Book A has only source observation for USD 500, unposted draft or pending command | Jan 31 Position stays `1191` assets and `1151` classified cash; separate attention state may mention observation/command, never add USD 500. |
 | Book B has J1-like USD 70 capital/cash | Book A remains unchanged; no A+B sum or selector crossing entity/book. |
 | Missing credentials, revoked read or foreign book | 401/403/404 respectively; no financial totals, cursor or existence hint. |
@@ -107,8 +107,12 @@ between books or used as one portfolio watermark.
 | A | Entity Alpha / A; current 2026-01-31, prior 2026-01-02 | `1191` / `300` / `891` / `-109` | USD functional; revision `12`; generated 2026-02-03T10:00:00Z |
 | B | Entity Beta / B; current 2026-01-31, prior 2026-01-02 | `70` / `0` / `70` / `70` | USD functional; revision `3`; generated 2026-02-03T10:00:02Z |
 | A refreshed after correction | Entity Alpha / A; current 2026-02-02, prior 2026-01-31 | `1180` / `300` / `880` / `-11` | USD functional; revision `13`; generated 2026-02-03T10:01:00Z |
-| Empty | Entity Alpha / Empty; current 2026-01-31, prior 2026-01-02 | `0` / `0` / `0` / `0`; No posted entries | Own USD policy/revision/date envelope |
+| Empty | Entity Alpha / Empty; current 2026-01-31, prior 2026-01-02 | `0` / `0` / `0` / `0`; no UI entry-count inference | Own USD policy/revision/date envelope |
 | C | Entity Gamma / C, EUR functional policy unsupported today | No amounts; `unsupported_policy` | Currency remains EUR, never relabeled USD; no conversion |
+
+The empty fixture is known empty from its setup, not from its report totals. The
+existing balance-sheet envelope has no journal-count flag; offsetting posted
+journals can also produce zero. No first-slice UI no-entry status is inferred.
 
 Each accepted row must display its response's dates and revision details, even
 when the shared requested dates match. A response that does not match the active
@@ -126,6 +130,7 @@ Original EUR 10 in A remains journal evidence, not a EUR-functional book total.
 | Five authorized books selected | At most four requests in flight; fifth is visibly pending then requested when a slot frees; no truncation. |
 | User selects Beta while Alpha request completes late | Render only Beta generation; discard late Alpha result. |
 | Membership scope has no readable books | Empty workspace state; no fabricated zero portfolio. |
+| Book has USD 70 capital journal and exact linked reversal | Assets/liabilities/equity and change can all be `0` despite two posted journals; render zero without a `No posted entries` status. |
 
 ## Alternatives, uncertainty and acceptance
 
