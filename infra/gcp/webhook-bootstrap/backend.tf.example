@@ -1,0 +1,4 @@
+# Owner creates PROJECT_ID-jayburd-dev-webhook-bootstrap-state, prefix webhook-bootstrap.
+terraform {
+  backend "gcs" {}
+}
