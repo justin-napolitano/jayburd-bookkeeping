@@ -2,7 +2,7 @@
 
 ## Review record
 
-Reviewed 2026-10-21 for proposed [Position contract](../contracts/position-read-model.md),
+Reviewed 2026-10-21 and updated 2026-10-22 for proposed [Position contract](../contracts/position-read-model.md),
 starting at the [bibliography](bibliography.md), [decision evidence](decision-evidence.md),
 [database foundations](database-foundations.md), and existing [financial reporting
 sources](financial-reporting-sources.md). No new normative accounting approval.
@@ -10,7 +10,7 @@ sources](financial-reporting-sources.md). No new normative accounting approval.
 | ID | Reviewed source and depth | Fact established | Project inference / limit |
 | --- | --- | --- | --- |
 | P01 | OpenStax / Rice University, *Principles of Accounting, Volume 1*, [§2.3 statement relationships](https://openstax.org/books/principles-financial-accounting/pages/2-3-prepare-an-income-statement-statement-of-owners-equity-and-balance-sheet), income statement, owner's equity and balance sheet subsections, reviewed through FR01 | Balance sheet is dated; performance covers a period; earnings/distributions affect equity | Show dated Position and separately labeled change. Introductory example does not decide LLC cash classification, GAAP or spendability. |
-| P02 | PostgreSQL Global Development Group, [PostgreSQL 17 §13.2.2 Repeatable Read](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ), relevant section reviewed through FR02; local reporting contracts and runbooks reviewed in full for API facts | One transaction has stable snapshot; later request does not inherit it. Existing reporting uses current membership and revision validation. | One response should carry current/prior points; cross-request drill must pin/revalidate revision. Documentation alone does not prove our grants or performance. |
+| P02 | PostgreSQL Global Development Group, [PostgreSQL 17 §13.2.2 Repeatable Read](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ), relevant section reviewed through FR02; local reporting contracts and runbooks reviewed in full for API facts | One transaction has stable snapshot; later request does not inherit it. Existing reporting uses current membership and revision validation. | One response carries current/prior points per book; separate book requests have independent snapshots, not one portfolio snapshot. Documentation alone does not prove our grants or performance. |
 | P03 | ISO 20022 Registration Authority [FAQ](https://www.iso20022.org/faq), About/Compliance, and [message catalogue](https://www.iso20022.org/catalogue-messages), catalogue/version overview, reviewed through FR04/R01–R02 | Registered messages have versioned definitions and usage context | Internal Position query has no selected external exchange profile. No individual message or eight-part normative text reviewed; reassess for an actual exchange. |
 | P04 | ISO [4217 public overview](https://www.iso.org/iso-4217-currency-codes.html), currency identifier/minor-unit overview, reviewed through FR04/R03 | Maintained codes and minor-unit metadata identify currencies | Preserve existing pinned code/version; no FX method or cash policy follows. No new code-list release assessed. |
 | P05 | ISO [21378:2019 standard page](https://www.iso.org/standard/70823.html), abstract/edition metadata, and [21926:2026 official preview](https://www.iso.org/obp/ui?_escaped_fragment_=iso%3Astd%3Aiso%3A21926%3Aed-1%3Av1%3Aen), contents/introduction/§1 through R04–R05 | Audit-data extraction and semantic modelling are relevant future topics | Position is an internal view, not an audit export. Normative field mappings remain unavailable and unresolved. |
@@ -87,21 +87,64 @@ strings plus original-unit detail. If the chosen development posting policy does
 not support a fixture operation, split the fixture into an explicitly supported
 policy test and a pending policy case; do not weaken the expected accounting math.
 
+## Fixed all-books orchestration cases — 2026-10-22
+
+Owner approved the visual/scope proposal in conversation: all books grouped by
+entity, explicit currency, assets/liabilities/book equity/equity change, direct
+top navigation and gray zebra rows. This is design evidence, not an accounting
+standard, approval of real-book policy, or evidence of runtime test coverage.
+The implemented [reporting HTTP contract](../contracts/reporting-http.md) was
+reread for per-request authorization, comparison envelope, exact strings, policy
+errors and response limits. No external source or new normative edition is added.
+
+The following are fixed synthetic response expectations. Book A uses J1–J6 above;
+book B has one USD 70 capital journal on 2026-01-03. Revisions and generation
+times are independent fictional metadata; they are never compared numerically
+between books or used as one portfolio watermark.
+
+| Row | Entity, book and requested dates | Exact assets / liabilities / book equity / equity change | Independent metadata |
+| --- | --- | --- | --- |
+| A | Entity Alpha / A; current 2026-01-31, prior 2026-01-02 | `1191` / `300` / `891` / `-109` | USD functional; revision `12`; generated 2026-02-03T10:00:00Z |
+| B | Entity Beta / B; current 2026-01-31, prior 2026-01-02 | `70` / `0` / `70` / `70` | USD functional; revision `3`; generated 2026-02-03T10:00:02Z |
+| A refreshed after correction | Entity Alpha / A; current 2026-02-02, prior 2026-01-31 | `1180` / `300` / `880` / `-11` | USD functional; revision `13`; generated 2026-02-03T10:01:00Z |
+| Empty | Entity Alpha / Empty; current 2026-01-31, prior 2026-01-02 | `0` / `0` / `0` / `0`; No posted entries | Own USD policy/revision/date envelope |
+| C | Entity Gamma / C, EUR functional policy unsupported today | No amounts; `unsupported_policy` | Currency remains EUR, never relabeled USD; no conversion |
+
+Each accepted row must display its response's dates and revision details, even
+when the shared requested dates match. A response that does not match the active
+request must be rejected. The refreshed A row above belongs to a new date/scope
+generation and cannot coexist as a late replacement in the old January request.
+There is no A+B total, Entity Alpha subtotal, multi-currency total or FX result.
+Original EUR 10 in A remains journal evidence, not a EUR-functional book total.
+
+| Orchestration case | Fixed required outcome |
+| --- | --- |
+| A succeeds; B times out | A stays `1191` / `300` / `891` / `-109`; B shows unavailable with no zero or old values. |
+| B access revoked after membership discovery | Per-book read returns denied/inaccessible; B's old financial values are discarded; A remains independently authorized. |
+| Global identity expires during queue | Clear financial rows and stop scheduling queued requests; no stored response acts as a grant. |
+| A stale revision returns 409 | A has explicit stale/refresh state with no reused amounts; no silent unpinned retry spliced into evidence. |
+| Five authorized books selected | At most four requests in flight; fifth is visibly pending then requested when a slot frees; no truncation. |
+| User selects Beta while Alpha request completes late | Render only Beta generation; discard late Alpha result. |
+| Membership scope has no readable books | Empty workspace state; no fabricated zero portfolio. |
+
 ## Alternatives, uncertainty and acceptance
 
-Comparing two separate unpinned HTTP reports risks a revision mismatch. The
-existing one-response comparison keeps a coherent point change. A retained MVCC
-session or materialized snapshot would permit historical navigation but adds
-connection/storage and permission lifecycle work. Assigning cash by bank link or
-account name avoids policy setup but confuses source accounts and book assets.
-The proposed explicit classification has a review cost and needs versioned
-ownership. Disconfirming evidence would be a supported cash classification
-already in the actual schema or a real policy that defines cash differently;
-recheck before implementation.
+A single new batch endpoint could establish a coherent transaction boundary, but
+would require reviewed SQL/API work, resource limits and multi-book authorization
+evidence. The chosen first slice reuses bounded authorized per-book responses
+and explicitly exposes independent snapshots. Unbounded browser fan-out would
+increase resource pressure; the initial maximum of four is a conservative project
+choice requiring scheduling tests, not a benchmark or a capacity guarantee.
+Same-currency summation can still double-count overlapping books and omit
+eliminations; consolidation remains #59. Browser arithmetic also duplicates
+server sign/currency rules and is excluded. Cash classification remains a future
+server-owned policy decision; no cash field ships with this first overview.
 
-Acceptance: `TestPositionFixedExample`, `TestPositionCashPolicy`,
-`TestPositionRevisionAndAuthorization`, `TestPositionSourceExclusion`,
-`TestPositionBounds`, plus owner vocabulary review. These are **planned** tests,
-not claims of present runtime coverage. #1 owns accountant-approved real-book
-policy; #249 owns browser behavior. Revisit normative ISO mapping if Position
-becomes an exchange or audit export.
+Acceptance: the first-slice cases named in the Position contract, fixed multi-book
+responses above and owner-reviewed desktop/mobile screenshots. Deferred
+`TestPositionCashPolicy`, `TestPositionSourceExclusion` and `TestPositionBounds`
+remain proposed extension coverage. #1 owns accountant-approved real-book policy;
+#249 owns browser behavior and #59 owns consolidation/translation. Revisit
+normative ISO mapping if Position becomes an exchange or audit export. Public
+ISO access limits in P03–P05 remain unchanged; the all-books wrapper introduces
+no new financial message or currency arithmetic.
