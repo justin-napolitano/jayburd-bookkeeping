@@ -4,21 +4,21 @@
   "projectNumber": "9088794002",
   "operation": "sandbox-promote",
   "build": {
-    "run": "39530293602",
+    "run": "39704183980",
     "attempt": "1",
-    "commit": "4dde571e54e9f015c9e08bed5870117f36b63131"
+    "commit": "7737991e386d3ddfcee6385289ffc52f4091693a"
   },
-  "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/worker@sha256:9ac350363b2c137d8b569fb752670b98bfafd72350a8bf8cedb3ed2cf7346f33",
+  "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/worker@sha256:ca4ba9813666c6fb94fd63ba6b14871cf2555e882c8b96bd27c6795f3d99ac60",
   "binding_id": "",
   "publisher_policy": "shared-v1",
   "client_id_version": "1",
   "client_secret_version": "1",
   "evidence": {
     "bootstrap": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/164#issuecomment-6219312071",
-    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/156#issuecomment-6306325433",
+    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/258#issuecomment-6330452107",
     "identity": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/164#issuecomment-6219312071",
     "secrets": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/164#issuecomment-6219312071"
   },
-  "expiresAt": "2026-10-23T02:13:37Z",
+  "expiresAt": "2026-10-22T12:00:00Z",
   "previousDeployment": null
 }

@@ -23,9 +23,10 @@ our memory/cancellation policy from real Link Events and institution qualificati
 split and narrow federation policy. The [operator guide](../../deploy/WORKERS.md)
 explains exact-byte promotion, evidence limits and compatible rollback.
 
-Worker receipt source review (2026-10-14, selected official reference sections):
+Worker review (2026-10-14); [#258 retry/drain refresh](plaid-rollout-sources.md)
+(selected sections, 2026-10-22):
 [Cloud Run ServiceStatus](https://docs.cloud.google.com/run/docs/reference/rest/v1/namespaces.services#ServiceStatus)
-defines observed generation, Ready and latest-created/latest-ready revisions;
+defines generation, Ready and created/ready revisions;
 [TrafficTarget](https://docs.cloud.google.com/run/docs/reference/rest/v1/TrafficTarget)
 defines revision allocation and tagged routes;
 [Scheduler Job/State](https://docs.cloud.google.com/scheduler/docs/reference/rest/v1/projects.locations.jobs#State)
