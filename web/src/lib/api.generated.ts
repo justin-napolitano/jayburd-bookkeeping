@@ -1630,7 +1630,7 @@ export interface components {
              * @description Fixed classification from the latest acquisition; never provider data.
              * @enum {string|null}
              */
-            decoder_error?: "invalid_json" | "duplicate_key" | "limit_exceeded" | "invalid_number" | "invalid_expectation" | "invalid_field" | "unknown_field" | "unknown_enum" | "invalid_cursor_encoding" | "invalid_cursor_progress" | "account_mismatch" | "unsupported_account" | "invalid_identity" | "duplicate_identity" | "invalid_lineage" | "invalid_date" | "unsupported_currency" | "amount_out_of_range" | null;
+            decoder_error?: "invalid_json" | "duplicate_key" | "limit_exceeded" | "invalid_number" | "invalid_expectation" | "invalid_field" | "unknown_field" | "unknown_enum" | "invalid_cursor_encoding" | "invalid_cursor_progress" | "account_mismatch" | "unsupported_account" | "invalid_identity" | "duplicate_identity" | "invalid_lineage" | "invalid_date" | "unsupported_currency" | "amount_out_of_range" | "amount_magnitude_exceeded" | "amount_scale_exceeded" | "currency_precision_exceeded" | null;
             /** Format: uuid */
             stream_id: string;
             /** Format: uuid */

@@ -3,7 +3,8 @@
 
 ## Status and boundary
 
-Implementation on `issue/249-focused-position`, stacked on open #253/#248.
+Implementation on `issue/249-focused-position`, now based on merged main and
+including the proposal from open #253/#248; its review gate remains open.
 Owner approved the all-books zebra-row reference and requested build. This is
 frontend/report-consumer work; no API, SQL, migrations, live financial records,
 provider calls, cloud mutation or deployment. Existing synthetic reporting policy
@@ -20,6 +21,7 @@ is not real-book accounting approval. [Design](../plans/position-workspace.md),
 | Shell | Direct Position/Ledger/Reports, scoped tool handoff, existing tasks and recovery safety retained. | Complete |
 | Responsive review | Approved reference compared with desktop/table captures; mobile labeled rows remove sideways scrolling. [QA](../../design-qa.md) passed. | Complete |
 | Verification | Core checks/race/build, 296 web unit cases, 22 browser journeys and real browser/Next/Go/SQL posting/Position proof passed, with environment qualifications below. | Complete |
+| Deployed-main compatibility | Merged `origin/main` at `6492846` (#262), retaining #259 source/migration28 and #261/#262 manifests. Combined web/core and posting proof passed; connection proof recorded below. | Complete |
 
 ## Current evidence
 
@@ -51,6 +53,23 @@ is not real-book accounting approval. [Design](../plans/position-workspace.md),
 - Static review found two navigation issues (reused consumed snapshot and retained
   connection-specific Review preference); both were fixed and regression-tested.
   A max-four scheduling race during date replacement was fixed and its test passes.
+- Compatibility follow-up, 2026-10-22: reviewed merged PR #259, releases #261/#262
+  and `plaid-258-rollout.md`. Main `6492846` merged without conflicts. Deployed
+  Connections component/tests, generated API types, OpenAPI, migration28 and
+  release manifests match main exactly; the Position report consumer and shell
+  do not replace their behavior. Existing tests cover all supported loan types
+  and the new fixed money diagnostics. No new financial contract was designed.
+- Combined `make web-check web-test web-build web-browser` passed with 299 unit
+  tests and 22 browser journeys. Combined core check/race/build passed under the
+  same external Go1.26.5 modfile after allowing synthetic HTTP test listeners.
+  Combined browser/Next/Go/SQL posting proof passed with migration28 applied;
+  exact-value Position assertions and replay/acknowledgement checks remain intact.
+- Prior head `db849c6` passed all hosted pinned-toolchain checks. This combined
+  head requires fresh hosted CI; earlier green checks do not validate this merge.
+- Combined synthetic connection/enrollment/acquisition/review/post/recovery proof
+  passed with migration28 and the new Connections/API types. No provider called.
+  Open repair PR #263 changes ReviewInbox/decoder/migration29 separately; it was
+  inspected for overlap but is not claimed merged or deployed by this branch.
 
 ## Remaining work
 
@@ -59,14 +78,16 @@ disposable SQL/API fixture. It is local only and does not connect accounts.
 Visual fixture screenshots separately prove layout with fixed fictional values;
 they do not prove accounting semantics or production identity.
 
-Remaining gates: staged runbook check, hosted pinned-toolchain CI and draft PR review.
+Remaining gates: staged runbook check, fresh hosted pinned-toolchain CI and draft
+PR review.
 Migration impact: none. #248 remains open for its own review; #250's broader
 Ledger work, #251 planning and #255 Investigate are not marked complete here.
 
 ## PR handoff
 
-Draft implementation stacks on #253 while #248 is open. Review the
+Draft implementation targets current main after the compatibility merge. It
+includes #253's read-model proposal while #248 remains open for review. Review the
 [screenshots](../plans/position-workspace.md), [QA report](../../design-qa.md), and
 environment qualifications above. No migration or deployment impact; no real-book
 readiness claim. Browser-only fixtures remain separate from app routes.
-Branch ancestry is aligned with #253; its contract commits are not treated as merged.
+Its contract commits are not treated as accepted merely because they are included.

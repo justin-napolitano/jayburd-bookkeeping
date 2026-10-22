@@ -361,7 +361,7 @@ func TestPlaidEmptyAccountReadiness(t *testing.T) {
 
 // TestPlaidLiabilityAccountPin requires the returned account to match trusted type and subtype.
 func TestPlaidLiabilityAccountPin(t *testing.T) {
-	for _, tc := range []struct{ kind, subtype string }{{"credit", "credit card"}, {"loan", "student"}, {"loan", "mortgage"}} {
+	for _, tc := range []struct{ kind, subtype string }{{"credit", "credit card"}, {"loan", "student"}, {"loan", "mortgage"}, {"loan", "auto"}, {"loan", "consumer"}, {"loan", "line of credit"}} {
 		e := expected()
 		e.AccountType, e.AccountSubtype = tc.kind, tc.subtype
 		raw := []byte(strings.Replace(string(page(row("1", "USD"), "", "")), `"type":"depository"`, `"type":"`+tc.kind+`","subtype":"`+tc.subtype+`"`, 1))
@@ -417,5 +417,22 @@ func TestPlaidFullPublicSchemaFixture(t *testing.T) {
 	}
 	if p.Added[0].Amount != "42" || !bytes.Contains(p.Added[0].Raw, []byte("9007199254740993")) {
 		t.Fatal("source quantity changed")
+	}
+}
+
+// TestPlaidMoneyDiagnostics distinguishes held causes without returning a source value or partial page.
+func TestPlaidMoneyDiagnostics(t *testing.T) {
+	for _, tc := range []struct{ amount, currency, code string }{
+		{"1e29", "USD", "amount_magnitude_exceeded"},
+		{"12345678901234567890123456789.1234567891", "USD", "amount_magnitude_exceeded"},
+		{"1e-10", "USD", "amount_scale_exceeded"},
+		{"1.001", "USD", "currency_precision_exceeded"},
+		{"1.1", "JPY", "currency_precision_exceeded"},
+		{"1.0001", "KWD", "currency_precision_exceeded"},
+	} {
+		p, err := plaid.DecodePage(page(row(tc.amount, tc.currency), "", ""), expected())
+		if plaid.ErrorCode(err) != tc.code || !reflect.DeepEqual(p, plaid.Page{}) {
+			t.Fatal("incorrect redacted money classification", tc.code, plaid.ErrorCode(err))
+		}
 	}
 }
