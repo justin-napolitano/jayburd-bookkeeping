@@ -56,6 +56,14 @@ identity or source provider behavior.
 
 ## Remaining work
 
+CI found migration 29 omitted the transaction-local `bookkeeping_owner` role
+selection required by the restricted migrator. The disposable owner-level suites
+did not exercise that path. Added the same explicit role selection used by
+existing migrations to both directions; no privilege grant or runtime change.
+`make cloud-sql-test worker-bootstrap-test` now passes with the restricted
+synthetic migrator, including its exact replay and status checks. CI must pass
+again before any hosted migration.
+
 Submit reviewed migration 29 and shared decoder/frontend repair, complete CI,
 publish a pinned candidate and roll it out under the approved Sandbox scope.
 Retest checking and all additional fictional loans. No source data was rounded.
