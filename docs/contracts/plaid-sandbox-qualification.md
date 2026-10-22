@@ -1,5 +1,13 @@
 # Plaid Sandbox qualification and bounded diagnostics
 
+## Current acceptance navigation — 2026-10-22
+
+Use the [#88 test matrix](../plans/plaid-88-test-matrix.md) for current coverage,
+the [source register](../research/plaid-88-test-sources.md) for reviewed sections
+and the [migration29 rollout](../runbooks/plaid-258-rollout.md) for seven-account
+hosted evidence. Historical blockers below describe earlier stages; the original
+full acceptance obligations remain. This audit changes no executable contract.
+
 ## Approved first executable slice
 
 Issue #88 remains an open qualification gate. Coordinator approved a read-only

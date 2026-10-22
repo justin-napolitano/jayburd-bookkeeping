@@ -5,6 +5,9 @@
 
 ## Purpose and reading order
 
+[Plaid #88 sources](plaid-88-test-sources.md): selected official sections,
+2026-10-22; Launch Center unreviewed, hosted proof incomplete.
+
 [PL04](plaid-liability-sources.md): selected loan/product review, 2026-10-22.
 
 [History](../contracts/plaid-history-currency.md).
@@ -46,11 +49,9 @@ No hosted state or provider readiness was established by this source review.
 
 Hosted/Sandbox source review (2026-10-14):
 
-The [PI12 Hosted Link refresh](plaid-ingestion-sources.md#pi12--hosted-link-completion-and-recovery-refresh-2026-10-18)
-records the 2026-10-18 official Plaid guide/API review and local public-page
-snapshot hashes. Read it before changing completion or lost-tab recovery: Plaid
-recommends a user-associated Link token and completion webhook, while the
-current browser-only handoff is a Jayburd design choice.
+[PI12 Hosted Link](plaid-ingestion-sources.md#pi12--hosted-link-completion-and-recovery-refresh-2026-10-18):
+official guide/API review and snapshot hashes, 2026-10-18. User-associated token
+and completion webhook are recommended; browser-only recovery is project policy.
 
 - [Hosted workers](../contracts/hosted-workers.md): selected Cloud Run metadata
   identity, Cloud SQL IAM login and container lifecycle references; understand
