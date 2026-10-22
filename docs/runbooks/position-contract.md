@@ -5,8 +5,8 @@
 
 Lease POSITION-CONTRACT-248-20261021T2325Z on branch `issue/248-position-contract`.
 Contract/research only; no SQL, OpenAPI, browser, migration, live data or cloud
-mutation. Owner review of vocabulary/cash membership remains a gate, not an
-inferred approval.
+mutation. Owner approved first-screen scope/visual direction on 2026-10-22. Cash
+membership, real-book policy and consolidation remain separate unapproved scope.
 
 ## Stage ledger
 
@@ -20,15 +20,22 @@ inferred approval.
 
 ## Current evidence
 
-The [proposed Position contract](../contracts/position-read-model.md) can drive a
-first UI slice **now** using the existing balance-sheet report: show total assets,
-liabilities, direct equity, unclosed earnings and total equity for a chosen date,
-plus signed point comparison in one report response. Show `Cash: Not configured`
-until account membership is reviewed and a server-owned cash extension exists.
-It does not require a fake cash estimate or a new accounting engine in the UI.
-The [fixed examples](../research/position-sources.md) are proposed acceptance
-constants; current reporting tests prove their own older synthetic fixtures,
-not this new Position fixture.
+The [Position contract](../contracts/position-read-model.md) now specifies the
+owner-approved All books overview grouped by entity with scope narrowing and
+direct Position/Ledger/Reports navigation. Each row uses the existing single-book
+balance-sheet comparison for assets/liabilities/book equity/equity change. Browser
+orchestration permits at most four in-flight reads, current membership discovery,
+per-request authorization, independent row snapshots and partial unavailable
+states. There is no cross-book sum, FX or common snapshot claim. Unsupported
+policies beyond today's synthetic USD profile remain unavailable.
+
+The [fixed examples](../research/position-sources.md) now include independent
+entity/book/revision/date metadata, exact A/B/empty results, unsupported EUR,
+partial failure, revocation, stale response, five-book scheduling and late-result
+rejection. These are acceptance constants and planned cases, not present runtime
+coverage. Owner approval concerns design/scope only; cash, attention and real-book
+policy remain deferred. Clean sans-serif text, green/red signed equity changes
+and alternating faint gray/unshaded rows supersede earlier column-tint proposals.
 
 ## Validation record
 
@@ -45,8 +52,8 @@ the follow-up CI run is the validation source for this correction.
 
 ## Remaining work
 
-- Owner/accountant must approve real-book cash classification and Position
-  vocabulary; #1 remains open. No live policy is established here.
+- Owner/accountant must approve real-book cash classification; #1 remains open.
+  Position vocabulary/scope is visually approved, with implementation evidence pending.
 - #249 can render existing statement totals and honest unavailable states;
   server cash membership and attention feed need separate approved contracts,
   authorization and named tests before showing computed cash or `All clear`.
@@ -55,9 +62,25 @@ the follow-up CI run is the validation source for this correction.
 - Existing reporting caps, synthetic USD functional policy and revision refresh
   remain visible limitations. No ISO/GAAP/audit-export conformance claim.
 
+## All-books stage — 2026-10-22
+
+Live #248/#249 and their scope comments were reviewed. Owner conversation approved
+implementation of the latest all-books layout. Updated only contract, source
+record and this marked stage runbook; no API/SQL/UI or shared navigation files.
+Coordinator owns integration and browser acceptance.
+
+`make check test build` passed locally for this documentation change with Go
+1.26.5 using the existing temporary modfile
+`/private/tmp/jayburd-investigate-255-go.mod` and cache
+`/private/tmp/jayburd-investigate-go-cache` (`GOTOOLCHAIN=local`). Repository
+`go.mod`/`go.sum` were unchanged. This workaround validates project doc links,
+context budget, migration file integrity, stage structure, vet, race tests and
+builds; it does not claim execution under the pinned Go 1.26.10 toolchain or
+browser acceptance for #249. `git diff --check` also passed.
+
 ## PR handoff
 
 Coordinator owns any PR and integration. This branch changes contract, source,
 runbook and navigation files. No migration impact. Required Go gates
 must be rerun when the pinned toolchain becomes available; owner vocabulary
-review remains open.
+approval covers visual/scope only.

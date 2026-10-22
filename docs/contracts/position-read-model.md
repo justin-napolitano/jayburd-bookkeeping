@@ -2,20 +2,72 @@
 
 ## Decision boundary
 
-**Status:** proposed for owner review, 2026-10-21. This contract defines a
-single-book, explicit-date Position view over posted journals. It does not approve
-live-entity policy, change SQL/HTTP, classify an account as cash, or calculate
+**Status:** first-screen scope and visual direction approved by the owner on
+2026-10-22; orchestration and acceptance proposal for #248/#249. Position opens
+with **All books**, grouped by entity, and supports entity or individual-book
+scope. Each row is an independently authorized, explicit-date report. This does
+not approve live-entity policy, change SQL/HTTP, classify an account as cash, or calculate
 spendable funds. The existing [financial reporting](financial-reporting.md),
 [reporting SQL](reporting-sql.md), [HTTP](reporting-http.md), and
 [pinned journal](report-drill.md) contracts remain authoritative for implemented
 report arithmetic and access. [Evidence](../research/position-sources.md) records
 review depth, inference and alternatives.
 
-The proposed first-screen vocabulary is **Position**, **Cash**, **Other assets**,
-**Total assets**, **Liabilities**, **Direct equity**, **Unclosed earnings**, and
-**Total equity**, followed by **Change since [date]** and **Needs attention**.
-The owner must approve these labels and which accounts qualify as cash. A line
-whose policy is unresolved displays `Not configured`, never an invented zero.
+The approved first screen shows entity/book, functional currency, **Assets**,
+**Liabilities**, **Book equity**, and signed **Equity change** against an explicit
+earlier date. **Position · Ledger · Reports** remain directly available at the top.
+Clean sans-serif text, aligned amounts and alternating faint-gray/unshaded book
+rows provide structure; no column tint. Equity increases/decreases may use
+restrained green/red with explicit signs, never a claim of spendability,
+reconciliation, or favorable/adverse movement in every account category.
+Direct equity and unclosed earnings remain report detail. Cash classification,
+spendability and attention status are deferred extensions, not first-screen fields.
+
+## All-books orchestration and independent snapshots
+
+Use the current authorized workspace membership list for visible entity/book rows.
+Apply all-books, entity or individual-book selection to that list; do not obtain
+scope from cached financial responses or caller-provided actor identity. Every
+balance-sheet request still authenticates and authorizes its exact entity/book.
+The membership list is discovery, never a durable grant. If access changes, clear
+that row's prior amounts before rendering its denied/unavailable state. A global
+identity failure stops scheduling further reads and clears financial results.
+
+The browser orchestrates existing per-book balance-sheet comparison requests with
+**at most four in flight**. Four is an initial UI concurrency bound, not a measured
+capacity claim. No new SQL, API route, bulk response, arithmetic or aggregation is
+authorized. Queue books beyond the bound and show their pending state honestly;
+do not silently truncate the selected scope. Scope/date changes cancel obsolete
+work where supported and generation-guard every result so a late old response
+cannot overwrite the current selection. Reuse no rows across scope refreshes.
+
+One response provides current/prior totals and their exact signed change for one
+book revision. Each row retains its own accounting/comparison dates,
+`snapshot_revision`, `generated_at`, currency code/version/minor units and status.
+Expose those details accessibly for that row. A shared date control expresses the
+requested cutoff, not a shared transaction. Books read before/after concurrent
+postings can have different revisions and generation times: label the overview
+**Independent book snapshots** and never assign a common report revision.
+
+Successful rows remain visible when another book fails; pending, empty, denied,
+stale and unsupported rows are distinct. An unavailable row contains no current,
+prior or change substitute zero and no retained stale amounts. Each row is either
+a complete accepted comparison response or unavailable; do not splice totals
+from separate responses. Explicit refresh rereads the selected scope and replaces
+row snapshots. Reading one book successfully does not imply all books were read.
+
+Entity headings organize rows only. No entity subtotal, portfolio grand total,
+cross-book sum, FX conversion, eliminations or claim of consolidation is permitted,
+even when two rows use USD. Books can represent overlapping economic activity.
+#59 owns any future consolidated/presentation-currency model. Unsupported book
+policies, including functional currencies beyond today's synthetic USD profile,
+remain unavailable rather than fabricated multi-currency support. Original
+transaction currencies remain accessible in the ledger under existing authority.
+
+Top navigation preserves explicit selected scope and date intent. Ledger/Reports
+may require choosing a book within that scope before using their single-book
+endpoints; they must not silently choose one or imply a cross-book report.
+Evidence for a Position row carries that row's entity/book/date/revision.
 
 ## Selection, exact arithmetic and trace
 
@@ -34,11 +86,11 @@ contra balances. The existing unclassified balance-sheet categories define:
 
 | Position line | Exact functional-currency expression | Existing evidence |
 | --- | --- | --- |
-| Total assets | `Σ N(asset)` | Balance-sheet `totals.assets`, account rows and selectors |
+| Assets | `Σ N(asset)` | Balance-sheet `totals.assets`, account rows and selectors |
 | Liabilities | `−Σ N(liability)` | `totals.liabilities` |
 | Direct equity | `−Σ N(equity)` | `totals.direct_equity` |
 | Unclosed earnings | `−Σ [N(revenue)+N(expense)]` over eligible history | `totals.unclosed_earnings`; derived, never a journal |
-| Total equity | Direct equity + unclosed earnings | `totals.total_equity` |
+| Book equity | Direct equity + unclosed earnings | `totals.total_equity`; comparison change is server-supplied |
 | Cash | `Σ N(a)` for a reviewed, versioned set of asset account IDs `C` | **Extension required**; no existing cash classification |
 | Other assets | Total assets − Cash | **Extension required** after `C` is approved |
 
@@ -49,6 +101,8 @@ membership. A credit-balance cash account stays negative. Inactive historical
 accounts remain in totals. Empty valid books return exact zero statement totals,
 with a visible `No posted entries` status; this is not an unavailable read.
 
+## Deferred cash and evidence extensions
+
 The server must own cash membership and calculation, not browser-selected rows or
 client-side arithmetic. A proposed `position-v1` read extension can return a
 versioned `cash_account_ids` policy reference, `cash`, `other_assets`, and their
@@ -56,9 +110,9 @@ comparisons, computed with the existing balance-sheet authority and same
 revision/transaction. It should reject missing, foreign, non-asset, ambiguous or
 unsupported classifications and never silently omit an account. Its eventual
 policy storage and update workflow require a reviewed decision before DDL.
-Until then, the UI may show existing balance-sheet totals and `Cash: Not
-configured`; it must not relabel total assets as cash. Initial Position can show
-current and prior point totals from the existing comparison response; a single
+Until then, Position omits Cash; a future dedicated cash view must show `Not
+configured` without reviewed membership, never relabel total assets as cash.
+Initial Position can show current and prior point totals from the existing comparison response; a single
 server response is required for consistent movement.
 
 All amounts remain canonical signed decimal **strings**, at most 29 integer and
@@ -66,8 +120,8 @@ All amounts remain canonical signed decimal **strings**, at most 29 integer and
 Functional currency ISO 4217 code, pinned version ID and minor units accompany
 each total. UI padding is display only. A book's original amounts/currency versions
 and immutable rate IDs survive in the supporting GL and journal; original units
-are never summed across currencies. No cross-book/entity consolidation. A policy
-or functional-currency transition without approved mapping returns
+are never summed across currencies. No cross-book/entity consolidation or
+aggregation in this overview. A policy or functional-currency transition without approved mapping returns
 `unsupported_policy`, never a converted total. The first implemented report
 profile is synthetic accrual/UTC/USD functional currency; future functional
 currencies require their own approved policy and tests.
@@ -95,7 +149,7 @@ completeness or availability to spend. `generated_at` is computation time,
 not a posting cutoff. Pending/failed commands may need attention but are not
 included in balances until posted.
 
-The short `Needs attention` list is a separate, typed, server-supported feed of
+A future `Needs attention` tool requires a separate, typed, server-supported feed of
 actionable items with scope, source/status ID, observed timestamp, state and
 direct task target. Candidate kinds: unreviewed source observations, failed or
 stale acquisition, and a pending/failed command requiring terminal
@@ -108,7 +162,7 @@ change a valid posted balance into zero or imply a complete review.
 
 | Condition | Required result |
 | --- | --- |
-| No book selected / no posted journals | Selection prompt / authorized exact-zero Position with `No posted entries` |
+| No readable books / authorized book with no posted journals | Empty workspace state / exact-zero row with `No posted entries` |
 | Unknown or inaccessible scope | 404 with no totals or existence hint |
 | Missing credentials / read grant denied | 401 / 403 with no financial body |
 | Revision changed between views | 409 `report_snapshot_changed`; discard old evidence and offer explicit refresh |
@@ -142,7 +196,7 @@ usage profile or live accounting framework was reviewed for this slice.
 | Cash account membership and change control, including restricted cash and cash equivalents | Owner/accountant under #1; approve policy/version and tests before a Cash total ships |
 | Real entity basis, opening balances, FX/close semantics | Owner/accountant #1/#10/#59 before live use |
 | Attention sources, thresholds and priority | Owning acquisition/command contracts plus owner workflow review |
-| Position labels and first-screen order | Owner visual/content review before #249 acceptance |
+| Position labels, scope and first-screen order | Owner approved the all-books overview and gray zebra rows on 2026-10-22; browser evidence remains required for #249 |
 
 **Alternative considered:** derive Cash from account codes or linked bank
 accounts. It is easy to display but misclassifies noncash or restricted balances
@@ -154,13 +208,21 @@ existing ledger/report boundary, at the cost of a policy workflow and extension.
 ## Named acceptance evidence
 
 The fixed independent values in [Position sources](../research/position-sources.md)
-are review fixtures, not generated expectations. Before implementation, add
-`TestPositionFixedExample` (all lines, account IDs, signs, inclusive dates,
-original/functional units and direct journal trace), `TestPositionCashPolicy`
-(missing/foreign/reclassified/restricted IDs and version change),
-`TestPositionRevisionAndAuthorization` (single snapshot comparison, stale/denied
-read, no leaks), `TestPositionSourceExclusion` (source-only and pending commands),
-and `TestPositionBounds` (overflow, unsupported policy and response caps). Browser
-acceptance in #249 must prove the labels, explicit date, empty/unavailable states,
-direct evidence path and no client financial arithmetic. Owner review is a
-separate required acceptance item, not inferred from passing tests.
+are review fixtures, not generated expectations. First-slice acceptance in #249
+must name tests for: exact server-string totals and comparison mapping
+(`PositionOverview` fixed values); max-four scheduling and queued completeness;
+current membership and per-request denied/global identity results; independent
+book revision/date/currency metadata; partial failure without zero substitution;
+empty versus unsupported policy; stale/scope-change late-response rejection;
+no cross-book total or client financial arithmetic; and direct top navigation
+with explicit scope/date handoff. Browser screenshots at desktop and 390px must
+show approved type, row bands, keyboard labels and readable signed changes.
+These are required acceptance cases, not claims of existing test coverage.
+
+Deferred extension tests are `TestPositionCashPolicy` (membership/version and
+classification), `TestPositionSourceExclusion` (unposted observations/commands),
+and `TestPositionBounds` (policy, precision and response caps). Existing reporting
+SQL/HTTP tests remain the authority for exact totals, single-book comparison,
+revision checks and current authorization. Owner visual approval does not approve
+cash policy, real-book accounting, FX, consolidation, or live use; #1/#59 remain
+separate dependencies for those operations.
