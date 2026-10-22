@@ -1,0 +1,86 @@
+name: Update existing development webhook
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha256:
+        description: SHA256 of reviewed deploy/webhook-release.json on exact approved main
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: dev-webhook-runtime-deployment
+  cancel-in-progress: false
+jobs:
+  update:
+    if: github.ref == 'refs/heads/main' && github.actor_id == '55423093' && github.repository_id == '1414515318' && github.triggering_actor == 'justin-napolitano'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      RELEASE_SHA256: ${{ inputs.release_sha256 }}
+      TF_IN_AUTOMATION: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.18.0'
+      - name: Validate exact finite manifest before artifact retrieval or authentication
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync,appendFileSync} from 'node:fs';
+          import {validateWebhookManifest} from './scripts/webhook-release-manifest.mjs';
+          const m=validateWebhookManifest(readFileSync('deploy/webhook-release.json'),process.env.RELEASE_SHA256);
+          appendFileSync(process.env.GITHUB_ENV,`BUILD_RUN=${m.build.run}\nBUILD_ATTEMPT=${m.build.attempt}\nBUILD_COMMIT=${m.build.commit}\n`);
+          JS
+      - name: Retrieve exact public trusted worker evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/webhook-evidence"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN/attempts/$BUILD_ATTEMPT" > "$RUNNER_TEMP/webhook-evidence/build-run.json"
+          gh run download "$BUILD_RUN" --repo "$GITHUB_REPOSITORY" --name "image-worker-$BUILD_COMMIT-$BUILD_RUN-$BUILD_ATTEMPT" --dir "$RUNNER_TEMP/webhook-evidence/worker"
+          export CURRENT_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          node scripts/prepare-webhook-rollout.mjs deploy/webhook-release.json "$RELEASE_SHA256" "$RUNNER_TEMP/webhook-release" "$RUNNER_TEMP/webhook-evidence"
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: '1.15.7'
+          terraform_wrapper: false
+      - name: Run credential-free rollout and infrastructure gates
+        run: |
+          node --test scripts/webhook-release.test.mjs scripts/webhook-rollout.test.mjs
+          bash scripts/test-infra.sh webhook-runtime webhook-delivery
+      - name: Recheck latest main, tracked approval and expiry before authentication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          export CURRENT_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          node scripts/prepare-webhook-rollout.mjs deploy/webhook-release.json "$RELEASE_SHA256" "$RUNNER_TEMP/webhook-release" "$RUNNER_TEMP/webhook-evidence"
+      - id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: projects/9088794002/locations/global/workloadIdentityPools/jayburd-dev-webhook-deploy/providers/owner-webhook-deploy
+          service_account: jayburd-dev-webhook-deployer@jayburd-bookkeeping-dev.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_lifetime: 1800s
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Update only existing webhook runtime and validate selected v2 metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOOGLE_OAUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          CLOUDSDK_AUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: bash scripts/deploy-webhook.sh "$RUNNER_TEMP/webhook-release" "$RUNNER_TEMP/webhook-evidence" "$RELEASE_SHA256"
+      - name: Retain only validated public control-plane receipt
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: webhook-deployment-${{ github.run_id }}
+          path: ${{ runner.temp }}/webhook-release/receipt/webhook-deployment.json
+          retention-days: 90
+          if-no-files-found: error
