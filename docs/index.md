@@ -163,3 +163,5 @@ from actual provider qualification.
   owner prerequisites and selected deployment receipt; hosted delivery remains open.
 - [Finite Sandbox verification](runbooks/sandbox-verification.md): independent
   exact fixture comparison and absolute zero journal/outbox evidence under one mandate.
+- [Stale report rejection proof](runbooks/stale-report-test-proof.md): closed
+  error envelopes and diagnostic-ID collision regression; reporting behavior unchanged.

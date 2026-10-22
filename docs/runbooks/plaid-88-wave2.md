@@ -75,6 +75,13 @@ Added the same restricted synthetic login to the full acquisition harness. No te
 was skipped or weakened; the complete acquisition suite must run before resubmission.
 Complete acquisition suite and required core gates then passed locally; logs
 `/private/tmp/jayburd-wave2-acquisition.log` and `/private/tmp/jayburd-wave2-core.log`.
+CI39854143741 then failed an older ledger assertion that searched an entire error
+response for1300, which can collide with a random diagnostic UUID. The original
+response body was not logged, so its particular UUID cannot be reconstructed.
+[#278 proof](stale-report-test-proof.md) replaces that scan with exact closed
+problem-schema validation, including a deterministic1300 UUID and rejection of
+financial fields/CSV. Full actual PostgreSQL ledger and core gates passed after
+the test-only correction; no reporting runtime, SQL or API changed.
 
 ## Remaining work
 
