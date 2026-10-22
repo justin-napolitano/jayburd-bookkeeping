@@ -85,6 +85,74 @@ drain claim is made.
 Second BASIC queue-name count zero at03:37:56Z, over90seconds after the pause;
 pipeline errors were checked and Scheduler readback remained PAUSED. The
 application metadata also passed local `make check test build release-test`.
+PR266 merged as8e433d5; application workflow39718023479 succeeded on that
+exact metadata. Its `transport-smoke-passed` receipt independently matches the
+same-build images, build and unchanged connection-policy digest: API
+`jayburd-dev-api-00019-k8v`, web `jayburd-dev-web-00019-blz`.
+Redundant metadata-only Seed runs39718023566,39718018603,
+39717676752 and39717654789 were cancelled. They are not passing evidence;
+successful complete source candidate39715438972 and each deployment's own
+release/infrastructure/receipt checks remain the acceptance gates.
+Independent selected execution readback for the app's read-only status job
+`jayburd-dev-migrate-6mwb5` passes the strict receipt validator: exact migrator
+image28b21087…, operation sandbox-promote/status, one successful task, no
+failed/retried/running tasks, completed03:42:30.718676Z. The resulting
+`migration-verification-passed` receipt confirms the embedded migration29
+version/checksum set is clean. Replay/restore/load remain separate evidence.
+Matching paused-worker workflow39718600699 succeeded with the reviewed hash.
+Its `paused-workers-observed` receipt matches exact image3db89dd3…, build and
+unchanged worker-policy digest: publisher
+`jayburd-dev-acquisition-publisher-00007-945`, consumer
+`jayburd-dev-acquisition-sync-00007-9k9`. Scheduler readback was PAUSED before
+restoration; resume succeeded and readback ENABLED at03:48:42Z.
+The new frontend reached the real managed sign-in form in Edge after public
+configuration loaded. Owner re-sign-in requested while worker rollout continues;
+no bank credential, emulator or reused browser token was used.
+
+### Hosted transaction acceptance — 2026-10-22
+
+Owner completed managed sign-in. New Position showed the selected Sandbox book
+at revision16 and exact zero posted totals; Ledger remained accessible.
+Checking was freshly observed at generation2/0 with no active lease, then one
+confirmed scoped request queued generation3. It completed3/3, HISTORICAL UPDATE
+COMPLETE, publication03:50:26.030770Z, no queued request/active lease or decoder
+error. Source revision1 displayed33 needs-review rows and36 correction-held
+rows. All-status pagination contained50+19=69 rows and ended. Posted filter
+contained zero rows. These are UI observations, not raw-provider reconciliation
+or database-level absence-of-journals proof.
+
+A precision-held checking detail retained every source digit, displayed the
+human-readable extra-decimal warning and exposed zero draft actions. No source
+amount/description or provider identifier is copied into this runbook. No draft
+was created and no journal was posted in this walkthrough.
+
+One scoped repeat per other account completed on the repaired worker. Every
+status reported HISTORICAL UPDATE COMPLETE, no newer queued request or active
+lease, and no decoder failure:
+
+| Account | Requested/completed | Publication UTC |
+| --- | --- | --- |
+| Credit card |3/3|03:51:05.198382Z|
+| Mortgage |2/2|03:52:05.383047Z|
+| Student |2/2|03:51:08.108512Z|
+| Auto |2/2|03:51:06.763253Z|
+| Consumer |2/2|03:51:10.862541Z|
+| Line of credit |2/2|03:51:09.437848Z|
+
+After recording checking's69-row baseline, one confirmed repeat queued
+generation4 (completed3 at request readback). Final repeat/source-revision and
+six-account row-count comparisons remain pending fresh authenticated reads.
+The session expired during the subsequent navigation after a multi-hour clock
+gap. No new request was sent to work around the expired session.
+Leases were rechecked/reclaimed for read-only acceptance and evidence, latest
+`PLAID-258-FINAL-20261022T1438Z`, expiry16:30Z. Release authorization12:00Z has
+expired; all releases completed earlier. No later deployment is authorized by
+this evidence. Existing source consent17:00Z remains unchanged.
+Final evidence-stage `make check test build` and diff validation passed with the
+documented local external Go modfile. Owner's later sign-in reached the managed
+authenticator challenge; final read-only comparison waits for that verification.
+Selected readback at14:40Z confirmed Scheduler ENABLED with a recent successful
+attempt, web revision19-blz and sync consumer revision7-9k9 each at100% traffic.
 
 **Historical disposition (2026-10-22T02:48Z):** three additional fictional loans
 are registered and synced. The shared checking repair is PR #263 (`d88d8a0`),
@@ -239,15 +307,14 @@ no token, password or test identity substitutes for verified access.
 
 ## Remaining work
 
-The repaired source and Position are merged and the complete candidate is
-successful. Merge and dispatch the reviewed migration-only manifest, then
-matching application and paused-worker metadata through the existing release
-workflows. Migration29 must precede the new worker; pause and
-restore the existing Scheduler only around the reviewed matching rollout.
-Checking's next explicit request is generation 3, after the deployed repair;
-verify complete publication, held-row visibility, repeat equality and all seven
-account types. Existing three new loans have baseline generation 1/1, source
-revision1 and 47 needs-review rows each for the post-repair repeat comparison.
+Source, migration29 and matching application/workers are merged/deployed and
+verified; original scheduling is restored. Do not redispatch the expired release
+manifests. After owner authenticator verification, read checking generation4
+without requesting another sync; compare its source revision and69-row baseline,
+then compare the six completed repeats' review counts/revisions. The additional
+loan baseline is source revision1 and47 needs-review rows each; card55,
+mortgage47 and student6. Checking generation3 publication/held-row visibility and
+all six other completed generations are recorded above.
 Preserve every unproved #88 webhook/lifecycle/reconciliation/no-journal gate.
 
 ## PR handoff
