@@ -1,4 +1,5 @@
 BEGIN;
+SET LOCAL ROLE bookkeeping_owner;
 -- Preserve exact provider evidence while holding sub-minor-unit rows from drafting.
 CREATE OR REPLACE FUNCTION integration.sync_row(v jsonb,account_value text,currency_id uuid,removed boolean) RETURNS void LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
 DECLARE c reference.currency;bound reference.currency; d date; a numeric; signed_value numeric; lex text; field_name text; text_value text; pending_value boolean; exp_value numeric; coeff text;

@@ -1,4 +1,5 @@
 BEGIN;
+SET LOCAL ROLE bookkeeping_owner;
 -- Refuse rollback while exact source evidence depends on the expanded retention profile.
 DO $$ BEGIN
  IF EXISTS(SELECT FROM banking.observation_revision q JOIN reference.currency c USING(currency_version_id) WHERE q.adapter_profile='jayburd-plaid-transactions/1' AND scale(trim_scale(q.amount))>c.minor_unit)
