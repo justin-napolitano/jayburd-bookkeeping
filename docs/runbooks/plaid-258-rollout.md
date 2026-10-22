@@ -3,7 +3,69 @@
 
 ## Status and boundary
 
-**Current disposition (2026-10-22T02:48Z):** three additional fictional loans
+### Resumed owner-approved release — 2026-10-22T03:15Z
+
+Owner explicitly requested migration29, merging ready work and reviewing the
+transaction flow before personal-account enrollment. Lease
+`PLAID-258-RESUME-20261022`, expiry08:00Z, reserves this bounded development
+Sandbox release. Live-account readiness remains a separate #90 gate.
+
+Merged reviewed #257, #264 and checking repair#263; reviewed and merged the
+proposed source-first authority#245, fixture#252, planning proposal#254 and
+Investigate proposal#256 without accepting their deferred implementation or
+live policy. Position#260 merged as f334d06 after resolving only index and
+bibliography conflicts, preserving both proposals and the bibliography budget.
+#253 was incorporated by that merge. Combined product source passed core
+check/test/build,300 web unit tests,23 browser cases, production web build,
+app-integration and connection-browser-test on disposable migration29 SQL.
+
+Fresh outside-sandbox npm audit completed successfully with zero reported
+vulnerabilities. No scanner fallback or security-control change was implemented.
+Earlier 503/timeouts remain historical failed checks. Candidate build39715438972
+on f334d062e2ee4c572af52b823969c299cd37bf93 failed its first audit with HTTP503;
+attempt2 retained passed core/full-stack results and reran frontend successfully,
+including the unchanged npm audit. All four image proofs/scans passed; each scan
+reported zero HIGH/CRITICAL findings. Native run metadata and component receipts
+passed the strict migration and worker validators independently.
+Superseded build39714745765 and duplicate main-push runs were cancelled; they
+are not passing evidence. Migration29 remains unapplied until an exact candidate
+and execution receipt are verified. Existing Scheduler state is unchanged.
+
+The managed browser session expired during the review read. Re-sign-in will be
+needed after the matching frontend is deployed; no token or identity substitute
+is used.
+
+Real-account readiness review found explicit Sandbox restrictions in
+`internal/connections/http_provider.go`, `internal/acquisition/plaid_http.go`,
+`internal/acquisition/sql.go`, `internal/providersecrets/types.go`,
+`internal/bankcredential/envelope.go` and webhook validation. The release
+manifest cannot switch those boundaries to Production. #90 requires separate
+implementation and approved source/privacy/retention scope after remaining
+Sandbox correctness gates; owner handles real credentials/consent. No personal
+account was connected by this release. Existing migration12/18 constraints also
+restrict provider Items and encrypted credentials to Sandbox; any production
+extension requires new forward SQL, not edits to merged migrations.
+
+Reviewed [compatibility evidence](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/258#issuecomment-6332019643)
+pins the source, migration checksums, all four image digests, unchanged identity
+and consent, old-worker compatibility and bounded pause/restore procedure.
+Migration-only manifest hash
+`b6fac6db38f49e4dda636acf89f71370e3f1f544f55eb23b0c1dae82cb07428a`;
+matching paused-worker manifest hash
+`2ad178d2dfa5d455caedbb1e6e0f1af6e35176db2c4150694879713813deee6e`.
+Both expire12:00Z and use successful build39715438972 attempt2. API digest
+`9e39f015fc293bf6b00afbf2ad46d218e81c65102edab631abfa074fa6fb97de`,
+migrate `28b21087201e92c5bd5dce4ab5a1067118b31be64a46dae4a0965acd1d50acab`,
+web `ddddaeeb341cbf90a016e2337d2f64f04a025a83e163ec05ffa5a40d719aea27`,
+worker `3db89dd3f8962cf2369a36c2568a52552820e8b345ad834589cc32c791c4a0ef`.
+Runtime manifests remain distinct from migration-only execution. No image is
+rebuilt between migration and runtime promotion.
+Local `make check test build release-test`, exact-byte validators, diff check
+and staged runbook guard pass for this metadata stage. The documented external
+Go1.26.5 modfile is used locally; the successful candidate provides pinned
+Go1.26.10 evidence. No security workflow or dependency was changed.
+
+**Historical disposition (2026-10-22T02:48Z):** three additional fictional loans
 are registered and synced. The shared checking repair is PR #263 (`d88d8a0`),
 unmerged and not deployed. npm audit returned HTTP 503 on the first complete CI
 attempt; the frontend-only retry reached the audit and hit its 15-minute job
@@ -138,8 +200,9 @@ foundation 42s; secret scanning passed. Release tooling tests also pass locally.
 Additional seven-account, three-currency synthetic money matrix passes using an
 external Go test overlay, leaving the candidate source unchanged; retain it in
 the checking-repair PR. This is baseline parser evidence, not a fixed hosted
-checking cause. Edge owner session is still signed in to the fictional Sandbox
-book. Current Scheduler state readback remains ENABLED.
+checking cause. The earlier Edge session was signed in to the fictional Sandbox
+book; it expired during the resumed review. Scheduler readback at03:15:35Z
+remains ENABLED.
 
 [Compatibility review](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/258#issuecomment-6330452107)
 binds migration28 checksums, exact source/build, current revisions, preserved
@@ -155,11 +218,10 @@ no token, password or test identity substitutes for verified access.
 
 ## Remaining work
 
-After npm audit responds, recheck GitHub state and reclaim the bounded #258
-lease. Rerun the failed frontend gate on exact head `d88d8a0` and confirm all
-checks before merging PR #263. Publish a successful full main candidate; review
-the exact migration29/API/web/worker images and compatibility, then use the
-existing release workflows. Migration29 must precede the new worker; pause and
+The repaired source and Position are merged and the complete candidate is
+successful. Merge and dispatch the reviewed migration-only manifest, then
+matching application and paused-worker metadata through the existing release
+workflows. Migration29 must precede the new worker; pause and
 restore the existing Scheduler only around the reviewed matching rollout.
 Checking's next explicit request is generation 3, after the deployed repair;
 verify complete publication, held-row visibility, repeat equality and all seven
