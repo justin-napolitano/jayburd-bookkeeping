@@ -35,6 +35,7 @@ background work. The two predecessor repos are reference material only.
 
 | Question | Authoritative document |
 | --- | --- |
+| What does the Plaid Launch Center actually show? | [Partial personalized review](research/plaid-launch-center-review.md) and [review stages](runbooks/plaid-launch-center-review.md); #274, G01 remains PARTIAL |
 | Which Plaid tests have passed, and what remains before qualification? | [#88 test matrix](plans/plaid-88-test-matrix.md), [official sources](research/plaid-88-test-sources.md) and [audit runbook](runbooks/plaid-88-test-matrix.md) |
 | What did the Plaid qualification swarm implement? | [Integration evidence](runbooks/plaid-88-swarm.md), [dedicated webhook runtime](contracts/webhook-managed-runtime.md) and [Link recovery](contracts/plaid-link-recovery-qualification.md) |
 | How is the dedicated Sandbox webhook release prepared? | [Release evidence](contracts/webhook-release-evidence.md), [infrastructure](contracts/webhook-release.md), [SQL bootstrap](contracts/webhook-bootstrap.md), [enrollment](contracts/webhook-enrollment.md) and [integration stages](runbooks/webhook-release-preparation.md); #271 hosted acceptance remains open |
@@ -155,3 +156,10 @@ from actual provider qualification.
 
 - [Sandbox Hosted Link enrollment](runbooks/hosted-link-enrollment.md): explicit
   session completion, account binding and synthetic application journey evidence.
+
+- [Hosted completion recovery](runbooks/hosted-link-recovery-wave2.md): bounded
+  verified completion, expiry recovery and browser/API/database evidence.
+- [Existing webhook rollout](runbooks/webhook-rollout.md): inert updater,
+  owner prerequisites and selected deployment receipt; hosted delivery remains open.
+- [Finite Sandbox verification](runbooks/sandbox-verification.md): independent
+  exact fixture comparison and absolute zero journal/outbox evidence under one mandate.

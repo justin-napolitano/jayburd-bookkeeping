@@ -5,15 +5,18 @@
 
 ## Purpose and reading order
 
-[Link recovery](plaid-link-recovery-sources.md): LR01–04, selected official sections,
-2026-10-22; update association/OAuth remain unqualified.
+[Link recovery](plaid-link-recovery-sources.md): LR01–06, Plaid/React selections,
+2026-10-22; reconnect/OAuth unqualified.
 
-[Plaid #88 sources](plaid-88-test-sources.md): selected official sections,
-2026-10-22; Launch Center unreviewed, hosted proof incomplete.
+[Plaid #88](plaid-88-test-sources.md): official selections,2026-10-22; hosted gaps.
+[Launch Center](plaid-launch-center-review.md): visible panels,2026-10-22; scope partial.
+[Verifier](../contracts/sandbox-verification.md#sources-standards-and-alternatives):
+selected existing Plaid/PostgreSQL records,2026-10-22; synthetic proof only.
 
 [PL04](plaid-liability-sources.md): selected loan/product review, 2026-10-22.
 [Webhook release](webhook-release-sources.md), [enrollment](webhook-enrollment-sources.md):
-selected official sections,2026-10-22; synthetic proof, hosted acceptance open.
+[updater](webhook-rollout-sources.md), WU01–07: selected official sections,2026-10-22;
+synthetic proof, hosted acceptance open.
 
 [History](../contracts/plaid-history-currency.md).
 [PI13 source-first Plaid review](plaid-ingestion-sources.md#pi13--source-first-accounthistory-refresh-2026-10-21): Item/account/history mechanics; ownership remains project policy.
@@ -35,14 +38,13 @@ pinned Go source (2026-10-19); synthetic policy, not institution qualification.
 Worker review (2026-10-14); [#258 rollout/CI sources](plaid-rollout-sources.md)
 (selected sections, 2026-10-22):
 [Cloud Run ServiceStatus](https://docs.cloud.google.com/run/docs/reference/rest/v1/namespaces.services#ServiceStatus)
-defines generation, Ready and created/ready revisions;
+covers generation/Ready/revisions;
 [TrafficTarget](https://docs.cloud.google.com/run/docs/reference/rest/v1/TrafficTarget)
-defines revision allocation and tagged routes;
+covers revision allocation/tagged routes;
 [Scheduler Job/State](https://docs.cloud.google.com/scheduler/docs/reference/rest/v1/projects.locations.jobs#State)
-distinguishes paused scheduling from disabled/error states and describes HTTP OIDC
-targets. Our receipt requires reconciled desired/ready generations, one exact-image
-100% target and paused exact Scheduler target. That is a project acceptance policy,
-not a claim of queue drain, IAM qualification or a provider transaction test.
+covers paused/disabled/error states and HTTP OIDC. Receipt policy requires
+reconciled generations, one exact-image 100% target and paused exact Scheduler.
+It does not prove queue drain, IAM or provider qualification.
 
 [Connection release](../contracts/connection-release.md): selected HashiCorp
 variable precedence/Cloud Run revision sections,2026-10-14. Omitted inputs reset;
@@ -67,8 +69,8 @@ and completion webhook are recommended; browser-only recovery is project policy.
   Link, Transactions and Sandbox references SQ01–SQ05; distinguishes adapter
   diagnostics, Link event association and complete hosted acceptance.
 
-Linked records name sections, inferences and access limits.
-No normative ISO text, cloud configuration or provider credential was reviewed.
+Linked records name sections/inferences/access limits; no normative ISO text,
+cloud configuration or provider credential was reviewed.
 
 - [Connection lifecycle](../contracts/connection-sql.md), [service](../contracts/connection-service.md)
   and [HTTP boundary](../contracts/connection-http.md): PI05–PI10 distinguish verified
@@ -82,8 +84,7 @@ No normative ISO text, cloud configuration or provider credential was reviewed.
 The [sync implementation boundary](../contracts/provider-runtime-boundaries.md)
 records refreshed Plaid pagination/account-filter sections and PostgreSQL17
 isolation/function-privilege sections. It distinguishes vendor mechanisms from
-our bounded publication and role decisions. Source review does not qualify a live
-provider or establish measured scalability.
+our bounded publication and role decisions. No live-provider or measured scalability proof.
 
 - [Plaid decoder contract](../contracts/plaid-decoder.md): selected official
   transaction/version fields, exact numeric interpretation, inert metadata allowlist
@@ -113,8 +114,7 @@ For bank sync qualification and measurable scaling, read the
 lifecycle/Sandbox and Google Cloud concurrency/queue sections, reviewed
 2026-10-13. These constrain test design; they do not certify live readiness.
 
-Shared resource index, updated 2026-10-21. Listings constrain decisions; they
-do not approve designs or establish compliance.
+Shared index, updated 2026-10-22; listings do not approve designs or compliance.
 
 Start with these six reading steps:
 
