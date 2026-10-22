@@ -33,6 +33,7 @@ type Config struct {
 	RegistryBucket, RegistryPrefix                                             string
 	ClientIDVersion, ClientSecretVersion                                       string
 	ConsentExpiresAt                                                           string
+	WebhookURL                                                                 string
 }
 
 // Tokens separates runtime identity minting from static secrets and permits synthetic tests without discovery.
@@ -48,6 +49,10 @@ func (c Config) Validate() error {
 			return ErrConfiguration
 		}
 		return nil
+	}
+	// Notification routing is an explicit single-project capability, never arbitrary HTTPS configuration.
+	if c.WebhookURL != "" && (c.WebhookURL != connections.SandboxTransactionsWebhookURL || c.ProjectID != "jayburd-bookkeeping-dev" || c.ProjectNumber != "9088794002") {
+		return ErrConfiguration
 	}
 	expiry, e := time.Parse(time.RFC3339, c.ConsentExpiresAt)
 	now := time.Now()
@@ -120,7 +125,7 @@ func New(parent context.Context, c Config, db connections.Beginner, transport ht
 		return nil, ErrUnavailable
 	}
 	expiry, _ := time.Parse(time.RFC3339, c.ConsentExpiresAt)
-	provider, e := connections.NewHTTPProvider(connections.HTTPConfig{ClientID: connections.NewSecret(string(id)), ClientSecret: connections.NewSecret(string(secret)), ConsentExpiresAt: expiry}, transport)
+	provider, e := connections.NewHTTPProvider(connections.HTTPConfig{ClientID: connections.NewSecret(string(id)), ClientSecret: connections.NewSecret(string(secret)), ConsentExpiresAt: expiry, WebhookURL: c.WebhookURL}, transport)
 	if e != nil {
 		return nil, ErrUnavailable
 	}
