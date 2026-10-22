@@ -29,6 +29,7 @@ type Host struct {
 	close   func()
 	once    sync.Once
 	started atomic.Bool
+	closed  atomic.Bool
 }
 
 // New composes verification and durable receipt capabilities without opening sockets or resolving keys.
@@ -58,6 +59,7 @@ func NewSQL(keys webhook.KeyProvider, db webhook.Beginner, close func()) (*Host,
 func (h *Host) Close() {
 	if h != nil {
 		h.once.Do(func() {
+			h.closed.Store(true)
 			if h.close != nil {
 				h.close()
 			}
@@ -92,6 +94,9 @@ func (h *Host) server(ctx context.Context) *http.Server {
 func (h *Host) Serve(ctx context.Context, l net.Listener) error {
 	if h == nil || h.handler == nil || ctx == nil || l == nil {
 		return ErrConfiguration
+	}
+	if h.closed.Load() {
+		return ErrAlreadyServed
 	}
 	if !h.started.CompareAndSwap(false, true) {
 		return ErrAlreadyServed
