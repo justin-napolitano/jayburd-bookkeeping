@@ -27,6 +27,22 @@ digest cannot establish configuration-preserving rollback.
 
 ## Evidence and alternatives
 
+### Explicit Sandbox webhook enrollment (#271)
+
+Optional `webhook_url` adds only the fixed reviewed dedicated Sandbox receiver:
+`https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid`.
+Both fixed development project identifiers are required. Empty/null/arbitrary
+values in release metadata are rejected; omit the field for the legacy profile.
+Its presence changes the approved configuration digest and therefore cannot be
+silently introduced by rollback. Terraform threads the explicit flag to the API;
+runtime validates it before I/O. No request can choose a notification destination.
+This changes new enrollment only; existing Item updates remain a separately
+authorized proposal in [webhook enrollment](webhook-enrollment.md). Provider ACK
+does not establish Transactions delivery. Dedicated public host release and source
+consent must be qualified independently before enabling the field in a release.
+
+### Existing release source review
+
 Reviewed selected HashiCorp input-variable assignment/default/precedence sections
 and Google Cloud Run revision management on2026-10-14:
 [Terraform variables](https://developer.hashicorp.com/terraform/language/values/variables),

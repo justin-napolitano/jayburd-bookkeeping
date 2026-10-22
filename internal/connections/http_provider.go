@@ -23,7 +23,11 @@ import (
 type HTTPConfig struct {
 	ClientID, ClientSecret Secret
 	ConsentExpiresAt       time.Time
+	WebhookURL             string // Empty retains legacy enrollment; only the reviewed Sandbox receiver is allowed.
 }
+
+// SandboxTransactionsWebhookURL pins the dedicated receiver; request metadata cannot redirect notifications.
+const SandboxTransactionsWebhookURL = "https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid"
 
 // HTTPProvider is an opt-in fixed Sandbox adapter. Construction never reads credentials or calls a network.
 type HTTPProvider struct {
@@ -41,7 +45,7 @@ func (*HTTPProvider) GoString() string { return "[connection provider redacted]"
 
 // NewHTTPProvider requires explicit synthetic/provider credentials and a bounded transport.
 func NewHTTPProvider(config HTTPConfig, transport http.RoundTripper) (*HTTPProvider, error) {
-	if transport == nil || !secretValid(config.ClientID) || !secretValid(config.ClientSecret) || !config.ConsentExpiresAt.After(time.Now()) || config.ConsentExpiresAt.Year() > 9999 {
+	if transport == nil || !secretValid(config.ClientID) || !secretValid(config.ClientSecret) || !config.ConsentExpiresAt.After(time.Now()) || config.ConsentExpiresAt.Year() > 9999 || config.WebhookURL != "" && config.WebhookURL != SandboxTransactionsWebhookURL {
 		return nil, failed("configuration_error")
 	}
 	clientID, version := config.ClientID.value, "2020-09-14"
@@ -138,6 +142,9 @@ func (p *HTTPProvider) CreateLink(ctx context.Context, input LinkRequest) (LinkR
 		lifetime := 900
 		request.Products = []plaid.Products{plaid.ProductsTransactions}
 		request.HostedLink = &plaid.LinkTokenCreateHostedLink{URLLifetimeSeconds: &lifetime}
+		if p.config.WebhookURL != "" {
+			request.Webhook = &p.config.WebhookURL
+		}
 	} else {
 		if !secretValid(input.AccessToken) {
 			return LinkResult{}, failed("invalid_request")

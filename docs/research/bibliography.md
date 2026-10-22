@@ -12,6 +12,8 @@
 2026-10-22; Launch Center unreviewed, hosted proof incomplete.
 
 [PL04](plaid-liability-sources.md): selected loan/product review, 2026-10-22.
+[Webhook release](webhook-release-sources.md), [enrollment](webhook-enrollment-sources.md):
+selected official sections,2026-10-22; synthetic proof, hosted acceptance open.
 
 [History](../contracts/plaid-history-currency.md).
 [PI13 source-first Plaid review](plaid-ingestion-sources.md#pi13--source-first-accounthistory-refresh-2026-10-21): Item/account/history mechanics; ownership remains project policy.
@@ -42,11 +44,9 @@ targets. Our receipt requires reconciled desired/ready generations, one exact-im
 100% target and paused exact Scheduler target. That is a project acceptance policy,
 not a claim of queue drain, IAM qualification or a provider transaction test.
 
-[Explicit connection release policy](../contracts/connection-release.md) reviews
-HashiCorp variable defaults/assignment precedence and Cloud Run revision management
-(selected official sections,2026-10-14). These explain the omitted-input reset and
-configuration capture; manifest versioning/digest policy is our design inference.
-No hosted state or provider readiness was established by this source review.
+[Connection release](../contracts/connection-release.md): selected HashiCorp
+variable precedence/Cloud Run revision sections,2026-10-14. Omitted inputs reset;
+version/digest policy is our inference, not hosted/provider proof.
 
 Hosted/Sandbox source review (2026-10-14):
 
@@ -283,7 +283,7 @@ The first application adds three source registers: [server composition](server-s
 for bounded HTTP, workload identity and PostgreSQL pooling;
 [browser authentication](browser-auth-sources.md) for memory-only sign-in and
 TOTP enrollment/challenge and explicit email verification through hosted action links and the isolated local rehearsal (BA04); and [frontend behavior](frontend-sources.md) for
-Next.js, React and synthetic browser testing. The [integration source notes](app-integration-sources.md)
+Next.js patch advisories/React/browser tests. The [integration source notes](app-integration-sources.md)
 record generated OpenAPI types, Node LTS and CI choices. Read their stated review
 depth and limits; offline tests do not verify live provider configuration.
 

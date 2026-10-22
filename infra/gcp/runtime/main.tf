@@ -1,6 +1,6 @@
 locals {
   # No metadata means no activation flags, secret reads or enrollment composition.
-  connection_args = var.connections == null ? [] : [
+  connection_args = var.connections == null ? [] : concat([
     "-connections-enabled", "-plaid-link-events-qualified=${var.connections.link_events_qualified}",
     "-provider-project-number=${var.project_number}",
     "-infisical-origin=${var.connections.infisical_origin}",
@@ -12,7 +12,7 @@ locals {
     "-plaid-client-id-version=${var.connections.client_id_version}",
     "-plaid-client-secret-version=${var.connections.client_secret_version}",
     "-plaid-consent-expires-at=${var.connections.consent_expires_at}"
-  ]
+  ], var.connections.webhook_url == "" ? [] : ["-plaid-webhook-url=${var.connections.webhook_url}"])
   public_origin = "https://jayburd-dev-web-${var.project_number}.${var.region}.run.app"
   api_origin    = "https://jayburd-dev-api-${var.project_number}.${var.region}.run.app"
   labels        = { application = "jayburd", environment = "dev", managed_by = "terraform" }
