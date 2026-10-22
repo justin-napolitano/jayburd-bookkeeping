@@ -74,7 +74,13 @@ function automaticClassification(type: string, subtype: string | null) {
       code: 2100,
       label: "Credit card",
     };
-  if (type === "loan" && (subtype === "student" || subtype === "mortgage"))
+  if (
+    type === "loan" &&
+    subtype &&
+    ["student", "mortgage", "auto", "consumer", "line of credit"].includes(
+      subtype,
+    )
+  )
     return {
       category: "liability" as const,
       side: "credit" as const,
@@ -445,6 +451,9 @@ function ConnectionWorkspace({
           "invalid_date",
           "unsupported_currency",
           "amount_out_of_range",
+          "amount_magnitude_exceeded",
+          "amount_scale_exceeded",
+          "currency_precision_exceeded",
         ].includes(value.decoder_error)) ||
       value.provider_updated_at !== null ||
       (value.last_completed_at !== null &&

@@ -52,6 +52,20 @@ unofficial/missing ISO and ambiguous or unavailable versions reject the whole pa
 
 ## Parser profile and bounds
 
+Issue #258 refines diagnostics without changing the accepted quantity set.
+`amount_magnitude_exceeded` means more than 38 significant or 29 integer digits;
+`amount_scale_exceeded` means normalized scale above nine;
+`currency_precision_exceeded` means a quantity within storage limits that is
+not an integral minor unit of the dated ISO 4217 currency. These fixed codes
+replace new emissions of the ambiguous `amount_out_of_range`; old receipts
+remain readable. No source amount, identifier or payload fragment enters a
+diagnostic. SQL retains its exact numeric/lexeme equality and minor-unit checks.
+Alternative rounding would lose evidence and is rejected; accepting arbitrary
+extra precision would change reviewed storage/accounting contracts. Named proof:
+`TestPlaidMoneyDiagnostics`, existing independent-rational fuzz oracle and
+`TestDeliveryManualRecovery` for durable classified quarantine/recovery. This is
+a diagnostic improvement, not a confirmed repair of the hosted checking cause.
+
 Engineering bounds, not claims about all legal provider payloads:
 
 - 2 MiB exact response, 500 total added+modified+removed changes, nesting depth 32.

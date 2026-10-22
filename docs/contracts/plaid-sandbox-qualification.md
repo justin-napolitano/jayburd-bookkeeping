@@ -110,7 +110,8 @@ invalid_expectation, invalid_json, duplicate_key, invalid_number, invalid_cursor
 invalid_cursor_encoding, invalid_cursor_progress,
 invalid_field, unknown_enum, account_mismatch, unsupported_account,
 duplicate_identity, invalid_identity, invalid_lineage, invalid_date,
-unsupported_currency, amount_out_of_range, unknown_field. Anything else remains
+unsupported_currency, amount_out_of_range, amount_magnitude_exceeded,
+amount_scale_exceeded, currency_precision_exceeded, unknown_field. Anything else remains
 `decoder_rejected`. Never include error text, field names, values or raw pages.
 Rejected pages do not increment counts. `TestDecoderReasonRedaction` verifies
 wrapped classifications, arbitrary error suppression and receipt redaction;

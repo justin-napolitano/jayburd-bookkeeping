@@ -2,6 +2,8 @@
 
 ## Purpose and reading order
 
+[PL04](plaid-liability-sources.md): selected loan/product review, 2026-10-22.
+
 [History](../contracts/plaid-history-currency.md).
 
 [Plaid types](automatic-account-binding-sources.md), [loans](plaid-liability-sources.md).
@@ -59,9 +61,8 @@ current browser-only handoff is a Jayburd design choice.
   Link, Transactions and Sandbox references SQ01–SQ05; distinguishes adapter
   diagnostics, Link event association and complete hosted acceptance.
 
-Each linked record names selected sections, project inferences and access limits.
-No full ISO normative text, cloud account configuration or provider credential was
-reviewed in this pass.
+Linked records name sections, inferences and access limits.
+No normative ISO text, cloud configuration or provider credential was reviewed.
 
 - [Connection lifecycle](../contracts/connection-sql.md), [service](../contracts/connection-service.md)
   and [HTTP boundary](../contracts/connection-http.md): PI05–PI10 distinguish verified
