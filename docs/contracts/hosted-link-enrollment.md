@@ -118,6 +118,68 @@ change cannot post a journal. Migration 19 adds encrypted Link handoffs and
 extends the unclaimed completion window. Internal operational commands and
 Plaid proprietary JSON are not ISO 20022 messages; existing ISO 4217 mapping applies.
 
+## Fresh-enrollment recovery correction (#187, wave 2)
+
+Coordinator reviewed 2026-10-22; existing migration 19 supplies encrypted
+actor/entity/book/attempt retention and current authority. No new migration or
+API field is required for this correction. This does not enable ordinary
+reconnect, SDK OAuth return or LINK webhook acceptance.
+
+The first server-side `CompletedPublicToken` lookup checks the exact retained
+Link token against the provider response, one completed modern Item-add result,
+bounded token shape, completion freshness and no ambiguity. `VerifySession`
+currently repeats those same checks for new enrollment and also rejects an
+expected existing Item. Repeating that lookup after the one-shot SQL claim can
+strand a valid setup on a second-read outage without ever exchanging its token.
+
+For a server-resolved new enrollment only, `Execute` retains an unexported local
+typed proof of both token hashes. Before exchange, the SQL claim must still
+match the exact new mode, nonce, Link hash, public hash and absence of an expected
+existing Item. The proof comes only from the trusted lookup, never browser input,
+request/context metadata or an exported verified flag. Caller-supplied public
+tokens continue through `VerifySession`. SQL claim/expiry/current scope checks
+and immutable credential publication remain authoritative. No provider exchange
+is retried on uncertain SQL/provider acknowledgement; replay inspects state.
+
+`CompleteHosted` uses one ten-second aggregate context and bounds the retained
+ciphertext/KMS read by the earlier recovery expiry. Expired, canceled or denied
+attempts do not start a provider lookup. `Execute` obtains fresh SQL context after
+the retained-token read; revocation during that read therefore blocks completion.
+The encrypted row is not deleted: immutable historical ciphertext retention and
+physical deletion policy remain unresolved. These use bounds are not a TTL.
+
+The UI distinguishes the short Hosted URL lifetime from the durable setup
+recovery deadline. URL expiry removes navigation but preserves explicit checking
+of an already completed session. A completion conflict refreshes authorized
+discovery and updates expired-unclaimed state; an expired recovery window hides
+stale completion/cancel guidance. It does not create another attempt automatically.
+
+Final validation exposed an existing default-date initialization race: the form
+could accept a user's binding date before the passive initializer replaced it
+with today. The existing synchronous date/proposal initializer now runs before
+paint through a client layout effect, retaining its `!date` guard. This changes
+initialization timing, not the default date, subsequent user edits, proposal rules
+or keyed scope reset. `TestConnectionsEnrollmentBinding` asserts the chosen
+2026-01-02 date reaches the submitted binding request. LR06 records the React
+mechanism; a retry/timeout increase is not used to hide the observed failure.
+
+Alternatives: keep the redundant post-claim lookup (rejected because transient
+read failure strands a verified session), trust browser success (rejected), or
+exchange before SQL claim (rejected duplicate-effect risk). Signed
+`SESSION_FINISHED` is a separate future profile, not a shortcut in this change.
+STD-01 proprietary Plaid bootstrap applicability and existing currency/accounting
+mapping are unchanged; no ISO 20022 message or conformance claim is invented.
+
+Acceptance: `TestHostedRecoverySingleAssociation` uses the actual HTTP adapter
+and fails any second lookup while completing exactly once; caller-token mismatch,
+pending/ambiguous/outage/lost-claim and replay tests retain the original safety
+boundaries. Deadline and revocation fixtures cover retained-token access. UI
+expiry tests preserve completion after URL expiry and stop the discovered 409
+expiry loop. Full-stack journeys remain synthetic provider/identity evidence.
+
+Reviewed current official sections and limits: LR05 in
+[the recovery source register](../research/plaid-link-recovery-sources.md).
+
 ## Acceptance and limits
 
 [Qualification recovery](plaid-link-recovery-qualification.md) adds fixed guidance

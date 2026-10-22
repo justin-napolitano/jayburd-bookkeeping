@@ -2,6 +2,7 @@ import React, { StrictMode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import {
   cleanup,
+  act,
   fireEvent,
   render,
   screen,
@@ -1161,6 +1162,110 @@ it("Hosted completion stays pending, then exposes verified binding review", asyn
   });
   expect(screen.queryByRole("link", { name: "Open Plaid Sandbox" })).toBeNull();
   expect(checks).toBe(2);
+});
+
+// Expired navigation never discards the separate server-side completion window or creates a replacement.
+it("expires Hosted navigation while preserving explicit completion recovery", async () => {
+  const api = vi.fn(async (path: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    return {
+      attempt,
+      nonce: id(9),
+      link_token: "synthetic-link",
+      expires_at: new Date(Date.now() + 1_000).toISOString(),
+      hosted_link_url: "https://secure.plaid.com/hl/synthetic",
+    };
+  }) as unknown as API;
+  render(<Connections {...props(api)} link={{ open: vi.fn() }} />);
+  await screen.findByText("No connected Items in this book.");
+  vi.useFakeTimers();
+  try {
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+    });
+    expect(
+      screen.getByRole("link", { name: "Open Plaid Sandbox" }),
+    ).toBeTruthy();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_001);
+    });
+    expect(
+      screen.queryByRole("link", { name: "Open Plaid Sandbox" }),
+    ).toBeNull();
+    expect(screen.getByText(/This Plaid link has expired/)).toBeTruthy();
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Check bank setup completion",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+    expect(
+      screen.getByText(`Setup recovery ends: ${attempt.expires_at}`),
+    ).toBeTruthy();
+    expect(
+      vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/complete")),
+    ).toHaveLength(0);
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.filter(([path]) => path.endsWith("/connection-attempts")),
+    ).toHaveLength(1);
+    expect(localStorage.length + sessionStorage.length).toBe(0);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+// An expiry discovered during conflict inspection must replace stale completion/cancel guidance.
+it("ends expired setup recovery after authoritative conflict inspection", async () => {
+  const expired = { ...attempt, expires_at: "2000-01-01T00:00:00Z" };
+  let discoveries = 0;
+  const api = vi.fn(async (path: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.includes("/connection-attempts?")) {
+      const ended = ++discoveries > 1;
+      return {
+        items: [
+          { ...expired, expired_unclaimed: ended, binding_expired: false },
+        ],
+        next_cursor: null,
+        unfinished_count: ended ? "0" : "1",
+      };
+    }
+    if (path.endsWith("/complete")) throw new APIError(409, false);
+    if (path.endsWith(`/${attempt.attempt_id}`)) return expired;
+    throw Error("unexpected operation");
+  }) as unknown as API;
+  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: `Review attempt ${attempt.attempt_id}`,
+    }),
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Check bank setup completion" }),
+  );
+  await screen.findByText(/This setup's recovery window has ended/);
+  expect(
+    screen.queryByRole("button", { name: "Check bank setup completion" }),
+  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  expect(screen.queryByText(/If you exited Plaid/)).toBeNull();
+  expect(
+    (
+      screen.getByRole("button", {
+        name: "Connect account",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(false);
+  expect(
+    vi
+      .mocked(api)
+      .mock.calls.filter(([path]) =>
+        /\/(execute|abandon|connection-attempts)$/.test(path),
+      ),
+  ).toHaveLength(0);
 });
 
 // A reload loses the browser handoff but still offers server-side Plaid completion.
