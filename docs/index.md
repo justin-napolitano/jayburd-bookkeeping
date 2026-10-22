@@ -1,5 +1,10 @@
 # Project context
 
+Future planning boundary: [proposed available-to-use model](contracts/available-to-use.md),
+[source record](research/available-to-use-sources.md), and
+[delivery evidence](runbooks/available-to-use.md), issue #251. The model awaits
+owner/accountant review and grants no service spending authority.
+
 Historical bank acquisition: [dated-currency contract](contracts/plaid-history-currency.md)
 and [delivery ledger](runbooks/plaid-history-currency.md), issues #225/#226.
 
