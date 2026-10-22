@@ -1,5 +1,6 @@
 # Annotated bibliography and reading guide
 
+[Position source review](position-sources.md): P01–P05 and fixed USD/EUR examples.
 [Available-to-use sources](available-to-use-sources.md): ATU-01–07; model proposed.
 
 ## Purpose and reading order
@@ -14,10 +15,9 @@
 [Removal](binding-review-recovery-sources.md): Item removal and `ITEM_NOT_FOUND` #215.
 [Credentials](../contracts/bank-token-vault.md): Plaid/KMS/CRC32C (2026-10-15).
 
-[First Sandbox reference bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review)
-records SIX's official ISO 4217 List One XML publication (2026-09-17), retrieved
-2026-10-15 with SHA256, and the reviewed USD/840/2 record. This supports the
-bounded local reference installation; paid ISO text was not reviewed.
+[Sandbox bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review):
+SIX ISO4217 List One (2026-09-17), retrieved2026-10-15 with SHA256 and USD/840/2
+review. Bounded local reference evidence; paid ISO text was not reviewed.
 
 [Plaid Link browser](../contracts/plaid-link-browser.md) reviews official Web SDK
 loading/callbacks (2026-10-14) and pinned Go SDK source (2026-10-19). Use it to distinguish

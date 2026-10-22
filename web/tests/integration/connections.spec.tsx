@@ -10,6 +10,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   page.setDefaultTimeout(10000);
   let component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
+  await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "Connections", exact: true }).click();
   const connect = page.getByRole("button", {
     name: "Connect account",
@@ -24,6 +25,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
+  await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "Connections", exact: true }).click();
   await page.route("**/connection-attempts/*/abandon", async (route) => {
     const response = await route.fetch();
@@ -86,6 +88,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
+  await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "Connections", exact: true }).click();
   await page
     .getByRole("listitem")
@@ -99,6 +102,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
+  await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "Connections", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Connect account", exact: true }),
@@ -249,6 +253,8 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     .getByRole("button", { name: "Acknowledge result", exact: true })
     .click();
   await page.getByLabel("Entity and book").selectOption(scope);
+  await page.getByText("Tools", { exact: true }).click();
+  await page.getByRole("button", { name: "Accounts", exact: true }).click();
   await expect(page.locator("tfoot td")).toHaveText(["0.10", "0.10"]);
   const replay = await acquire();
   expect(replay.ok()).toBe(true);
@@ -258,6 +264,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     removal_count: 1,
     journal_count: "1",
   });
+  await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "Connections", exact: true }).click();
   await page
     .getByRole("button", {

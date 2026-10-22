@@ -1,0 +1,155 @@
+# Position source review and fixed synthetic example
+
+## Review record
+
+Reviewed 2026-10-21 and updated 2026-10-22 for proposed [Position contract](../contracts/position-read-model.md),
+starting at the [bibliography](bibliography.md), [decision evidence](decision-evidence.md),
+[database foundations](database-foundations.md), and existing [financial reporting
+sources](financial-reporting-sources.md). No new normative accounting approval.
+
+| ID | Reviewed source and depth | Fact established | Project inference / limit |
+| --- | --- | --- | --- |
+| P01 | OpenStax / Rice University, *Principles of Accounting, Volume 1*, [§2.3 statement relationships](https://openstax.org/books/principles-financial-accounting/pages/2-3-prepare-an-income-statement-statement-of-owners-equity-and-balance-sheet), income statement, owner's equity and balance sheet subsections, reviewed through FR01 | Balance sheet is dated; performance covers a period; earnings/distributions affect equity | Show dated Position and separately labeled change. Introductory example does not decide LLC cash classification, GAAP or spendability. |
+| P02 | PostgreSQL Global Development Group, [PostgreSQL 17 §13.2.2 Repeatable Read](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ), relevant section reviewed through FR02; local reporting contracts and runbooks reviewed in full for API facts | One transaction has stable snapshot; later request does not inherit it. Existing reporting uses current membership and revision validation. | One response carries current/prior points per book; separate book requests have independent snapshots, not one portfolio snapshot. Documentation alone does not prove our grants or performance. |
+| P03 | ISO 20022 Registration Authority [FAQ](https://www.iso20022.org/faq), About/Compliance, and [message catalogue](https://www.iso20022.org/catalogue-messages), catalogue/version overview, reviewed through FR04/R01–R02 | Registered messages have versioned definitions and usage context | Internal Position query has no selected external exchange profile. No individual message or eight-part normative text reviewed; reassess for an actual exchange. |
+| P04 | ISO [4217 public overview](https://www.iso.org/iso-4217-currency-codes.html), currency identifier/minor-unit overview, reviewed through FR04/R03 | Maintained codes and minor-unit metadata identify currencies | Preserve existing pinned code/version; no FX method or cash policy follows. No new code-list release assessed. |
+| P05 | ISO [21378:2019 standard page](https://www.iso.org/standard/70823.html), abstract/edition metadata, and [21926:2026 official preview](https://www.iso.org/obp/ui?_escaped_fragment_=iso%3Astd%3Aiso%3A21926%3Aed-1%3Av1%3Aen), contents/introduction/§1 through R04–R05 | Audit-data extraction and semantic modelling are relevant future topics | Position is an internal view, not an audit export. Normative field mappings remain unavailable and unresolved. |
+
+Repository facts checked: [financial reporting](../contracts/financial-reporting.md)
+defines debit-positive account net and unclassified balance sheet;
+[reporting SQL](../contracts/reporting-sql.md) and [HTTP](../contracts/reporting-http.md)
+define exact strings, single-book scope, comparison, revision and errors;
+[pinned journal](../contracts/report-drill.md) proves a selected GL line. These
+are project implementation/contract sources, not accounting standards. Current
+[reporting foundation](../runbooks/reporting-foundation.md) and
+[HTTP delivery](../runbooks/reporting-http.md) document synthetic tests and
+limitations; they do not prove the proposed cash or attention extension.
+
+## Fixed fictional example — independently specified expected values
+
+All IDs below are fixture labels, not database IDs. One synthetic book A uses
+functional USD, synthetic accrual/UTC policy and two asset accounts: `A-CASH-USD`
+and `A-CASH-EUR`; `A-PREPAID` is noncash. The *fixture's* reviewed cash membership
+is `{A-CASH-USD,A-CASH-EUR}` solely for acceptance math; it does not approve a
+production policy. Original units are retained per line. All journals balance
+in functional USD. `Dr` and `Cr` are sides, never signed input amounts.
+
+| Journal/date | Debit line, original / functional | Credit line, original / functional | Meaning |
+| --- | --- | --- | --- |
+| J1 / 2026-01-02 | A-CASH-USD USD 1000 / USD 1000 | Equity-capital USD 1000 / USD 1000 | Opening capital actually posted |
+| J2 / 2026-01-10 | Expense USD 120 / USD 120 | A-CASH-USD USD 120 / USD 120 | Period expense |
+| J3 / 2026-01-11 | A-CASH-USD USD 300 / USD 300 | Loan-liability USD 300 / USD 300 | Borrowing, not income |
+| J4 / 2026-01-12 | A-PREPAID USD 40 / USD 40 | A-CASH-USD USD 40 / USD 40 | Asset transfer, not expense |
+| J5 / 2026-01-13 | A-CASH-EUR EUR 10 / USD 11 | Revenue USD 11 / USD 11 | Immutable EUR-to-USD spot valuation; rate/reference pinned to J5 |
+| J6 / 2026-02-02 | Revenue USD 11 / USD 11 | A-CASH-EUR EUR 10 / USD 11 | Linked reversal of J5; original EUR quantity/rate retained |
+
+No retranslation is performed at either date. Jan 13's EUR 10 has a booked USD
+11 functional value; a later market quote cannot change J5. J6 offsets the
+original in February, not retroactively in January. Raw original EUR 10 and
+USD amounts remain separate; no cross-currency original total exists.
+
+| As of | Cash USD functional | Other assets USD | Total assets USD | Liabilities USD | Direct equity USD | Unclosed earnings USD | Total equity USD |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2026-01-02 | 1000 | 0 | 1000 | 0 | 1000 | 0 | 1000 |
+| 2026-01-31 | 1151 | 40 | 1191 | 300 | 1000 | −109 | 891 |
+| 2026-02-02 | 1140 | 40 | 1180 | 300 | 1000 | −120 | 880 |
+
+At Jan 31, cash is A-CASH-USD `1140` plus A-CASH-EUR functional `11`.
+Expense net `+120` and revenue net `−11` yield unclosed earnings `−109`.
+Assets `1191 = 300 + 891`. Jan 2→Jan 31 **point changes** are cash `+151`,
+other assets `+40`, assets `+191`, liabilities `+300`, direct equity `0`,
+unclosed earnings `−109`, total equity `−109`; these are not cash-flow categories.
+Feb 2 reverses revenue and EUR bank value: assets `1180 = 300 + 880`.
+
+Each account subtotal traces to exactly its listed J lines; the derived
+unclosed-earnings line traces through revenue/expense accounts to J2/J5/J6.
+For Jan 31, J6 is excluded because its accounting date is February. Selecting
+J5's A-CASH-EUR GL line with Jan `[2026-01-01,2026-02-01)` and the report
+revision must retrieve full J5, including both currencies and rate provenance.
+The current pinned journal operation proves this one selected GL line, not
+an unbounded subtotal-to-journal shortcut.
+
+## Negative and boundary fixtures
+
+| Fixture | Fixed expectation |
+| --- | --- |
+| Authorized empty book with supported policy | Assets/liabilities/equity all exact string `"0"`; fixture setup proves emptiness, but UI makes no no-entry claim from totals. Cash remains deferred; no journal links are invented. |
+| Book A has only source observation for USD 500, unposted draft or pending command | Jan 31 Position stays `1191` assets and `1151` classified cash; separate attention state may mention observation/command, never add USD 500. |
+| Book B has J1-like USD 70 capital/cash | Book A remains unchanged; no A+B sum or selector crossing entity/book. |
+| Missing credentials, revoked read or foreign book | 401/403/404 respectively; no financial totals, cursor or existence hint. |
+| J7 posts after Position revision R was read | Later pinned GL/journal at R returns 409 and no rows; refresh obtains new revision. J7's amount is deliberately unspecified, so no stale result is asserted as current. |
+| Source status older than reviewed threshold while book revision is unchanged | Posted Position remains labelled by its own cutoff/revision; separate source warning only. Threshold and feed are not yet approved. |
+| Cash membership absent or ambiguous | Show `Not configured`, not total assets, guessed cash or zero; existing BS totals remain available. |
+
+These numbers are hand-fixed expectations independent of a generator or posting
+algorithm. Implementers must copy them into a synthetic fixture and test exact
+strings plus original-unit detail. If the chosen development posting policy does
+not support a fixture operation, split the fixture into an explicitly supported
+policy test and a pending policy case; do not weaken the expected accounting math.
+
+## Fixed all-books orchestration cases — 2026-10-22
+
+Owner approved the visual/scope proposal in conversation: all books grouped by
+entity, explicit currency, assets/liabilities/book equity/equity change, direct
+top navigation and gray zebra rows. This is design evidence, not an accounting
+standard, approval of real-book policy, or evidence of runtime test coverage.
+The implemented [reporting HTTP contract](../contracts/reporting-http.md) was
+reread for per-request authorization, comparison envelope, exact strings, policy
+errors and response limits. No external source or new normative edition is added.
+
+The following are fixed synthetic response expectations. Book A uses J1–J6 above;
+book B has one USD 70 capital journal on 2026-01-03. Revisions and generation
+times are independent fictional metadata; they are never compared numerically
+between books or used as one portfolio watermark.
+
+| Row | Entity, book and requested dates | Exact assets / liabilities / book equity / equity change | Independent metadata |
+| --- | --- | --- | --- |
+| A | Entity Alpha / A; current 2026-01-31, prior 2026-01-02 | `1191` / `300` / `891` / `-109` | USD functional; revision `12`; generated 2026-02-03T10:00:00Z |
+| B | Entity Beta / B; current 2026-01-31, prior 2026-01-02 | `70` / `0` / `70` / `70` | USD functional; revision `3`; generated 2026-02-03T10:00:02Z |
+| A refreshed after correction | Entity Alpha / A; current 2026-02-02, prior 2026-01-31 | `1180` / `300` / `880` / `-11` | USD functional; revision `13`; generated 2026-02-03T10:01:00Z |
+| Empty | Entity Alpha / Empty; current 2026-01-31, prior 2026-01-02 | `0` / `0` / `0` / `0`; no UI entry-count inference | Own USD policy/revision/date envelope |
+| C | Entity Gamma / C, EUR functional policy unsupported today | No amounts; `unsupported_policy` | Currency remains EUR, never relabeled USD; no conversion |
+
+The empty fixture is known empty from its setup, not from its report totals. The
+existing balance-sheet envelope has no journal-count flag; offsetting posted
+journals can also produce zero. No first-slice UI no-entry status is inferred.
+
+Each accepted row must display its response's dates and revision details, even
+when the shared requested dates match. A response that does not match the active
+request must be rejected. The refreshed A row above belongs to a new date/scope
+generation and cannot coexist as a late replacement in the old January request.
+There is no A+B total, Entity Alpha subtotal, multi-currency total or FX result.
+Original EUR 10 in A remains journal evidence, not a EUR-functional book total.
+
+| Orchestration case | Fixed required outcome |
+| --- | --- |
+| A succeeds; B times out | A stays `1191` / `300` / `891` / `-109`; B shows unavailable with no zero or old values. |
+| B access revoked after membership discovery | Per-book read returns denied/inaccessible; B's old financial values are discarded; A remains independently authorized. |
+| Global identity expires during queue | Clear financial rows and stop scheduling queued requests; no stored response acts as a grant. |
+| A stale revision returns 409 | A has explicit stale/refresh state with no reused amounts; no silent unpinned retry spliced into evidence. |
+| Five authorized books selected | At most four requests in flight; fifth is visibly pending then requested when a slot frees; no truncation. |
+| User selects Beta while Alpha request completes late | Render only Beta generation; discard late Alpha result. |
+| Membership scope has no readable books | Empty workspace state; no fabricated zero portfolio. |
+| Book has USD 70 capital journal and exact linked reversal | Assets/liabilities/equity and change can all be `0` despite two posted journals; render zero without a `No posted entries` status. |
+
+## Alternatives, uncertainty and acceptance
+
+A single new batch endpoint could establish a coherent transaction boundary, but
+would require reviewed SQL/API work, resource limits and multi-book authorization
+evidence. The chosen first slice reuses bounded authorized per-book responses
+and explicitly exposes independent snapshots. Unbounded browser fan-out would
+increase resource pressure; the initial maximum of four is a conservative project
+choice requiring scheduling tests, not a benchmark or a capacity guarantee.
+Same-currency summation can still double-count overlapping books and omit
+eliminations; consolidation remains #59. Browser arithmetic also duplicates
+server sign/currency rules and is excluded. Cash classification remains a future
+server-owned policy decision; no cash field ships with this first overview.
+
+Acceptance: the first-slice cases named in the Position contract, fixed multi-book
+responses above and owner-reviewed desktop/mobile screenshots. Deferred
+`TestPositionCashPolicy`, `TestPositionSourceExclusion` and `TestPositionBounds`
+remain proposed extension coverage. #1 owns accountant-approved real-book policy;
+#249 owns browser behavior and #59 owns consolidation/translation. Revisit
+normative ISO mapping if Position becomes an exchange or audit export. Public
+ISO access limits in P03–P05 remain unchanged; the all-books wrapper introduces
+no new financial message or currency arithmetic.

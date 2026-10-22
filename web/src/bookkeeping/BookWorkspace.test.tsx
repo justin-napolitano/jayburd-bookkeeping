@@ -10,6 +10,16 @@ import {
 import { BookWorkspace } from "./BookWorkspace";
 import { APIError, type API } from "./api";
 import type { Book, Entity, TrialBalance } from "./types";
+vi.mock("./Connections", () => ({
+  Connections: ({ onReview }: { onReview: (source: string) => void }) => (
+    <button onClick={() => onReview("source-a")}>Review source A</button>
+  ),
+}));
+vi.mock("./ReviewInbox", () => ({
+  ReviewInbox: ({ initialSource }: { initialSource: string }) => (
+    <p>Source: {initialSource || "Choose source"}</p>
+  ),
+}));
 afterEach(cleanup);
 const book = {
   book_id: "b",
@@ -69,6 +79,49 @@ function deferred<T>() {
   });
   return { promise, resolve };
 }
+it("preserves explicit connection handoffs but clears them on generic Review navigation", async () => {
+  const props = {
+    entity,
+    book,
+    currencies,
+    api: vi.fn() as unknown as API,
+    locked: false,
+    denied: vi.fn(),
+    prepare: vi.fn(),
+    onViewChange: vi.fn(),
+  };
+  const view = render(
+    <BookWorkspace {...props} activeView="Connections" navigationKey={0}>
+      <p>Manual form</p>
+    </BookWorkspace>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Review source A" }));
+  view.rerender(
+    <BookWorkspace
+      {...props}
+      activeView="Review transactions"
+      navigationKey={0}
+    >
+      <p>Manual form</p>
+    </BookWorkspace>,
+  );
+  expect(screen.getByText("Source: source-a")).toBeDefined();
+  view.rerender(
+    <BookWorkspace {...props} activeView="Reports" navigationKey={1}>
+      <p>Manual form</p>
+    </BookWorkspace>,
+  );
+  view.rerender(
+    <BookWorkspace
+      {...props}
+      activeView="Review transactions"
+      navigationKey={2}
+    >
+      <p>Manual form</p>
+    </BookWorkspace>,
+  );
+  await screen.findByText("Source: Choose source");
+});
 it("initial balances use explicit book date and ignore superseded responses", async () => {
   const first = deferred<TrialBalance>(),
     second = deferred<TrialBalance>();
