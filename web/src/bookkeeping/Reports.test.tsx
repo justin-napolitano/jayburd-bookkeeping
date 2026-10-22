@@ -78,6 +78,51 @@ function request() {
   fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
 }
 describe("financial report review", () => {
+  it("pins the first Ledger read from Position and permits explicit refresh after a changed book", async () => {
+    const api = vi
+      .fn()
+      .mockRejectedValueOnce(new APIError(409, false))
+      .mockResolvedValueOnce({
+        ...fixture,
+        report: "general-ledger",
+        layout: "posting-v1",
+        snapshot_revision: "2",
+        next_cursor: null,
+        rows: [],
+        totals: {
+          opening: "0",
+          period_debits: "1",
+          period_credits: "0",
+          closing: "1",
+        },
+      });
+    render(
+      <Reports
+        api={api as API}
+        entity={entity}
+        book={book}
+        locked={false}
+        ledgerOnly
+        context={{
+          through: "2026-01-31",
+          start: "2026-01-01",
+          end: "2026-02-01",
+        }}
+        selection={{ key: 1, kind: "general-ledger", revision: "1" }}
+      />,
+    );
+    expect(screen.queryByLabelText("Report type")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Report account"), {
+      target: { value: "a" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    await screen.findByRole("alert");
+    expect(api.mock.calls[0][0]).toContain("snapshot_revision=1");
+    expect(screen.queryByText(/Snapshot 2/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    await screen.findByText(/Snapshot 2/);
+    expect(api.mock.calls[1][0]).not.toContain("snapshot_revision");
+  });
   it("retains exact signed decimals beyond safe integers", () => {
     expect(reportAmount("-9007199254740993.01", 2)).toBe(
       "-9007199254740993.01",

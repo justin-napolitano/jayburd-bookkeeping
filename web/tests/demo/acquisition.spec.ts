@@ -21,12 +21,13 @@ test("loads 3000 transactions and explicitly posts one source-linked journal", a
   await expect(
     page.getByRole("button", { name: "Demo books loaded", exact: true }),
   ).toBeDisabled();
-  await page
-    .getByLabel("Entity and book")
-    .selectOption({
-      label: "Fictional Harbor Design LLC / Synthetic acquisition / USD",
-    });
+  await page.getByLabel("Entity and book").selectOption({
+    label: "Fictional Harbor Design LLC / Synthetic acquisition / USD",
+  });
+  await page.getByText("Tools", { exact: true }).click();
+  await page.getByRole("button", { name: "Accounts", exact: true }).click();
   await expect(page.locator("tfoot td")).toHaveText(["0.00", "0.00"]);
+  await page.getByText("Tools", { exact: true }).click();
   await page
     .getByRole("button", { name: "Review transactions", exact: true })
     .click();
@@ -92,14 +93,15 @@ test("loads 3000 transactions and explicitly posts one source-linked journal", a
   await page
     .getByRole("button", { name: "Acknowledge result", exact: true })
     .click();
-  await page
-    .getByLabel("Entity and book")
-    .selectOption({
-      label: "Fictional Harbor Design LLC / Synthetic acquisition / USD",
-    });
+  await page.getByLabel("Entity and book").selectOption({
+    label: "Fictional Harbor Design LLC / Synthetic acquisition / USD",
+  });
+  await page.getByText("Tools", { exact: true }).click();
+  await page.getByRole("button", { name: "Accounts", exact: true }).click();
   await expect(page.locator("tfoot td")).toHaveText(
     isInflow ? ["100.01", "100.01"] : ["25.02", "25.02"],
   );
+  await page.getByText("Tools", { exact: true }).click();
   await page
     .getByRole("button", { name: "Review transactions", exact: true })
     .click();

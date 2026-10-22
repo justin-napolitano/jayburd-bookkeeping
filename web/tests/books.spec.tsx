@@ -189,6 +189,7 @@ async function mockCommands(page: Page, empty = false) {
 // Use accessible controls and exact decimal strings to prepare a split journal.
 async function fillJournal(page: Page) {
   await page.getByLabel("Entity and book").selectOption("e1/b1");
+  await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "New journal", exact: true }).click();
   await page
     .getByRole("combobox", { name: "Policy", exact: true })
@@ -369,6 +370,8 @@ test("denied entity switch clears previous financial values", async ({
   await mockCommands(page);
   await mount(<Harness />);
   await page.getByLabel("Entity and book").selectOption("e1/b1");
+  await page.getByText("Tools", { exact: true }).click();
+  await page.getByRole("button", { name: "Accounts", exact: true }).click();
   await page.getByRole("button", { name: "Load trial balance" }).click();
   await expect(page.getByRole("table")).toBeVisible();
   await expect(
@@ -458,6 +461,7 @@ test("successful acknowledgement followed by failed discovery keeps new work loc
   await page.getByRole("button", { name: "Acknowledge result" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
+  await page.getByText("Tools", { exact: true }).click();
   await expect(
     page.getByRole("button", { name: "New journal", exact: true }),
   ).toBeDisabled();
@@ -472,6 +476,7 @@ test("book workspace balances, account activity and journal remain scoped on des
   let activityReads = 0;
   await page.route("**/reports/**", async (route) => {
     const url = new URL(route.request().url());
+    if (!url.pathname.includes("/general-ledger")) return route.fallback();
     expect(url.searchParams.get("snapshot_revision")).toBe("0");
     expect(url.searchParams.get("account_id")).toBe("a1");
     const common = { entity_id: "e1", book_id: "b1", snapshot_revision: "0" };
@@ -571,6 +576,8 @@ test("book workspace balances, account activity and journal remain scoped on des
   });
   await mount(<Harness />);
   await page.getByLabel("Entity and book").selectOption("e1/b1");
+  await page.getByText("Tools", { exact: true }).click();
+  await page.getByRole("button", { name: "Accounts", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Account balances", exact: true }),
   ).toBeVisible();
@@ -600,10 +607,11 @@ test("book workspace balances, account activity and journal remain scoped on des
   await page
     .getByRole("button", { name: "Close journal detail", exact: true })
     .click();
-  await page.getByRole("button", { name: "Overview", exact: true }).focus();
+  await page.getByText("Tools", { exact: true }).click();
+  await page.getByRole("button", { name: "Accounts", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(
-    page.getByRole("heading", { name: "Overview", exact: true }),
+    page.getByRole("heading", { name: "Accounts", exact: true }),
   ).toBeFocused();
   await expect(page.getByLabel("Through date", { exact: true })).toHaveValue(
     "2026-01-31",
@@ -619,7 +627,7 @@ test("book workspace balances, account activity and journal remain scoped on des
     content: ".book-nav button { font-family: monospace; }",
   });
   await expect(
-    page.getByRole("navigation", { name: "Book navigation" }),
+    page.getByRole("navigation", { name: "Finance tools" }),
   ).toBeVisible();
   expect(
     await page.evaluate(

@@ -12,7 +12,8 @@ import type { Book, Entity, Workspace, RegisterCommand } from "./types";
 import { useCommands } from "./commands";
 import { CommandPanel } from "./CommandPanel";
 import type { ConnectionLink } from "./Connections";
-import { BookWorkspace } from "./BookWorkspace";
+import { BookWorkspace, type BookView } from "./BookWorkspace";
+import { Position } from "./Position";
 // UI account drafts carry strings unchanged to the authoritative setup transaction.
 type AccountDraft = {
   code: string;
@@ -31,6 +32,14 @@ type LineDraft = {
   rate_observation_id: string;
 };
 const today = () => new Date().toISOString().slice(0, 10);
+// Comparison is an explicit prior accounting date, not a rolling cash-flow interval.
+const previousMonthEnd = () => {
+  const date = new Date();
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 0))
+    .toISOString()
+    .slice(0, 10);
+};
+type FinanceTool = "Position" | BookView;
 const blankAccount = (): AccountDraft => ({
   code: "",
   name: "",
@@ -52,10 +61,12 @@ export function Bookkeeping({
   getToken,
   rejectSession,
   connectionLink,
+  onSignOut,
 }: {
   getToken: () => Promise<string>;
   rejectSession: () => void;
   connectionLink?: ConnectionLink;
+  onSignOut?: () => void;
 }) {
   const api = useMemo(
     () => createAPI(getToken, rejectSession),
@@ -65,6 +76,12 @@ export function Bookkeeping({
     [scope, setScope] = useState(""),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false);
+  const [tool, setTool] = useState<FinanceTool>("Position");
+  const [through, setThrough] = useState(today);
+  const [compareThrough, setCompareThrough] = useState(previousMonthEnd);
+  const [sourceRevision, setSourceRevision] = useState<string>();
+  const [navigationKey, setNavigationKey] = useState(0);
+  const toolHeading = useRef<HTMLHeadingElement>(null);
   const recovery = useCommands(api);
   const locked = recovery.locked;
   const epoch = useRef(0);
@@ -73,13 +90,16 @@ export function Bookkeeping({
     const n = ++epoch.current;
     setLoading(true);
     setError("");
+    setSourceRevision(undefined);
     try {
       const w = await api<Workspace>("/v1/workspace");
       if (n === epoch.current) {
         setWorkspace(w);
         setScope((s) =>
-          w.entities.some((e) =>
-            e.books.some((b) => `${e.entity_id}/${b.book_id}` === s),
+          w.entities.some(
+            (e) =>
+              s === `entity:${e.entity_id}` ||
+              e.books.some((b) => `${e.entity_id}/${b.book_id}` === s),
           )
             ? s
             : "",
@@ -117,62 +137,220 @@ export function Bookkeeping({
   const selected = (recovery.accessDenied ? null : workspace)?.entities
     .flatMap((entity) => entity.books.map((book) => ({ entity, book })))
     .find((x) => `${x.entity.entity_id}/${x.book.book_id}` === scope);
+  const entities = useMemo(() => {
+    if (!workspace || recovery.accessDenied) return [];
+    if (!scope) return workspace.entities;
+    return workspace.entities.flatMap((entity) => {
+      if (scope === `entity:${entity.entity_id}`) return [entity];
+      const books = entity.books.filter(
+        (book) => `${entity.entity_id}/${book.book_id}` === scope,
+      );
+      return books.length ? [{ ...entity, books }] : [];
+    });
+  }, [workspace, scope, recovery.accessDenied]);
+  // Tools share only in-memory scope/date; the receiving tool owns its own read.
+  const navigate = (next: FinanceTool) => {
+    setSourceRevision(undefined);
+    setNavigationKey((value) => value + 1);
+    setTool(next);
+    requestAnimationFrame(() => toolHeading.current?.focus());
+  };
+  const openBook = (entity: Entity, book: Book, revision?: string) => {
+    setScope(`${entity.entity_id}/${book.book_id}`);
+    navigate("Account activity");
+    setSourceRevision(revision);
+  };
   return (
-    <>
-      <section className="workspace-picker" aria-labelledby="workspace-title">
-        <div className="heading">
-          <h2 id="workspace-title">Your books</h2>
-          <button disabled={loading || locked} onClick={() => void load()}>
-            Refresh workspace
-          </button>
-        </div>
+    <div className="finance-workspace">
+      <div className="finance-bar">
+        <span className="finance-brand">Jayburd</span>
+        <nav aria-label="Finance tools" className="finance-nav">
+          {(["Position", "Account activity", "Reports"] as const).map(
+            (name) => (
+              <button
+                key={name}
+                disabled={locked}
+                aria-current={tool === name ? "page" : undefined}
+                onClick={() => navigate(name)}
+              >
+                {name === "Account activity" ? "Ledger" : name}
+              </button>
+            ),
+          )}
+        </nav>
+        {workspace && !recovery.accessDenied && (
+          <label className="finance-scope">
+            <span className="sr-only">Entity and book</span>
+            <select
+              disabled={locked || loading}
+              value={scope}
+              onChange={(e) => {
+                setScope(e.target.value);
+                setSourceRevision(undefined);
+              }}
+            >
+              <option value="">All books</option>
+              {workspace.entities.map((entity) => (
+                <optgroup label={entity.name} key={entity.entity_id}>
+                  <option value={`entity:${entity.entity_id}`}>
+                    All {entity.name} books
+                  </option>
+                  {entity.books.map((book) => (
+                    <option
+                      key={book.book_id}
+                      value={`${entity.entity_id}/${book.book_id}`}
+                    >
+                      {entity.name} / {book.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+        )}
+        <details className="finance-tools">
+          <summary>Tools</summary>
+          <div>
+            {(
+              [
+                "Accounts",
+                "New journal",
+                "Review transactions",
+                "Connections",
+              ] as const
+            ).map((name) => (
+              <button
+                key={name}
+                disabled={locked}
+                aria-current={tool === name ? "page" : undefined}
+                onClick={(event) => {
+                  navigate(name);
+                  event.currentTarget
+                    .closest("details")
+                    ?.removeAttribute("open");
+                }}
+              >
+                {name}
+              </button>
+            ))}
+            <button disabled={loading || locked} onClick={() => void load()}>
+              Refresh workspace
+            </button>
+            {onSignOut && <button onClick={onSignOut}>Sign out</button>}
+          </div>
+        </details>
+      </div>
+      <div className="finance-notices">
         {loading && <p role="status">Loading authorized books…</p>}
         {error && <p role="alert">{error}</p>}
-        {workspace && !recovery.accessDenied && (
-          <>
-            <label>
-              Entity and book
-              <select
-                disabled={locked}
-                value={scope}
-                onChange={(e) => setScope(e.target.value)}
-              >
-                <option value="">Choose a book</option>
-                {workspace.entities.map((e) => (
-                  <optgroup label={e.name} key={e.entity_id}>
-                    {e.books.map((b) => (
-                      <option
-                        key={b.book_id}
-                        value={`${e.entity_id}/${b.book_id}`}
-                      >
-                        {e.name} / {b.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </label>
-            {workspace.entities.length === 0 && (
-              <p>
-                No books are available. Create your first development book
-                below.
-              </p>
-            )}
-          </>
+      </div>
+      {locked && <CommandPanel recovery={recovery} workspace={workspace} />}
+      {workspace &&
+        !loading &&
+        !recovery.accessDenied &&
+        tool === "Position" && (
+          <div className="position-view">
+            <div className="position-heading">
+              <h1 ref={toolHeading} tabIndex={-1}>
+                Financial position
+              </h1>
+              <label>
+                <span className="sr-only">As of date</span>
+                <input
+                  type="date"
+                  value={through}
+                  disabled={locked}
+                  onChange={(event) => setThrough(event.target.value)}
+                />
+              </label>
+            </div>
+            <p className="position-scope-label">
+              {!scope
+                ? "All entities and books"
+                : selected
+                  ? `${selected.entity.name} / ${selected.book.name}`
+                  : entities[0]?.name}{" "}
+              · As of {through || "a selected date"}
+            </p>
+            <Position
+              entities={entities}
+              currencies={workspace.currencies}
+              api={api}
+              locked={locked}
+              through={through}
+              compareThrough={compareThrough}
+              onOpenBook={openBook}
+            />
+            <details className="position-comparison">
+              <summary>
+                Change since {compareThrough || "a comparison date"}. Each book
+                is shown in its functional currency.
+              </summary>
+              <label>
+                Comparison date
+                <input
+                  type="date"
+                  value={compareThrough}
+                  max={through}
+                  disabled={locked}
+                  onChange={(event) => setCompareThrough(event.target.value)}
+                />
+              </label>
+            </details>
+          </div>
         )}
-      </section>
-      <CommandPanel recovery={recovery} workspace={workspace} />
-      {selected && (
+      {workspace &&
+        !recovery.accessDenied &&
+        tool !== "Position" &&
+        !selected && (
+          <section className="tool-book-picker">
+            <h1 ref={toolHeading} tabIndex={-1}>
+              {tool === "Account activity" ? "Ledger" : tool}
+            </h1>
+            <p>
+              Choose a book to open its{" "}
+              {tool === "Account activity" ? "ledger" : tool.toLowerCase()}.
+              Book currencies and records stay distinct.
+            </p>
+            {entities.map((entity) => (
+              <div key={entity.entity_id}>
+                <h2>{entity.name}</h2>
+                {entity.books.map((book) => (
+                  <button
+                    key={book.book_id}
+                    disabled={locked}
+                    onClick={() =>
+                      setScope(`${entity.entity_id}/${book.book_id}`)
+                    }
+                  >
+                    {book.name}
+                  </button>
+                ))}
+              </div>
+            ))}
+            {entities.every((entity) => entity.books.length === 0) && (
+              <p>No books are available.</p>
+            )}
+          </section>
+        )}
+      {selected && !loading && tool !== "Position" && (
         <BookWorkspace
           key={`${scope}/${recovery.command?.command_id ?? "none"}/${recovery.command?.state ?? "none"}`}
           {...selected}
           currencies={workspace?.currencies ?? []}
           api={api}
           connectionLink={connectionLink}
+          activeView={tool}
+          navigationKey={navigationKey}
+          onViewChange={setTool}
+          through={through}
+          sourceRevision={sourceRevision}
+          onThroughChange={setThrough}
           prepare={recovery.prepare}
           locked={locked}
           denied={() => {
             setScope("");
+            setTool("Position");
             void load();
           }}
         >
@@ -183,14 +361,21 @@ export function Bookkeeping({
           />
         </BookWorkspace>
       )}
+      {!locked && <CommandPanel recovery={recovery} workspace={workspace} />}
       {workspace && !recovery.accessDenied && (
-        <Setup
-          workspace={workspace}
-          locked={locked}
-          prepare={recovery.prepare}
-        />
+        <details
+          className="setup-shelf"
+          open={workspace.entities.length === 0 ? true : undefined}
+        >
+          <summary>Book setup</summary>
+          <Setup
+            workspace={workspace}
+            locked={locked}
+            prepare={recovery.prepare}
+          />
+        </details>
       )}
-    </>
+    </div>
   );
 }
 // Setup creates a new scope only; balances and authorization are never user-supplied.

@@ -20,7 +20,7 @@ import type {
 } from "./types";
 
 // Navigation exposes owned book operations; connection state never substitutes for balances.
-type View =
+export type BookView =
   | "Overview"
   | "Accounts"
   | "Account activity"
@@ -28,7 +28,7 @@ type View =
   | "New journal"
   | "Review transactions"
   | "Connections";
-const views: View[] = [
+const views: BookView[] = [
   "Overview",
   "Accounts",
   "Account activity",
@@ -65,6 +65,12 @@ export function BookWorkspace({
   children,
   prepare,
   connectionLink,
+  activeView,
+  onViewChange,
+  through,
+  onThroughChange,
+  sourceRevision,
+  navigationKey,
 }: {
   entity: Entity;
   book: Book;
@@ -75,21 +81,63 @@ export function BookWorkspace({
   children: ReactNode;
   prepare?: (command: RegisterCommand) => void;
   connectionLink?: ConnectionLink;
+  activeView?: BookView;
+  onViewChange?: (view: BookView) => void;
+  through?: string;
+  onThroughChange?: (date: string) => void;
+  sourceRevision?: string;
+  navigationKey?: number;
 }) {
   const [reviewSource, setReviewSource] = useState("");
-  const [view, setView] = useState<View>("Overview");
-  const [context, setContext] = useState<ReportContext>(() =>
-    initialContext(book),
-  );
+  const lastNavigation = useRef(navigationKey);
+  // Generic tool navigation resets a prior connection filter; explicit connection handoffs keep it.
+  useEffect(() => {
+    if (lastNavigation.current !== navigationKey) {
+      lastNavigation.current = navigationKey;
+      if (activeView === "Review transactions") setReviewSource("");
+    }
+  }, [navigationKey, activeView]);
+  const [localView, setLocalView] = useState<BookView>("Overview");
+  const view = activeView ?? localView;
+  // The outer tool bar may own navigation while this book retains its scoped filters.
+  const setView = (next: BookView) => {
+    setLocalView(next);
+    onViewChange?.(next);
+  };
+  const [context, setContext] = useState<ReportContext>(() => ({
+    ...initialContext(book),
+    ...(through ? { through } : {}),
+  }));
   const [selection, setSelection] = useState<ReportSelection>({
     key: 0,
-    kind: "trial-balance",
+    kind:
+      activeView === "Account activity" ? "general-ledger" : "trial-balance",
+    revision: sourceRevision,
   });
   const [report, setReport] = useState<TrialBalance | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const epoch = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (through && through !== context.through)
+      setContext((current) => ({ ...current, through }));
+  }, [through, context.through]);
+  useEffect(() => {
+    if (activeView) requestAnimationFrame(() => heading.current?.focus());
+    if (activeView === "Account activity")
+      setSelection((s) =>
+        s.kind === "general-ledger"
+          ? s
+          : { key: s.key + 1, kind: "general-ledger" },
+      );
+    if (activeView === "Reports")
+      setSelection((s) =>
+        s.kind === "general-ledger"
+          ? { key: s.key + 1, kind: "trial-balance" }
+          : s,
+      );
+  }, [activeView]);
   const deniedRef = useRef(denied);
   deniedRef.current = denied;
   const policy = book.policies.find(
@@ -147,7 +195,7 @@ export function BookWorkspace({
     };
   }, [readBalances, view]);
   // Native buttons plus focused section headings make view changes keyboard-visible.
-  const navigate = (next: View) => {
+  const navigate = (next: BookView) => {
     if (next === "Review transactions") setReviewSource("");
     setView(next);
     if (next === "Account activity")
@@ -169,6 +217,7 @@ export function BookWorkspace({
       setBusy(false);
     }
     setContext(next);
+    onThroughChange?.(next.through);
   };
   // Account drill keeps the exact source revision; SQL rechecks it before showing activity.
   const openAccount = (account: string) => {
@@ -193,57 +242,64 @@ export function BookWorkspace({
             functional · Workspace revision {book.book_revision}
           </p>
         </div>
-        <div className="context-dates">
-          <label>
-            Through date
-            <input
-              type="date"
-              required
-              value={context.through}
-              disabled={locked}
-              onChange={(e) =>
-                changeContext({ ...context, through: e.target.value })
-              }
-            />
-          </label>
-          <label>
-            Activity starts on
-            <input
-              type="date"
-              value={context.start}
-              disabled={locked}
-              onChange={(e) =>
-                changeContext({ ...context, start: e.target.value })
-              }
-            />
-          </label>
-          <label>
-            Activity ends before
-            <input
-              type="date"
-              value={context.end}
-              disabled={locked}
-              onChange={(e) =>
-                changeContext({ ...context, end: e.target.value })
-              }
-            />
-          </label>
-        </div>
+        {!(
+          activeView &&
+          (view === "Reports" || view === "Account activity")
+        ) && (
+          <div className="context-dates">
+            <label>
+              Through date
+              <input
+                type="date"
+                required
+                value={context.through}
+                disabled={locked}
+                onChange={(e) =>
+                  changeContext({ ...context, through: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              Activity starts on
+              <input
+                type="date"
+                value={context.start}
+                disabled={locked}
+                onChange={(e) =>
+                  changeContext({ ...context, start: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              Activity ends before
+              <input
+                type="date"
+                value={context.end}
+                disabled={locked}
+                onChange={(e) =>
+                  changeContext({ ...context, end: e.target.value })
+                }
+              />
+            </label>
+          </div>
+        )}
       </div>
-      <nav className="book-nav" aria-label="Book navigation">
-        {views.map((name) => (
-          <button
-            key={name}
-            aria-current={view === name ? "page" : undefined}
-            disabled={locked}
-            onClick={() => navigate(name)}
-          >
-            {name}
-          </button>
-        ))}
-      </nav>
+      {!activeView && (
+        <nav className="book-nav" aria-label="Book navigation">
+          {views.map((name) => (
+            <button
+              key={name}
+              aria-current={view === name ? "page" : undefined}
+              disabled={locked}
+              onClick={() => navigate(name)}
+            >
+              {name}
+            </button>
+          ))}
+        </nav>
+      )}
       <h2 ref={heading} tabIndex={-1} className="view-title">
-        {view}
+        {view === "Account activity" ? "Ledger" : view}
       </h2>
       {(view === "Overview" || view === "Accounts") && (
         <section className="balances" aria-labelledby="balances-title">
@@ -342,6 +398,8 @@ export function BookWorkspace({
           entity={entity}
           book={book}
           locked={locked}
+          ledgerOnly={view === "Account activity"}
+          embedded={!!activeView}
           active={view === "Reports" || view === "Account activity"}
           context={context}
           onContextChange={changeContext}
