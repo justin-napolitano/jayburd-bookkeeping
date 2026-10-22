@@ -3,7 +3,9 @@ import { PlaidLinkHarness } from "./PlaidLinkHarness";
 const sdk = "https://cdn.plaid.com/link/v2/stable/link-initialize.js";
 // All provider bytes are intercepted; this proves browser lifecycle, not Plaid qualification.
 const syntheticSDK = `window.Plaid = { create(config) {
+  document.body.dataset.plaidCreated = String(Number(document.body.dataset.plaidCreated || 0) + 1);
   window.addEventListener('synthetic-plaid-success', () => config.onSuccess('synthetic-public'));
+  window.addEventListener('synthetic-plaid-error', () => config.onExit({ error_code: 'INVALID_CREDENTIALS', error_message: 'private-diagnostic' }));
   return { open() { config.onLoad(); }, exit() { config.onExit(null); }, destroy() { document.body.dataset.plaidDestroyed = 'yes'; } };
 } };`;
 test("loads only after explicit connect and destroys after memory-only handoff", async ({
@@ -59,4 +61,43 @@ test("cancellation fences a late success callback", async ({ mount, page }) => {
     "data-plaid-destroyed",
     "yes",
   );
+});
+
+// A provider error must destroy its iframe and require another explicit open, with no stored tokens.
+test("failed Link exit fences late success and permits an explicit fresh session", async ({
+  mount,
+  page,
+}) => {
+  await page.route(sdk, (route) =>
+    route.fulfill({
+      contentType: "application/javascript",
+      body: syntheticSDK,
+    }),
+  );
+  const view = await mount(<PlaidLinkHarness />);
+  await view.getByRole("button", { name: "Connect synthetic bank" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-plaid-created", "1");
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event("synthetic-plaid-error")),
+  );
+  await expect(view.getByRole("status")).toHaveText("failed");
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-plaid-destroyed",
+    "yes",
+  );
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event("synthetic-plaid-success")),
+  );
+  await expect(view.getByRole("status")).toHaveText("failed");
+  await expect(page.locator("body")).toHaveAttribute("data-plaid-created", "1");
+  expect(
+    await page.evaluate(() => localStorage.length + sessionStorage.length),
+  ).toBe(0);
+  await expect(page.locator("body")).not.toContainText("private-diagnostic");
+  await view.getByRole("button", { name: "Connect synthetic bank" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-plaid-created", "2");
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event("synthetic-plaid-success")),
+  );
+  await expect(view.getByRole("status")).toHaveText("handoff ready");
 });

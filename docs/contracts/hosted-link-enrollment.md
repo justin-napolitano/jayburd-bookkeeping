@@ -120,6 +120,11 @@ Plaid proprietary JSON are not ISO 20022 messages; existing ISO 4217 mapping app
 
 ## Acceptance and limits
 
+[Qualification recovery](plaid-link-recovery-qualification.md) adds fixed guidance
+for a unique fresh modern finished exit before claiming exchange. Legacy,
+unfinished and ambiguous exits do not authorize completion. Explicit cancellation
+still uses the existing SQL race guards; no provider-absence assertion is made.
+
 `TestHostedLinkNavigation` and `TestHostedLinkCompletion` reject unsafe URLs,
 ambiguous and stale results. `TestHostedCompletionClaimBoundary` proves pending
 and invalid authority never consume a claim and exchange occurs once. UI tests
