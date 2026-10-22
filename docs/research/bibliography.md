@@ -1,22 +1,23 @@
 # Annotated bibliography and reading guide
 
 [Position source review](position-sources.md): P01–P05 and fixed USD/EUR examples.
+[Available-to-use sources](available-to-use-sources.md): ATU-01–07; model proposed.
 
 ## Purpose and reading order
 
 [PL04](plaid-liability-sources.md): selected loan/product review, 2026-10-22.
 
 [History](../contracts/plaid-history-currency.md).
+[PI13 source-first Plaid review](plaid-ingestion-sources.md#pi13--source-first-accounthistory-refresh-2026-10-21): Item/account/history mechanics; ownership remains project policy.
 
 [Plaid types](automatic-account-binding-sources.md), [loans](plaid-liability-sources.md).
 [Shared sync](shared-acquisition-sources.md): Plaid cursor/webhooks.
 [Removal](binding-review-recovery-sources.md): Item removal and `ITEM_NOT_FOUND` #215.
 [Credentials](../contracts/bank-token-vault.md): Plaid/KMS/CRC32C (2026-10-15).
 
-[First Sandbox reference bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review)
-records SIX's official ISO 4217 List One XML publication (2026-09-17), retrieved
-2026-10-15 with SHA256, and the reviewed USD/840/2 record. This supports the
-bounded local reference installation; paid ISO text was not reviewed.
+[Sandbox bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review):
+SIX ISO4217 List One (2026-09-17), retrieved2026-10-15 with SHA256 and USD/840/2
+review. Bounded local reference evidence; paid ISO text was not reviewed.
 
 [Plaid Link browser](../contracts/plaid-link-browser.md) reviews official Web SDK
 loading/callbacks (2026-10-14) and pinned Go SDK source (2026-10-19). Use it to distinguish
@@ -25,7 +26,7 @@ our memory/cancellation policy from real Link Events and institution qualificati
 split and narrow federation policy. The [operator guide](../../deploy/WORKERS.md)
 explains exact-byte promotion, evidence limits and compatible rollback.
 
-Worker review (2026-10-14); [#258 retry/drain refresh](plaid-rollout-sources.md)
+Worker review (2026-10-14); [#258 rollout/CI sources](plaid-rollout-sources.md)
 (selected sections, 2026-10-22):
 [Cloud Run ServiceStatus](https://docs.cloud.google.com/run/docs/reference/rest/v1/namespaces.services#ServiceStatus)
 defines generation, Ready and created/ready revisions;
@@ -358,8 +359,8 @@ internal transport and authorization choices, not normative accountant-export
 mapping or an ISO-conformance claim.
 
 - [Plaid ingestion sources](plaid-ingestion-sources.md): official API, connection,
-  transaction lifecycle and webhook verification guidance supporting the proposed
-  adapter. Review notes distinguish provider behavior from Jayburd policy; no
+  lifecycle, webhook and source-precision reviews. Notes distinguish provider
+  behavior from Jayburd policy; no
   provider Sandbox, live account or ISO message-conformance evidence is implied.
 - [Background-work sources](background-work-sources.md): primary references for
   queue delivery limitations, authentication and database claim/receipt semantics.
@@ -433,9 +434,7 @@ The [Plaid source register](plaid-ingestion-sources.md) records the 2026-10-14
 PI01 review of nullable transaction classification and its bounded inert mapping.
 This supports issue #118's synthetic regression, not full Sandbox qualification.
 
-PI11 in the [Plaid source register](plaid-ingestion-sources.md) adds a pinned
-public OpenAPI review of the complete direct sync-response field inventory,
-including inherited transaction fields omitted from rendered documentation.
+PI11 in the [Plaid source register](plaid-ingestion-sources.md) reviews OpenAPI sync fields.
 
 ### Sandbox Hosted Link completion
 

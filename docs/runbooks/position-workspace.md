@@ -1,4 +1,19 @@
 <!-- stage-runbook: true -->
+
+## Combined checking repair review — 2026-10-22
+
+Owner requested applying migration29 and merging ready changes. Reviewed
+Position48d4468 together with merged precision repair263 on cf847f6 in a
+dedicated synthetic review worktree. Core check/test/build passed; generated
+types, 300 unit tests, production web build and23 browser cases passed.
+Both app-integration and connection-browser-test passed against disposable
+migration29 PostgreSQL. No hosted approval follows from these synthetic proofs.
+
+Merged latest main5f28583 into this branch. Conflicts were limited to the
+index and bibliography; retained both Position and planning/source proposals.
+No product-code conflict. This also incorporates merged263 exactly, including
+immutable migration29. npm audit remains unavailable externally; a trusted
+candidate and migration execution receipt are required before deployment.
 # Position workspace delivery — #249
 
 ## Status and boundary

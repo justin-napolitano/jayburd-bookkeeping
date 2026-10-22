@@ -45,3 +45,15 @@ this bounded qualification because it obscures version/diagnostic attribution.
 Acceptance: retained migration/status/runtime receipts, PAUSED readbacks, selected
 queue/status observations, matching immutable revisions, then actual per-account
 completion. No live banking, automatic journals or ISO exchange is introduced.
+
+## CI availability check — 2026-10-22
+
+[npm's public status page](https://status.npmjs.org/), selected current component
+and incident sections, reported Security Audit and package installation
+operational with no incident for October 22. Public status text only was read;
+this does not prove availability from a particular runner. PR #263's actual
+audit request returned HTTP 503 from the bulk-advisory endpoint after five
+minutes. Preserve that failed-gate evidence and rerun without dropping or
+weakening the audit. No dependency or security-policy change follows from a
+status page. Current source/SQL tests and actual hosted qualification remain
+separate acceptance evidence.

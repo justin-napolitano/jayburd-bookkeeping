@@ -70,7 +70,7 @@ func TestCurrencyVersionContext(t *testing.T) {
 		}
 	}
 	for _, tc := range []struct{ date, amount, code string }{
-		{"2000-12-31", "1.01", "USD"}, {"2026-09-16", "1.001", "USD"}, {"2026-09-16", "1.01", "EUR"},
+		{"2000-12-31", "1.01", "USD"}, {"2026-09-16", "1e-10", "USD"}, {"2026-09-16", "1.01", "EUR"},
 	} {
 		b := strings.ReplaceAll(string(fixturePage("Txn-A", tc.amount, tc.code, "C1", false)), "2026-01-02", tc.date)
 		if _, err := plaid.DecodePage([]byte(b), c.expected()); err == nil {
