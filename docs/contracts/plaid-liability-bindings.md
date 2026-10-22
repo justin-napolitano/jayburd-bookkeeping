@@ -12,6 +12,27 @@ All other credit/loan subtypes remain visible and unbound. The book owner must
 review the proposed category, normal side, code, name, ISO 4217 currency and
 binding date; Plaid metadata alone is not accounting authority.
 
+## Additional registration profile — #258, 2026-10-22
+
+Owner requested `loan / auto`, `loan / consumer`, and `loan / line of credit`
+registration in the fictional Sandbox. Extend the existing distinct
+`liability / credit / monetary` mapping to those three verified subtypes.
+The Accounts API defines them under loan; its product matrix only promises
+Transactions for some loan subtypes. Therefore registration permits attempted
+acquisition, never inferred history, balances or product coverage. Unknown
+subtypes remain unbound; the existing liability posting guard remains mandatory.
+Alternative: keep these visible but unbound, which prevents the requested
+registration even where Sandbox supplies transactions. Enabling every loan type
+would exceed the reviewed scope. Acceptance: mixed seven-account SQL binding,
+exact replay, unsupported-type rollback, trusted type/subtype decoder pins and
+browser binding tests; hosted registration remains separate #88 evidence.
+
+This extends the existing proprietary Plaid API `2020-09-14` mapping, not a new
+ISO 20022 exchange. ISO 4217 dated identifiers/minor units remain enforced;
+ISO 21378 audit-export mapping is unchanged and outside this acquisition slice.
+No normative ISO conformance is claimed. Refreshed sources are PL04 in the
+source register, selected public sections only.
+
 The [Plaid Accounts type and product matrix](https://plaid.com/docs/api/accounts/)
 and [Transactions API](https://plaid.com/docs/api/products/transactions/) were
 reviewed on 2026-10-20. Transactions coverage for loans is narrower than the

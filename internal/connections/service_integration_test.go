@@ -283,28 +283,48 @@ func TestConnectionAutoAccountAtomicity(t *testing.T) {
 // TestConnectionLiabilityBinding proves mixed reviewed products bind separately without posting.
 func TestConnectionLiabilityBinding(t *testing.T) {
 	s, admin, provider, _ := sqlService(t)
-	checking, card, student, auto := "checking", "credit card", "student", "auto"
+	checking, card, student, mortgage, auto, consumer, line, other := "checking", "credit card", "student", "mortgage", "auto", "consumer", "line of credit", "other"
 	provider.manifest.Accounts = []Account{
 		{AccountID: "checking-one", Type: "depository", Subtype: &checking, Currency: ptr("USD")},
 		{AccountID: "card-one", Type: "credit", Subtype: &card, Currency: ptr("USD")},
 		{AccountID: "student-one", Type: "loan", Subtype: &student, Currency: ptr("USD")},
+		{AccountID: "mortgage-one", Type: "loan", Subtype: &mortgage, Currency: ptr("USD")},
 		{AccountID: "auto-one", Type: "loan", Subtype: &auto, Currency: ptr("USD")},
+		{AccountID: "consumer-one", Type: "loan", Subtype: &consumer, Currency: ptr("USD")},
+		{AccountID: "line-one", Type: "loan", Subtype: &line, Currency: ptr("USD")},
+		{AccountID: "other-one", Type: "loan", Subtype: &other, Currency: ptr("USD")},
 	}
 	id, input := sqlBegin(t, s, "liability-mixed")
 	if _, err := s.Execute(context.Background(), scope, id, input); err != nil {
 		t.Fatal(err)
 	}
-	ids := []string{"00000000-0000-4000-8000-000000000051", "00000000-0000-4000-8000-000000000052", "00000000-0000-4000-8000-000000000053"}
+	ids := []string{}
+	for n := 51; n <= 57; n++ {
+		ids = append(ids, fmt.Sprintf("00000000-0000-4000-8000-%012d", n))
+	}
 	kinds := []struct{ account, code, category, side string }{
 		{"checking-one", "1300", "asset", "debit"},
 		{"card-one", "2300", "liability", "credit"},
 		{"student-one", "2301", "liability", "credit"},
+		{"mortgage-one", "2302", "liability", "credit"},
+		{"auto-one", "2303", "liability", "credit"},
+		{"consumer-one", "2304", "liability", "credit"},
+		{"line-one", "2305", "liability", "credit"},
 	}
 	bindings := make([]Binding, 0, 3)
 	for n, kind := range kinds {
 		bindings = append(bindings, Binding{AccountID: kind.account, LedgerAccountID: ids[n], CurrencyVersionID: currency, BindingDate: "2026-01-05", BindingEvidenceRef: fmt.Sprintf("00000000-0000-4000-8000-00000000006%d", n), NewLedgerAccount: &NewLedgerAccount{AccountID: ids[n], Code: kind.code, Name: "Synthetic " + kind.account, Category: kind.category, NormalSide: kind.side, Monetary: true, ActiveFrom: "2026-01-05"}})
 	}
 	request := BindingRequest{ConsentGrants: true, Bindings: bindings}
+	// Unsupported loan substitution must roll back the entire mixed request.
+	invalid := append([]Binding(nil), bindings...)
+	invalid[len(invalid)-1].AccountID = "other-one"
+	if _, err := s.Bind(context.Background(), scope, id, "liability-unsupported", BindingRequest{ConsentGrants: true, Bindings: invalid}); err == nil {
+		t.Fatal("unreviewed loan accepted")
+	}
+	if proofValue(t, admin, "SELECT count(*)::text FROM banking.source_account") != "0" || proofValue(t, admin, "SELECT count(*)::text FROM ledger.account WHERE account_id=ANY($1::uuid[])", ids) != "0" {
+		t.Fatal("unsupported mixed request left partial accounts")
+	}
 	first, err := s.Bind(context.Background(), scope, id, "liability-mixed-bind", request)
 	if err != nil {
 		t.Fatal(err)
@@ -313,15 +333,15 @@ func TestConnectionLiabilityBinding(t *testing.T) {
 	if err != nil || string(first) != string(replay) {
 		t.Fatal("liability binding replay changed result", err)
 	}
-	if proofValue(t, admin, "SELECT count(*)::text FROM ledger.account WHERE account_id=ANY($1::uuid[]) AND category='liability' AND normal_side='credit' AND monetary", ids) != "2" ||
-		proofValue(t, admin, "SELECT count(*)::text FROM integration.sync_stream WHERE state='active'") != "3" ||
+	if proofValue(t, admin, "SELECT count(*)::text FROM ledger.account WHERE account_id=ANY($1::uuid[]) AND category='liability' AND normal_side='credit' AND monetary", ids) != "6" ||
+		proofValue(t, admin, "SELECT count(*)::text FROM integration.sync_stream WHERE state='active'") != "7" ||
 		proofValue(t, admin, "SELECT count(*)::text FROM ledger.journal_entry") != "0" {
 		t.Fatal("liability binding invariants failed")
 	}
 	if _, err := s.Bind(context.Background(), scope, id, "liability-mixed-bind", BindingRequest{ConsentGrants: true, Bindings: bindings[:1]}); err == nil {
 		t.Fatal("changed replay accepted")
 	}
-	if proofValue(t, admin, "SELECT count(*)::text FROM integration.sync_stream WHERE account_id='auto-one'") != "0" {
+	if proofValue(t, admin, "SELECT count(*)::text FROM integration.sync_stream WHERE account_id='other-one'") != "0" {
 		t.Fatal("unsupported loan bound")
 	}
 }

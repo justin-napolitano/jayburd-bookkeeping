@@ -41,7 +41,7 @@ func validExpected(e Expected) bool {
 	if !validID(e.AccountID) || len(e.Currencies) == 0 || len(e.Currencies) > 1000 {
 		return false
 	}
-	if e.AccountType != "" && e.AccountType != "depository" && !(e.AccountType == "credit" && e.AccountSubtype == "credit card") && !(e.AccountType == "loan" && (e.AccountSubtype == "student" || e.AccountSubtype == "mortgage")) {
+	if e.AccountType != "" && e.AccountType != "depository" && !(e.AccountType == "credit" && e.AccountSubtype == "credit card") && !(e.AccountType == "loan" && oneOf(e.AccountSubtype, "student", "mortgage", "auto", "consumer", "line of credit")) {
 		return false
 	}
 	ids := map[string]bool{}
@@ -337,14 +337,20 @@ func exactAmount(lexeme string, minor int) (string, string, error) {
 		scale--
 	}
 	if len(value) > 38 {
-		return "", "", fail("amount_out_of_range")
+		return "", "", fail("amount_magnitude_exceeded")
 	}
 	integers := len(value) - scale
 	if integers < 0 {
 		integers = 0
 	}
-	if integers > 29 || scale > 9 || scale > minor {
-		return "", "", fail("amount_out_of_range")
+	if integers > 29 {
+		return "", "", fail("amount_magnitude_exceeded")
+	}
+	if scale > 9 {
+		return "", "", fail("amount_scale_exceeded")
+	}
+	if scale > minor {
+		return "", "", fail("currency_precision_exceeded")
 	}
 	var result string
 	if scale <= 0 {
