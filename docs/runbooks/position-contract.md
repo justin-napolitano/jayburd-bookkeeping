@@ -84,3 +84,14 @@ Coordinator owns any PR and integration. This branch changes contract, source,
 runbook and navigation files. No migration impact. Required Go gates
 must be rerun when the pinned toolchain becomes available; owner vocabulary
 approval covers visual/scope only.
+
+## Zero-balance correction — 2026-10-22
+
+Reviewed the existing balance-sheet envelope: it has no journal-count metadata.
+Removed the proposed `No posted entries` UI inference from valid zero totals.
+Fixed synthetic empty-book totals remain zero, and an offsetting-journal case
+now proves that identical zero totals can accompany posted journals. Entry-count
+status requires separately authoritative metadata. This corrects documentation
+only; the implementation continues to display the exact server totals.
+Validation: whitespace and repository documentation/link checks rerun for this
+correction; preceding full Go gates remain applicable to unchanged source code.
