@@ -87,3 +87,45 @@ identity is prohibited. W01–W05 and hosted W07 remain OPEN. Existing synthetic
 verification cannot clear actual delivery, retry timing, catch-up scheduling or
 receipt→task→worker→source publication. No Item-event extension, real provider call,
 cloud mutation or production activation occurred. Root owns next-stage integration.
+
+## 2026-10-22 managed runtime stage — #103 / #88
+
+Coordinator reviewed `docs/contracts/webhook-managed-runtime.md` and dedicated
+Cloud SQL component capability in root commit2422e68 (cherry-picked5926111) before
+this stage. That component support is not an IAM/database grant. This lane adds
+`webhookhost.Config`, `Managed`, controlled `Runtime.Run` and `cmd/webhook`, reusing
+existing metadata-only direct HTTP, integrity-checked exact-version GCP secret
+reader, fixed Sandbox key client, verifier and SQLReceiver. Cloud fields have no
+defaults; listener defaults only to127.0.0.1:8080. No DSN, role, plaintext-secret,
+provider environment or caller-supplied URL override is accepted.
+
+Config validates before factories or I/O: reviewed instance/region, canonical
+numeric project, fixed client ID/secret names and numeric versions, bounded
+literal listen host/port. Managed construction does no credential/key read; it
+opens only the dedicated webhook Cloud SQL connector/pool and a20s startup Ping.
+Ping proves transport only. Existing SQLReceiver still checks actual session
+capability per delivery before atomic SQL work. Runtime and Host reject reuse
+and post-close execution. Failures unwind partial dependencies; successful
+shutdown closes pool/connector and idle HTTP connections once. CLI emits one fixed
+failure message, never arguments, infrastructure diagnostics, payloads or tokens.
+
+Named synthetic tests: `TestManagedInvalidConfigurationHasNoIO`,
+`TestManagedOwnershipAndDedicatedPool`, `TestManagedFailureCleanup`,
+`TestPinnedCredentialResolution`, and `cmd/webhook` `TestParse`/`TestExecute`.
+They cover inert configuration, exact secret resources, no construction-time
+SQL/key lookup, dedicated component, startup cancellation, partial construction
+cleanup, command failure cleanup and redacted outcomes using generated keys and
+injected capabilities. Targeted managed/CLI race tests PASS. Final
+`make check test build` PASS; explicit `go build -trimpath -o bin/webhook
+./cmd/webhook` PASS (root coordinates addition to the shared build target).
+Local log `/private/tmp/jayburd-103-managed-core.log`; Go1.26.5/external modfile,
+tracked pinned toolchain unchanged. Staged runbook guard and diff check PASS.
+No new dependency or migration.
+
+Remaining hosted prerequisites from the prior stage still apply. The component
+constructor now exists, but no dedicated IAM user/grants, secret permissions,
+public routing, image release, enrollment update or actual provider delivery has
+been provisioned. Root coordinates separate real-socket→restricted-SQL integration
+proof and exact trusted-image delivery review. No source-provider/cloud call,
+financial command, environment/credential inspection or account activation was
+performed by this implementation/testing lane. W01–W05 and hosted W07 remain open.
