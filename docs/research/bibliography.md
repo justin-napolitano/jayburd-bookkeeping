@@ -357,8 +357,8 @@ internal transport and authorization choices, not normative accountant-export
 mapping or an ISO-conformance claim.
 
 - [Plaid ingestion sources](plaid-ingestion-sources.md): official API, connection,
-  transaction lifecycle and webhook verification guidance supporting the proposed
-  adapter. Review notes distinguish provider behavior from Jayburd policy; no
+  lifecycle, webhook and source-precision reviews. Notes distinguish provider
+  behavior from Jayburd policy; no
   provider Sandbox, live account or ISO message-conformance evidence is implied.
 - [Background-work sources](background-work-sources.md): primary references for
   queue delivery limitations, authentication and database claim/receipt semantics.

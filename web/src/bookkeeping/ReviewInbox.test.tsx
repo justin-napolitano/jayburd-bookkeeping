@@ -209,6 +209,26 @@ it.each(["correction_hold", "posted"])(
     expect(props.prepare).not.toHaveBeenCalled();
   },
 );
+// Exact imported sub-minor-unit evidence remains visible and cannot enter the draft workflow.
+it("shows every source digit and explains the precision hold", async () => {
+  const { api, props } = fixture();
+  const original = api.getMockImplementation()!;
+  api.mockImplementation(async (path: string) => {
+    if (path.endsWith("/review-items/r")) return {
+      ...detail, state: "correction_hold", amount: "1.001000001",
+      blockers: ["provider_correction_required", "source_precision_review_required"],
+    };
+    return original(path);
+  });
+  render(<ReviewInbox {...props} />);
+  await screen.findByRole("option", { name: /Checking/ });
+  fireEvent.change(screen.getByLabelText("Source account"), { target: { value: "s" } });
+  fireEvent.click(await screen.findByRole("button", { name: "Review Synthetic supplies" }));
+  await screen.findByText(/All digits are preserved/);
+  expect(screen.getAllByText(/1.001000001/).length).toBeGreaterThan(0);
+  expect(screen.queryByLabelText("Category account")).toBeNull();
+  expect(props.prepare).not.toHaveBeenCalled();
+});
 it("keeps source review exact and creates a draft before handing off explicit posting", async () => {
   const { api, props } = fixture();
   render(<ReviewInbox {...props} />);
