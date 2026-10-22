@@ -21,7 +21,7 @@ test("real setup and lost committed journal recover after remount with exactly o
   ).toBe(403);
   await expect(
     page.getByText(
-      "No books are available. Create your first development book below.",
+      "No books are available. Choose or create an authorized book.",
     ),
   ).toBeVisible();
   await page
@@ -61,6 +61,8 @@ test("real setup and lost committed journal recover after remount with exactly o
   await page
     .getByLabel("Entity and book")
     .selectOption({ label: "Synthetic browser LLC / Operating" });
+  await expect(page.locator(".position-equity")).toHaveText("0.00");
+  await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "New journal", exact: true }).click();
   await page.getByLabel("Accounting date", { exact: true }).fill("2026-01-15");
   await page
@@ -110,6 +112,9 @@ test("real setup and lost committed journal recover after remount with exactly o
   await page
     .getByLabel("Entity and book")
     .selectOption({ label: "Synthetic browser LLC / Operating" });
+  await expect(page.locator(".position-equity")).toHaveText("125.50");
+  await page.getByText("Tools", { exact: true }).click();
+  await page.getByRole("button", { name: "Accounts", exact: true }).click();
   // Select the preserved trial-balance control, not the new report date field.
   await page.getByLabel("Through date", { exact: true }).fill("2026-01-31");
   await page

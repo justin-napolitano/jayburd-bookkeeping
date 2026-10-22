@@ -33,6 +33,8 @@ type ReportProps = {
   onContextChange?: (value: ReportContext) => void;
   selection?: ReportSelection;
   onAccessDenied?: () => void;
+  ledgerOnly?: boolean;
+  embedded?: boolean;
 };
 // Navigation preserves the source revision; point reports require an explicit bounded range.
 type AccountNavigation = {
@@ -83,7 +85,7 @@ export function reportAmount(value: string | undefined, scale: number): string {
 export function Reports(props: ReportProps) {
   return (
     <ReportContent
-      key={`${props.entity.entity_id}/${props.book.book_id}/${props.book.book_revision}/${props.locked}/${props.selection?.key ?? 0}`}
+      key={`${props.entity.entity_id}/${props.book.book_id}/${props.book.book_revision}/${props.locked}/${props.selection?.key ?? 0}/${props.ledgerOnly ?? false}`}
       {...props}
     />
   );
@@ -99,9 +101,11 @@ function ReportContent({
   onContextChange,
   selection,
   onAccessDenied,
+  ledgerOnly = false,
+  embedded = false,
 }: ReportProps) {
   const [kind, setKind] = useState<ReportKind>(
-    selection?.kind ?? "trial-balance",
+    ledgerOnly ? "general-ledger" : (selection?.kind ?? "trial-balance"),
   );
   const [through, setThrough] = useState(context?.through ?? "");
   const [start, setStart] = useState(context?.start ?? "");
@@ -119,6 +123,8 @@ function ReportContent({
   const [actionBusy, setActionBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [page, setPage] = useState(0);
+  // First read from Position validates its source revision; an explicit refresh can start anew.
+  const [sourceRevision, setSourceRevision] = useState(selection?.revision);
   const epoch = useRef(0);
   useEffect(
     () => () => {
@@ -175,6 +181,9 @@ function ReportContent({
     } else query.set("through_date", through);
     if (!destination && kind === "general-ledger")
       query.set("account_id", account);
+    if (!destination && !next && kind === "general-ledger" && sourceRevision)
+      query.set("snapshot_revision", sourceRevision);
+    setSourceRevision(undefined);
     if (!destination && compare && kind !== "general-ledger") {
       if (range) {
         query.set("compare_starts_on", compareStart);
@@ -201,6 +210,11 @@ function ReportContent({
         result.entity_id !== entity.entity_id ||
         result.book_id !== book.book_id ||
         result.report !== requestedKind ||
+        (!destination &&
+          !next &&
+          requestedKind === "general-ledger" &&
+          sourceRevision &&
+          result.snapshot_revision !== sourceRevision) ||
         (destination && result.snapshot_revision !== destination.revision) ||
         (next && result.snapshot_revision !== previous?.snapshot_revision)
       ) {
@@ -373,31 +387,35 @@ function ReportContent({
         ? ["debit", "credit", "running_balance"]
         : ["balance"];
   return (
-    <section aria-labelledby="financial-reports-title">
-      <h2 id="financial-reports-title">Financial reports</h2>
-      <p>
-        {entity.name} / {book.name}. Each report covers this book only.
-      </p>
+    <section aria-label={ledgerOnly ? "Ledger entries" : "Financial reports"}>
+      {!embedded && <h2 id="financial-reports-title">Financial reports</h2>}
+      {!embedded && (
+        <p>
+          {entity.name} / {book.name}. Each report covers this book only.
+        </p>
+      )}
       <form onSubmit={submit}>
         <fieldset disabled={locked}>
           <div className="grid">
-            <label>
-              Report type
-              <select
-                value={kind}
-                onChange={(e) => {
-                  clear();
-                  setKind(e.target.value as ReportKind);
-                  setCompare(false);
-                }}
-              >
-                {Object.entries(names).map(([value, name]) => (
-                  <option key={value} value={value}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!ledgerOnly && (
+              <label>
+                Report type
+                <select
+                  value={kind}
+                  onChange={(e) => {
+                    clear();
+                    setKind(e.target.value as ReportKind);
+                    setCompare(false);
+                  }}
+                >
+                  {Object.entries(names).map(([value, name]) => (
+                    <option key={value} value={value}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {range ? (
               <>
                 <label>

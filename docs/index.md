@@ -1,5 +1,9 @@
 # Project context
 
+All-books Position workspace: [approved design](plans/position-workspace.md) and
+[delivery evidence](runbooks/position-workspace.md), issue #249. Direct Ledger and
+Reports retain scoped reads; financial totals remain per book and currency.
+
 Position-first finance workbench: [proposed Position read model](contracts/position-read-model.md),
 [fixed synthetic examples and source review](research/position-sources.md), and
 [delivery evidence](runbooks/position-contract.md), issue #248. Cash classification

@@ -12,6 +12,8 @@ test("generated review books preserve cents and recover a posted result after re
     label:
       "Fictional Generator Trading LLC / Synthetic review — USD functional",
   });
+  await page.getByText("Tools", { exact: true }).click();
+  await page.getByRole("button", { name: "Accounts", exact: true }).click();
   await page.getByLabel("Through date", { exact: true }).fill("2026-12-31");
   await page
     .getByRole("button", { name: "Load trial balance", exact: true })
@@ -23,6 +25,8 @@ test("generated review books preserve cents and recover a posted result after re
   await page.getByLabel("Entity and book").selectOption({
     label: "Fictional Cents Lab LLC / Synthetic review — USD functional",
   });
+  await page.getByText("Tools", { exact: true }).click();
+  await page.getByRole("button", { name: "Accounts", exact: true }).click();
   await page.getByLabel("Through date", { exact: true }).fill("2026-12-31");
   await page
     .getByRole("button", { name: "Load trial balance", exact: true })
@@ -31,6 +35,7 @@ test("generated review books preserve cents and recover a posted result after re
     page.locator("tbody tr").filter({ hasText: "1000" }).locator("td"),
   ).toHaveText(["0.29", "0.00"]);
   await expect(page.locator("tfoot td")).toHaveText(["0.30", "0.30"]);
+  await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "New journal", exact: true }).click();
   await page.getByLabel("Accounting date", { exact: true }).fill("2026-02-01");
   await page
@@ -67,6 +72,8 @@ test("generated review books preserve cents and recover a posted result after re
   await page.getByLabel("Entity and book").selectOption({
     label: "Fictional Cents Lab LLC / Synthetic review — USD functional",
   });
+  await page.getByText("Tools", { exact: true }).click();
+  await page.getByRole("button", { name: "Accounts", exact: true }).click();
   await page.getByLabel("Through date", { exact: true }).fill("2026-12-31");
   await page
     .getByRole("button", { name: "Load trial balance", exact: true })
