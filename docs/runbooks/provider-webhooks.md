@@ -53,3 +53,37 @@ separate approval gates; no claim of deployed or timely transaction acquisition.
 
 Only internal/webhook and its contract/runbook are owned by this lane. No SQL or
 shared server/deployment/API modifications. Local proof is complete; hosted qualification is not claimed.
+
+## 2026-10-22 bounded host stage — #103 / #88
+
+Lease `PLAID-88-SWARM-20261022T1540Z/WEBHOOK103`, dedicated branch
+`issue/103-webhook-runtime`. Coordinator approved an injected listener composition
+and reviewed constructor checkpoint; SQL, application API, IAM, deployment and
+provider calls remain excluded. Read fresh #103/#87 exports and W01–W07; refreshed
+P88-14/P88-15 and official Go server field descriptions. Added contract alternatives,
+applicability and STRIDE review. No new dependency or financial message.
+
+Added `internal/webhookhost` with exact verified route, restricted-pool constructor,
+fixed transport/context bounds, no general OPTIONS bypass, silent HTTP diagnostics,
+safe headers and single-use lifecycle/cleanup. It composes existing verifier and
+SQL business logic without mounting the private API. Real loopback tests use
+original synthetic notifications, ephemeral in-memory P256 keys and fake committed
+receipt outcomes, not provider data or a hosted service.
+
+Validation: `make check test build` PASS, using local Go1.26.5 with an external
+modfile (tracked pinned1.26.10 unchanged). Final
+`go test -race -count=1 ./internal/webhookhost ./internal/webhook` PASS including
+all five new host groups, ordinary stalled-body timeout and actual `OPTIONS *`
+denial. `make webhook-test` PASS against disposable synthetic PostgreSQL using
+the cached-image adapter. Existing actual-session SQL receipt/replay/revocation
+tests remain unchanged. Logs `/private/tmp/jayburd-103-core.log` and
+`/private/tmp/jayburd-103-webhook-sql.log` are local synthetic command outcomes.
+Sandbox loopback denial was retried with approved escalation, not skipped.
+
+Remaining: managed Cloud SQL currently has no webhook component; dedicated
+`jayburd-dev-webhook` IAM/bootstrap/role review, exact-version secret composition,
+HTTPS ingress and enrollment configuration are required. Reusing API or sync
+identity is prohibited. W01–W05 and hosted W07 remain OPEN. Existing synthetic
+verification cannot clear actual delivery, retry timing, catch-up scheduling or
+receipt→task→worker→source publication. No Item-event extension, real provider call,
+cloud mutation or production activation occurred. Root owns next-stage integration.
