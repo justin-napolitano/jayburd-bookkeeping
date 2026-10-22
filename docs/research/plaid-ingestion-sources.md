@@ -134,6 +134,16 @@ No Plaid account, token, private response or bank data was accessed in this
 review. See [Hosted Link contract](../contracts/hosted-link-enrollment.md) and
 [#187](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/187).
 
+## Source precision review (#258, 2026-10-22)
+
+PI01 refreshed: selected `/transactions/sync` amount and ISO currency sections
+describe numeric settled quantities and currency identifiers. Public sections
+only; no normative ISO text or bank payload inspected. A `double` format does not
+justify rounding evidence. Hosted fixed diagnostic confirms currency precision
+failure, not its source cause. [Decision](../contracts/plaid-source-precision.md):
+preserve bounded exact source quantities, hold sub-minor-unit rows from drafting,
+and publish unrelated rows atomically. No ledger precision or posting change.
+
 ## Application cancellation decision (#200, 2026-10-19)
 
 The existing PI12 Hosted Link review informed the local cancellation contract.

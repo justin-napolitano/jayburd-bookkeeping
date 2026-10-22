@@ -52,6 +52,11 @@ unofficial/missing ISO and ambiguous or unavailable versions reject the whole pa
 
 ## Parser profile and bounds
 
+Issue #258's subsequent [source precision decision](plaid-source-precision.md)
+supersedes the currency-minor-unit rejection below: retain exact bounded source
+amounts but mark them ineligible and hold their review rows. Magnitude and
+nine-decimal storage bounds still reject. Historical diagnostics remain readable.
+
 Issue #258 refines diagnostics without changing the accepted quantity set.
 `amount_magnitude_exceeded` means more than 38 significant or 29 integer digits;
 `amount_scale_exceeded` means normalized scale above nine;
