@@ -7,11 +7,18 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/acquisition"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/bankcredential"
@@ -26,6 +34,8 @@ import (
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/staging"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/server"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/webhook"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/webhookhost"
 )
 
 var proof = flag.Bool("provider-flow-proof", false, "Use only disposable synthetic provider-flow database")
@@ -249,6 +259,77 @@ func stringField(t *testing.T, v json.RawMessage) string {
 	return s
 }
 
+// flowWebhookKey provides only an ephemeral public verification key for the fictional socket flow.
+type flowWebhookKey struct{ key webhook.JWK }
+
+// Get performs no provider lookup and fails if the signed key ID changes.
+func (k flowWebhookKey) Get(_ context.Context, id string) (webhook.JWK, error) {
+	if id != k.key.ID {
+		return webhook.JWK{}, errors.New("synthetic key unavailable")
+	}
+	return k.key, nil
+}
+
+// startFlowWebhook composes the real SQL receiver and listener using only a restricted test login.
+func startFlowWebhook(t *testing.T, db *pgx.Conn) (string, string, string) {
+	t.Helper()
+	private, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if e != nil {
+		t.Fatal("synthetic signing key failed")
+	}
+	body := `{"webhook_type":"TRANSACTIONS","webhook_code":"SYNC_UPDATES_AVAILABLE","item_id":"synthetic-flow-item","environment":"sandbox","initial_update_complete":true,"historical_update_complete":true}`
+	digest := sha256.Sum256([]byte(body))
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{"iat": time.Now().Unix(), "request_body_sha256": hex.EncodeToString(digest[:])})
+	token.Header["kid"] = "synthetic-flow-key"
+	signed, e := token.SignedString(private)
+	if e != nil {
+		t.Fatal("synthetic signature failed")
+	}
+	keys := flowWebhookKey{webhook.JWK{Alg: "ES256", Curve: "P-256", ID: "synthetic-flow-key", Type: "EC", Use: "sig", X: base64.RawURLEncoding.EncodeToString(private.X.FillBytes(make([]byte, 32))), Y: base64.RawURLEncoding.EncodeToString(private.Y.FillBytes(make([]byte, 32))), Created: time.Now().Add(-time.Hour).Unix()}}
+	host, e := webhookhost.NewSQL(keys, db, nil)
+	if e != nil {
+		t.Fatal("SQL webhook composition failed")
+	}
+	listener, e := net.Listen("tcp", "127.0.0.1:0")
+	if e != nil {
+		t.Fatal("synthetic listener failed")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- host.Serve(ctx, listener) }()
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case e := <-done:
+			if e != nil {
+				t.Error("webhook shutdown failed")
+			}
+		case <-time.After(4 * time.Second):
+			t.Error("webhook shutdown timed out")
+		}
+	})
+	return "http://" + listener.Addr().String() + "/webhooks/plaid", signed, body
+}
+
+// postFlowWebhook sends exact fictional signed bytes and exposes only status to the test.
+func postFlowWebhook(t *testing.T, url, token, body string) int {
+	t.Helper()
+	r, e := http.NewRequest(http.MethodPost, url, strings.NewReader(body))
+	if e != nil {
+		t.Fatal("synthetic webhook request failed")
+	}
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("Plaid-Verification", token)
+	client := &http.Client{Timeout: 3 * time.Second}
+	response, e := client.Do(r)
+	if e != nil {
+		t.Fatal("synthetic webhook delivery failed")
+	}
+	defer response.Body.Close()
+	_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 1024))
+	return response.StatusCode
+}
+
 // TestProviderEnrollmentAcquisitionFlow connects real HTTP, enrollment SQL, durable evidence and runner SQL.
 func TestProviderEnrollmentAcquisitionFlow(t *testing.T) {
 	c := connect(t, "postgres")
@@ -297,6 +378,29 @@ func TestProviderEnrollmentAcquisitionFlow(t *testing.T) {
 	if json.Unmarshal(bound["streams"], &streams) != nil || len(streams) != 1 || streams[0].Overlap {
 		t.Fatal("provider-first source not reviewable")
 	}
+	// The actual socket, signature verifier and SQL receiver must share one durable wakeup boundary.
+	webhookDB := connect(t, "synthetic_webhook")
+	ownerCall(t, operator, `SELECT integration.set_webhook_ingress('synthetic_webhook','sandbox','flow-webhook',true)`)
+	webhookURL, signed, notification := startFlowWebhook(t, webhookDB)
+	if scalar(t, c, `SELECT requested_generation::text FROM integration.sync_stream`) != "1" {
+		t.Fatal("unexpected initial generation")
+	}
+	for _, bad := range []struct{ token, body string }{{"invalid", notification}, {signed, notification + " "}} {
+		if postFlowWebhook(t, webhookURL, bad.token, bad.body) != 401 {
+			t.Fatal("invalid notification accepted")
+		}
+	}
+	if scalar(t, c, `SELECT count(*)::text FROM integration.webhook_receipt`) != "0" || scalar(t, c, `SELECT requested_generation::text FROM integration.sync_stream`) != "1" {
+		t.Fatal("unverified socket delivery mutated SQL")
+	}
+	for range 2 {
+		if postFlowWebhook(t, webhookURL, signed, notification) != 204 {
+			t.Fatal("durable socket delivery rejected")
+		}
+	}
+	if scalar(t, c, `SELECT count(*)::text FROM integration.webhook_receipt`) != "1" || scalar(t, c, `SELECT requested_generation::text FROM integration.sync_stream`) != "2" || scalar(t, c, `SELECT count(*)::text FROM integration.sync_wakeup WHERE reason='webhook'`) != "1" {
+		t.Fatal("notification replay duplicated receipt or wakeup")
+	}
 	httpProvider := &transport{}
 	client, e := acquisition.NewPlaidHTTP(httpProvider)
 	if e != nil {
@@ -334,7 +438,7 @@ func TestProviderEnrollmentAcquisitionFlow(t *testing.T) {
 	if e != nil || out.Status != "completed" || httpProvider.calls != 1 {
 		t.Fatal("replay refetched provider or failed")
 	}
-	if scalar(t, c, `SELECT count(*)::text FROM ledger.journal_entry`) != "0" {
+	if scalar(t, c, `SELECT count(*)::text FROM ledger.journal_entry`) != "0" || scalar(t, c, `SELECT count(*)::text FROM integration.outbox_message`) != "0" {
 		t.Fatal("acquisition posted a journal")
 	}
 	if scalar(t, c, `SELECT sum(r.amount)::text FROM banking.source_observation o JOIN banking.observation_revision r ON (r.entity_id,r.book_id,r.observation_id,r.revision)=(o.entity_id,o.book_id,o.observation_id,o.current_revision)`) != "0.300000000" {
@@ -346,6 +450,9 @@ func TestProviderEnrollmentAcquisitionFlow(t *testing.T) {
 	request(t, app, "GET", base+"/connections", "", nil, 200)
 	request(t, app, "GET", base+"/review-items?source_account_id="+streams[0].SourceID+"&state=needs_review", "", nil, 200)
 	request(t, app, "POST", base+"/connections/streams/"+scope.StreamID+"/disconnect", "flow-disconnect", map[string]string{"expected_binding_revision": "1"}, 200)
+	if postFlowWebhook(t, webhookURL, signed, notification) != 403 || scalar(t, c, `SELECT count(*)::text FROM integration.webhook_receipt`) != "1" || scalar(t, c, `SELECT requested_generation::text FROM integration.sync_stream`) != "2" {
+		t.Fatal("disconnected stream accepted replay or mutated wakeup")
+	}
 	_, e = runner.Run(context.Background(), scope, claim)
 	if e == nil || httpProvider.calls != 1 {
 		t.Fatal("disconnected stream retained acquisition authority")

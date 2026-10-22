@@ -130,3 +130,29 @@ bind denial. Logs: `/private/tmp/jayburd-85-core.log`,
 `/private/tmp/jayburd-85-acquisition.log`, `/private/tmp/jayburd-85-integrations.log`.
 Staged runbook guard and `git diff --check` run before commit. No browser/API wire
 contract changed, so browser build/recovery gates are not added for these tests.
+
+### Follow-up: signed socket to actual restricted SQL
+
+Coordinator requested the missing composition proof after independent review.
+Dependency commits `f79e3ea` (bounded host) and `2422e68` (runtime identity contract)
+were applied before this test-only follow-up; they are not implemented again here.
+Extended `TestProviderEnrollmentAcquisitionFlow` rather than adding another harness:
+real ephemeral loopback listener → maintained-library synthetic ES256 signature →
+actual verifier → `Host.NewSQL` → `synthetic_webhook` login → PostgreSQL29 receipt
+and wakeup → existing acquisition runner → review evidence. The script adds only a
+fictional webhook login to its disposable database. No live DSN or provider access.
+
+`make provider-flow-test` PASS, log `/private/tmp/jayburd-85-webhook-flow.log`:
+invalid signature and altered bytes each return401 with no receipt/generation
+change; exact signed delivery and duplicate each return204 but persist one receipt,
+one webhook wakeup and one generation increment (1→2). Existing acquisition then
+publishes two exact cents observations and replays without another fetch, with
+zero journal entries and journal outbox rows. Disconnect makes the same valid
+signed replay return403 and leaves receipt/generation counts unchanged. Synthetic
+HTTP identity remains the existing test adapter; this proves listener/signature/
+SQL composition, not provider enrollment, hosted IAM, proxy timing or delivery.
+Core checks and staged guard recorded before the follow-up commit.
+
+Follow-up core `make check test build` PASS, including race tests for the bounded
+host, log `/private/tmp/jayburd-85-webhook-core.log`; provider-flow proof above PASS
+without skips. This follow-up adds no production implementation or migration.
