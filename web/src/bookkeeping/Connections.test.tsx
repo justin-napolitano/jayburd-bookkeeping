@@ -1202,6 +1202,185 @@ it("checks a discovered Hosted attempt after reload without a browser token", as
   ).toHaveLength(0);
 });
 
+// Exited sessions and competing completions inspect the exact attempt without auto-restarting enrollment.
+it.each(["same tab", "after reload"])(
+  "offers explicit recovery after a completion conflict %s",
+  async (scenario) => {
+    let started = scenario === "after reload";
+    const api = vi.fn(async (path: string) => {
+      if (path.endsWith("/connections")) return { items: [] };
+      if (path.includes("/connection-attempts?"))
+        return {
+          items: started
+            ? [
+                {
+                  ...attempt,
+                  expired_unclaimed: false,
+                  binding_expired: false,
+                },
+              ]
+            : [],
+          next_cursor: null,
+          unfinished_count: started ? "1" : "0",
+        };
+      if (path.endsWith("/complete")) throw new APIError(409, false);
+      if (path.endsWith(`/${attempt.attempt_id}`)) return attempt;
+      if (path.endsWith("/connection-attempts")) {
+        started = true;
+        return {
+          attempt,
+          nonce: id(9),
+          link_token: "synthetic-link",
+          expires_at: attempt.expires_at,
+          hosted_link_url: "https://secure.plaid.com/hl/synthetic",
+        };
+      }
+      throw Error("unexpected request");
+    }) as unknown as API;
+    const link = { open: vi.fn() };
+    render(<Connections {...props(api, false)} link={link} />);
+    if (scenario === "same tab") {
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Connect account" }),
+      );
+      await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+    } else {
+      fireEvent.click(
+        await screen.findByRole("button", {
+          name: `Review attempt ${attempt.attempt_id}`,
+        }),
+      );
+    }
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Check bank setup completion",
+      }),
+    );
+    await screen.findByText(
+      /If you exited Plaid, use Cancel setup or Try again below/,
+    );
+    expect(screen.getByRole("button", { name: "Cancel setup" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeDefined();
+    expect(
+      vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/complete")),
+    ).toHaveLength(1);
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.filter(([path]) => /\/(execute|abandon)$/.test(path)),
+    ).toHaveLength(0);
+    expect(link.open).not.toHaveBeenCalled();
+    expect(localStorage.length + sessionStorage.length).toBe(0);
+  },
+);
+
+// A concurrent completion wins over exit guidance; the inspected durable state stays authoritative.
+it.each(["binding_review", "active", "credential_pending"])(
+  "retains %s after a competing Hosted completion",
+  async (state) => {
+    let gets = 0;
+    const api = vi.fn(async (path: string) => {
+      if (path.endsWith("/connections")) return { items: [] };
+      if (path.includes("/connection-attempts?"))
+        return {
+          items: [
+            { ...attempt, expired_unclaimed: false, binding_expired: false },
+          ],
+          next_cursor: null,
+          unfinished_count: "1",
+        };
+      if (path.endsWith("/complete")) throw new APIError(409, false);
+      if (path.endsWith(`/${attempt.attempt_id}`))
+        return ++gets === 1
+          ? attempt
+          : { ...attempt, state, manifest, sync_item_id: id(6) };
+      throw Error("unexpected request");
+    }) as unknown as API;
+    render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: `Review attempt ${attempt.attempt_id}`,
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Check bank setup completion",
+      }),
+    );
+    await screen.findByText(
+      `Historical attempt status: ${state.replaceAll("_", " ")}`,
+    );
+    expect(screen.queryByText(/If you exited Plaid/)).toBeNull();
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.filter(([path]) =>
+          /\/(execute|abandon|reconcile)$/.test(path),
+        ),
+    ).toHaveLength(0);
+  },
+);
+
+// A rejected or late inspection cannot resurrect the old setup or offer a mutation in denied scope.
+it.each(["denied", "scope changed"])(
+  "fences completion conflict inspection when %s",
+  async (scenario) => {
+    const reply = deferred<typeof attempt>();
+    let gets = 0;
+    const api = vi.fn(async (path: string) => {
+      if (path.endsWith("/connections")) return { items: [] };
+      if (path.includes("/connection-attempts?"))
+        return {
+          items: [
+            { ...attempt, expired_unclaimed: false, binding_expired: false },
+          ],
+          next_cursor: null,
+          unfinished_count: "1",
+        };
+      if (path.endsWith("/complete")) throw new APIError(409, false);
+      if (path.endsWith(`/${attempt.attempt_id}`)) {
+        if (++gets === 1) return attempt;
+        if (scenario === "denied") throw new APIError(403, false);
+        return reply.promise;
+      }
+      throw Error("unexpected request");
+    }) as unknown as API;
+    const initial = props(api, false);
+    const view = render(<Connections {...initial} link={{ open: vi.fn() }} />);
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: `Review attempt ${attempt.attempt_id}`,
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Check bank setup completion",
+      }),
+    );
+    await waitFor(() => expect(gets).toBe(2));
+    if (scenario === "denied") {
+      await waitFor(() => expect(initial.denied).toHaveBeenCalledOnce());
+    } else {
+      view.rerender(
+        <Connections {...initial} locked={true} link={{ open: vi.fn() }} />,
+      );
+      reply.resolve(attempt);
+      await reply.promise;
+    }
+    expect(screen.queryByText(/If you exited Plaid/)).toBeNull();
+    expect(
+      screen.queryByText("Historical attempt status: link ready"),
+    ).toBeNull();
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.filter(([path]) =>
+          /\/(execute|abandon|reconcile)$/.test(path),
+        ),
+    ).toHaveLength(0);
+  },
+);
+
 // Invalid navigation and unknown exchange outcomes must never retain a runnable handoff.
 it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
   "Hosted handoff clears on %s",

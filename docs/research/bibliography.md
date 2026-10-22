@@ -5,6 +5,9 @@
 
 ## Purpose and reading order
 
+[Link recovery](plaid-link-recovery-sources.md): LR01–04, selected official sections,
+2026-10-22; update association/OAuth remain unqualified.
+
 [Plaid #88 sources](plaid-88-test-sources.md): selected official sections,
 2026-10-22; Launch Center unreviewed, hosted proof incomplete.
 
@@ -22,12 +25,10 @@
 SIX ISO4217 List One (2026-09-17), retrieved2026-10-15 with SHA256 and USD/840/2
 review. Bounded local reference evidence; paid ISO text was not reviewed.
 
-[Plaid Link browser](../contracts/plaid-link-browser.md) reviews official Web SDK
-loading/callbacks (2026-10-14) and pinned Go SDK source (2026-10-19). Use it to distinguish
-our memory/cancellation policy from real Link Events and institution qualification.
-[Worker release](../contracts/worker-release.md) records the owner-bootstrap/runtime
-split and narrow federation policy. The [operator guide](../../deploy/WORKERS.md)
-explains exact-byte promotion, evidence limits and compatible rollback.
+[Plaid browser](../contracts/plaid-link-browser.md): Web SDK lifecycle (2026-10-14),
+pinned Go source (2026-10-19); synthetic policy, not institution qualification.
+[Worker release](../contracts/worker-release.md): bootstrap/runtime federation.
+[Operator guide](../../deploy/WORKERS.md): exact-byte promotion/rollback limits.
 
 Worker review (2026-10-14); [#258 rollout/CI sources](plaid-rollout-sources.md)
 (selected sections, 2026-10-22):
