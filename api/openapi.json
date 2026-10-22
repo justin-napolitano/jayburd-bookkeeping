@@ -6904,6 +6904,9 @@
               "invalid_date",
               "unsupported_currency",
               "amount_out_of_range",
+              "amount_magnitude_exceeded",
+              "amount_scale_exceeded",
+              "currency_precision_exceeded",
               null
             ],
             "description": "Fixed classification from the latest acquisition; never provider data."
