@@ -1,10 +1,11 @@
 :root {
   color-scheme: light;
-  --ink: #182e32;
-  --muted: #51676b;
-  --line: #cbd6d2;
-  --paper: #f5f5ef;
-  --accent: #155b4d;
+  --ink: #202124;
+  --muted: #555b63;
+  --line: #dce0e3;
+  --paper: #fff;
+  --accent: #286044;
+  --negative: #9b3e38;
 }
 * {
   box-sizing: border-box;
@@ -27,7 +28,7 @@ header {
   margin-bottom: 2rem;
 }
 h1 {
-  font-family: Georgia, serif;
+  font-family: inherit;
   font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 400;
   line-height: 1.12;
@@ -48,7 +49,7 @@ h3 {
 section {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 0;
   padding: 1.5rem;
   margin: 1.25rem 0;
 }
@@ -97,7 +98,7 @@ input:focus-visible,
 select:focus-visible,
 button:focus-visible,
 summary:focus-visible {
-  outline: 3px solid #c3822a;
+  outline: 3px solid var(--accent);
   outline-offset: 3px;
 }
 .grid {
@@ -137,8 +138,8 @@ pre {
   font-size: 0.85rem;
 }
 p[role="alert"] {
-  border-left: 4px solid #a34220;
-  background: #fff1e7;
+  border-left: 3px solid var(--negative);
+  background: #fcf6f5;
   padding: 1rem;
 }
 p[role="status"] {
@@ -338,7 +339,7 @@ footer {
   margin: 1.1rem 0 -0.25rem;
 }
 .view-title:focus-visible {
-  outline: 3px solid #c3822a;
+  outline: 3px solid var(--accent);
   outline-offset: 4px;
 }
 .balances {
@@ -488,8 +489,466 @@ footer {
 }
 
 /* Opaque provider references remain readable within narrow connection panels. */
-section[aria-label="Connections"] { overflow-wrap: anywhere; }
-section[aria-label="Connections"] article { margin-block: 1.2rem; padding: 1rem; border: 1px solid var(--line, #cdd8d6); border-radius: .5rem; }
-section[aria-label="Connections"] li { margin-block: .8rem; }
-section[aria-label="Connections"] button { margin-block: .25rem; }
-section[aria-label="Connections"] input:not([type="checkbox"]), section[aria-label="Connections"] select { max-width: 100%; min-width: 0; }
+section[aria-label="Connections"] {
+  overflow-wrap: anywhere;
+}
+section[aria-label="Connections"] article {
+  margin-block: 1.2rem;
+  padding: 1rem;
+  border: 1px solid var(--line, #cdd8d6);
+  border-radius: 0.5rem;
+}
+section[aria-label="Connections"] li {
+  margin-block: 0.8rem;
+}
+section[aria-label="Connections"] button {
+  margin-block: 0.25rem;
+}
+section[aria-label="Connections"] input:not([type="checkbox"]),
+section[aria-label="Connections"] select {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Focused financial tools share scope without placing multiple tasks on one screen. */
+.app-shell {
+  max-width: 1440px;
+  padding: 0 0 1rem;
+}
+.finance-workspace {
+  min-width: 0;
+}
+.finance-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 4rem;
+  min-height: 80px;
+  border-bottom: 1px solid var(--line);
+}
+.finance-brand {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  margin-right: 2rem;
+}
+.finance-nav {
+  display: flex;
+  align-self: stretch;
+  gap: 1.2rem;
+}
+.finance-nav button {
+  margin: 0;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 1.15rem 0.6rem;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 450;
+}
+.finance-nav button[aria-current="page"] {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.finance-scope {
+  margin: 0 0 0 auto;
+  min-width: 0;
+  max-width: 360px;
+  font-weight: 400;
+}
+.finance-scope select {
+  border-color: transparent;
+  background: transparent;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+}
+.finance-tools {
+  position: relative;
+}
+.finance-tools summary {
+  font-size: 0.9rem;
+  font-weight: 450;
+  white-space: nowrap;
+}
+.finance-tools > div {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  width: 220px;
+  z-index: 5;
+  padding: 0.5rem;
+  background: white;
+  border: 1px solid var(--line);
+}
+.finance-tools button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.65rem;
+  text-align: left;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  font-weight: 400;
+}
+.finance-tools button:hover {
+  background: #f3f4f4;
+}
+.finance-notices:empty {
+  display: none;
+}
+.finance-notices,
+.finance-workspace > .book-workspace,
+.tool-book-picker {
+  margin: 1.5rem 4rem;
+}
+.finance-workspace > .book-workspace .book-context {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.5rem;
+}
+.finance-workspace > .book-workspace .view-title {
+  font-size: 1.6rem;
+  margin: 1.5rem 0;
+}
+.finance-workspace > .book-workspace section {
+  padding: 1rem 0;
+  border: 0;
+}
+.position-view {
+  padding: 2.8rem 4rem 1.3rem;
+}
+.position-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+}
+.position-heading h1 {
+  font:
+    650 clamp(1.7rem, 2.7vw, 2.4rem) / 1.25 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  margin: 0;
+  max-width: none;
+  letter-spacing: -0.025em;
+}
+.position-heading label {
+  margin: 0;
+}
+.position-heading input {
+  font-weight: 400;
+  padding: 0.45rem 0.75rem;
+  border-color: #c6cbcf;
+}
+.position-scope-label {
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin: 0.85rem 0 2.6rem;
+}
+.position-table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.position-table {
+  min-width: 820px;
+  table-layout: fixed;
+  font-size: 1.15rem;
+  line-height: 1.35;
+}
+.position-table caption,
+.position-provenance,
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.position-table th,
+.position-table td {
+  padding: 0.8rem 0.8rem;
+  white-space: nowrap;
+}
+.position-table thead th {
+  font-weight: 450;
+  color: #454b53;
+  padding-top: 0.45rem;
+  padding-bottom: 1rem;
+}
+.position-table th:first-child {
+  width: 22%;
+  padding-left: 0;
+}
+.position-table th:nth-child(2),
+.position-table td:nth-child(2) {
+  text-align: left;
+}
+.position-table thead th:nth-child(2) {
+  width: 9%;
+}
+.position-table thead th:nth-child(3) {
+  width: 15%;
+}
+.position-table thead th:nth-child(n + 4) {
+  width: 18%;
+}
+.position-table th:last-child,
+.position-table td:last-child {
+  padding-right: 1.3rem;
+}
+.position-table .position-entity-row th {
+  font-weight: 650;
+  padding: 1.1rem 0 0.65rem;
+  text-align: left;
+  background: white;
+}
+.position-book-row th {
+  font-weight: 400;
+}
+.position-book-row.position-row-striped {
+  background: #f3f4f4;
+}
+.position-book-link {
+  display: inline-block;
+  margin: 0;
+  border: 0;
+  padding: 0.15rem 0.25rem 0.15rem 1.5rem;
+  min-height: 36px;
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  text-align: left;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.position-book-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.position-table .position-equity {
+  font-weight: 650;
+}
+.amount-positive {
+  color: var(--accent);
+}
+.amount-negative {
+  color: var(--negative);
+}
+.position-row-state {
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--muted);
+  white-space: normal !important;
+}
+.position-row-state[role="alert"] {
+  color: var(--negative);
+}
+.position-empty {
+  padding: 1.5rem 0;
+}
+.position-comparison {
+  margin-top: 2rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.position-comparison summary {
+  font: inherit;
+  padding: 0.5rem 0;
+}
+.position-comparison label {
+  max-width: 240px;
+}
+.finance-workspace > .command-idle {
+  margin: 1rem 4rem;
+  padding: 0.6rem 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+.finance-workspace > .command-attention {
+  margin: 1rem 4rem;
+}
+.setup-shelf {
+  margin: 1rem 4rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+.setup-shelf > summary {
+  font-size: 0.9rem;
+  font-weight: 450;
+  color: var(--muted);
+}
+.setup-shelf section {
+  margin: 0.75rem 0;
+}
+.app-shell > footer {
+  margin: 1rem 4rem;
+  font-size: 0.8rem;
+}
+.tool-book-picker {
+  border: 0;
+  padding: 0;
+}
+.tool-book-picker h1 {
+  font:
+    600 1.7rem/1.3 ui-sans-serif,
+    system-ui,
+    sans-serif;
+}
+.tool-book-picker h2 {
+  font-size: 1.05rem;
+  margin-top: 1.5rem;
+}
+.tool-book-picker button {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+  font-weight: 400;
+}
+.position-heading h1:focus-visible,
+.tool-book-picker h1:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 5px;
+}
+/* Narrow screens keep each book's five facts visible as labeled cells. */
+@media (max-width: 600px) {
+  .position-table {
+    min-width: 0;
+  }
+  .position-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .position-table tbody {
+    display: block;
+  }
+  .position-table .position-entity-row {
+    display: block;
+  }
+  .position-table .position-entity-row th {
+    display: block;
+    width: 100%;
+    padding: 1rem 0 0.7rem;
+    white-space: normal;
+  }
+  .position-table .position-book-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.8rem 1rem;
+    padding: 0.8rem 0.9rem 1rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .position-table .position-book-row th {
+    width: auto;
+    grid-column: 1 / -1;
+    padding: 0;
+    border: 0;
+  }
+  .position-table .position-book-row td {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 1rem;
+  }
+  .position-book-row td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 400;
+    margin-bottom: 0.2rem;
+  }
+  .position-table .position-book-row td:nth-child(2) {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    font-size: 0.8rem;
+  }
+  .position-table .position-book-row td.position-row-state {
+    grid-column: 1 / -1;
+  }
+  .position-book-link {
+    padding: 0;
+    font-weight: 600;
+    min-height: 36px;
+  }
+}
+@media (max-width: 800px) {
+  .finance-bar {
+    padding: 0.4rem 1.2rem 0;
+    gap: 0.5rem 1rem;
+    flex-wrap: wrap;
+  }
+  .finance-brand {
+    font-size: 1.35rem;
+    margin-right: 0;
+  }
+  .finance-nav {
+    order: 3;
+    width: 100%;
+    gap: 1.5rem;
+  }
+  .finance-nav button {
+    padding: 0.75rem 0.2rem;
+    font-size: 1rem;
+  }
+  .finance-scope {
+    flex: 1;
+    max-width: none;
+  }
+  .finance-scope select {
+    font-size: 0.85rem;
+    padding-left: 0.2rem;
+  }
+  .finance-tools {
+    margin-left: auto;
+  }
+  .finance-scope + .finance-tools {
+    margin-left: 0;
+  }
+  .position-view {
+    padding: 2rem 1.2rem 1rem;
+  }
+  .position-heading {
+    gap: 1rem;
+  }
+  .position-heading h1 {
+    font-size: 1.65rem;
+  }
+  .position-scope-label {
+    font-size: 0.95rem;
+    margin-bottom: 1.8rem;
+  }
+  .position-table {
+    font-size: 0.95rem;
+  }
+  .finance-notices,
+  .finance-workspace > .book-workspace,
+  .tool-book-picker,
+  .finance-workspace > .command-idle,
+  .finance-workspace > .command-attention,
+  .setup-shelf,
+  .app-shell > footer {
+    margin-left: 1.2rem;
+    margin-right: 1.2rem;
+  }
+  .position-comparison {
+    font-size: 0.85rem;
+  }
+}
