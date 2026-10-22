@@ -300,6 +300,9 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 			if errors.As(err, &failure) && failure.Code == "link_session_pending" {
 				return s.Attempt(ctx, scope, id)
 			}
+			if errors.As(err, &failure) && failure.Code == "link_session_exited" {
+				return nil, failed("connection_operation_blocked")
+			}
 			slog.Warn("hosted completion unavailable", "stage", "plaid_link_status", "attempt_id", id)
 			return nil, failed("temporarily_unavailable")
 		}

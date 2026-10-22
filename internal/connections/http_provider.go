@@ -206,6 +206,13 @@ func (p *HTTPProvider) CompletedPublicToken(ctx context.Context, link Secret) (S
 		}
 	}
 	if count == 0 {
+		// A unique modern exit is recovery guidance only, never proof of provider absence.
+		if len(response.LinkSessions) == 1 {
+			session := response.LinkSessions[0]
+			if session.FinishedAt != nil && session.Exit != nil && session.Results == nil && opaqueRE.MatchString(session.LinkSessionID) {
+				return Secret{}, failed("link_session_exited")
+			}
+		}
 		return Secret{}, failed("link_session_pending")
 	}
 	if count != 1 {

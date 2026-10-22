@@ -37,7 +37,7 @@ docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE DATABA
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" \
  "$MIGRATE_IMAGE" -path /proof/migrations -database 'postgres://postgres@database:5432/provider_flow_template?sslmode=disable' up
 # Actual login sessions bind service authority; no SET ROLE impersonation.
-docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE ROLE synthetic_operator LOGIN NOINHERIT IN ROLE bookkeeping_owner; CREATE ROLE synthetic_runtime LOGIN IN ROLE bookkeeping_api; CREATE ROLE synthetic_sync LOGIN IN ROLE bookkeeping_sync' >/dev/null
+docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE ROLE synthetic_operator LOGIN NOINHERIT IN ROLE bookkeeping_owner; CREATE ROLE synthetic_runtime LOGIN IN ROLE bookkeeping_api; CREATE ROLE synthetic_sync LOGIN IN ROLE bookkeeping_sync; CREATE ROLE synthetic_webhook LOGIN IN ROLE bookkeeping_webhook' >/dev/null
 mkdir -p .local
 case "$(docker exec "$proof_id" uname -m)" in
  aarch64) proof_arch=arm64 ;;

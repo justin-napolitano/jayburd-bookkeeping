@@ -612,6 +612,7 @@ type hostedProvider struct {
 	*fakeProvider
 	checks  int
 	pending bool
+	exited  bool
 }
 
 // CreateLink marks this synthetic flow as Hosted so Begin saves a recoverable token.
@@ -653,10 +654,29 @@ func TestHostedReloadCompletion(t *testing.T) {
 // CompletedPublicToken never exchanges and exposes delayed provider completion deterministically.
 func (p *hostedProvider) CompletedPublicToken(context.Context, Secret) (Secret, error) {
 	p.checks++
+	if p.exited {
+		return Secret{}, failed("link_session_exited")
+	}
 	if p.pending {
 		return Secret{}, failed("link_session_pending")
 	}
 	return NewSecret("synthetic-public"), nil
+}
+
+// TestHostedExitPreservesClaim proves a reported exit cannot claim, exchange or abandon an attempt.
+func TestHostedExitPreservesClaim(t *testing.T) {
+	s, r, p, store := fixture()
+	s.provider = &hostedProvider{fakeProvider: p, exited: true}
+	if _, err := s.Begin(context.Background(), scope, "hosted-exit", BeginRequest{Mode: "new", ApprovedStreamIDs: []string{}}); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		_, err := s.CompleteHosted(context.Background(), scope, attemptID)
+		code(t, err, "connection_operation_blocked")
+	}
+	if r.claimed || count(p.calls, "exchange") != 0 || store.writes != 0 || r.c.State != "link_ready" {
+		t.Fatal("exit mutated connection or consumed exchange claim")
+	}
 }
 
 // TestHostedCompletionClaimBoundary protects pending, scoped authority and replay before provider I/O.

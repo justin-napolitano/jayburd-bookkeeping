@@ -27,6 +27,9 @@ separate outstanding acceptance row. No credentials or provider payloads were re
 | P88-15 [Webhook verification](https://plaid.com/docs/api/webhooks/webhook-verification/) | ES256/kid, key metadata, signature, issued-at age and exact-body SHA256. Plaid describes verification as optional; Jayburd requires it under its existing contract. | W06–W07 |
 | P88-16 [Transactions setup](https://plaid.com/docs/transactions/add-to-app/) | Item creation, access-token exchange and fetch/update workflow. Initial history request is bounded by provider availability. | T01, G03 |
 | P88-17 [Link troubleshooting](https://plaid.com/docs/link/troubleshooting/) | Link errors, missing institutions/accounts, OAuth configuration and consent/use-case configuration. | E03–E05, G01 |
+| P88-18 [Cloud SQL IAM login](https://docs.cloud.google.com/sql/docs/postgres/iam-logins) | Selected automatic IAM authentication and service-account login sections, refreshed2026-10-22. Connector authentication does not substitute for provisioned SQL authority. | Dedicated webhook connector |
+| P88-19 [Cloud Run service identity](https://docs.cloud.google.com/run/docs/securing/service-identity) | Selected service-account and metadata token sections, refreshed2026-10-22. Service identity is distinct from caller authentication. | Managed credential composition |
+| P88-20 [Public Cloud Run access](https://docs.cloud.google.com/run/docs/authenticating/public) | Selected public invocation/IAM check sections, refreshed2026-10-22. Public invocation is explicit configuration, not granted by application handler code. | Separate release/security review |
 
 ## Interpretation and limits
 
