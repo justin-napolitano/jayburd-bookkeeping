@@ -28,7 +28,20 @@ Reviewed product scope only. It may expose additional liability details and
 loan types but is a separate product and does not expand Transactions coverage.
 It is not enabled by #210.
 
-## Limits
+## PL04 — Additional fictional loan registration, 2026-10-22
+
+Refreshed the official [Accounts API](https://plaid.com/docs/api/accounts/)
+loan subtype definitions for auto, consumer and line of credit, plus the
+account/product matrix caveat that only some loans support Transactions.
+Refreshed [Transactions sync](https://plaid.com/docs/api/products/transactions/)
+account type/subtype and amount fields. Public selected sections reviewed; no
+institution payload or tenant settings accessed. Fact: subtype vocabulary does
+not guarantee product availability. Inference approved by the owner's requested
+scope: permit these three verified Sandbox loans to register with the existing
+liability mapping and attempt scoped acquisition; retain explicit failure state.
+No principal/interest allocation or opening balance follows from registration.
+
+## Limits (continued)
 
 Documentation can change. Fresh Sandbox verification is required for the
 selected types and newly bound streams. Live-bank approval remains #90.
