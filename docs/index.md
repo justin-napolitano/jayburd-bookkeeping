@@ -37,6 +37,7 @@ background work. The two predecessor repos are reference material only.
 | --- | --- |
 | Which Plaid tests have passed, and what remains before qualification? | [#88 test matrix](plans/plaid-88-test-matrix.md), [official sources](research/plaid-88-test-sources.md) and [audit runbook](runbooks/plaid-88-test-matrix.md) |
 | What did the Plaid qualification swarm implement? | [Integration evidence](runbooks/plaid-88-swarm.md), [dedicated webhook runtime](contracts/webhook-managed-runtime.md) and [Link recovery](contracts/plaid-link-recovery-qualification.md) |
+| How is the dedicated Sandbox webhook release prepared? | [Release evidence](contracts/webhook-release-evidence.md), [infrastructure](contracts/webhook-release.md), [SQL bootstrap](contracts/webhook-bootstrap.md), [enrollment](contracts/webhook-enrollment.md) and [integration stages](runbooks/webhook-release-preparation.md); #271 hosted acceptance remains open |
 | Why is active account sync stuck after an acknowledged worker request? | [Acquisition recovery](contracts/plaid-acquisition-recovery.md) and [delivery evidence](runbooks/plaid-acquisition-recovery.md) |
 | How are per-account bank credentials encrypted? | [Encrypted credential contract](contracts/bank-token-vault.md) and [delivery ledger](runbooks/bank-token-vault.md) |
 | How does Connect account prepare a new creator-owned book? | [Self-service onboarding](contracts/self-service-connections.md) and [delivery evidence](runbooks/self-service-connections.md) |

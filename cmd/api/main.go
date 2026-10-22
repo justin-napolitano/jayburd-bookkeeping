@@ -32,6 +32,7 @@ func main() {
 	flag.StringVar(&enrollment.ClientIDVersion, "plaid-client-id-version", "", "numeric immutable GSM client ID version")
 	flag.StringVar(&enrollment.ClientSecretVersion, "plaid-client-secret-version", "", "numeric immutable GSM client secret version")
 	flag.StringVar(&enrollment.ConsentExpiresAt, "plaid-consent-expires-at", "", "fixed RFC3339 local approval expiry within30days")
+	flag.StringVar(&enrollment.WebhookURL, "plaid-webhook-url", "", "optional exact reviewed Sandbox Transactions receiver")
 
 	mode := flag.String("mode", "health", "health or explicitly provisioned managed mode")
 	listen := flag.String("listen", "127.0.0.1:8080", "explicit listening address")

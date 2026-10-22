@@ -15,7 +15,8 @@ function keys(value, names) {
 // Hosted Link does not require ordinary-SDK enablement; retain its explicit boolean in the digest.
 export function validateConnections(c, projectNumber, releaseExpiry, now) {
   if (c === null) return;
-  keys(c, ['infisical_origin','infisical_project','infisical_identity','link_events_qualified','client_id_version','client_secret_version','consent_expires_at']);
+  keys(c, connectionKeys(c));
+  if(c.webhook_url!==undefined && (projectNumber!=='9088794002' || c.webhook_url!=='https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid')) throw new Error('Release rejected');
   if (!['https://us.infisical.com','https://eu.infisical.com','https://app.infisical.com'].includes(c.infisical_origin) || typeof c.link_events_qualified !== 'boolean') throw new Error('Release rejected');
   for (const id of [c.infisical_project,c.infisical_identity]) if (typeof id !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(id) || id === '00000000-0000-0000-0000-000000000000') throw new Error('Release rejected');
   for (const [key, name] of [['client_id_version','client-id'],['client_secret_version','client-secret']]) {
@@ -30,9 +31,14 @@ export function validateConnections(c, projectNumber, releaseExpiry, now) {
 }
 // Stable digest binds approved metadata independent of object key order; it is not observed-provider evidence.
 export function connectionConfigDigest(c) {
-  if (c !== null) keys(c, ['infisical_origin','infisical_project','infisical_identity','link_events_qualified','client_id_version','client_secret_version','consent_expires_at']);
+  if (c !== null) keys(c, connectionKeys(c));
   const normalized = c === null ? null : Object.fromEntries(Object.keys(c).sort().map(k=>[k,c[k]]));
   return createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
+}
+// Legacy enrollment retains its digest; explicit webhook opt-in becomes part of approval.
+function connectionKeys(c) {
+  const names=['infisical_origin','infisical_project','infisical_identity','link_events_qualified','client_id_version','client_secret_version','consent_expires_at'];
+  return c?.webhook_url===undefined?names:[...names,'webhook_url'];
 }
 // Owner dispatch approves these exact public bytes, not an unsigned build artifact by itself.
 export function validateManifest(bytes, expectedHash, now = Date.now()) {
@@ -57,6 +63,7 @@ export function validateManifest(bytes, expectedHash, now = Date.now()) {
   for (const value of Object.values(m.evidence)) if (typeof value !== 'string' || !/^https:\/\/github\.com\/justin-napolitano\/jayburd-bookkeeping\/issues\/[1-9][0-9]*#issuecomment-[0-9]+$/.test(value)) throw new Error('Release rejected');
   if (!migrationOnly && (isRollback(m.operation) ? typeof m.previousDeployment!=='string' || !/^[1-9][0-9]{0,19}$/.test(m.previousDeployment) : m.previousDeployment !== null)) throw new Error('Release rejected');
   if (!migrationOnly) validateConnections(m.connections, m.projectNumber, expiry, now);
+  if (!migrationOnly && m.connections?.webhook_url!==undefined && m.project!=='jayburd-bookkeeping-dev') throw new Error('Release rejected');
   if (isSandbox(m.operation) && (m.project !== 'jayburd-bookkeeping-dev' || m.projectNumber !== '9088794002')) throw new Error('Release rejected');
   return m;
 }

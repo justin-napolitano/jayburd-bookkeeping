@@ -1,0 +1,4 @@
+# Owner creates PROJECT_ID-jayburd-dev-webhook-runtime-state, prefix webhook-runtime.
+terraform {
+  backend "gcs" {}
+}

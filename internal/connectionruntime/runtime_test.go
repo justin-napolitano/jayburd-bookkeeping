@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
 )
 
 // inertDB detects accidental startup transactions; request-time authority remains in the actual connection service.
@@ -157,5 +158,66 @@ func TestHostedLinkDoesNotRequireSDKEnablement(t *testing.T) {
 	c.LinkEventsQualified = false
 	if e := c.Validate(); e != nil {
 		t.Fatal(e)
+	}
+}
+
+// webhookConfig uses fixed public deployment identifiers with synthetic credentials and no network.
+func webhookConfig() Config {
+	c := config()
+	c.ProjectID = "jayburd-bookkeeping-dev"
+	c.ProjectNumber = "9088794002"
+	c.RegistryBucket = c.ProjectID + "-jayburd-dev-credential-registry"
+	c.ClientIDVersion = "projects/9088794002/secrets/jayburd-dev-bank-sync-client-id/versions/1"
+	c.ClientSecretVersion = "projects/9088794002/secrets/jayburd-dev-bank-sync-client-secret/versions/2"
+	c.WebhookURL = connections.SandboxTransactionsWebhookURL
+	return c
+}
+
+// TestWebhookConfigurationScope rejects partial, foreign-project and substituted receivers before dependencies.
+func TestWebhookConfigurationScope(t *testing.T) {
+	for _, mutate := range []func(*Config){
+		func(c *Config) { c.WebhookURL = "https://attacker.example/webhooks/plaid" },
+		func(c *Config) { c.WebhookURL += "?private=value" },
+		func(c *Config) {
+			c.ProjectID = "synthetic-project"
+			c.RegistryBucket = c.ProjectID + "-jayburd-dev-credential-registry"
+		},
+		func(c *Config) {
+			c.ProjectNumber = "123456789012"
+			c.ClientIDVersion = strings.Replace(c.ClientIDVersion, "9088794002", c.ProjectNumber, 1)
+			c.ClientSecretVersion = strings.Replace(c.ClientSecretVersion, "9088794002", c.ProjectNumber, 1)
+		},
+		func(c *Config) { *c = Config{WebhookURL: connections.SandboxTransactionsWebhookURL} },
+	} {
+		c := webhookConfig()
+		mutate(&c)
+		token := &tokens{}
+		calls := 0
+		service, err := New(context.Background(), c, inertDB{}, transport(func(*http.Request) (*http.Response, error) {
+			calls++
+			return nil, fmt.Errorf("private-diagnostic")
+		}), token)
+		if err != ErrConfiguration || service != nil || calls != 0 || token.access != 0 || token.identity != 0 {
+			t.Fatal("invalid webhook scope reached managed dependencies")
+		}
+	}
+}
+
+// TestWebhookOptInStartup remains limited to existing static credential reads, never enrollment or SQL.
+func TestWebhookOptInStartup(t *testing.T) {
+	c := webhookConfig()
+	token := &tokens{}
+	calls := 0
+	service, err := New(context.Background(), c, inertDB{}, transport(func(r *http.Request) (*http.Response, error) {
+		refs := []string{c.ClientIDVersion, c.ClientSecretVersion}
+		if calls >= len(refs) || r.Method != http.MethodGet || r.URL.String() != "https://secretmanager.googleapis.com/v1/"+refs[calls]+":access" {
+			t.Fatal("webhook opt-in performed unexpected startup operation")
+		}
+		name := refs[calls]
+		calls++
+		return response(name, "synthetic-static-value"), nil
+	}), token)
+	if err != nil || service == nil || calls != 2 || token.access != 2 || token.identity != 0 {
+		t.Fatal("valid opt-in composition rejected or performed extra operations", err)
 	}
 }

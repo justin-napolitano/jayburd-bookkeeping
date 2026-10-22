@@ -16,6 +16,28 @@ accounting authority. This is an implementation decision for #9, reviewed 2026-1
 
 ## Alternatives and limits
 
+### Next.js patch review — 2026-10-22, #271/#273
+
+CI39832934816 reported the pinned16.4.0 version in the affected ranges for
+maintainer advisories [GHSA-2464-fhr4-w9xw](https://github.com/vercel/next.js/security/advisories/GHSA-2464-fhr4-w9xw),
+[GHSA-673q-mjm6-r5xr](https://github.com/vercel/next.js/security/advisories/GHSA-673q-mjm6-r5xr)
+and [GHSA-p3m5-59mp-jv5r](https://github.com/vercel/next.js/security/advisories/GHSA-p3m5-59mp-jv5r).
+Reviewed selected affected/patched version, impact and workaround sections in
+the maintainer/GitHub-reviewed records, not exploit reproduction. All identify
+16.4.1 as patched; the image advisory also requires patched sharp dependency
+resolution. [16.4.2 release notes](https://github.com/vercel/next.js/releases/tag/v16.4.2)
+were reviewed for the subsequent stable patch changes; the npm audit resolver
+selected16.4.2. Choose an exact16.4.2 pin and regenerated locked graph over a
+scanner exemption or broad forced update. No application feature, financial
+message, accounting or ISO applicability changes. No deployed exploitability or
+security-conformance claim follows from version/audit results alone.
+
+Acceptance: locked clean install, unchanged high-severity audit gate, web
+type/unit/build/browser gates, both actual API/SQL browser journeys and standalone
+frontend image proof. Current evidence belongs in the #271 integration runbook.
+
+### Application boundary
+
 A separate browser API origin would add CORS and more deployment configuration;
 server-side cookie sessions would require a distinct CSRF/session contract.
 The existing bearer boundary and fixed rewrite minimize this slice. We do not
