@@ -45,9 +45,12 @@ func TestRejectsIncompleteOrAmbiguousIdentities(t *testing.T) {
 		"trailing":                  page + ` {}`,
 		"oversize":                  page + strings.Repeat(" ", 2<<20),
 	}
-	var p map[string]any
+	// Preserve original numeric lexemes even while constructing an intentionally incomplete response.
+	var p map[string]json.RawMessage
 	_ = json.Unmarshal([]byte(page), &p)
-	p["added"] = p["added"].([]any)[:1]
+	var added []json.RawMessage
+	_ = json.Unmarshal(p["added"], &added)
+	p["added"], _ = json.Marshal(added[:1])
 	missing, _ := json.Marshal(p)
 	cases["missing"] = string(missing)
 	for name, input := range cases {

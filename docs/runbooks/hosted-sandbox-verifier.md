@@ -30,6 +30,8 @@ Initial PR282 head2c08b81 Infrastructure39994561810 failed in the new fake-execu
 shell test because rg was unavailable on the runner. Both new shell proofs now use
 standard grep with the same strict assertions; no test outcome was waived. The
 source/app integration jobs from that superseded head are not final evidence.
+The incomplete-response test also preserves JSON raw numeric lexemes while
+removing an identity, avoiding float decoding even in synthetic mutation setup.
 
 Core check/test/build, migration-test, ledger-test, sandbox-verification-test,
 verifier-bootstrap-test, release-test and focused mocked Terraform tests PASS.
