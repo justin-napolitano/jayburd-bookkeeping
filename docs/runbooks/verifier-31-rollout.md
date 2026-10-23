@@ -16,8 +16,8 @@ source, provider calls or mandate; login wiring follows actual status acceptance
 | Source | PR284 merged; all five exact-head checks SUCCESS, Seed40004028278/Infrastructure40004028330 | Preserve evidence |
 | Trusted build | Owner workflow40004622277 on mainfb4ac04, attempt1; all seven jobs SUCCESS, four tested/scanned immutable images published | Same-run receipts validated |
 | Candidate | Both exact hashes owner-approved; PR285 merged2bef707 with all five checks now SUCCESS | Copy approved status bytes unchanged |
-| Apply/status | Apply40007581006 SUCCESS, migration-execution-passed; independent selected execution metadata validates | Dispatch read-only status after native metadata PR merge |
-| SQL login | Prior30 bootstrap rejected managed IAM marker and rolled back | Retry revised bootstrap only after31 status proof |
+| Apply/status | Apply40007581006 and status40012916635 SUCCESS; exact approved images/actions validated | Preserve bounded receipts |
+| SQL login | Reviewed bootstrap hash29d1245b committed; complete effective predicate accepted | Actual finite-mandate comparison remains separate |
 
 ## Current evidence
 
@@ -72,17 +72,46 @@ Status delivery branch make check/test/build/release-test PASS with documented
 cached local toolchain; final exact status bytes and trusted receipts validate.
 No source SQL, build image or expiry change in this metadata promotion.
 
+## Actual status and bootstrap
+
+Approved status metadata PR286 merged9395464293c99d62f5cd4fac801ace43278fbfac.
+Release40012916635 SUCCESS; validated migration-verification-passed receipt:
+execution jayburd-dev-migrate-jszc6 completed2026-10-23T19:39:43.640109Z, same
+approved migrator digest/build and verify action. The strict workflow validates
+selected immutable execution identity/image/arguments/task/retry/time/terminal
+counts; successful31-aware status checks exactly one clean latest31 schema row
+and the complete embedded immutable checksum set in a read-only repeatable-read
+snapshot. This was not a second apply or live down-migration.
+
+After status acceptance, the owner-operated SQL bootstrap with SHA256
+29d1245ba2c788ad8f0de0c8ae09e2e15d1baec833fc979edf534144c7c79ee8
+committed through the existing owner Cloud Shell/IAM proxy route at19:41Z.
+Exact transferred public SQL bytes were verified before execution. Cloud Shell
+had restarted and lost earlier temporary scripts: the first invocation did not
+find the script and made no SQL connection; the reviewed files were transferred
+again, then executed once successfully. Pinned proxy2.26.0 downloaded from the
+official TLS endpoint with bounded network timeouts after that restart.
+
+The bootstrap accepted the complete effective privilege predicate and CONNECT,
+granted only the reviewed verifier capability (ADMIN false, INHERIT true, SET
+false) and fixed login settings. No managed IAM marker repair, business mandate,
+financial read, provider call or comparison. It is operator-confirmed SQL wiring,
+not proof of a Cloud Run verifier session authenticating or financial equality.
+Private SQL/proxy diagnostics remained unread; only the fixed PASS outcome was
+retained. Temporary proxy stopped through exit cleanup; no key/token copied.
+
 ## Remaining work
 
-Native status metadata merge/dispatch, actual separate read-only status receipt/
-checksum proof, then revised bounded bootstrap. Reconcile saved
+Migration31 rollout and reviewed login bootstrap are complete. Reconcile saved
 browser command after separately approved app recovery. Never force/down or
 blindly retry an uncertain execution. Old30-only images cannot validate31.
-Prepare the exact status candidate alongside the migration candidate, for one
-review of both immutable byte sequences. Deploy reads only dev-release.json:
-after actual migration acceptance, a separate native PR must copy the already
-reviewed status bytes there unchanged before status dispatch. Recheck both hashes,
-expiry and current main; changed bytes or expired approval require fresh review.
+The actual finite-mandate verifier execution and provider identity-only map are
+still pending;272/88 remain open. Existing API optional-consent expiry outage281
+is unchanged by this database-only rollout. Application recovery needs a fresh
+separately reviewed31-aware release; old283 cannot validate the installed schema.
+Future releases still require exact reviewed bytes, expiry and current main;
+changed bytes or expired approval require fresh review. This apply/status pair
+used the same already-reviewed immutable candidates without renewal.
 
 ## PR handoff
 
