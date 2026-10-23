@@ -36,6 +36,8 @@ docker run --rm --network "$proof" --mount "type=volume,source=$proof,target=/pr
 # Operator has role administration, not inherited business capabilities or runtime impersonation.
 admin() { docker exec "$proof" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d bookkeeping -c "$1" >/dev/null; }
 admin 'REVOKE ALL ON DATABASE bookkeeping FROM PUBLIC; CREATE ROLE synthetic_verifier_operator LOGIN CREATEROLE NOINHERIT; CREATE ROLE "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam" LOGIN; GRANT CONNECT ON DATABASE bookkeeping TO synthetic_verifier_operator; GRANT bookkeeping_owner TO synthetic_verifier_operator WITH INHERIT FALSE, SET TRUE; GRANT bookkeeping_verifier TO synthetic_verifier_operator WITH ADMIN TRUE, INHERIT FALSE, SET FALSE; GRANT "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam" TO synthetic_verifier_operator WITH ADMIN TRUE, INHERIT FALSE, SET FALSE;'
+# Model the Google-managed authentication marker absent from plain local PostgreSQL.
+admin 'CREATE ROLE cloudsqliamserviceaccount NOLOGIN; GRANT cloudsqliamserviceaccount TO "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam" WITH ADMIN FALSE, INHERIT TRUE, SET TRUE'
 bootstrap() { docker exec "$proof" psql -X -q -v ON_ERROR_STOP=1 -v VERBOSITY=verbose -U synthetic_verifier_operator -d bookkeeping -v "project_id=${1:-jayburd-bookkeeping-dev}" -f /proof/verifier-login.sql; }
 # Fixed sentinel and SQLSTATE establish rejection by the reviewed predicate, not connection failure.
 expect_bootstrap_denied() {
@@ -47,6 +49,15 @@ expect_bootstrap_denied
 admin "DO \$\$ BEGIN IF pg_has_role('jayburd-dev-verifier@jayburd-bookkeeping-dev.iam','bookkeeping_verifier','MEMBER') OR has_database_privilege('jayburd-dev-verifier@jayburd-bookkeeping-dev.iam','bookkeeping','CONNECT') THEN RAISE EXCEPTION 'failed bootstrap retained authority'; END IF; END \$\$;"
 admin 'GRANT CONNECT ON DATABASE bookkeeping TO synthetic_verifier_operator WITH GRANT OPTION'
 bootstrap >/dev/null
+bootstrap >/dev/null
+# Predicate replacement preserves owner/ACL/OID, and down restores rejection of the same marker.
+predicate_metadata() { docker exec "$proof" psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d bookkeeping -c "SELECT oid::text||':'||proowner::text||':'||proacl::text FROM pg_proc WHERE oid='integration.verifier_login(name)'::regprocedure"; }
+before_metadata=$(predicate_metadata)
+docker exec "$proof" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d bookkeeping -f /proof/migrations/000031_verifier_iam_compatibility.down.sql >/dev/null
+expect_bootstrap_denied
+[[ "$(predicate_metadata)" == "$before_metadata" ]]
+docker exec "$proof" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d bookkeeping -f /proof/migrations/000031_verifier_iam_compatibility.up.sql >/dev/null
+[[ "$(predicate_metadata)" == "$before_metadata" ]]
 bootstrap >/dev/null
 actual_login=$(docker exec "$proof" psql -X -qAt -v ON_ERROR_STOP=1 -U 'jayburd-dev-verifier@jayburd-bookkeeping-dev.iam' -d bookkeeping -c 'SELECT current_user')
 [[ "$actual_login" == 'jayburd-dev-verifier@jayburd-bookkeeping-dev.iam' ]]
@@ -66,6 +77,35 @@ expect_runtime_denied() {
 expect_runtime_denied 'SET ROLE bookkeeping_verifier'
 expect_runtime_denied 'CREATE TABLE public.denied(x int)'
 expect_runtime_denied 'SELECT name FROM ledger.entity'
+# The marker exception is exact; test the SQL predicate independently of bootstrap prechecks.
+expect_marker_denied() {
+ expect_bootstrap_denied
+ admin "DO \$\$ BEGIN IF integration.verifier_login('jayburd-dev-verifier@jayburd-bookkeeping-dev.iam') THEN RAISE EXCEPTION 'unsafe marker predicate accepted'; END IF; END \$\$;"
+}
+admin 'GRANT cloudsqliamserviceaccount TO "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam" WITH ADMIN TRUE, INHERIT TRUE, SET TRUE'
+expect_marker_denied
+admin 'GRANT cloudsqliamserviceaccount TO "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam" WITH ADMIN FALSE, INHERIT FALSE, SET TRUE'
+expect_marker_denied
+admin 'GRANT cloudsqliamserviceaccount TO "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam" WITH ADMIN FALSE, INHERIT TRUE, SET TRUE; ALTER ROLE cloudsqliamserviceaccount CREATEDB'
+expect_marker_denied
+admin 'ALTER ROLE cloudsqliamserviceaccount NOCREATEDB LOGIN'
+expect_marker_denied
+admin 'ALTER ROLE cloudsqliamserviceaccount NOLOGIN; CREATE ROLE synthetic_marker_parent; GRANT synthetic_marker_parent TO cloudsqliamserviceaccount WITH INHERIT FALSE, SET FALSE'
+expect_marker_denied
+admin 'REVOKE synthetic_marker_parent FROM cloudsqliamserviceaccount; GRANT SELECT ON ledger.entity TO cloudsqliamserviceaccount'
+expect_marker_denied
+admin 'REVOKE SELECT ON ledger.entity FROM cloudsqliamserviceaccount; GRANT SELECT(name) ON ledger.entity TO cloudsqliamserviceaccount'
+expect_marker_denied
+admin 'REVOKE SELECT(name) ON ledger.entity FROM cloudsqliamserviceaccount; GRANT EXECUTE ON FUNCTION integration.verifier_login(name) TO cloudsqliamserviceaccount'
+expect_marker_denied
+admin 'REVOKE EXECUTE ON FUNCTION integration.verifier_login(name) FROM cloudsqliamserviceaccount; CREATE ROLE synthetic_unrelated_set; GRANT synthetic_unrelated_set TO "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam" WITH ADMIN FALSE, INHERIT TRUE, SET TRUE'
+expect_marker_denied
+admin 'REVOKE synthetic_unrelated_set FROM "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam"'
+bootstrap >/dev/null
+# SET marker drops the verifier capability and never grants table/DDL access.
+expect_runtime_denied 'SET ROLE cloudsqliamserviceaccount; SELECT name FROM ledger.entity'
+expect_runtime_denied 'SET ROLE cloudsqliamserviceaccount; CREATE TABLE public.denied(x int)'
+expect_runtime_denied "SET ROLE cloudsqliamserviceaccount; SELECT integration.verify_sandbox_fixture('00000000-0000-4000-8000-000000000272',1,'{}','{}')"
 docker exec "$proof" psql -X -q -v ON_ERROR_STOP=1 -U synthetic_verifier_operator -d bookkeeping -c 'REVOKE bookkeeping_verifier FROM "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam"' >/dev/null
 admin 'GRANT SELECT ON ledger.entity TO "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam"'
 expect_bootstrap_denied
@@ -82,4 +122,4 @@ admin 'REVOKE SELECT ON ledger.entity FROM "jayburd-dev-verifier@jayburd-bookkee
 expect_bootstrap_denied
 admin 'REVOKE SELECT(name) ON ledger.entity FROM "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam"; GRANT bookkeeping_verifier TO "jayburd-dev-verifier@jayburd-bookkeeping-dev.iam" WITH ADMIN TRUE, INHERIT TRUE, SET TRUE'
 expect_bootstrap_denied
-echo 'PASS: real verifier bootstrap/replay, bounded login, SET/DDL/financial denial and privileged/mixed/direct-column/alternate-grantor rejection.'
+echo 'PASS: real verifier bootstrap/replay with managed IAM marker; exact SET exception, privilege/parent/ADMIN/NOINHERIT rejection and runtime SET/DDL/financial denials.'
