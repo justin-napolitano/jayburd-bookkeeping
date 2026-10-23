@@ -30,16 +30,16 @@ script="$scratch/scripts/apply-sandbox-verifier.sh"
 hash=$(shasum -a 256 "$scratch/deploy/verifier-bootstrap.json" | cut -d' ' -f1)
 apply() { bash "$script" --apply deploy/verifier-bootstrap.json "$hash" "$TEST_SOURCE"; }
 apply >/dev/null
-[[ $(rg -c '^terraform ' "$TEST_LOG") == 3 ]]
-rg -q 'prefix=sandbox-verifier' "$TEST_LOG"
-if rg -q -- 'gcloud|jobs execute| -target|destroy|chdir=infra/gcp/(runtime|workers|application)' "$TEST_LOG"; then echo 'FAIL: unrelated mutation/execution selected' >&2;exit 1;fi
+[[ $(grep -Ec '^terraform ' "$TEST_LOG") == 3 ]]
+grep -Eq 'prefix=sandbox-verifier' "$TEST_LOG"
+if grep -Eq -- 'gcloud|jobs execute| -target|destroy|chdir=infra/gcp/(runtime|workers|application)' "$TEST_LOG"; then echo 'FAIL: unrelated mutation/execution selected' >&2;exit 1;fi
 for FAIL_STEP in init plan apply; do
  export FAIL_STEP
  : >"$TEST_LOG"
  if apply >"$scratch/out" 2>"$scratch/err"; then echo 'FAIL: failed apply stage ignored' >&2;exit 1;fi
- rg -q '^BLOCKED: verifier platform operation failed; private owner diagnosis required$' "$scratch/err"
- if [[ "$FAIL_STEP" == init ]]; then [[ $(rg -c '^terraform ' "$TEST_LOG") == 1 ]];fi
- if [[ "$FAIL_STEP" == plan ]]; then [[ $(rg -c '^terraform ' "$TEST_LOG") == 2 ]];fi
+ grep -Eq '^BLOCKED: verifier platform operation failed; private owner diagnosis required$' "$scratch/err"
+ if [[ "$FAIL_STEP" == init ]]; then [[ $(grep -Ec '^terraform ' "$TEST_LOG") == 1 ]];fi
+ if [[ "$FAIL_STEP" == plan ]]; then [[ $(grep -Ec '^terraform ' "$TEST_LOG") == 2 ]];fi
 done
 export FAIL_STEP=''
 for mode in stale dirty hash; do
@@ -49,6 +49,6 @@ for mode in stale dirty hash; do
  if [[ "$mode" == dirty ]];then export TEST_DIRTY=1;fi
  if [[ "$mode" == hash ]];then hash=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;fi
  if apply >/dev/null 2>&1;then echo 'FAIL: unreviewed metadata/source accepted' >&2;exit 1;fi
- if rg -q '^terraform ' "$TEST_LOG";then echo 'FAIL: cloud operation before review guards' >&2;exit 1;fi
+ if grep -Eq '^terraform ' "$TEST_LOG";then echo 'FAIL: cloud operation before review guards' >&2;exit 1;fi
 done
 echo 'PASS: inert default, source/hash guards, isolated verifier backend, staged failure stop and no implicit execution.'

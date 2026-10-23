@@ -40,7 +40,7 @@ bootstrap() { docker exec "$proof" psql -X -q -v ON_ERROR_STOP=1 -v VERBOSITY=ve
 # Fixed sentinel and SQLSTATE establish rejection by the reviewed predicate, not connection failure.
 expect_bootstrap_denied() {
  if bootstrap "${1:-jayburd-bookkeeping-dev}" >"$test_dir/out" 2>"$test_dir/err"; then echo 'FAIL: unsafe verifier bootstrap accepted' >&2; exit 1; fi
- rg -q 'P0001: verifier_bootstrap_rejected' "$test_dir/err"
+ grep -Eq 'P0001: verifier_bootstrap_rejected' "$test_dir/err"
 }
 # Lacking CONNECT grant authority must reject and roll back, never report a wired but unusable login.
 expect_bootstrap_denied
@@ -61,7 +61,7 @@ END $$;
 SQL
 expect_runtime_denied() {
  if docker exec "$proof" psql -X -q -v ON_ERROR_STOP=1 -v VERBOSITY=verbose -U 'jayburd-dev-verifier@jayburd-bookkeeping-dev.iam' -d bookkeeping -c "$1" >"$test_dir/out" 2>"$test_dir/err"; then echo 'FAIL: runtime authority widened' >&2; exit 1; fi
- rg -q '42501:' "$test_dir/err"
+ grep -Eq '42501:' "$test_dir/err"
 }
 expect_runtime_denied 'SET ROLE bookkeeping_verifier'
 expect_runtime_denied 'CREATE TABLE public.denied(x int)'
