@@ -20,6 +20,13 @@ by this source evidence. Human review precedes release.
 
 ## Current evidence
 
+Hosted follow-through completed2026-10-23: owner-approved PR284 mergedfb4ac04;
+all five exact-head CI checks and trusted build40004622277's seven jobs SUCCESS.
+Migration31 applied40007581006 and read-only verified40012916635. Revised login
+bootstrap committed and complete effective permission predicate accepted. See
+the [actual rollout evidence](verifier-31-rollout.md#actual-status-and-bootstrap).
+No mandate or actual financial comparison executed;272/88 remain open.
+
 Migration30 and prior grants remain unchanged. This delivery adds a forward
 predicate replacement and bootstrap compatibility; no financial schema or
 wire-format changes. Default commands stay offline/provider-free.
