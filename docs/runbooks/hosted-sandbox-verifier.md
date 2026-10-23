@@ -11,6 +11,30 @@ must be recorded separately. No existing expired source consent is reused.
 
 ## Stage ledger
 
+Renewal delivery: owner approved PR282, merged68612cb after all five exact-head
+checks passed. Execution lease VERIFY272-EXEC-20261023T1802Z covers issue272.
+The fresh clock check was18:02Z, after the original app candidate expired; it was
+not dispatched. This branch changes only the two app authorization deadlines:
+dispatch21:00Z and new-source consent23:00Z on2026-10-23. Existing Item consent,
+images, build, secrets and infrastructure are unchanged. Exact renewed hash is
+955166d1e8850ffa236c62ab3bd74d0f4cb2c406c7ec075e5df8594824bb4ea3;
+owner exact-hash review remains required by deploy/README.md before dispatch.
+This temporary forward release does not resolve issue281's expiry/startup bug.
+The approved bootstrap hash730b079c was applied successfully from clean merged
+68612cb using the guarded helper: exact metadata validated, private Terraform
+init/plan/apply completed, and no comparison executed. No private provider logs,
+plans or state were inspected. Cloud Shell owner authentication was restored
+through supported session authorization. The pinned SQL bootstrap then rejected
+with the fixed verifier_bootstrap_rejected marker and rolled back its grants;
+private diagnostics were not exported. Do not widen or bypass its safety checks.
+SQL wiring and actual comparison remain incomplete. An earlier in-flight curl
+observation was not proof that the final attempt never reached the database.
+Renewal checks: exact manifest plus all three retained trusted image receipts,
+release-test and make check/test/build PASS. The first sandboxed core test run
+could not bind local httptest ports; the approved unrestricted rerun passed.
+Local cached Go1.26.5 temporary modfile remains separate from tracked1.26.10;
+canonical PR CI is still required. No product code or SQL changed.
+
 | Stage | Evidence | Next action |
 | --- | --- | --- |
 | Resume | GitHub/main/register checked; predecessor lease released | Prepare bounded runtime |

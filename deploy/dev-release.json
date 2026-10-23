@@ -20,7 +20,7 @@
     "secrets": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/133#issuecomment-6197028300",
     "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/272#issuecomment-6368144344"
   },
-  "expiresAt": "2026-10-23T18:00:00Z",
+  "expiresAt": "2026-10-23T21:00:00Z",
   "previousDeployment": null,
   "connections": {
     "infisical_origin": "https://app.infisical.com",
@@ -29,6 +29,6 @@
     "link_events_qualified": false,
     "client_id_version": "projects/9088794002/secrets/jayburd-dev-bank-sync-client-id/versions/1",
     "client_secret_version": "projects/9088794002/secrets/jayburd-dev-bank-sync-client-secret/versions/1",
-    "consent_expires_at": "2026-10-23T20:00:00Z"
+    "consent_expires_at": "2026-10-23T23:00:00Z"
   }
 }
