@@ -1,5 +1,8 @@
 # Project context
 
+Scoped hosted Sandbox equality: [execution contract](contracts/hosted-sandbox-verifier.md)
+and [delivery/remaining gates](runbooks/hosted-sandbox-verifier.md), issue272.
+
 All-books Position workspace: [approved design](plans/position-workspace.md) and
 [delivery evidence](runbooks/position-workspace.md), issue #249. Direct Ledger and
 Reports retain scoped reads; financial totals remain per book and currency.

@@ -5,6 +5,9 @@
 
 ## Purpose and reading order
 
+[Hosted verifier](../contracts/hosted-sandbox-verifier.md): selections2026-10-23;
+hosted proof pending.
+
 [Link recovery](plaid-link-recovery-sources.md): LR01–06, Plaid/React selections,
 2026-10-22; reconnect/OAuth unqualified.
 
@@ -50,7 +53,7 @@ It does not prove queue drain, IAM or provider qualification.
 variable precedence/Cloud Run revision sections,2026-10-14. Omitted inputs reset;
 version/digest policy is our inference, not hosted/provider proof.
 
-Hosted/Sandbox source review (2026-10-14):
+Hosted/Sandbox (2026-10-14):
 
 [PI12 Hosted Link](plaid-ingestion-sources.md#pi12--hosted-link-completion-and-recovery-refresh-2026-10-18):
 official guide/API review and snapshot hashes, 2026-10-18. User-associated token
@@ -69,13 +72,12 @@ and completion webhook are recommended; browser-only recovery is project policy.
   Link, Transactions and Sandbox references SQ01–SQ05; distinguishes adapter
   diagnostics, Link event association and complete hosted acceptance.
 
-Linked records name sections/inferences/access limits; no normative ISO text,
-cloud configuration or provider credential was reviewed.
+Sections/inferences/limits recorded; no normative ISO, cloud config or credentials reviewed.
 
 - [Connection lifecycle](../contracts/connection-sql.md), [service](../contracts/connection-service.md)
   and [HTTP boundary](../contracts/connection-http.md): PI05–PI10 distinguish verified
   Link/account evidence, one-shot remote mutations and local credential recovery.
-  Dynamic Infisical writes and update-mode association remain qualification limits.
+  Dynamic writes/update association remain unqualified.
 - [Acquisition runner](../contracts/acquisition-runner.md): PI01/PI02/PI08 guide
   account-filtered pagination, whole-loop restart and explicit API versioning.
   Durable local evidence and current SQL authority are project decisions with

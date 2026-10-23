@@ -1,0 +1,9 @@
+{
+  "project_id": "jayburd-bookkeeping-dev",
+  "region": "us-central1",
+  "enabled": true,
+  "run": {
+    "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/worker@sha256:238782abc1c7fe3667ba92ec2f29c1fbdb6a00cfd6455264c0ef2b9290cf35a0",
+    "run_id": "verify-jb27220261023"
+  }
+}
