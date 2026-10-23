@@ -29,6 +29,8 @@ jobs:
           cache: false
       - name: Validate context and tooling
         run: make check test build
+      - name: Prove offline webhook release and rollout guards
+        run: make release-test
       - name: Require Go formatting
         run: test -z "$(gofmt -l cmd internal)"
       - name: Preserve existing migration SQL
@@ -62,6 +64,8 @@ jobs:
         run: make sync-dispatch-test
       - name: Enrollment through acquisition and review proof
         run: make provider-flow-test
+      - name: Independent exact source review and zero journal proof
+        run: make sandbox-verification-test
       - name: Build and prove isolated health-only API container
         run: bash scripts/test-api-container.sh
       - name: Build and verify inert non-root migration image

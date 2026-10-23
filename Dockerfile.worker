@@ -7,17 +7,20 @@ COPY internal/ ./internal/
 COPY cmd/worker/ ./cmd/worker/
 COPY cmd/webhook/ ./cmd/webhook/
 COPY cmd/sandbox-probe/ ./cmd/sandbox-probe/
+COPY cmd/sandbox-verify/ ./cmd/sandbox-verify/
 COPY cmd/deliver/ ./cmd/deliver/
 RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /worker ./cmd/worker
 RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /webhook ./cmd/webhook
 RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /deliver ./cmd/deliver
 RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /sandbox-probe ./cmd/sandbox-probe
+RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /sandbox-verify ./cmd/sandbox-verify
 FROM scratch
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /worker /worker
 COPY --from=build /webhook /webhook
 COPY --from=build /deliver /deliver
 COPY --from=build /sandbox-probe /sandbox-probe
+COPY --from=build /sandbox-verify /sandbox-verify
 USER 65532:65532
 EXPOSE 8080
 ENTRYPOINT ["/worker"]

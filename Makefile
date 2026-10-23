@@ -22,6 +22,7 @@ build:
 	go build -trimpath -o bin/deliver ./cmd/deliver
 	go build -trimpath -o bin/sandbox-qualify ./cmd/sandbox-qualify
 	go build -trimpath -o bin/sandbox-probe ./cmd/sandbox-probe
+	go build -trimpath -o bin/sandbox-verify ./cmd/sandbox-verify
 	go build -trimpath -o bin/database-probe ./cmd/database-probe
 
 web-check:
@@ -84,7 +85,7 @@ release-test:
 	node --test scripts/sandbox-release.test.mjs scripts/release-manifest.test.mjs scripts/deployment-smoke.test.mjs scripts/migration-receipt.test.mjs scripts/database-probe-receipt.test.mjs
 	bash scripts/test-deploy-dev.sh
 	node --test scripts/worker-release-manifest.test.mjs scripts/worker-deployment-receipt.test.mjs
-	node --test scripts/webhook-release.test.mjs
+	node --test scripts/webhook-release.test.mjs scripts/webhook-rollout.test.mjs
 	bash scripts/test-deploy-workers.sh
 
 .PHONY: identity-rehearsal identity-rehearsal-test
@@ -157,3 +158,7 @@ sandbox-qualification-test:
 sandbox-bootstrap-test:
 	bash scripts/test-sandbox-bootstrap.sh
 	bash scripts/test-show-worker-binding.sh
+
+.PHONY: sandbox-verification-test
+sandbox-verification-test:
+	bash scripts/test-sandbox-verification.sh

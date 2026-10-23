@@ -37,7 +37,10 @@ unchanged. No new financial record or accounting policy is introduced.
    For repair also match the preselected Item and approved streams. Deprecated
    `on_success`, browser account IDs and a healthy `/accounts/get` alone remain
    insufficient. Obtain provider clarification if ordinary update proof is absent.
-3. **SQL:** migration 19 handoff read permits only `mode=new,state=link_ready`.
+3. **SQL:** migration 19 handoff write requires new/link_ready/unclaimed/unexpired;
+   its read rechecks current authority, new mode and the recorded token hash.
+   The completion service additionally requires link_ready and a live recovery
+   window before using that read. Read alone does not impose state/expiry guards.
    A new reviewed migration must extend precisely the intended mode and current
    authority checks before reload recovery for reconnect. Never edit merged SQL.
    Preserve shared-Item generation/stream fences and one-shot claim. Repair must
