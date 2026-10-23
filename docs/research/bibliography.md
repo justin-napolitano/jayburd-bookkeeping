@@ -5,8 +5,7 @@
 
 ## Purpose and reading order
 
-[Hosted verifier](../contracts/hosted-sandbox-verifier.md): selections2026-10-23;
-hosted proof pending.
+[Verifier IAM](../contracts/verifier-iam-compatibility.md): Google/PG17 selections2026-10-23.
 
 [Link recovery](plaid-link-recovery-sources.md): LR01–06, Plaid/React selections,
 2026-10-22; reconnect/OAuth unqualified.
