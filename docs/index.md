@@ -1,5 +1,8 @@
 # Project context
 
+Verifier IAM marker compatibility: [decision](contracts/verifier-iam-compatibility.md)
+and [delivery](runbooks/verifier-iam-compatibility.md), issue272.
+
 Scoped hosted Sandbox equality: [execution contract](contracts/hosted-sandbox-verifier.md)
 and [delivery/remaining gates](runbooks/hosted-sandbox-verifier.md), issue272.
 

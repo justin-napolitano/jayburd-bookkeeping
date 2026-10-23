@@ -14,9 +14,14 @@ BEGIN
  OR NOT EXISTS(SELECT FROM pg_roles WHERE rolname=login_value AND rolcanlogin AND NOT(rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls))
  OR NOT EXISTS(SELECT FROM pg_roles WHERE rolname='bookkeeping_verifier' AND NOT(rolcanlogin OR rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls))
  THEN RAISE EXCEPTION 'verifier_bootstrap_rejected'; END IF;
- -- Never repair an unsafe existing grant/delegation silently, including another grantor's grant.
+ -- Preserve only the safe inherited Google IAM marker; never repair grants or permit other SET/ADMIN edges.
  IF EXISTS(SELECT FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.member
- WHERE r.rolname IN (login_value,'bookkeeping_verifier') AND (m.admin_option OR m.set_option))
+ WHERE r.rolname IN (login_value,'bookkeeping_verifier') AND (m.admin_option OR (m.set_option AND NOT (
+   r.rolname=login_value AND m.inherit_option
+   AND m.roleid IN (SELECT oid FROM pg_roles WHERE rolname='cloudsqliamserviceaccount'
+     AND NOT(rolcanlogin OR rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls))
+   AND NOT EXISTS(SELECT FROM pg_auth_members parent WHERE parent.member=m.roleid)
+  ))))
  THEN RAISE EXCEPTION 'verifier_bootstrap_rejected'; END IF;
  EXECUTE format('GRANT bookkeeping_verifier TO %I WITH ADMIN FALSE, INHERIT TRUE, SET FALSE',login_value);
  EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I',current_database(),login_value);
