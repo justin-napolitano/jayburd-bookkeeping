@@ -21,6 +21,12 @@ must be recorded separately. No existing expired source consent is reused.
 
 ## Current evidence
 
+Current hosted SQL follow-through: migration31 applied and status-verified;
+reviewed verifier login bootstrap committed with complete effective permission
+predicate accepted. [Exact receipts and limits](verifier-31-rollout.md#actual-status-and-bootstrap)
+supersede this preparation branch's earlier unprovisioned-login stage. Actual
+provider fixture/identity map, finite mandate and comparison remain pending.
+
 Existing signed-in browser workspace is reachable. Existing deployed consent
 expired2026-10-22; a new scoped interval is required. Existing worker build39898191502
 contains /sandbox-verify; new product SQL is unnecessary. Review scope separates
