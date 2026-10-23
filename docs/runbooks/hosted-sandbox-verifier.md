@@ -23,8 +23,12 @@ This temporary forward release does not resolve issue281's expiry/startup bug.
 The approved bootstrap hash730b079c was applied successfully from clean merged
 68612cb using the guarded helper: exact metadata validated, private Terraform
 init/plan/apply completed, and no comparison executed. No private provider logs,
-plans or state were inspected. Cloud Shell currently has no active operator
-account; SQL login grants and actual comparison remain pending owner sign-in.
+plans or state were inspected. Cloud Shell owner authentication was restored
+through supported session authorization. The pinned SQL bootstrap then rejected
+with the fixed verifier_bootstrap_rejected marker and rolled back its grants;
+private diagnostics were not exported. Do not widen or bypass its safety checks.
+SQL wiring and actual comparison remain incomplete. An earlier in-flight curl
+observation was not proof that the final attempt never reached the database.
 Renewal checks: exact manifest plus all three retained trusted image receipts,
 release-test and make check/test/build PASS. The first sandboxed core test run
 could not bind local httptest ports; the approved unrestricted rerun passed.
