@@ -8,11 +8,11 @@ trap 'rm -rf "$test_root"' EXIT
 # Optional bounded targets avoid repeating unrelated foundation checks during a scoped change.
 targets=("$@")
 if [[ ${#targets[@]} == 0 ]]; then
-  targets=(foundation application migration runtime identity workers worker-runtime delivery database-probe webhook-bootstrap webhook-runtime webhook-delivery)
+  targets=(foundation application migration runtime identity workers worker-runtime delivery database-probe webhook-bootstrap webhook-runtime webhook-delivery sandbox-verifier)
 fi
 for target in "${targets[@]}"; do
 case "$target" in
-  foundation|application|migration|runtime|identity|workers|worker-runtime|delivery|database-probe|webhook-bootstrap|webhook-runtime|webhook-delivery) ;;
+  foundation|application|migration|runtime|identity|workers|worker-runtime|delivery|database-probe|webhook-bootstrap|webhook-runtime|webhook-delivery|sandbox-verifier) ;;
   *) echo 'BLOCKED: unknown synthetic infrastructure target' >&2; exit 1 ;;
 esac
 mkdir -p "$test_root/$target/tests"

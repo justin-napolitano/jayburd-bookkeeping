@@ -74,7 +74,11 @@ failure/retry-required evidence, never a false pass. No new financial write occu
 Inputs are proprietary `jayburd-sandbox-verification/1`, at most1000 revisions and
 2MiB total. Author expected financial/state fields before provider injection.
 Separately bind logical IDs to provider-assigned IDs using bounded injection
-response identity metadata; this map must not supply expected amounts/dates/state.
+response identity metadata where supplied. The documented Sandbox create endpoint
+returns no transaction IDs; the proposed first hosted posted-only run uses the
+[strict tagged identity readback](hosted-sandbox-verifier.md#identity-readback-correction-engineering-profile-for-review)
+instead, subject to that profile's human review and limits. Neither map method may
+supply expected amounts/dates/state or regenerate fixture financial fields.
 Do not copy raw provider records into the expectation. Complete-source equality
 requires a complete controlled fixture, not a selected injected subset.
 
