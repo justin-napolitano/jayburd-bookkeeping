@@ -26,6 +26,11 @@ expired2026-10-22; a new scoped interval is required. Existing worker build39898
 contains /sandbox-verify; new product SQL is unnecessary. Review scope separates
 synthetic tests, actual IAM/bootstrap, provider acquisition and comparison outcomes.
 
+Initial PR282 head2c08b81 Infrastructure39994561810 failed in the new fake-executable
+shell test because rg was unavailable on the runner. Both new shell proofs now use
+standard grep with the same strict assertions; no test outcome was waived. The
+source/app integration jobs from that superseded head are not final evidence.
+
 Core check/test/build, migration-test, ledger-test, sandbox-verification-test,
 verifier-bootstrap-test, release-test and focused mocked Terraform tests PASS.
 Pinned actionlint1.7.7 on the modified Seed workflow also PASS after the approved
