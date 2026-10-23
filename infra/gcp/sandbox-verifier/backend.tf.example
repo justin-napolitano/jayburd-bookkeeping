@@ -1,0 +1,4 @@
+# Existing private runtime-state bucket; this root owns no application resources.
+terraform {
+  backend "gcs" {}
+}
