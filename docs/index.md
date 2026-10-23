@@ -1,7 +1,8 @@
 # Project context
 
 Verifier IAM marker compatibility: [decision](contracts/verifier-iam-compatibility.md)
-and [delivery](runbooks/verifier-iam-compatibility.md), issue272.
+and [delivery](runbooks/verifier-iam-compatibility.md), issue272;
+[migration31 and SQL bootstrap accepted](runbooks/verifier-31-rollout.md#actual-status-and-bootstrap).
 
 Scoped hosted Sandbox equality: [execution contract](contracts/hosted-sandbox-verifier.md)
 and [delivery/remaining gates](runbooks/hosted-sandbox-verifier.md), issue272.
