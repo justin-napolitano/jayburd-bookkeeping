@@ -12,8 +12,9 @@ expired approval. Existing private services and Scheduler are outside this root.
 The offline validator approves exact public file bytes, validates the retained
 trusted worker build receipt, and generates inputs for the isolated runtime.
 It never authenticates, deploys, fetches evidence, reads state/plans or grants IAM.
-No enabled manifest or new deployment federation is committed in this slice.
-An owner must separately review bootstrap/public-invoker changes, database ingress
+No enabled manifest is committed. The subsequent updater adds its own inactive
+federation root; activation is a separate owner operation. An owner must separately
+review bootstrap/public-invoker changes, database ingress
 mandate, image provenance, finite qualification scope and cleanup before applying.
 This preserves an explicit approval boundary while infrastructure is prepared.
 
@@ -34,8 +35,11 @@ concurrency16,1CPU/512Mi, max1/min0 at both service and revision, TCP startup,
 IAM checking enabled, internet ingress and untagged100% latest-ready traffic.
 Automatic scaling, serving canonical URL, HTTP/1 and no IAP are required. Omitted
 implicit false/zero ProtoJSON defaults are accepted; null/wrong types are rejected.
-Separate IAM readback must contain only `allUsers` Invoker (no conditions/other
-bindings). This proves selected control-plane settings, not secret propagation,
+Separate IAM readback permits `allUsers` Invoker plus the optional exact dedicated
+updater binding described in [updater contract](webhook-rollout.md). The latter
+requires actual fixed custom-role metadata proving GA/nondeleted status and exactly
+get/update/getIamPolicy; the public receipt retains that selected role definition.
+No other or conditional binding is accepted. This proves selected control-plane settings, not secret propagation,
 SQL authority, actual delivery, data equality or absence of journals.
 
 ## Sources, standards and alternatives
@@ -46,8 +50,9 @@ existing exact-byte candidate/receipt policy. Internal infrastructure metadata
 is not an ISO20022 exchange; no financial message, amount, currency or accounting
 rule changes. Existing ISO4217 mapping remains authoritative. No conformance claim.
 Adding webhook fields to paused-worker deployment was rejected because its
-services/callers/Scheduler have a different authority. Automatically expanding
-deployment federation was deferred until this separate public root is reviewed.
+services/callers/Scheduler have a different authority. The subsequent updater
+implementation uses a separate inactive federation root and owner-first service
+creation; see its reviewed contract. It does not activate that federation.
 
 Named offline evidence: `webhook-release.test.mjs`; mocked infrastructure and
 actual disposable SQL bootstrap evidence are recorded in their lane runbooks.

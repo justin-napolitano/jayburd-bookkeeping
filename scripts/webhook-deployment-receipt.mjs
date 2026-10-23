@@ -14,8 +14,21 @@ function sameList(a,b) {return Array.isArray(a) && a.every(v=>typeof v==='string
 // ProtoJSON may omit implicit scalar defaults; null and wrong types remain invalid.
 function falseDefault(v) {return v===undefined || v===false;}
 function zeroDefault(v) {return v===undefined || v===0;}
+export const webhookUpdaterPermissions=['run.services.get','run.services.getIamPolicy','run.services.update'];
+// Service IAM may contain one exact updater only after its actual custom-role definition is verified.
+export function validateWebhookPolicy(m,policy,role) {
+  if(!Array.isArray(policy?.bindings) || policy.bindings.length<1 || policy.bindings.length>2) throw new Error('Webhook readback rejected');
+  const invoker=policy.bindings.filter(b=>b.role==='roles/run.invoker');
+  if(invoker.length!==1 || !sameList(invoker[0].members,['allUsers']) || invoker[0].condition!==undefined) throw new Error('Webhook readback rejected');
+  const updater=policy.bindings.filter(b=>b.role!=='roles/run.invoker');
+  if(updater.length===0) return false;
+  const name=`projects/${m.project}/roles/jayburdWebhookRelease`;
+  if(updater[0].role!==name || updater[0].condition!==undefined || !sameList(updater[0].members,[`serviceAccount:jayburd-dev-webhook-deployer@${m.project}.iam.gserviceaccount.com`]) ||
+    role?.name!==name || role?.stage!=='GA' || !falseDefault(role?.deleted) || !sameList(role?.includedPermissions,webhookUpdaterPermissions)) throw new Error('Webhook readback rejected');
+  return true;
+}
 // Selected public v2 control-plane fields are sufficient for transport configuration only.
-export function validateWebhookDeployment(m,service,policy,now=Date.now()) {
+export function validateWebhookDeployment(m,service,policy,now=Date.now(),role) {
   const bytes=JSON.stringify(m);
   validateWebhookManifest(bytes,createHash('sha256').update(bytes).digest('hex'),now);
   const name=`projects/${m.project}/locations/us-central1/services/jayburd-dev-webhook`;
@@ -39,11 +52,11 @@ export function validateWebhookDeployment(m,service,policy,now=Date.now()) {
     c?.startupProbe?.httpGet!==undefined || c?.startupProbe?.grpc!==undefined ||
     !Array.isArray(service?.trafficStatuses) || service.trafficStatuses.length!==1 || service.trafficStatuses[0]?.revision!==ready || service.trafficStatuses[0]?.percent!==100 ||
     service.trafficStatuses[0]?.type!=='TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST' || (service.trafficStatuses[0]?.tag??'')!=='') throw new Error('Webhook readback rejected');
-  // IAM permissions are intentionally narrow, including rejection of conditional public bindings.
-  if(!Array.isArray(policy?.bindings) || policy.bindings.length!==1 || policy.bindings[0]?.role!=='roles/run.invoker' ||
-    !sameList(policy.bindings[0]?.members,['allUsers']) || policy.bindings[0]?.condition!==undefined) throw new Error('Webhook readback rejected');
+  const updaterVerified=validateWebhookPolicy(m,policy,role);
   return {schemaVersion:1,status:'webhook-control-plane-observed',project:m.project,build:m.build,image:m.image,
     revision:ready,approvedWebhookConfigSHA256:webhookConfigDigest(m),url:webhookURL,
+    updaterRoleVerified:updaterVerified,
+    ...(updaterVerified?{updaterRole:{name:role.name,stage:role.stage,deleted:false,includedPermissions:[...role.includedPermissions].sort()}}:{}),
     limitations:['Selected control-plane metadata only; no database mandate, secret propagation or actual signed delivery proof.',
       'Approval expiry does not stop a service; owner must revoke the qualification mandate and complete reviewed cleanup.',
       'No financial equality, absence-of-journals or Production qualification.']};
@@ -51,10 +64,10 @@ export function validateWebhookDeployment(m,service,policy,now=Date.now()) {
 // Only explicitly supplied selected metadata becomes a public receipt; upstream diagnostics stay private.
 if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
   try {
-    const [approved,service,policy,output]=process.argv.slice(2);
-    if(process.argv.length!==6) throw new Error();
+    const [approved,service,policy,output,role]=process.argv.slice(2);
+    if(process.argv.length!==6 && process.argv.length!==7) throw new Error();
     const json=file=>JSON.parse(readFileSync(file,'utf8'));
-    writeFileSync(output,JSON.stringify(validateWebhookDeployment(json(approved),json(service),json(policy)),null,2)+'\n',{mode:0o600});
+    writeFileSync(output,JSON.stringify(validateWebhookDeployment(json(approved),json(service),json(policy),Date.now(),role?json(role):undefined),null,2)+'\n',{mode:0o600});
     console.log('PASS: webhook control-plane readback; hosted qualification remains separate');
   } catch {console.error('BLOCKED: webhook control-plane readback rejected');process.exitCode=1;}
 }

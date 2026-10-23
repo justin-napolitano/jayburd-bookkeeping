@@ -55,6 +55,16 @@ type attemptContext struct {
 	ExecuteProvider           bool      `json:"execute_provider"`
 }
 
+// verifiedHostedCompletion is created only from a trusted server lookup inside Execute, never transport input.
+type verifiedHostedCompletion struct{ linkHash, publicHash string }
+
+// matches binds the already verified modern result to the exact SQL claim before exchange.
+func (v verifiedHostedCompletion) matches(c attemptContext, input ExecuteRequest) bool {
+	return c.Mode == "new" && value(c.ExpectedItemID) == "" && c.Nonce == input.Nonce &&
+		v.linkHash == value(c.LinkHash) && v.linkHash == hash(input.LinkToken) &&
+		v.publicHash == value(c.PublicHash) && v.publicHash == hash(input.PublicToken)
+}
+
 var uuidRE = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 var keyRE = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
 var opaqueRE = regexp.MustCompile(`^[!-~]{1,256}$`)
@@ -222,12 +232,17 @@ func (s *Service) Begin(parent context.Context, scope Scope, key string, input B
 
 // CompleteHosted resolves a retained Link session under current SQL authority after a reload.
 // Execute still owns the one-shot provider claim, so an uncertain exchange is never replayed.
-func (s *Service) CompleteHosted(ctx context.Context, scope Scope, id string) (json.RawMessage, error) {
+func (s *Service) CompleteHosted(parent context.Context, scope Scope, id string) (json.RawMessage, error) {
 	if e := s.ready(scope); e != nil {
 		return nil, e
 	}
 	if !validID(id) {
 		return nil, failed("invalid_request")
+	}
+	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
+	defer cancel()
+	if ctx.Err() != nil {
+		return nil, failed("temporarily_unavailable")
 	}
 	c, e := s.context(ctx, scope, id)
 	if e != nil {
@@ -237,6 +252,13 @@ func (s *Service) CompleteHosted(ctx context.Context, scope Scope, id string) (j
 	if c.Mode != "new" || c.State != "link_ready" {
 		return s.Attempt(ctx, scope, id)
 	}
+	expiry, _ := time.Parse(time.RFC3339, c.ExpiresAt)
+	if !expiry.After(time.Now()) {
+		return nil, failed("stale_connection")
+	}
+	// The retained ciphertext/KMS read shares the earlier of recovery expiry and the aggregate budget.
+	ctx, stop := context.WithDeadline(ctx, expiry)
+	defer stop()
 	store, ok := s.secretStore(scope).(LinkHandoffStore)
 	if !ok {
 		return nil, failed("configuration_error")
@@ -250,6 +272,9 @@ func (s *Service) CompleteHosted(ctx context.Context, scope Scope, id string) (j
 	if e = link.WithValue(func(v string) error { token = v; return nil }); e != nil || !secretValid(link) || hash(token) != value(c.LinkHash) {
 		slog.Warn("hosted completion unavailable", "stage", "handoff_validation", "attempt_id", id)
 		return nil, failed("invalid_metadata")
+	}
+	if ctx.Err() != nil {
+		return nil, failed("temporarily_unavailable")
 	}
 	result, err := s.Execute(ctx, scope, id, ExecuteRequest{Nonce: c.Nonce, LinkToken: token})
 	if err != nil {
@@ -275,9 +300,13 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 	if support, ok := s.provider.(interface{ SupportsMode(string) bool }); ok && !support.SupportsMode(before.Mode) {
 		return nil, failed("unsupported_connection_mode")
 	}
+	var verified *verifiedHostedCompletion
 	// Hosted completion resolves public material only after current scoped SQL authority.
 	// A completed/recovery attempt must never perform another provider lookup or exchange.
 	if before.Mode == "new" && input.PublicToken == "" {
+		if value(before.ExpectedItemID) != "" {
+			return nil, failed("invalid_metadata")
+		}
 		if input.Nonce != before.Nonce || input.LinkToken == "" || value(before.LinkHash) != hash(input.LinkToken) {
 			return nil, failed("connection_conflict")
 		}
@@ -310,6 +339,7 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 			return nil, failed("invalid_metadata")
 		}
 		input.PublicToken = token.value
+		verified = &verifiedHostedCompletion{linkHash: hash(input.LinkToken), publicHash: hash(input.PublicToken)}
 	}
 	// Probe database-store wrapping capability before the irreversible provider claim.
 	if before.ClaimID == nil && (before.Mode == "new" || before.Mode == "rotate") {
@@ -345,8 +375,14 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 		if input.LinkToken == "" || c.Mode == "new" && input.PublicToken == "" || value(c.LinkHash) != hash(input.LinkToken) {
 			return s.recovery(ctx, scope, c, "manifest_rejected")
 		}
-		if e = s.provider.VerifySession(ctx, NewSecret(input.LinkToken), NewSecret(input.PublicToken), value(c.ExpectedItemID)); e != nil {
-			return s.recovery(ctx, scope, c, "provider_rejected")
+		if verified != nil {
+			if !verified.matches(c, input) {
+				return s.recovery(ctx, scope, c, "manifest_rejected")
+			}
+		} else {
+			if e = s.provider.VerifySession(ctx, NewSecret(input.LinkToken), NewSecret(input.PublicToken), value(c.ExpectedItemID)); e != nil {
+				return s.recovery(ctx, scope, c, "provider_rejected")
+			}
 		}
 	}
 	if _, e = s.context(ctx, scope, id); e != nil {

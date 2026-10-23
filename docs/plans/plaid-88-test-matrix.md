@@ -40,6 +40,11 @@ are weaker than exact fixture/SQL assertions.
   adapter/SQL lifecycle oracle, signed socket/SQL acquisition composition,
   bounded managed webhook executable and explicit exit recovery. These are
   synthetic implementation proofs; no new hosted row is cleared by them.
+- **E:** [wave two](../runbooks/plaid-88-wave2.md): bounded Hosted completion
+  correction, finite hash-pinned independent SQL comparison and inert existing-host
+  updater. These are synthetic proofs; actual hosted R02/R03/W01 remain open.
+  [LC01](../research/plaid-launch-center-review.md) records personalized Dashboard
+  signals and scope limits. #274 owns mapping, #275 reconnect, #276 OAuth clients.
 
 ## Link and supported clients
 
@@ -85,7 +90,7 @@ are weaker than exact fixture/SQL assertions.
 | W06 / 15 | ES256/kid/key rotation/expiry, exact raw-body digest, old/future JWT, malformed/oversize and invalid signature fail closed. | PASS synthetic unit behavior only: `TestPlaidWebhook`, `TestWebhookRejectedInputs`, `TestWebhookKeyLifecycle`, `TestEquivalentECDSADelivery`. Real signed delivery remains W01. | #87 |
 | W07 / 15 | Key service outage/timeout/cache budget; wrong environment, unknown/revoked Item, account/tenant isolation; no SQL work for unauthenticated input. | PARTIAL synthetic `TestKeyTransportFailures`, `TestWebhookPersistenceFailure`, SQL scope tests. Hosted identity/scope path OPEN. | #87 |
 | R01 / 12 + project | API rate limits, timeouts, unavailable institution, malformed page, bound overflow and worker lease expiry preserve last completed publication. | PARTIAL `TestProviderFailures`, acquisition/dispatch fault suites; exact coverage gaps require case inventory, not suite-name inference. | #85 / #89 |
-| R02 / project | Independent fixture oracle compares source identity/quantity/unit/date/state to persisted observations and review; explain every discrepancy. | OPEN hosted; UI row-count equality is not this proof. No raw payload retention. | #88 / #84 |
+| R02 / project | Independent fixture oracle compares source identity/quantity/unit/date/state to persisted observations and review; explain every discrepancy. | PASS synthetic E for full history/current review/lineage and negative mismatches under a finite mandate; OPEN hosted #272. UI row-count equality is not this proof. No raw payload retention. | #272 / #88 / #84 |
 | R03 / project | Before/after DB assertions: acquisition/replay produces zero journal and journal-posting outbox additions. Lost COMMIT, stale writer and permission revocation cannot duplicate effects. | PASS synthetic (`TestAcquisitionCommittedReplyLoss`, sync/providerflow suites); OPEN for current hosted application DB. UI zero balances/Posted filter insufficient. | #85 / #88 |
 
 ## Item lifecycle and Link errors
@@ -107,7 +112,7 @@ are weaker than exact fixture/SQL assertions.
 
 | ID | Requirement / disposition | Current status / owner |
 | --- | --- | --- |
-| G01 | Review account-specific Launch Center; record product/country/platform checklist, app/company/use-case profile and OAuth prerequisites without copying private fields. Compare each item to this matrix. | OPEN, #88; public checklist is obsolete (P88-01). |
+| G01 | Review account-specific Launch Center; record product/country/platform checklist, app/company/use-case profile and OAuth prerequisites without copying private fields. Compare each item to this matrix. | PARTIAL, #274 under #88. [LC01](../research/plaid-launch-center-review.md): Production-approved header; individual account setup signals complete despite0/4 group counters; all12 task panels inspected for selected details. Exact scope/registration and full applicable mapping remain open. |
 | G02 | Review Hosted Link vs official web SDK recommendation for owned frontend. Retain current boundary until explicit decision, then qualify chosen completion/recovery flow. | OPEN, #187/#104; P88-04 conflicts with assuming Hosted Link is the final UX. |
 | G03 | Production environment/credential/SQL isolation, required products only, consent/privacy, retention and budget; no Sandbox fixture endpoints in live path. | BLOCKED under #90; current runtime intentionally Sandbox-only. |
 | G04 | Secure token/identifier handling, redacted support evidence and Item removal/retention review. | PARTIAL synthetic vault/redaction; hosted security and owner policy review remain #164/#62/#90. Raw identifiers seen in Sandbox UI require Production exposure review (P88-01). |
