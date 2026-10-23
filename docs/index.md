@@ -1,5 +1,8 @@
 # Project context
 
+Sandbox app recovery after31: [finite release and preserved browser command](runbooks/app-recovery31.md),
+issues272/281; actual browser acceptance pending.
+
 Verifier IAM marker compatibility: [decision](contracts/verifier-iam-compatibility.md)
 and [delivery](runbooks/verifier-iam-compatibility.md), issue272;
 [migration31 and SQL bootstrap accepted](runbooks/verifier-31-rollout.md#actual-status-and-bootstrap).
