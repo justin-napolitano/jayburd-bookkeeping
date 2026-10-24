@@ -198,11 +198,45 @@ cannot slip through a previously read eligibility result. Design exact constrain
 and receipts with the single SQL implementation, not a parallel schema draft.
 
 Dedicated-login bootstrap currently permits only
-`accept_verified_webhook(text,text,text)`. Update its closed allowlist for exactly
-the new Link receipt function, retaining owner/API/sync/table/vault/KMS denial,
+the two receipt functions after32:
+`accept_verified_webhook(text,text,text)` and
+`accept_verified_link_session(text,text,text)`. Its closed allowlist retains owner/API/sync/table/vault/KMS denial,
 ingress disable/replay and failed-bootstrap atomicity. Independently assess the
 actual Cloud SQL IAM marker compatibility; verifier31 is not an automatic webhook
 role exception. Migration, binary and bootstrap must be compatible before release.
+
+## Signed receiver implementation profile — #319 phase1
+
+After raw ES256/JWK/body/time verification, the dedicated Go receiver classifies
+the event and checks its entire closed schema. `LINK/SESSION_FINISHED` requires
+Sandbox, success/exited, visible-ASCII Link token1–4096bytes and session1–256bytes.
+Optional deprecated public token and each public-token array member are bounded
+to1–4096bytes; at most25members. Optional user ID is1–256visible-ASCII bytes.
+Absent optionals and empty arrays are allowed; explicit null, wrong types,
+duplicates, unknown fields and empty identifiers are rejected. These are local
+fail-closed bounds, not vendor guarantees or a claim of Multi-Item support.
+Actual update shape remains a qualification gate; revisit this profile with
+reviewed metadata if the provider delivers a different representation.
+
+LR07's modern properties were rechecked2026-10-24 against the official Link API
+SESSION_FINISHED section in full. It defines success/exited and token/session/
+environment fields, optional public-token/user metadata, and Hosted default
+enablement. It does not establish our SQL ownership association or actual delivery.
+The existing STD-01 operational/nonfinancial assessment above remains unchanged;
+no financial mapping, currency policy, API version or SDK upgrade is introduced.
+
+Only private hashed Link/session/outcome metadata survives parsing; the SQL call
+uses exactly the normalized five-key object above and a fixed purpose function.
+No raw tokens, user identity or request-selected SQL function cross the boundary.
+The committed private acknowledgement is accepted/duplicate count1 or ignored
+count0. It must match the verified event kind before HTTP204; old Transactions
+acknowledgements cannot stand in for Link proof, or vice versa. Invalid/mixed
+outputs fail closed. Current authority/expiry denial maps to fixed HTTP403 with
+no SQL diagnostics; unknown commit remains503, never an automatic bank operation.
+
+Named evidence and limits: [signed receiver stages](../runbooks/hosted-link-receipts.md).
+This phase adds no credential reader, concrete reconnect capability, API/UI
+completion wiring or hosted acceptance; subsequent319/320 and303 remain required.
 
 ## Replay, recovery and operational limits
 

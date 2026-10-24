@@ -1,4 +1,4 @@
-// Package webhook verifies bounded provider notifications before durable wakeup acknowledgement.
+// Package webhook verifies bounded provider notifications before durable acknowledgement.
 package webhook
 
 import (
@@ -23,16 +23,18 @@ var errUnknown = errors.New("commit_unknown")
 type Verified struct {
 	Environment, ItemID, ReceiptKey, BodySHA256 string
 	IssuedAt                                    int64
+	session                                     *verifiedLinkSession
 }
 
 // Receipt is a committed acknowledgement, not proof of transaction acquisition.
 type Receipt struct {
-	State       string `json:"state"`
-	ReceiptID   string `json:"receipt_id"`
-	StreamCount int    `json:"stream_count"`
+	State        string `json:"state"`
+	ReceiptID    string `json:"receipt_id"`
+	StreamCount  int    `json:"stream_count"`
+	sessionCount *int
 }
 
-// Receiver atomically stores the receipt and authorized durable wakeup intents.
+// Receiver stores verified receipts; only Transactions notifications may create wakeup intents.
 type Receiver interface {
 	Receive(context.Context, Verified) (Receipt, error)
 }
