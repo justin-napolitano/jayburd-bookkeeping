@@ -114,6 +114,46 @@ clarification rather than falling back to callback/account-health evidence.
 
 ## SQL interface and locking review
 
+Implementation profile32 (#318): two immutable grains `link_session_receipt`
+(one delivery, primary key environment/receipt hash, scoped attempt FK, Link /
+session / raw-body hashes, closed outcome, integer signed iat and receipt time)
+and `link_repair_claim` (one attempt, exact successful receipt FK, claim UUID,
+original credential reference/version and live consent ceiling). No direct runtime
+table grants. Private reconnect projection adds `item_consent_expires_at` for319;
+confirmation independently rejects a later manifest expiry. Existing mutable
+unclaimed reconnect expiry is capped with a new immutable policy-change event;
+no original event or terminal effect is rewritten. Missing/ambiguous begin evidence
+denies eligibility. This is the explicit legacy disposition required above.
+Actual synthetic stages and limits are in [the SQL delivery runbook](../runbooks/hosted-repair-sql.md).
+
+The mutable attempt also gains an immutable-once `repair_scope_sha256`, pinned
+only by a fresh server-authorized begin. Canonical input includes source-binding
+and stream revisions/states, namespace/source identities and consent/worker scope;
+ordinary cursors/demands and display labels are excluded. Legacy missing scope
+cannot be inferred from current rows: deny and require explicit local cancellation
+and a separately reviewed fresh attempt. This profile requires the initiating
+actor to be the existing Item consent principal; delegated repair needs separate
+review. Neither a grant reset nor a changed binding silently reauthorizes old work.
+
+The dedicated webhook session remains barred from `ledger.authorize` and all API
+entrypoints. Its private receipt locker rechecks the SQL-selected initiating actor,
+current read/connect/import memberships and existing source/worker capabilities
+under canonical locks. It does not weaken that global cross-role guard, accept an
+actor from the event, SET ROLE or acquire any API/table grant. Actual restricted
+login tests must prove both receipt acceptance and continued API/ledger denial.
+
+Lock the union of actor, configured worker, original consent principal and all
+stream service principals in UUID order **before** the existing book/source/Item
+chain. The existing connection helper alone locks only actor/configured worker;
+do not acquire other principal locks later under the Item. Exact normalized
+receipt fields are `link_token_sha256`, `link_session_sha256`, `body_sha256`,
+`status` and integer `issued_at`; raw argument is this closed object, not a payload.
+Require globally unambiguous retained token association across all modes before
+unclaimed proof/claim; a new-mode token must not be reinterpreted as repair. Use
+a nonunique lookup index and deny collisions, not an unreviewed global unique
+constraint over existing history. Human security review is still pending before
+managed release, and no actual ordinary update event is qualified.
+
 Allocate a forward migration only under a fresh sole-writer lease after checking
 main/#65. Merged13/14/19 and later definitions are immutable. Review current
 [database foundations](../research/database-foundations.md) before DDL.
@@ -130,6 +170,17 @@ Proposed restricted interfaces (parameter names below are descriptive):
   `bookkeeping_api`, current owned scope. Return pending/success/exited/ambiguous
   and private receipt hashes needed for completion; no browser token or cross-
   scope discovery. Recheck authority/deadline at claim, not just this read.
+- `integration.get_repair_bank_credential(actor uuid,e uuid,b uuid,id uuid)`:
+  only API, derives the old reference/version/Item from the exact current repair
+  and returns its existing AEAD envelope plus closed addressed metadata. Permit
+  current unclaimed `link_pending` creation, or the exact proof-pinned nonterminal claim;
+  `link_ready` completion cannot read the bank credential before proof/claim.
+  no ciphertext publication/write.319 must use this purpose-specific read rather
+  than18's generic lookup, which chooses a matching attempt by expiry and can
+  select an older active enrollment after reconnect changes the Item generation.
+  Confirmed/abandoned/expired/revoked repairs cannot read through this interface.
+  Go must verify the addressed envelope/AAD and reuse the credential, without
+  creating another encrypted version. Original generic APIs remain unchanged.
 - Extend `claim_connection` to require/pin proof for reconnect and retain all
   existing new/rotate/remove restrictions. Extend handoff put/get only as above;
   `abandon_connection` may cancel **unclaimed** reconnect locally. Cancellation
@@ -166,9 +217,21 @@ Unknown claim reply is inspected by exact attempt. For reconnect only, the same
 current-authorized claim/proof/credential can repeat the read-only manifest and
 confirmation after a lost response, including failure before the first manifest.
 There is no fresh Link, exchange, rotation, different proof or automatic retry
-loop. Keep new/rotate one-shot uncertainty rules unchanged. Revocation, expiry,
-generation or stream drift denies recovery without publishing. Terminal success
+loop. Keep new/rotate one-shot uncertainty rules unchanged. Revocation, source
+consent expiry, generation or stream drift denies recovery without publishing. Terminal success
 replay returns its existing receipt; journals are never produced by this path.
+
+The15minute deadline governs **unclaimed** Link/proof/claim eligibility. An already
+committed proof-pinned claim may be explicitly reconciled after its Link window
+ends, under the same current permissions, generation/scope and original live
+source-consent ceiling. Never reopen its Link or mint another execution grant.
+This follows the existing13 context distinction between unclaimed expiry and
+durable claimed recovery; it is our engineering policy, not new Plaid consent.
+Alternative hard-expiring claimed recovery would strand a paused Item after a
+lost reply despite valid durable proof. Reject that alternative: repeat only
+read-only manifest/confirmation, and deny when source authority actually expires.
+`TestHostedRepairSQLClaimedExpiryRecovery` must prove same claim/credential, one
+repair cause, no duplicate effect and no secret access after source revocation.
 
 An ingress outage yields pending recovery and keeps acquisition paused. Owner
 can explicitly cancel an unclaimed attempt; no client callback bypass. Disabling

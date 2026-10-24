@@ -528,9 +528,18 @@ func TestConnectionServiceSQLUnknownClaim(t *testing.T) {
 	}
 }
 
+// sqlRepairProvider gives each supported fixture mode a distinct token rather than aliasing another session.
+type sqlRepairProvider struct{ *fakeProvider }
+
+// CreateLink changes fixture identity only; production behavior and the signature boundary are unchanged.
+func (p sqlRepairProvider) CreateLink(_ context.Context, in LinkRequest) (LinkResult, error) {
+	return LinkResult{Token: NewSecret("synthetic-link-" + in.Mode), ExpiresAt: time.Now().Add(time.Hour)}, p.touch("link")
+}
+
 // TestConnectionServiceSQLItemLifecycle proves same-Item reconnect and rotation publish one shared version.
 func TestConnectionServiceSQLItemLifecycle(t *testing.T) {
 	s, admin, p, _ := sqlService(t)
+	s.provider = sqlRepairProvider{p}
 	p.manifest.Accounts = append(p.manifest.Accounts, Account{AccountID: "account-two", Type: "depository", Currency: ptr("USD")})
 	id, input := sqlBegin(t, s, "new-two")
 	if _, e := s.Execute(context.Background(), scope, id, input); e != nil {
@@ -556,6 +565,13 @@ func TestConnectionServiceSQLItemLifecycle(t *testing.T) {
 		}
 		_ = json.Unmarshal(out.Attempt, &info)
 		req := ExecuteRequest{Nonce: out.Nonce, LinkToken: out.LinkToken}
+		if mode == "reconnect" {
+			// Synthetic normalized receipt through an actual restricted login; this does not qualify Plaid signatures.
+			proofExec(t, admin, `DO $$ BEGIN IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='synthetic_repair_webhook') THEN CREATE ROLE synthetic_repair_webhook LOGIN IN ROLE bookkeeping_webhook;END IF;END $$`)
+			db := admin.Config().Database
+			proofCall(t, db, "synthetic_operator", `SELECT integration.set_webhook_ingress('synthetic_repair_webhook','sandbox','repair-fixture',true)::text`)
+			proofCall(t, db, "synthetic_repair_webhook", `SELECT integration.accept_verified_link_session('sandbox',$1,$2)::text`, hash(out.LinkToken), proofRaw(map[string]any{"link_token_sha256": hash(out.LinkToken), "link_session_sha256": strings.Repeat("c", 64), "body_sha256": strings.Repeat("d", 64), "status": "success", "issued_at": time.Now().Unix()}))
+		}
 		if mode == "rotate" {
 			p.token = NewSecret("rotated-synthetic-access")
 		}
