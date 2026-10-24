@@ -9,8 +9,8 @@
 
 [Verifier IAM](../contracts/verifier-iam-compatibility.md): Google/PG17 selections2026-10-23.
 
-[Link recovery](plaid-link-recovery-sources.md): LR01–06, Plaid/React selections,
-2026-10-22; reconnect/OAuth unqualified.
+[Link recovery](plaid-link-recovery-sources.md): LR01–07, Plaid/React selections,
+2026-10-24; reconnect/OAuth unqualified.
 
 [Plaid #88](plaid-88-test-sources.md): official selections,2026-10-22; hosted gaps.
 [Launch Center](plaid-launch-center-review.md): visible panels,2026-10-22; scope partial.
