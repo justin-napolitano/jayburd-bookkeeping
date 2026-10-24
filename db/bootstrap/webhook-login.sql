@@ -34,7 +34,7 @@ BEGIN
  OR EXISTS(SELECT FROM pg_namespace n WHERE n.nspname !~ '^pg_temp_' AND has_schema_privilege(probe_role,n.oid,'CREATE,USAGE WITH GRANT OPTION'))
  OR EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','reporting','deployment') AND c.relkind IN ('r','p','v','m','f') AND has_table_privilege(probe_role,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN'))
  OR EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','reporting','deployment') AND CASE WHEN c.relkind='S' THEN has_sequence_privilege(probe_role,c.oid,'USAGE,SELECT,UPDATE') ELSE false END)
- OR EXISTS(SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','reporting','deployment') AND (has_function_privilege(probe_role,p.oid,'EXECUTE WITH GRANT OPTION') OR NOT (n.nspname='integration' AND p.proname='accept_verified_webhook' AND p.proargtypes='25 25 25'::oidvector) AND has_function_privilege(probe_role,p.oid,'EXECUTE'))) THEN
+ OR EXISTS(SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','reporting','deployment') AND (has_function_privilege(probe_role,p.oid,'EXECUTE WITH GRANT OPTION') OR NOT (n.nspname='integration' AND p.proname IN ('accept_verified_webhook','accept_verified_link_session') AND p.proargtypes='25 25 25'::oidvector) AND has_function_privilege(probe_role,p.oid,'EXECUTE'))) THEN
   RAISE EXCEPTION 'webhook_bootstrap_rejected';
  END IF;
  END LOOP;

@@ -95,6 +95,10 @@ mechanism. Limit: naming an invariant does not implement its enforcement.
 
 PostgreSQL 17 manual, [13.2 Transaction Isolation](https://www.postgresql.org/docs/17/transaction-iso.html).
 Read: Read Committed, Repeatable Read and Serializable sections.
+Refreshed2026-10-24: full13.2.3 Serializable section, including whole-transaction
+retry, committed-read validity and overlapping unique-key caveats.318's closed
+receipt writer checks the key before insert; an actual two-snapshot lock-barrier
+test verifies duplicate resolution. The manual alone is not that runtime proof.
 Evidence: statement snapshots differ under Read Committed; serializable failures
 require retrying the transaction. Use: specify isolation per operation and retry
 from original inputs. Limit: serializability preserves correctly written operations;
@@ -131,6 +135,10 @@ still need an explicit design and tests.
 PostgreSQL 17 manual,
 [CREATE FUNCTION: security-definer safety](https://www.postgresql.org/docs/17/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY).
 Read: ownership, trusted search_path and PUBLIC execute privileges.
+Refreshed2026-10-24: full PG17 “Writing SECURITY DEFINER Functions Safely” section,
+including temp-schema masking and same-transaction revocation of default PUBLIC
+EXECUTE, for318's narrow receipt/claim wrappers. Source establishes mechanisms;
+actual restricted login/role denial and race tests remain separate evidence.
 Evidence: functions can execute with owner privileges and require careful grants.
 Use: evaluate a narrow posting function with revoked direct DML. Limit: this is
 an elevated trust boundary, not a shortcut around authorization.
