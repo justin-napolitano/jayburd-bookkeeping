@@ -24,6 +24,7 @@ type repairProviderWire struct {
 	calls                   []string
 	account, currency, kind string
 	extra                   bool
+	reverse                 bool
 }
 
 // RoundTrip checks the exact owned update request and serves only Link creation and read-only manifest endpoints.
@@ -57,6 +58,9 @@ func (p *repairProviderWire) RoundTrip(r *http.Request) (*http.Response, error) 
 		accounts := []any{map[string]any{"account_id": p.account, "type": p.kind, "balances": map[string]any{"iso_currency_code": p.currency}}}
 		if p.extra {
 			accounts = append(accounts, map[string]any{"account_id": "new-unapproved", "type": "depository", "balances": map[string]any{"iso_currency_code": "USD"}})
+		}
+		if p.reverse && len(accounts) == 2 {
+			accounts[0], accounts[1] = accounts[1], accounts[0]
 		}
 		body = raw(map[string]any{"item": map[string]any{"item_id": "synthetic-item"}, "accounts": accounts})
 	default:
@@ -181,9 +185,15 @@ func TestHostedRepairServiceUnknownReply(t *testing.T) {
 			f := repairServiceFixture(t, false)
 			f.signedSuccess(t, "one", "success")
 			wraps := f.key.wraps
+			if tc.name == "manifest" {
+				f.provider.extra = true
+			}
 			f.key.pool.lost = tc.operation
 			if _, e := f.service.CompleteHosted(context.Background(), f.scope, f.id); e == nil || !f.key.pool.fired {
 				t.Fatal("committed reply loss was not preserved")
+			}
+			if tc.name == "manifest" {
+				f.provider.reverse = true
 			}
 			if tc.name == "claim" {
 				if value(t, f.owner, "SELECT count(*)::text FROM integration.connection_attempt WHERE attempt_id=$1 AND manifest IS NULL", f.id) != "1" || len(f.provider.calls) != 1 {
@@ -210,6 +220,9 @@ func TestHostedRepairServiceUnknownReply(t *testing.T) {
 			}
 			if links != 1 {
 				t.Fatal("recovery restarted Hosted Link")
+			}
+			if value(t, f.owner, "SELECT count(*)::text FROM integration.connection_event WHERE attempt_id=$1 AND kind='manifest'", f.id) != "1" {
+				t.Fatal("recovery replaced or duplicated immutable manifest evidence")
 			}
 			f.requireRepairStable(t, "1", "1")
 		})

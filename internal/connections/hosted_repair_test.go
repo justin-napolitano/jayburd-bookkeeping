@@ -116,6 +116,29 @@ func TestHostedRepairUnknownClaim(t *testing.T) {
 	}
 }
 
+// TestHostedRepairKnownManifestReadOnly confirms existing evidence after a read-only order-independent match.
+// Re-submitting the provider's differently ordered array would violate SQL's immutable receipt equality.
+func TestHostedRepairKnownManifestReadOnly(t *testing.T) {
+	s, r, p, _ := repairUnit()
+	r.proofStatus = "success"
+	r.claimed = true
+	r.c.ClaimID = ptr(claimID)
+	r.c.CredentialRef, r.c.CredentialVersion = r.c.PreviousCredentialRef, r.c.PreviousCredentialVersion
+	r.c.State = "credential_recovery_required"
+	m := p.manifest
+	m.ConsentExpiresAt = r.c.ItemConsentExpiresAt
+	m.Accounts = append(append([]Account(nil), m.Accounts...), Account{AccountID: "new-unapproved", Type: "depository", Currency: ptr("USD")})
+	r.c.Manifest = &m
+	p.manifest.Accounts = []Account{m.Accounts[1], m.Accounts[0]}
+	r.failOp = "record_connection_manifest"
+	if _, e := s.Reconcile(context.Background(), scope, attemptID); e != nil || r.c.State != "active" {
+		t.Fatal("known manifest recovery attempted a new immutable receipt", e)
+	}
+	if count(r.calls, "record_connection_manifest") != 0 {
+		t.Fatal("known evidence was resubmitted")
+	}
+}
+
 // TestHostedRepairRequestAndScopeDenial keeps caller token/nonce substitution and absent purpose stores outside claims.
 func TestHostedRepairRequestAndScopeDenial(t *testing.T) {
 	for _, in := range []ExecuteRequest{{Nonce: nonceID, LinkToken: "foreign-link"}, {Nonce: claimID, LinkToken: "synthetic-link"},
@@ -131,6 +154,25 @@ func TestHostedRepairRequestAndScopeDenial(t *testing.T) {
 	r.denied = true
 	if _, e := s.CompleteHosted(context.Background(), scope, attemptID); e == nil || store.purpose+store.handoffs != 0 || len(p.calls) != 0 {
 		t.Fatal("revoked scope reached secrets")
+	}
+	for _, hosted := range []bool{false, true} {
+		s, r, p, store := repairUnit()
+		r.proofStatus = "success"
+		// Expose the legacy and Link interfaces only, hiding the optional purpose reader.
+		s.secrets = struct {
+			SecretStore
+			LinkHandoffStore
+		}{store, store}
+		var e error
+		if hosted {
+			_, e = s.CompleteHosted(context.Background(), scope, attemptID)
+		} else {
+			_, e = s.Execute(context.Background(), scope, attemptID, ExecuteRequest{Nonce: nonceID, LinkToken: "synthetic-link"})
+		}
+		code(t, e, "configuration_error")
+		if r.claimed || len(p.calls) != 0 || store.handoffs+store.purpose+store.generic+store.puts+store.checks != 0 {
+			t.Fatal("known incompatible store consumed a claim or read a key")
+		}
 	}
 }
 

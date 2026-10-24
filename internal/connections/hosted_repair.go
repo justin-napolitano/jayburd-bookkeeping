@@ -69,6 +69,9 @@ func (s *Service) completeHostedRepair(ctx context.Context, scope Scope, c attem
 	if !ok {
 		return nil, failed("configuration_error")
 	}
+	if _, ok := s.secretStore(scope).(RepairCredentialReader); !ok {
+		return nil, failed("configuration_error")
+	}
 	link, e := handoff.ReadLink(ctx, c.AttemptID)
 	if e != nil {
 		return nil, failed("temporarily_unavailable")
@@ -93,6 +96,11 @@ func (s *Service) executeRepair(ctx context.Context, scope Scope, before attempt
 	}
 	if !ready {
 		return s.Attempt(ctx, scope, before.AttemptID)
+	}
+	// Refuse a known incompatible store before consuming the SQL claim or fencing
+	// the Item; this is a capability check, never a bank read or wrapping preflight.
+	if _, ok := s.secretStore(scope).(RepairCredentialReader); !ok {
+		return nil, failed("configuration_error")
 	}
 	c, e := s.privateCall(ctx, scope, before.AttemptID, "claim_connection", scope.Actor, scope.Entity, scope.Book, before.AttemptID, input.Nonce,
 		jsonText(map[string]any{"link_token_sha256": hash(input.LinkToken), "public_token_sha256": nil}))
@@ -161,8 +169,13 @@ func (s *Service) finishRepair(ctx context.Context, scope Scope, c attemptContex
 	if ceiling.Before(expiry) {
 		m.ConsentExpiresAt = ceiling.UTC().Format(time.RFC3339Nano)
 	}
-	if c.Manifest != nil && !sameManifest(m, *c.Manifest) {
-		return nil, failed("credential_recovery_required")
+	if c.Manifest != nil {
+		if !sameManifest(m, *c.Manifest) {
+			return nil, failed("credential_recovery_required")
+		}
+		// Preserve the original immutable manifest receipt. A current read-only
+		// account-order-independent match needs confirmation, not another record.
+		return s.confirm(ctx, scope, c)
 	}
 	c, e = s.privateCall(ctx, scope, c.AttemptID, "record_connection_manifest", scope.Actor, scope.Entity, scope.Book, c.AttemptID, value(c.ClaimID), jsonText(m))
 	if e != nil {

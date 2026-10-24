@@ -4,9 +4,9 @@
 ## Status and boundary
 
 `LINK319-HOSTED-SERVICE`, dedicated `feat/319-owned-hosted-repair` worktree.
-Original base325/a92adda; final branch rebases on33/PR327 after preserving this
-bounded Go source.324/325 are merged.326/327 is an explicit pending source
-dependency until CI/source acceptance; never treat it as completed beforehand.
+Original base325/a92adda; final branch now uses main9d24dc6 with33/PR327 after
+preserving bounded Go source.324/325/327 are merged after all five checks;
+326 is accepted/closed. No pending predecessor was treated as completed.
 No new SQL, API/OpenAPI/UI, CLI/runtime/release or infrastructure change in this
 branch. `HTTPConfig.HostedRepair` is separate/default false; existing runtime
 composition does not set it. No deployment/managed apply/provider/real data access.
@@ -20,7 +20,7 @@ composition does not set it. No deployment/managed apply/provider/real data acce
 | Separate prerequisite | Released service lease; sole-writer326 forward33 restores reviewed20 grammar without editing32 or substituting an easier key fixture; PR327 pending |
 | Composite service proof | Same Go source plus exact sealed33 pair/checksum PASS actual signed receipt/SQL/AEAD/concrete SDK injected transport cases |
 | Capability decision | Separate explicit HostedRepair false plus exact existing receiver; preserve prior webhook-only disabled behavior, reject implicit permission expansion |
-| Required gates | Final rebased core and connection/ops/provider/browser recovery gates pending |
+| Required gates | Core/vet/race/build, connection service/ops/provider flow,342 frontend units/26 browser and actual Next/Go/PostgreSQL expired-enrollment command recovery PASS; final optional-reader preclaim and reordered-manifest recovery checks also PASS |
 
 ## Current evidence
 
@@ -37,6 +37,19 @@ products or account-selection widening; constructor inert and separate opt-in.
 `TestHostedRepairNoAutomaticRestart`: expired-Link unclaimed cancellation uses
 SQL only and never removes/restarts the provider Item. Existing global approval
 denial regression remains unchanged and passed the unit check.
+Known missing purpose-reader capability rejects before handoff/KMS or SQL claim,
+so a configuration error cannot unnecessarily fence the existing Item.
+`TestHostedRepairKnownManifestReadOnly` first reproduced an unnecessary repeat
+manifest write after a lost reply. Recovery now compares the current read-only
+manifest independent of account order and confirms the original durable receipt;
+it never resubmits differently ordered metadata to immutable SQL equality.
+The actual signed/SQL/AEAD lost-manifest test reverses provider account order
+on recovery and requires one original manifest event, preserving exact evidence.
+Final current Go source reran `make check test build webhook-test app-integration`
+successfully after both guards; the unchanged frontend also passed locked
+`web-check web-test web-build web-browser`. Browser identity is a test-only fixture,
+not managed identity/MFA/provider/Production acceptance. No dependency or test
+timeout was changed to make these checks pass.
 
 Actual restricted SQL + signed HTTP + production AEAD + pinned SDK fixture
 (fictional in-memory KEK, injected provider transport; no real provider):
@@ -62,9 +75,9 @@ Begin; completion/recovery never creates another bank or Link envelope.
 
 ## Remaining work
 
-Finish final current-head gates and review; merge327 only after its canonical CI.
-Explicitly track CLI/runtime/finite release capability propagation before319
-closure or managed UI flow.320 owns browser waiting/reload/recover/cancel and
+Finish final current-head gates and review.328 explicitly tracks CLI/runtime/
+finite release capability propagation and blocks319 closure; no managed UI flow
+can infer capability from the old webhook URL setting.320 owns browser waiting/reload/recover/cancel and
 actual qualification;303 owns dedicated signed delivery. Human security review,
 image/schema33/bootstrap compatibility and fresh exact owner release scope are
 required before managed repair. Production308–316, independent Sandbox equality
