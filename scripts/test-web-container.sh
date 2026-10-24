@@ -38,7 +38,9 @@ for (let attempt = 0; attempt < 40; attempt++) {
 if (!response?.ok) throw new Error('shell unavailable');
 if (!response.headers.get('cache-control')?.includes('no-store')) throw new Error('application shell is cacheable');
 const body = await response.text();
-if (!body.includes('Sign-in is not configured')) throw new Error('unconfigured sign-in boundary missing');
+// The server cannot know the browser's fetched configuration before hydration.
+if (!body.includes('Preparing sign-in') || !body.includes('Loading sign-in settings')) throw new Error('sign-in loading boundary missing');
+if (body.includes('Sign-in is not configured') || body.includes('type="password"') || body.includes('id="signin-title"')) throw new Error('premature sign-in state before runtime configuration');
 if (response.headers.get('x-frame-options') !== 'DENY') throw new Error('frame boundary missing');
 const asset = body.match(/src="([^" ]+\/_next\/static\/[^" ]+\.js)"/)?.[1] ?? body.match(/src="(\/_next\/static\/[^" ]+\.js)"/)?.[1];
 if (!asset || !(await fetch(new URL(asset, 'http://web:8080'), {signal: AbortSignal.timeout(3000)})).ok) throw new Error('static asset missing');
