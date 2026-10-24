@@ -21,10 +21,11 @@ type repository interface {
 
 // Service commits authority before remote work and publishes references only after readback.
 type Service struct {
-	repo          repository
-	provider      Provider
-	secrets       SecretStore
-	creatorLogins *WorkerLogins
+	repo             repository
+	provider         Provider
+	secrets          SecretStore
+	creatorLogins    *WorkerLogins
+	providerApproved func() bool
 }
 
 // New composes injected boundaries without startup credential discovery.
@@ -105,11 +106,14 @@ func secretValid(v Secret) bool { return len(v.value) <= 4096 && tokenRE.MatchSt
 
 // ready checks dependencies and syntax before any SQL or external operation.
 func (s *Service) ready(scope Scope) error {
-	if s == nil || s.repo == nil || s.provider == nil || s.secrets == nil {
-		return failed("configuration_error")
+	if err := s.readReady(scope); err != nil {
+		return err
 	}
-	if !validScope(scope) {
-		return failed("invalid_request")
+	if s.providerApproved != nil && !s.providerApproved() {
+		return failed("temporarily_unavailable")
+	}
+	if s.provider == nil || s.secrets == nil {
+		return failed("configuration_error")
 	}
 	return nil
 }
@@ -587,7 +591,7 @@ func sameManifest(a, b Manifest) bool {
 
 // Public read/mapping methods never expose the trusted credential context.
 func (s *Service) Attempt(ctx context.Context, scope Scope, id string) (json.RawMessage, error) {
-	if e := s.ready(scope); e != nil {
+	if e := s.readReady(scope); e != nil {
 		return nil, e
 	}
 	if !validID(id) {
@@ -598,7 +602,7 @@ func (s *Service) Attempt(ctx context.Context, scope Scope, id string) (json.Raw
 
 // List exposes only the SQL-owned public connection projection.
 func (s *Service) List(ctx context.Context, scope Scope) (json.RawMessage, error) {
-	if e := s.ready(scope); e != nil {
+	if e := s.readReady(scope); e != nil {
 		return nil, e
 	}
 	if s.creatorLogins != nil {
@@ -642,7 +646,7 @@ func validBindingRequest(input BindingRequest) bool {
 
 // Disconnect fences one stream and never performs an Item-wide provider operation.
 func (s *Service) Disconnect(ctx context.Context, scope Scope, id, key, revision string) (json.RawMessage, error) {
-	if e := s.ready(scope); e != nil {
+	if e := s.readReady(scope); e != nil {
 		return nil, e
 	}
 	if !validID(id) || !keyRE.MatchString(key) || !validRevision(revision) {

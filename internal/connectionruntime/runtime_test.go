@@ -68,6 +68,109 @@ func TestDisabledIsInert(t *testing.T) {
 	}
 }
 
+// TestExpiredEnrollmentStartup proves exact-deadline and cold-restart composition needs no dependency I/O.
+func TestExpiredEnrollmentStartup(t *testing.T) {
+	deadline := time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
+	for _, now := range []time.Time{deadline, deadline.Add(time.Nanosecond), deadline.Add(365 * 24 * time.Hour)} {
+		c := config()
+		c.ConsentExpiresAt = deadline.Format(time.RFC3339)
+		token := &tokens{}
+		calls := 0
+		s, err := newWithClock(context.Background(), c, inertDB{}, transport(func(*http.Request) (*http.Response, error) {
+			calls++
+			t.Fatal("expired startup reached dependency transport")
+			return nil, ErrUnavailable
+		}), token, func() time.Time { return now })
+		if err != nil || s == nil || calls != 0 || token.access != 0 || token.identity != 0 {
+			t.Fatalf("expired cold startup unavailable: %v", err)
+		}
+		_, err = s.Begin(context.Background(), connections.Scope{Actor: "00000000-0000-4000-8000-000000000001", Entity: "00000000-0000-4000-8000-000000000002", Book: "00000000-0000-4000-8000-000000000003"}, "same-key", connections.BeginRequest{Mode: "new"})
+		if err == nil || err.Error() != "temporarily_unavailable" {
+			t.Fatal("expired enrollment not denied")
+		}
+	}
+	c := config()
+	c.ConsentExpiresAt = "2020-01-01T00:00:00Z"
+	if c.ManagedScope("managed", "cloudsql", c.ProjectID) != nil {
+		t.Fatal("expired optional policy blocked managed startup")
+	}
+	c.ClientSecretVersion = "projects/999999999999/secrets/foreign/versions/1"
+	if c.ManagedScope("managed", "cloudsql", c.ProjectID) != ErrConfiguration {
+		t.Fatal("expired policy hid unsafe configuration")
+	}
+}
+
+// TestEnrollmentExpiresDuringStartup avoids turning a finite secret initialization race into API downtime.
+func TestEnrollmentExpiresDuringStartup(t *testing.T) {
+	for _, expireAfter := range []int{1, 2} {
+		deadline := time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
+		now := deadline.Add(-time.Second)
+		c := config()
+		c.ConsentExpiresAt = deadline.Format(time.RFC3339)
+		calls := 0
+		token := &tokens{}
+		s, err := newWithClock(context.Background(), c, inertDB{}, transport(func(*http.Request) (*http.Response, error) {
+			refs := []string{c.ClientIDVersion, c.ClientSecretVersion}
+			name := refs[calls]
+			calls++
+			if calls == expireAfter {
+				now = deadline
+			}
+			return response(name, "synthetic-static-value"), nil
+		}), token, func() time.Time { return now })
+		if err != nil || s == nil || calls != expireAfter || token.access != expireAfter {
+			t.Fatalf("startup expiry was fatal or loaded another secret: %v", err)
+		}
+	}
+}
+
+// TestEnrollmentExpiresAfterStartup keeps the already constructed service closed without a restart.
+func TestEnrollmentExpiresAfterStartup(t *testing.T) {
+	deadline := time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
+	now := deadline.Add(-time.Second)
+	c := config()
+	c.ConsentExpiresAt = deadline.Format(time.RFC3339)
+	token := &tokens{}
+	calls := 0
+	s, err := newWithClock(context.Background(), c, inertDB{}, transport(func(*http.Request) (*http.Response, error) {
+		refs := []string{c.ClientIDVersion, c.ClientSecretVersion}
+		if calls >= len(refs) {
+			t.Fatal("unexpected provider or credential I/O")
+		}
+		name := refs[calls]
+		calls++
+		return response(name, "synthetic-static-value"), nil
+	}), token, func() time.Time { return now })
+	if err != nil || s == nil || calls != 2 {
+		t.Fatal("approved runtime did not compose")
+	}
+	for _, instant := range []time.Time{deadline, deadline.Add(time.Nanosecond)} {
+		now = instant
+		_, err = s.Begin(context.Background(), connections.Scope{Actor: "00000000-0000-4000-8000-000000000001", Entity: "00000000-0000-4000-8000-000000000002", Book: "00000000-0000-4000-8000-000000000003"}, "same-key", connections.BeginRequest{Mode: "new"})
+		if err == nil || err.Error() != "temporarily_unavailable" || calls != 2 || token.access != 2 {
+			t.Fatal("running service crossed the deadline")
+		}
+	}
+}
+
+// TestApprovalTransportDeadline stops new dependency requests even inside multi-call provider work.
+func TestApprovalTransportDeadline(t *testing.T) {
+	deadline := time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
+	now := deadline.Add(-time.Nanosecond)
+	calls := 0
+	tr := approvalTransport{base: transport(func(*http.Request) (*http.Response, error) { calls++; return &http.Response{StatusCode: 200}, nil }), deadline: deadline, now: func() time.Time { return now }}
+	req, _ := http.NewRequest(http.MethodPost, "https://sandbox.plaid.com/item/get", nil)
+	if _, err := tr.RoundTrip(req); err != nil || calls != 1 {
+		t.Fatal("approved transport unavailable")
+	}
+	for _, expired := range []time.Time{deadline, deadline.Add(time.Nanosecond)} {
+		now = expired
+		if resp, err := tr.RoundTrip(req); err != ErrUnavailable || resp != nil || calls != 1 {
+			t.Fatal("expired request escaped transport fence")
+		}
+	}
+}
+
 // TestExplicitCompleteConfiguration rejects unsupported scope and policy before reading a secret.
 func TestExplicitCompleteConfiguration(t *testing.T) {
 	cases := []func(*Config){
@@ -76,7 +179,7 @@ func TestExplicitCompleteConfiguration(t *testing.T) {
 		func(c *Config) { c.RegistryPrefix = "other-prefix" },
 		func(c *Config) { c.ClientIDVersion, c.ClientSecretVersion = c.ClientSecretVersion, c.ClientIDVersion },
 
-		func(c *Config) { c.Enabled = false }, func(c *Config) { c.ProjectNumber = "synthetic-project" }, func(c *Config) { c.InfisicalEnvironment = "prod" }, func(c *Config) { c.InfisicalOrigin = "https://arbitrary.invalid" }, func(c *Config) { c.InfisicalIdentity = "00000000-0000-0000-0000-000000000000" }, func(c *Config) { c.RegistryPrefix = "../outside" }, func(c *Config) { c.ClientIDVersion = "projects/123456789012/secrets/a/versions/latest" }, func(c *Config) { c.ClientIDVersion = "projects/999999999999/secrets/a/versions/1" }, func(c *Config) { c.ClientIDVersion = c.ClientSecretVersion }, func(c *Config) { c.ConsentExpiresAt = time.Now().Add(-time.Second).Format(time.RFC3339) }, func(c *Config) { c.ConsentExpiresAt = time.Now().Add(31 * 24 * time.Hour).Format(time.RFC3339) },
+		func(c *Config) { c.Enabled = false }, func(c *Config) { c.ProjectNumber = "synthetic-project" }, func(c *Config) { c.InfisicalEnvironment = "prod" }, func(c *Config) { c.InfisicalOrigin = "https://arbitrary.invalid" }, func(c *Config) { c.InfisicalIdentity = "00000000-0000-0000-0000-000000000000" }, func(c *Config) { c.RegistryPrefix = "../outside" }, func(c *Config) { c.ClientIDVersion = "projects/123456789012/secrets/a/versions/latest" }, func(c *Config) { c.ClientIDVersion = "projects/999999999999/secrets/a/versions/1" }, func(c *Config) { c.ClientIDVersion = c.ClientSecretVersion }, func(c *Config) { c.ConsentExpiresAt = "invalid" }, func(c *Config) { c.ConsentExpiresAt = time.Now().Add(31 * 24 * time.Hour).Format(time.RFC3339) },
 	}
 	for i, mutate := range cases {
 		c := config()

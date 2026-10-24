@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/experimental-ct-react";
 import { IntegrationHarness } from "./Harness";
 
 /** Real browser forms traverse Next→Go→PostgreSQL; only response delivery is fault-injected. */
-test("real setup and lost committed journal recover after remount with exactly one posting", async ({
+test("expired enrollment preserves real setup and journal recovery without provider access", async ({
   mount,
   page,
 }) => {
@@ -47,14 +47,27 @@ test("real setup and lost committed journal recover after remount with exactly o
   await page
     .getByRole("button", { name: "Review book setup", exact: true })
     .click();
-  const setupResponse = page.waitForResponse(
-    (r) => r.url().endsWith("/execute") && r.request().method() === "POST",
-  );
+  let lostSetup = "";
+  let setupExecutions = 0;
+  await page.route("**/v1/commands/*/execute", async (route) => {
+    setupExecutions++;
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    const command = await response.json();
+    expect(command.state).toBe("committed");
+    lostSetup = command.command_id;
+    await route.abort("failed");
+  });
   await page.getByRole("button", { name: "Create book", exact: true }).click();
-  expect((await setupResponse).status()).toBe(200);
+  await expect.poll(() => lostSetup).not.toBe("");
+  await component.unmount();
+  await page.unroute("**/v1/commands/*/execute");
+  component = await mount(<IntegrationHarness />);
   await expect(
     page.getByText("Book creation confirmed", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByText(lostSetup, { exact: true })).toBeVisible();
+  expect(setupExecutions).toBe(1);
   await page
     .getByRole("button", { name: "Acknowledge result", exact: true })
     .click();
@@ -62,6 +75,29 @@ test("real setup and lost committed journal recover after remount with exactly o
     .getByLabel("Entity and book")
     .selectOption({ label: "Synthetic browser LLC / Operating" });
   await expect(page.locator(".position-equity")).toHaveText("0.00");
+  const [entity, book] = (
+    await page.getByLabel("Entity and book").inputValue()
+  ).split("/");
+  const deniedEnrollment = await page.request.post(
+    new URL(
+      `/v1/entities/${entity}/books/${book}/connection-attempts`,
+      page.url(),
+    ).href,
+    {
+      headers: {
+        Authorization: "Bearer synthetic.browser.proof",
+        "Idempotency-Key": "expired-enrollment-proof",
+        Origin: new URL(page.url()).origin,
+      },
+      data: {
+        mode: "new",
+        sync_item_id: null,
+        expected_generation: null,
+        approved_stream_ids: [],
+      },
+    },
+  );
+  expect(deniedEnrollment.status()).toBe(503);
   await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "New journal", exact: true }).click();
   await page.getByLabel("Accounting date", { exact: true }).fill("2026-01-15");
