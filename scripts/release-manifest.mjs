@@ -7,6 +7,10 @@ const components = ['api', 'migrate', 'web'];
 export function isSandbox(operation) { return ['sandbox-promote','sandbox-rollback'].includes(operation); }
 // Both rollback scopes require immutable prior evidence and never execute migrations.
 export function isRollback(operation) { return ['rollback','sandbox-rollback'].includes(operation); }
+// Repair is a separate explicit capability; a webhook URL alone never enables it.
+export function hostedRepairEnabled(c) { return c?.hosted_repair === true; }
+// Repair rollback verifies the selected clean schema before rollout without granting migration authority.
+export function requiresMigrationStatus(m) { return ['verify','sandbox-promote'].includes(m?.operation) || m?.operation === 'sandbox-rollback' && hostedRepairEnabled(m.connections); }
 // Exact object fields prevent arbitrary Terraform variables, environment values or destinations entering promotion.
 function keys(value, names) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).sort().join(',') !== [...names].sort().join(',')) throw new Error('Release rejected');
@@ -17,6 +21,7 @@ export function validateConnections(c, projectNumber, releaseExpiry, now) {
   if (c === null) return;
   keys(c, connectionKeys(c));
   if(c.webhook_url!==undefined && (projectNumber!=='9088794002' || c.webhook_url!=='https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid')) throw new Error('Release rejected');
+  if(c.hosted_repair!==undefined && typeof c.hosted_repair!=='boolean' || hostedRepairEnabled(c) && c.webhook_url===undefined) throw new Error('Release rejected');
   if (!['https://us.infisical.com','https://eu.infisical.com','https://app.infisical.com'].includes(c.infisical_origin) || typeof c.link_events_qualified !== 'boolean') throw new Error('Release rejected');
   for (const id of [c.infisical_project,c.infisical_identity]) if (typeof id !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(id) || id === '00000000-0000-0000-0000-000000000000') throw new Error('Release rejected');
   for (const [key, name] of [['client_id_version','client-id'],['client_secret_version','client-secret']]) {
@@ -38,7 +43,7 @@ export function connectionConfigDigest(c) {
 // Legacy enrollment retains its digest; explicit webhook opt-in becomes part of approval.
 function connectionKeys(c) {
   const names=['infisical_origin','infisical_project','infisical_identity','link_events_qualified','client_id_version','client_secret_version','consent_expires_at'];
-  return c?.webhook_url===undefined?names:[...names,'webhook_url'];
+  return [...names,...(c?.webhook_url===undefined?[]:['webhook_url']),...(c?.hosted_repair===undefined?[]:['hosted_repair'])];
 }
 // Owner dispatch approves these exact public bytes, not an unsigned build artifact by itself.
 export function validateManifest(bytes, expectedHash, now = Date.now()) {
@@ -64,12 +69,19 @@ export function validateManifest(bytes, expectedHash, now = Date.now()) {
   if (!migrationOnly && (isRollback(m.operation) ? typeof m.previousDeployment!=='string' || !/^[1-9][0-9]{0,19}$/.test(m.previousDeployment) : m.previousDeployment !== null)) throw new Error('Release rejected');
   if (!migrationOnly) validateConnections(m.connections, m.projectNumber, expiry, now);
   if (!migrationOnly && m.connections?.webhook_url!==undefined && m.project!=='jayburd-bookkeeping-dev') throw new Error('Release rejected');
+  if (!migrationOnly && hostedRepairEnabled(m.connections) && !isSandbox(m.operation)) throw new Error('Release rejected');
   if (isSandbox(m.operation) && (m.project !== 'jayburd-bookkeeping-dev' || m.projectNumber !== '9088794002')) throw new Error('Release rejected');
   return m;
 }
 // Runtime builds must descend from encrypted storage PR165; legacy images cannot roll back active DB tokens.
 // Migration/status gather evidence independently; runtime promotion retains every prior closure gate.
 export function requiredGates(operation, connections = null) {
+  if (hostedRepairEnabled(connections)) {
+    if (!isSandbox(operation)) throw new Error('Release rejected');
+    // Fixed source gates bind both the workflow and all selected image inputs;
+    //302/303 are readiness prerequisites, not automated proof of current ingress.
+    return {issues:[5,6,130,131,162,163,302,303,319,328],prs:[23,24,129,165,323,324,325,327,329,330]};
+  }
   if (isSandbox(operation)) return {issues:connections === null ? [5,6,130,162,163] : [5,6,130,131,162,163],prs:[23,24,129,165]};
   if (['migrate','verify'].includes(operation)) return {issues:[5],prs:[44]};
   if (['promote','rollback'].includes(operation)) return {issues:[6,11,26,162,163],prs:[23,24,165]};
@@ -106,7 +118,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     mkdirSync(destination, {recursive:true, mode:0o700});
     const common = {project_id:m.project, region:'us-central1'};
     if (!['migrate','verify'].includes(m.operation)) writeFileSync(`${destination}/runtime.tfvars.json`, JSON.stringify({...common, project_number:m.projectNumber, images:{api:m.images.api,web:m.images.web}, firebase_api_key:m.firebaseApiKey, connections:m.connections}), {mode:0o600});
-    writeFileSync(`${destination}/migration.tfvars.json`, JSON.stringify({...common, image:m.images.migrate, action:['verify','sandbox-promote'].includes(m.operation)?'status':'up'}), {mode:0o600});
+    writeFileSync(`${destination}/migration.tfvars.json`, JSON.stringify({...common, image:m.images.migrate, action:requiresMigrationStatus(m)?'status':'up'}), {mode:0o600});
     writeFileSync(`${destination}/approved.json`, JSON.stringify(m), {mode:0o600});
     console.log('PASS: release metadata validated');
   } catch { console.error('BLOCKED: release metadata or build evidence rejected'); process.exitCode=1; }

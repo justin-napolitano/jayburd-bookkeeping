@@ -5,7 +5,7 @@ import {mkdtempSync,writeFileSync,readFileSync,existsSync,rmSync} from 'node:fs'
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {validateManifest,validateBuild,validateRollback,requiredGates,connectionConfigDigest} from './release-manifest.mjs';
+import {validateManifest,validateBuild,validateRollback,requiredGates,connectionConfigDigest,requiresMigrationStatus} from './release-manifest.mjs';
 const now=Date.parse('2026-10-12T00:00:00Z');
 // Independent synthetic release/build evidence; no real identities or provider clients.
 function fixture() {
@@ -135,4 +135,56 @@ test('release CLI preserves enabled metadata and explicit null, including exact 
 // Hosted Link release metadata does not assert ordinary SDK account enablement.
 test('Hosted Link accepts explicit false SDK enablement',()=>{
  const {m}=fixture();m.connections={...connectionFixture(),link_events_qualified:false};validate(m);
+});
+
+// Repair uses fixed synthetic Sandbox metadata; legacy approval remains byte-semantically unchanged.
+function repairFixture() {
+ const {m}=fixture();m.project='jayburd-bookkeeping-dev';m.projectNumber='9088794002';m.operation='sandbox-promote';
+ m.images=Object.fromEntries(['api','migrate','web'].map(c=>[c,`us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/${c}@sha256:${'a'.repeat(64)}`]));
+ m.connections={...connectionFixture(),link_events_qualified:false,client_id_version:'projects/9088794002/secrets/jayburd-dev-bank-sync-client-id/versions/7',client_secret_version:'projects/9088794002/secrets/jayburd-dev-bank-sync-client-secret/versions/23',webhook_url:'https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid',hosted_repair:true};
+ return m;
+}
+test('repair capability is a distinct strict Sandbox opt-in with fixed source and receiver prerequisites',()=>{
+ const m=repairFixture();validate(m);
+ for(const value of [null,'true',1,[],{}]) assert.throws(()=>validate({...m,connections:{...m.connections,hosted_repair:value}}));
+ const missing={...m.connections};delete missing.webhook_url;assert.throws(()=>validate({...m,connections:missing}));
+ for(const operation of ['promote','rollback']) assert.throws(()=>validate({...m,operation,previousDeployment:operation==='rollback'?'456':null}));
+ const legacy={...m.connections};delete legacy.hosted_repair;validate({...m,connections:legacy});
+ validate({...m,connections:{...legacy,hosted_repair:false}});
+ for(const operation of ['sandbox-promote','sandbox-rollback']) {
+  assert.deepEqual(requiredGates(operation,m.connections),{issues:[5,6,130,131,162,163,302,303,319,328],prs:[23,24,129,165,323,324,325,327,329,330]});
+  assert.deepEqual(requiredGates(operation,legacy),{issues:[5,6,130,131,162,163],prs:[23,24,129,165]});
+ }
+ assert.throws(()=>requiredGates('promote',m.connections));
+});
+test('legacy and explicit repair approval digests cannot be silently interchanged by rollback',()=>{
+ const m=repairFixture(),legacy={...m.connections};delete legacy.hosted_repair;
+ const ordered=Object.fromEntries(Object.keys(legacy).sort().map(k=>[k,legacy[k]]));
+ assert.equal(connectionConfigDigest(legacy),createHash('sha256').update(JSON.stringify(ordered)).digest('hex'));
+ assert.notEqual(connectionConfigDigest(m.connections),connectionConfigDigest(legacy));
+ const prior={...fixture().run,id:456,path:'.github/workflows/deploy-dev.yml'};
+ const rollback={...m,operation:'sandbox-rollback',previousDeployment:'456'};
+ const receipt={status:'transport-smoke-passed',operation:'sandbox-promote',project:m.project,images:m.images,approvedConnectionConfigSHA256:connectionConfigDigest(m.connections)};
+ validateRollback(rollback,prior,receipt);
+ assert.throws(()=>validateRollback({...rollback,connections:legacy},prior,receipt));
+ assert.throws(()=>validateRollback({...rollback,connections:{...m.connections,hosted_repair:false}},prior,receipt));
+ const bytes=Buffer.from(JSON.stringify(m));const hash=createHash('sha256').update(bytes).digest('hex');
+ assert.throws(()=>validateManifest(Buffer.from(JSON.stringify({...m,connections:legacy})),hash,now));
+ assert.throws(()=>validate({...m,connections:{...m.connections,consent_expires_at:m.expiresAt}}));
+});
+test('repair CLI emits explicit true and status for promotion and rollback without broadening legacy action',()=>{
+ for(const operation of ['sandbox-promote','sandbox-rollback']) {
+  const dir=mkdtempSync(join(tmpdir(),'jayburd-repair-release-'));
+  try {
+   const m=repairFixture();m.operation=operation;m.previousDeployment=operation==='sandbox-rollback'?'456':null;
+   m.expiresAt=new Date(Date.now()+3600000).toISOString().replace(/\.\d{3}Z$/,'Z');
+   m.connections.consent_expires_at=new Date(Date.now()+86400000).toISOString().replace(/\.\d{3}Z$/,'Z');
+   const path=join(dir,'manifest.json'),out=join(dir,'out'),bytes=JSON.stringify(m);writeFileSync(path,bytes);
+   execFileSync(process.execPath,['scripts/release-manifest.mjs',path,createHash('sha256').update(bytes).digest('hex'),out]);
+   assert.deepEqual(JSON.parse(readFileSync(join(out,'runtime.tfvars.json'))).connections,m.connections);
+   assert.equal(JSON.parse(readFileSync(join(out,'migration.tfvars.json'))).action,'status');
+   assert.equal(requiresMigrationStatus(m),true);
+  }finally{rmSync(dir,{recursive:true,force:true});}
+ }
+ assert.equal(requiresMigrationStatus({operation:'sandbox-rollback',connections:null}),false);
 });
