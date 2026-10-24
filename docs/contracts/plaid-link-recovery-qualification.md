@@ -1,5 +1,10 @@
 # Link recovery qualification and SDK transition
 
+The bounded #275 [owned Hosted repair protocol](hosted-reconnect.md) proposes the
+signed-session association for ordinary update mode. It does not enable repair or
+supersede the eventual SDK direction. It supplies a separate protocol before code;
+the historical requirements below must not be read as implemented guarantees.
+
 ## Decision record — #104 / #187, 2026-10-22
 
 Status: proposed transition; current runtime remains Hosted Link. The owner
