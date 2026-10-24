@@ -4,6 +4,7 @@ package connectionstate
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -170,14 +171,28 @@ func begin(t testing.TB, db, key, mode string, item, generation any, ids []any) 
 
 // link records only an independently chosen fingerprint, not a token.
 func link(t testing.TB, db string, a map[string]any) map[string]any {
-	return object(t, call(t, db, "synthetic_runtime", "SELECT integration.record_link_session($1,$2,$3,$4,$5,$6)::text", actor, entity, book, a["attempt_id"], a["nonce"], raw(map[string]any{"link_token_sha256": strings.Repeat("a", 64), "expires_at": "2099-01-01T00:00:00Z"})))
+	h := strings.Repeat("a", 64)
+	if a["mode"] == "reconnect" {
+		h = fmt.Sprintf("%x", sha256.Sum256([]byte(a["attempt_id"].(string))))
+	}
+	out := object(t, call(t, db, "synthetic_runtime", "SELECT integration.record_link_session($1,$2,$3,$4,$5,$6)::text", actor, entity, book, a["attempt_id"], a["nonce"], raw(map[string]any{"link_token_sha256": h, "expires_at": "2099-01-01T00:00:00Z"})))
+	if a["mode"] == "reconnect" {
+		// This legacy lifecycle fixture now supplies normalized proof through an actual dedicated login.
+		// It tests SQL authority only, not signature verification or a real provider session.
+		root := connect(t, db, "postgres")
+		exec(t, root, `DO $$ BEGIN IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='synthetic_repair_webhook') THEN CREATE ROLE synthetic_repair_webhook LOGIN IN ROLE bookkeeping_webhook;END IF;END $$`)
+		_ = root.Close(context.Background())
+		call(t, db, "synthetic_operator", `SELECT integration.set_webhook_ingress('synthetic_repair_webhook','sandbox','repair-fixture',true)::text`)
+		call(t, db, "synthetic_repair_webhook", `SELECT integration.accept_verified_link_session('sandbox',$1,$2)::text`, h, raw(map[string]any{"link_token_sha256": h, "link_session_sha256": strings.Repeat("c", 64), "body_sha256": strings.Repeat("d", 64), "status": "success", "issued_at": time.Now().Unix()}))
+	}
+	return out
 }
 
 // claim performs the one-shot exchange reservation through a real API login.
 func claim(t testing.TB, db string, a map[string]any) map[string]any {
 	var l, p any
 	if a["mode"] == "new" || a["mode"] == "reconnect" {
-		l = strings.Repeat("a", 64)
+		l = a["link_token_sha256"]
 	}
 	if a["mode"] == "new" {
 		p = strings.Repeat("b", 64)
