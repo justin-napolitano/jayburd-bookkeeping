@@ -533,7 +533,7 @@ type sqlRepairProvider struct{ *fakeProvider }
 
 // CreateLink changes fixture identity only; production behavior and the signature boundary are unchanged.
 func (p sqlRepairProvider) CreateLink(_ context.Context, in LinkRequest) (LinkResult, error) {
-	return LinkResult{Token: NewSecret("synthetic-link-" + in.Mode), ExpiresAt: time.Now().Add(time.Hour)}, p.touch("link")
+	return LinkResult{Token: NewSecret("synthetic-link-" + in.Mode), HostedURL: NewSecret("https://secure.plaid.com/hl/synthetic"), ExpiresAt: time.Now().Add(time.Hour)}, p.touch("link")
 }
 
 // TestConnectionServiceSQLItemLifecycle proves same-Item reconnect and rotation publish one shared version.
