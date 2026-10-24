@@ -40,6 +40,18 @@ The down migration refuses when canonical-ID envelopes exist, before restoring
 numeric-only write validation. This avoids claiming a compatible rollback after
 new envelopes have been written.
 
+Owned repair compatibility (#326):32's new reconnect handoff branch inadvertently
+copied19's numeric-only resource grammar.33 restores exactly20's reviewed numeric
+or canonical project-ID grammar for that branch, retaining its current scope,
+proof, consent, expiry, closed AEAD envelope, immutable winner and API-only ACL.
+No envelope/AAD/key resource is rewritten; runtime key equality still applies.
+The nonrepair fallback remains20. Disposable/quiesced33 down refuses before
+function replacement if canonical reconnect handoff history exists; it neither
+deletes ciphertext nor treats abandoned history as safe to erase. Canonical new
+enrollment history remains compatible with32's20 fallback. No managed rollback
+or migration application is approved by this source correction. Independent
+SQL profile/forward/down evidence: [handoff compatibility](../runbooks/hosted-handoff-kms.md).
+
 Acceptance: canonical-ID KMS request/CRC/readback tests, numeric-key configuration
 rejection, SQL canonical and malformed-name cases, migration forward/down guards,
 and synthetic connection/binding/acquisition. A fresh Hosted Sandbox run remains
