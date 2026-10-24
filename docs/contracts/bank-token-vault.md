@@ -65,6 +65,35 @@ sync_context lease/fence authority; the function obtains the credential referenc
 from SQL, never a caller-chosen lookup. No application gets direct table access.
 No key or token belongs in API responses, receipts, logs, migrations or Terraform.
 
+### Existing credential for an owned repair (#319)
+
+The optional internal `RepairCredentialReader` reads only through32's
+`get_repair_bank_credential(actor,entity,book,attempt)`; SQL derives the existing
+reference/version/Item, never a caller-selected credential lookup. The Go scoped
+adapter validates the returned closed addressed metadata against the service's
+expected tuple **before** any unwrap. SQL must commit successfully first; current
+scope/proof/consent denial or an unknown reply cannot reach KMS. The existing
+AEAD/KMS AAD profile and wrapping-key equality remain unchanged. Unscoped reads
+are unavailable. No generic lookup fallback, Seal/Put, new randomness or version
+publication is part of this read.
+
+Before Link creation, SQL permits the exact fresh `link_pending` repair under
+original live consent. In `link_ready`, pending completion cannot read a bank
+credential, even if a successful receipt exists but no claim has committed.
+After explicit proof-pinned claim, read-only recovery of that same attempt may
+repeat after the unclaimed Link deadline while original source consent/current
+scope remain live. Revocation, terminal cancellation or expired consent still
+denies. This is not a new execution grant, a fresh Link or consent renewal. See
+[the owned repair protocol](hosted-reconnect.md) for the authoritative scope and
+uncertainty rules. Generic new/rotate reads and encrypted handoff APIs are unchanged.
+
+This phase supplies the credential adapter only; concrete service use and Hosted
+reconnect remain disabled until the rest of319/320 is implemented and qualified.
+Named SQL/AEAD/signature evidence and limits are in
+[the purpose-read stages](../runbooks/hosted-repair-vault.md). The existing
+operational/nonfinancial standards applicability below is unchanged; no financial
+exchange, ISO designation, currency or accounting mapping is introduced.
+
 Rows are immutable per scope/reference/version. Put first reads an existing row
 and verifies its decrypted token equals the supplied memory-only token. Concurrent
 writers return the existing winner; decrypt/compare rejects a different token.

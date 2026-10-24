@@ -23,6 +23,12 @@ func linkAPI(t testing.TB, db, q string, args ...any) map[string]any {
 // Owner access installs only fictional identities/reference rows, never bypassing the repair proof gate.
 func repairFixture(t *testing.T) (*pgx.Conn, string, map[string]any) {
 	t.Helper()
+	return repairFixtureWithConsent(t, "2099-01-01T00:00:00Z")
+}
+
+// repairFixtureWithConsent preserves the same lifecycle with an explicit synthetic initial approval deadline.
+func repairFixtureWithConsent(t *testing.T, deadline string) (*pgx.Conn, string, map[string]any) {
+	t.Helper()
 	c, db := pgFixture(t)
 	exec(t, c, `INSERT INTO ledger.membership VALUES($1,$2,'import',NULL),($1,$3,'import',NULL)`, entity, actor, reader)
 	callOwner(t, db, "SELECT integration.set_connect_permission($1,$2,$3,$1,'connect',true)::text", actor, entity, book)
@@ -36,7 +42,7 @@ func repairFixture(t *testing.T) (*pgx.Conn, string, map[string]any) {
 		raw(map[string]any{"link_token_sha256": a["link_token_sha256"], "public_token_sha256": tokenHash("public-synthetic")}))
 	a = linkAPI(t, db, "SELECT integration.record_connection_manifest($1,$2,$3,$4,$5,$6)::text", a["attempt_id"], a["claim_id"],
 		raw(map[string]any{"item_id": "synthetic-item", "accounts": []any{map[string]any{
-			"account_id": "Account-A", "type": "depository", "iso_currency_code": "USD"}}, "consent_expires_at": "2099-01-01T00:00:00Z"}))
+			"account_id": "Account-A", "type": "depository", "iso_currency_code": "USD"}}, "consent_expires_at": deadline}))
 	a = linkAPI(t, db, "SELECT integration.confirm_connection_credential($1,$2,$3,$4,$5)::text", a["attempt_id"], a["claim_id"])
 	bound := linkAPI(t, db, "SELECT integration.bind_connection($1,$2,$3,$4,'bind',$5)::text", a["attempt_id"], raw(map[string]any{
 		"consent_grants": true, "bindings": []any{map[string]any{"account_id": "Account-A", "ledger_account_id": account,
