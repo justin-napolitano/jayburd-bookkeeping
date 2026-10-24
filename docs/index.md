@@ -1,5 +1,9 @@
 # Project context
 
+Optional enrollment expiry: [authority boundary](contracts/enrollment-availability.md)
+and [implementation evidence](runbooks/enrollment-availability.md), #281;
+synthetic delivery, hosted acceptance pending.
+
 [Actual Tartan registration/initial sync](runbooks/tartan-browser-qualification.md):
 nine sources published,46 review rows visible, savings repeat unchanged;
 category-account setup and independent equality pending.
