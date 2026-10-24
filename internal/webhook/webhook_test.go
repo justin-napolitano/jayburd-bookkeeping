@@ -105,7 +105,7 @@ func TestPlaidWebhook(t *testing.T) {
 			receipts[got.ReceiptKey] = true
 			signals++
 		}
-		return Receipt{state, "00000000-0000-4000-8000-000000000001", 1}, nil
+		return Receipt{State: state, ReceiptID: "00000000-0000-4000-8000-000000000001", StreamCount: 1}, nil
 	})
 	h, _ := NewHandler(v, receiver)
 	body := bodyFixture()
@@ -334,7 +334,7 @@ func TestWebhookAdmission(t *testing.T) {
 	h, _ := NewHandler(v, receiverFunc(func(context.Context, Verified) (Receipt, error) {
 		entered <- struct{}{}
 		<-release
-		return Receipt{"duplicate", "00000000-0000-4000-8000-000000000001", 1}, nil
+		return Receipt{State: "duplicate", ReceiptID: "00000000-0000-4000-8000-000000000001", StreamCount: 1}, nil
 	}))
 	for i := 0; i < 16; i++ {
 		go func() { results <- invokeHandler(h, token, body).Code }()

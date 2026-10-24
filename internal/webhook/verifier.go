@@ -8,6 +8,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"math/big"
 	"strings"
 	"sync"
@@ -187,17 +188,34 @@ func (v *Verifier) Verify(ctx context.Context, token string, body []byte) (Verif
 	if subtle.ConstantTimeCompare(sum[:], expected) != 1 {
 		return Verified{}, errInvalid
 	}
-	var event struct {
-		Type        string  `json:"webhook_type"`
-		Code        string  `json:"webhook_code"`
-		Item        string  `json:"item_id"`
-		User        *string `json:"user_id"`
-		Environment string  `json:"environment"`
-		Initial     *bool   `json:"initial_update_complete"`
-		Historical  *bool   `json:"historical_update_complete"`
+	// Classification happens only after exact raw-byte authentication. Each branch
+	// then independently enforces its complete closed schema, including duplicates.
+	var kind struct {
+		Type string `json:"webhook_type"`
 	}
-	if object(body, []string{"webhook_type", "webhook_code", "item_id", "environment", "initial_update_complete", "historical_update_complete"}, []string{"user_id"}, &event) != nil || event.Type != "TRANSACTIONS" || event.Code != "SYNC_UPDATES_AVAILABLE" || event.Environment != "sandbox" || !opaque.MatchString(event.Item) || event.User != nil && !opaque.MatchString(*event.User) || event.Initial == nil || event.Historical == nil {
+	if json.Unmarshal(body, &kind) != nil {
 		return Verified{}, errInvalid
+	}
+	verified := Verified{Environment: "sandbox", BodySHA256: claims.Hash, IssuedAt: claims.Issued}
+	if kind.Type == "LINK" {
+		verified.session, e = parseLinkSession(body)
+		if e != nil {
+			return Verified{}, e
+		}
+	} else {
+		var event struct {
+			Type        string  `json:"webhook_type"`
+			Code        string  `json:"webhook_code"`
+			Item        string  `json:"item_id"`
+			User        *string `json:"user_id"`
+			Environment string  `json:"environment"`
+			Initial     *bool   `json:"initial_update_complete"`
+			Historical  *bool   `json:"historical_update_complete"`
+		}
+		if object(body, []string{"webhook_type", "webhook_code", "item_id", "environment", "initial_update_complete", "historical_update_complete"}, []string{"user_id"}, &event) != nil || event.Type != "TRANSACTIONS" || event.Code != "SYNC_UPDATES_AVAILABLE" || event.Environment != "sandbox" || !opaque.MatchString(event.Item) || event.User != nil && !opaque.MatchString(*event.User) || event.Initial == nil || event.Historical == nil {
+			return Verified{}, errInvalid
+		}
+		verified.ItemID = event.Item
 	}
 	if ctx.Err() != nil {
 		return Verified{}, errUnavailable
@@ -206,7 +224,8 @@ func (v *Verifier) Verify(ctx context.Context, token string, body []byte) (Verif
 		return Verified{}, errInvalid
 	}
 	fingerprint := deliveryFingerprint(parts, sig)
-	return Verified{Environment: event.Environment, ItemID: event.Item, ReceiptKey: hex.EncodeToString(fingerprint[:]), BodySHA256: claims.Hash, IssuedAt: claims.Issued}, nil
+	verified.ReceiptKey = hex.EncodeToString(fingerprint[:])
+	return verified, nil
 }
 
 // deliveryFingerprint normalizes ECDSA S-malleability only for replay identity after library verification.
