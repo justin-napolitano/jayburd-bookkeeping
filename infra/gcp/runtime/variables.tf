@@ -49,6 +49,7 @@ variable "connections" {
     client_secret_version = string
     consent_expires_at    = string
     webhook_url           = optional(string, "")
+    hosted_repair         = optional(bool, false)
   })
   default = null
   validation {
@@ -59,7 +60,8 @@ variable "connections" {
       can(regex("^projects/${var.project_number}/secrets/jayburd-dev-bank-sync-client-secret/versions/[1-9][0-9]{0,18}$", var.connections.client_secret_version)) &&
       alltrue([for version in [var.connections.client_id_version, var.connections.client_secret_version] : try(tonumber(reverse(split("/", version))[0]) <= 9223372036854775807, false)]) &&
       can(formatdate("YYYY-MM-DD", var.connections.consent_expires_at)) &&
-      (var.connections.webhook_url == "" || (var.project_id == "jayburd-bookkeeping-dev" && var.project_number == "9088794002" && var.connections.webhook_url == "https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid"))
+      (var.connections.webhook_url == "" || (var.project_id == "jayburd-bookkeeping-dev" && var.project_number == "9088794002" && var.connections.webhook_url == "https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid")) &&
+      (!var.connections.hosted_repair || var.connections.webhook_url == "https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid")
     )
     error_message = "Connections require approved Infisical metadata and exact numeric static secret versions."
   }

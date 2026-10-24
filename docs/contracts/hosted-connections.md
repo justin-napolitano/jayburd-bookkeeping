@@ -13,14 +13,19 @@ no optional connection routes. Partial or contradictory settings fail startup.
 Configuration identifies GCP project ID plus its explicitly configured canonical numeric project number, approved Infisical origin/project UUID/dev
 namespace/identity UUID, GCS metadata registry bucket/prefix, two distinct exact
 numeric Secret Manager versions in projects/{number} resources for static Plaid client credentials, and a fixed
-absolute local consent expiry. Project Sandbox expiry policy: future and at most30days
-from startup using an explicitly supplied absolute instant, with no renewal default. The writer has exactly
-eight Terraform-provisioned slots, named slot-00 through slot-07; acquisition uses
-the separately composed read-only resolver.
+absolute local consent expiry. Live Sandbox approval is at most30days from startup
+using an explicitly supplied instant, with no renewal default. Well-formed expired
+optional enrollment starts SQL-only bookkeeping/attempt inspection without any
+dependency access; malformed or unsafe configuration still rejects. This is the
+accepted281 availability boundary, not a consent extension.
 
-Construction validates identifiers before I/O, builds providersecrets reader,
-registry and writer, then reads only the two exact static credential versions with
-a bounded startup deadline. Values stay inside memory/Secret wrappers. The existing
+Current encrypted composition validates identifiers before I/O, constructs the
+fixed canonical-project-ID KMS wrapper and PostgreSQL bank store, then reads only
+the two exact static credential versions with a bounded startup deadline. Registry/
+Infisical identifiers remain validated compatibility metadata; the API no longer
+uses finite per-account secret slots, registry discovery or a dynamic secret writer.
+Acquisition uses its separately scoped encrypted read-only resolver. Values stay
+inside memory/Secret wrappers. The existing
 Plaid HTTP provider and connection service reuse SQL current permission, one-shot
 claims, manifest verification, immutable credential readback and recovery semantics.
 No startup Plaid calls, Infisical writes, Link session or account binding occur.
@@ -31,8 +36,14 @@ The command uses direct managed metadata transport without proxy/ADC discovery.
 The [Hosted Link enrollment profile](hosted-link-enrollment.md) creates a
 Plaid-hosted session and resolves server completion before exchange. It does not
 require ordinary-SDK Link-events enablement. Retained LinkEventsQualified metadata
-cannot establish that Plaid enabled it. Reconnect remains unsupported; actual
-interactive session/secret/SQL/webhook qualification remains open.
+cannot establish that Plaid enabled it. Owned Hosted repair requires the separate
+default-false `HostedRepair` capability and exact fixed Sandbox receiver, schema33
+and compatible binary/bootstrap. Existing webhook-only configuration stays repair-
+disabled. Operator flag `-plaid-hosted-repair=true` is private deployment metadata,
+never an HTTP/browser-selected permission. Current SQL still owns actor, Item,
+source, consent, proof and claim authority. See the [owned repair protocol](hosted-reconnect.md)
+and [exact release profile](connection-release.md). Actual interactive session/
+secret/SQL/webhook qualification remains open; a configured flag is not acceptance.
 
 Existing12s API budget is unchanged. Unknown exchange/write/propagation outcomes
 follow durable service recovery; a slow propagation cannot authorize a new exchange
@@ -47,7 +58,8 @@ This composition adds no financial message and retains existing proprietary Plai
 GCP ID Token Auth, sample identity request and login sections: audience is the
 Infisical identity UUID, not an invented HTTPS URI. Configure the writer identity's
 short token TTL to satisfy the providersecrets adapter's bounded policy. Metadata
-UUID audience support is owned by worker runtime; connection composition must not
+UUID audience support is owned by worker runtime; the retained legacy writer
+source review does not imply current encrypted API writer use. Composition must not
 silently substitute a different audience. Source review does not qualify deployed
 IAM or secret propagation. The coordinator links the annotated source in shared
 bibliography; dependency secret and worker contracts own their wire details.
@@ -68,7 +80,8 @@ Command flags (identifiers and policy only): `-connections-enabled`,
 `-plaid-link-events-qualified`, `-provider-project-number`, `-infisical-origin`,
 `-infisical-project`, `-infisical-environment`, `-infisical-identity`,
 `-provider-registry-bucket`, `-provider-registry-prefix`, `-plaid-client-id-version`,
-`-plaid-client-secret-version`, `-plaid-consent-expires-at`. Existing `-project`,
+`-plaid-client-secret-version`, `-plaid-consent-expires-at`, optional fixed
+`-plaid-webhook-url` and separate default-false `-plaid-hosted-repair`. Existing `-project`,
 `-mode managed`, and `-database-mode cloudsql` remain mandatory for enabled hosting.
 No secrets are accepted by these flags. Existing URL-database behavior is unchanged
 when optional connections are disabled; this composition introduces no new discovery.
@@ -78,5 +91,8 @@ registry bucket is `{project-id}-jayburd-dev-credential-registry`, prefix
 `provider-credentials-v1`; static containers are `jayburd-dev-bank-sync-client-id`
 and `jayburd-dev-bank-sync-client-secret`. Swapped, foreign or arbitrary containers
 fail before secret access even if other IAM grants accidentally exist. Cold restart
-after the absolute local consent expiry intentionally fails until an explicit newly
-approved expiry is configured; there is no startup renewal.
+after well-formed optional approval expiry preserves SQL-only bookkeeping/attempt
+inspection and performs no dependency I/O. Provider entries stay unavailable before
+SQL/secret/KMS/provider work; warm outgoing transport also rechecks the same exact
+deadline. Any new provider approval is separately explicit; there is no grace or
+startup renewal. Disabled composition remains entirely inert.
