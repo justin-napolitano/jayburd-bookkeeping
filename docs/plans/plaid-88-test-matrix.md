@@ -9,8 +9,8 @@ review limits: [P88-01–P88-17](../research/plaid-88-test-sources.md).
 Current scope: US Transactions, web frontend, one Item per Link attempt,
 account-filtered streams, checking/savings/card/loan transaction feeds. Current
 historical dynamic acceptance covers seven types (B). Fresh Tartan initial
-acquisition metadata adds savings/money-market/cash-management (F); unchanged
-repeat/review and exact financial equality remain unqualified. Loan binding does
+acquisition metadata adds savings/money-market/cash-management (F), plus bounded
+savings first/repeat UI proof. Exact financial equality remains unqualified. Loan binding does
 not qualify a Liabilities API integration. No money movement or automatic posting.
 The ninety-day request is an intended lookback, not a guarantee of supplied history.
 
@@ -50,8 +50,9 @@ are weaker than exact fixture/SQL assertions.
 - **F:** [2026-10-24 actual Tartan browser run](../runbooks/tartan-browser-qualification.md):
   managed setup/acknowledgement, original-attempt recovery,9 supported bindings,
   natural scheduled delivery and exact-book read-only acquisition counts all
-  historical-ready/published. Browser socket failure blocked review. Standard
-  provider case, not the pre-authored independent oracle; R02/R03 remain open.
+  historical-ready/published. After browser recovery,9 inboxes loaded46 rows;
+  savings generation2 completed with6 All-status rows/source revision1 unchanged.
+  Standard provider case, not the pre-authored oracle; R02/R03 remain open.
 
 ## Link and supported clients
 
@@ -62,7 +63,7 @@ are weaker than exact fixture/SQL assertions.
 | L03 / 04 | Completion is recoverable after lost tab, reload, expired app session or lost exchange response; inspect persisted attempt before safe restart. Test completion delivery mechanism and expiry. | PARTIAL. Inspection recovery observed (A/B); `TestHostedReloadCompletion`, `TestConnectionUncertainEffects` are synthetic. Signed SESSION_FINISHED absent; polling alternative needs reviewed disposition. | #187 |
 | L04 / 07 | Exit/cancel and expired/invalid Link token recover without duplicate exchange; replacement begins only after inspecting prior attempt. | PARTIAL. Existing cancellation/claim tests; actual token expiry and user-exit recovery OPEN. Hosted lifetime differs from SDK lifetime. | #187 / #104 |
 | L05 / 06 | Same institution/login/account connected again is detected safely; distinguish legitimate distinct logins and partial account selections. No duplicate import or needless token exchange. | OPEN. Same-attempt replay and stable counts do not establish duplicate-Item prevention. | #104 / #88 |
-| L06 / 02 | Simple-user depository/savings enrollment, binding, first acquisition and repeat. | PARTIAL (F): standard Tartan savings bound/active and initial acquisition historical-ready/published in scoped metadata; review and unchanged repeat remain OPEN. | #104 / #88 |
+| L06 / 02 | Simple-user depository/savings enrollment, binding, first acquisition and repeat. | PASS for bounded standard-Tartan UI/metadata (F): active binding, initial1/1 and explicit repeat2/2 historical-ready,6 All-status rows/source revision1 unchanged. Exact financial equality/no-journal proof remains R02/R03. | #104 / #88 |
 | O01 / 03 | Desktop OAuth happy path, return to correct attempt, no unsupported-browser loop. | OPEN. Non-OAuth success does not clear OAuth. | #104 / #88 |
 | O02 / 03 | iOS mobile web OAuth, institution app installed and absent. Record real device/browser versions. | OPEN; required before mobile web is advertised. | #104 / #88 |
 | O03 / 03 | Android mobile web OAuth, institution app installed and absent. | OPEN; same support boundary as O02. | #104 / #88 |
