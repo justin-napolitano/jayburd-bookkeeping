@@ -22,7 +22,7 @@ lease and sole SQL writer. GitHub #65 is live scheduling authority.
 | Source review | Refreshed official modern SESSION_FINISHED and Hosted/update sections; no provider payloads or credentials read |
 | Design | Defined owned hash/proof/claim association, current scope/expiry, closed receiver ACL, ambiguity, replay and lost-response recovery |
 | Validation | Core check/race test/build and local-link/migration-integrity checks PASS; no new behavior tested |
-| Handoff | Pending reviewable PR and bounded implementation issues |
+| Handoff | PR #321; native children #318 SQL/ACL → #319 service → #320 browser/hosted, with #303 actual signed delivery gate |
 
 ## Current evidence
 
@@ -45,7 +45,7 @@ Do not close #275 or #88 rows from this design or a passing build.
 
 ## PR handoff
 
-Refs #275; docs only, no migration or runtime behavior. Compare retained Hosted
+Refs #275, PR #321; docs only, no migration or runtime behavior. Compare retained Hosted
 with SDK transition and reject health/callback/new-exchange shortcuts. Remaining
 risks are actual event availability, same-session ambiguity, SQL lock/proof bypass,
 permission revocation, managed role compatibility and exact release qualification.
