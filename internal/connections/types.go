@@ -123,6 +123,12 @@ type SecretStore interface {
 	Read(context.Context, CredentialReference) (StoredCredential, error)
 }
 
+// RepairCredentialReader reads only an existing credential authorized for the exact current repair attempt.
+// It must not fall back to a generic reference lookup, write ciphertext or select another attempt.
+type RepairCredentialReader interface {
+	ReadRepair(context.Context, string, CredentialReference) (StoredCredential, error)
+}
+
 // Account is provider-verified metadata. Unsupported accounts remain visible but cannot bind.
 type Account struct {
 	AccountID string  `json:"account_id"`
