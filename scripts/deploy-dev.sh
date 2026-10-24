@@ -6,6 +6,12 @@ set -euo pipefail
 release_dir="$1"
 project=$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1])).project' "$release_dir/approved.json")
 operation=$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1])).operation' "$release_dir/approved.json")
+status_check=$(node --input-type=module - "$release_dir/approved.json" <<'JS'
+import {readFileSync} from 'node:fs';
+import {requiresMigrationStatus} from './scripts/release-manifest.mjs';
+console.log(requiresMigrationStatus(JSON.parse(readFileSync(process.argv[2])))?'true':'false');
+JS
+)
 [[ "$project" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ && "$operation" =~ ^(promote|rollback|sandbox-promote|sandbox-rollback|migrate|verify)$ ]]
 umask 077
 # Provider diagnostics/plans stay runner-private and are never emitted or uploaded. Fixed outcomes only.
@@ -25,7 +31,7 @@ apply_root() {
     -var-file="$release_dir/$root.tfvars.json" -out="$release_dir/$root.tfplan"
   quiet terraform -chdir="infra/gcp/$root" apply -input=false -lock-timeout=5m "$release_dir/$root.tfplan"
 }
-if [[ "$operation" == promote || "$operation" == sandbox-promote || "$operation" == migrate || "$operation" == verify ]]; then
+if [[ "$operation" == promote || "$operation" == sandbox-promote || "$operation" == migrate || "$operation" == verify || "$status_check" == true ]]; then
   apply_root migration
   if ! gcloud run jobs execute jayburd-dev-migrate --project "$project" --region us-central1 --wait --quiet \
     --format='value(metadata.name)' > "$release_dir/execution-name.txt" 2> "$release_dir/provider-private.log"; then
@@ -40,7 +46,7 @@ if [[ "$operation" == promote || "$operation" == sandbox-promote || "$operation"
     echo 'BLOCKED: execution readback failed' >&2; exit 1
   fi
   node scripts/migration-receipt.mjs "$release_dir/approved.json" "$release_dir/migration-execution.json" "$release_dir/migration.json" "$execution"
-  if [[ "$operation" == verify || "$operation" == sandbox-promote ]]; then
+  if [[ "$status_check" == true ]]; then
     echo 'PASS: database verification completed before runtime changes.'
   else
     echo 'PASS: migration execution completed before runtime changes.'
@@ -50,7 +56,8 @@ if [[ "$operation" == migrate || "$operation" == verify ]]; then
   echo 'PASS: migration-only release completed; application services untouched.'
   exit 0
 fi
-# Rollback deliberately never touches the job or database; reviewed compatibility is required upstream.
+# Legacy rollback stays job/DB-inert; explicitly enabled Hosted repair rollback
+# has already verified its selected-image status, never up/down, before rollout.
 apply_root runtime
 # Read only selected image/revision/traffic metadata; never export environment or state.
 for component in api web; do

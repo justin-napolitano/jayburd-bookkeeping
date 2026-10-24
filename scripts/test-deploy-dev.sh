@@ -7,6 +7,7 @@ scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 mkdir -p "$scratch/bin" "$scratch/release" "$scratch/infra/gcp/migration" "$scratch/infra/gcp/runtime" "$scratch/scripts"
 cp scripts/migration-receipt.mjs "$scratch/scripts/"
+cp scripts/release-manifest.mjs "$scratch/scripts/"
 cp infra/gcp/migration/backend.tf.example "$scratch/infra/gcp/migration/"
 cp infra/gcp/runtime/backend.tf.example "$scratch/infra/gcp/runtime/"
 cat > "$scratch/bin/terraform" <<'MOCK'
@@ -91,6 +92,29 @@ node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p
 : > "$TEST_LOG"
 bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null
 if grep -Eq 'migration|jobs execute' "$TEST_LOG"; then echo 'FAIL: Sandbox rollback touched SQL'; exit 1; fi
+# The explicit repair profile must verify its exact selected-image status before rollback,
+# while the legacy rollback above remains entirely job/DB-inert.
+node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));m.connections={hosted_repair:true};fs.writeFileSync(p,JSON.stringify(m));' "$scratch/release/approved.json"
+: > "$TEST_LOG"
+if bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null 2>&1; then echo 'FAIL: repair rollback accepted up'; exit 1; fi
+if grep -q 'chdir=infra/gcp/runtime' "$TEST_LOG"; then echo 'FAIL: runtime changed before repair status acceptance'; exit 1; fi
+node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));m.spec.template.spec.containers[0].args[0]="-action=status";fs.writeFileSync(p,JSON.stringify(m));' "$TEST_EXECUTION"
+: > "$TEST_LOG"
+bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null
+node --input-type=module - "$TEST_LOG" "$scratch/release/migration.json" <<'JS'
+import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
+const calls=readFileSync(process.argv[2],'utf8');
+assert.ok(calls.indexOf('jobs executions describe')>=0 && calls.indexOf('jobs executions describe')<calls.indexOf('runtime init'));
+assert.equal(JSON.parse(readFileSync(process.argv[3])).status,'migration-verification-passed');
+JS
+for FAIL_STEP in job readback; do
+ export FAIL_STEP
+ : > "$TEST_LOG"
+ if bash "$root/scripts/deploy-dev.sh" "$scratch/release" >/dev/null 2>&1; then echo 'FAIL: repair rollback ignored verification failure'; exit 1; fi
+ if grep -q 'chdir=infra/gcp/runtime' "$TEST_LOG"; then echo 'FAIL: repair rollback changed runtime after status failure'; exit 1; fi
+done
+export FAIL_STEP=''
+node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));delete m.connections;fs.writeFileSync(p,JSON.stringify(m));' "$scratch/release/approved.json"
 node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));m.operation="verify";fs.writeFileSync(p,JSON.stringify(m));' "$scratch/release/approved.json"
 # Completed-but-wrong execution must fail acceptance, not emit a new success receipt.
 node -e 'const fs=require("fs"),p=process.argv[1],m=JSON.parse(fs.readFileSync(p));m.spec.template.spec.containers[0].image="wrong";fs.writeFileSync(p,JSON.stringify(m));' "$TEST_EXECUTION"

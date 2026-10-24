@@ -27,7 +27,7 @@ var resource = regexp.MustCompile(`^projects/([1-9][0-9]{0,19})/secrets/[A-Za-z0
 
 // Config contains only explicit identifiers and local authorization policy, never secret values.
 type Config struct {
-	Enabled, LinkEventsQualified                                               bool
+	Enabled, LinkEventsQualified, HostedRepair                                 bool
 	ProjectID, ProjectNumber                                                   string
 	InfisicalOrigin, InfisicalProject, InfisicalEnvironment, InfisicalIdentity string
 	RegistryBucket, RegistryPrefix                                             string
@@ -56,6 +56,9 @@ func (c Config) validateAt(now time.Time) error {
 		return nil
 	}
 	// Notification routing is an explicit single-project capability, never arbitrary HTTPS configuration.
+	if c.HostedRepair && c.WebhookURL != connections.SandboxTransactionsWebhookURL {
+		return ErrConfiguration
+	}
 	if c.WebhookURL != "" && (c.WebhookURL != connections.SandboxTransactionsWebhookURL || c.ProjectID != "jayburd-bookkeeping-dev" || c.ProjectNumber != "9088794002") {
 		return ErrConfiguration
 	}
@@ -156,7 +159,7 @@ func newWithClock(parent context.Context, c Config, db connections.Beginner, tra
 	if !expiry.After(now()) {
 		return withoutProvider()
 	}
-	provider, e := connections.NewHTTPProvider(connections.HTTPConfig{ClientID: connections.NewSecret(string(id)), ClientSecret: connections.NewSecret(string(secret)), ConsentExpiresAt: expiry, WebhookURL: c.WebhookURL}, transport)
+	provider, e := connections.NewHTTPProvider(connections.HTTPConfig{ClientID: connections.NewSecret(string(id)), ClientSecret: connections.NewSecret(string(secret)), ConsentExpiresAt: expiry, WebhookURL: c.WebhookURL, HostedRepair: c.HostedRepair}, transport)
 	if e != nil {
 		if !expiry.After(now()) {
 			return withoutProvider()

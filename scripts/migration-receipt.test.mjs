@@ -21,6 +21,15 @@ test('verification receipt requires the status action, never an up execution',()
  assert.equal(migrationReceipt(m,e,name).status,'migration-verification-passed');
  m.operation='migrate';assert.throws(()=>migrationReceipt(m,e,name));
 });
+test('explicit repair Sandbox rollback permits only exact status while legacy rollback remains job-inert',()=>{
+ const {m,name,e}=fixture();m.operation='sandbox-rollback';m.connections={hosted_repair:true};
+ assert.throws(()=>migrationReceipt(m,e,name));
+ e.spec.template.spec.containers[0].args[0]='-action=status';
+ assert.equal(migrationReceipt(m,e,name).status,'migration-verification-passed');
+ for(const connections of [null,{}, {hosted_repair:false}])assert.throws(()=>migrationReceipt({...m,connections},e,name));
+ assert.throws(()=>migrationReceipt({...m,operation:'rollback'},e,name));
+ e.spec.template.spec.containers[0].image='other';assert.throws(()=>migrationReceipt(m,e,name));
+});
 test('accepts the observed decimal-string timeout without coercing other values',()=>{
  const {m,name,e}=fixture();e.spec.template.spec.timeoutSeconds='660';
  assert.equal(migrationReceipt(m,e,name).execution,name);

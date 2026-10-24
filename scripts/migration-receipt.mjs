@@ -1,12 +1,14 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
+import {requiresMigrationStatus,hostedRepairEnabled} from './release-manifest.mjs';
 
 // Bind the invoked immutable action and image; Cloud Run encodes its int64 timeout as a decimal string.
 export function migrationReceipt(m, execution, name) {
   const task=execution?.spec?.template?.spec;
   const status=execution?.status;
-  const expectedArgs=[['verify','sandbox-promote'].includes(m.operation)?'-action=status':'-action=up',`-instance=${m.project}:us-central1:jayburd-dev`];
-  if (!['migrate','promote','verify','sandbox-promote'].includes(m.operation) || typeof name!=='string' || !/^jayburd-dev-migrate-[a-z0-9]{1,20}$/.test(name) ||
+  const statusOnly=requiresMigrationStatus(m);
+  const expectedArgs=[statusOnly?'-action=status':'-action=up',`-instance=${m.project}:us-central1:jayburd-dev`];
+  if ((!['migrate','promote','verify','sandbox-promote'].includes(m.operation) && !(m.operation==='sandbox-rollback' && hostedRepairEnabled(m.connections))) || typeof name!=='string' || !/^jayburd-dev-migrate-[a-z0-9]{1,20}$/.test(name) ||
       execution?.metadata?.name!==name || execution?.spec?.taskCount!==1 ||
       task?.serviceAccountName!==`jayburd-dev-migrator@${m.project}.iam.gserviceaccount.com` ||
       task?.maxRetries!==0 || ![660,'660'].includes(task?.timeoutSeconds) || !Array.isArray(task?.containers) || task.containers.length!==1 ||
@@ -15,9 +17,9 @@ export function migrationReceipt(m, execution, name) {
       !Array.isArray(status?.conditions) || status.conditions.filter(c=>c.type==='Completed').length!==1 ||
       !status.conditions.some(c=>c.type==='Completed' && c.status==='True') ||
       typeof status.completionTime!=='string' || !Number.isFinite(Date.parse(status.completionTime))) throw new Error('Migration execution rejected');
-  return {schemaVersion:1,status:['verify','sandbox-promote'].includes(m.operation)?'migration-verification-passed':'migration-execution-passed',project:m.project,operation:m.operation,build:m.build,
+  return {schemaVersion:1,status:statusOnly?'migration-verification-passed':'migration-execution-passed',project:m.project,operation:m.operation,build:m.build,
     image:m.images.migrate,execution:name,completedAt:status.completionTime,evidence:m.evidence,
-    limitations:['No API/identity/restore/load acceptance.',['verify','sandbox-promote'].includes(m.operation)?'Read-only version/hash check; replay remains separate.':'SQL version and replay require separate evidence.']};
+    limitations:['No API/identity/restore/load acceptance.',statusOnly?'Read-only version/hash check; replay remains separate.':'SQL version and replay require separate evidence.']};
 }
 // Read selected execution metadata only; never upload the provider object, environment, logs or state.
 if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
