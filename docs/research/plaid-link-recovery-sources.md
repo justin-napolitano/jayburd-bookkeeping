@@ -21,6 +21,29 @@ semantics or account enablement. No fallback to deprecated fields is approved.
 Design alternatives, inferences, uncertainty and required acceptance are in
 [the recovery contract](../contracts/plaid-link-recovery-qualification.md).
 
+## LR07 — owned Hosted repair review, 2026-10-24
+
+Read full relevant official sections: [Link API](https://plaid.com/docs/api/link/),
+SESSION_FINISHED properties/default enablement; [Hosted Link](https://plaid.com/docs/link/hosted-link/),
+supported flows, obtaining session results, testing; and [update mode](https://plaid.com/docs/link/update-mode/),
+Using update mode with access token, requesting accounts and consent revocation.
+Mutable documentation; pinned API2020-09-14/SDK49.0.0 unchanged.
+
+The modern event supplies outcome, Link token/session and environment, without
+Item or completion time; Hosted gets this event by default. Update uses the old
+credential without exchange; deselection can remove previously shared accounts.
+Sandbox Hosted update can expire after30minutes; our shorter local deadline must
+remain authoritative. Model fields alone do not qualify actual provider behavior.
+
+The retained server-created hash→owned attempt→preselected Item/streams join and
+proof-gated owner claim are Jayburd's inference, not a provider guarantee. No
+ordinary update response, Dashboard setting, actual event, credentials or financial
+payload was accessed. Existing verifier checks in `internal/webhook/verifier.go`,
+new-only handoff19, connection fencing13 and exact bootstrap ACL were inspected.
+The [proposed protocol](../contracts/hosted-reconnect.md) defines alternatives,
+ambiguity/expiry/lock boundaries and named future evidence. No runtime acceptance
+is claimed, and no deprecated callback or CRA result is substituted.
+
 Wave 2 additionally inspected `HTTPProvider.CompletedPublicToken`, `VerifySession`,
 service completion and merged migrations 13/19/23: the new-mode verifier repeats
 the same provider association check after a claim. Reusing private verified
