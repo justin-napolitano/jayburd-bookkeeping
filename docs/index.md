@@ -1,5 +1,9 @@
 # Project context
 
+[Bookkeeping delivery and qualification plan](plans/bookkeeping-readiness.md):
+bounded issues, dependencies, acceptance evidence and future agent leases;
+#50/#237/#88; current owner goal is the one-account #90 pilot.
+
 Optional enrollment expiry: [authority boundary](contracts/enrollment-availability.md)
 and [implementation evidence](runbooks/enrollment-availability.md), #281;
 synthetic delivery, hosted acceptance pending.
