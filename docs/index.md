@@ -1,5 +1,9 @@
 # Project context
 
+[Bookkeeping delivery and qualification plan](plans/bookkeeping-readiness.md):
+bounded issues, dependencies, acceptance evidence and future agent leases;
+#50/#237/#88, planning only.
+
 [Actual Tartan registration/initial sync](runbooks/tartan-browser-qualification.md):
 nine sources published,46 review rows visible, savings repeat unchanged;
 category-account setup and independent equality pending.
