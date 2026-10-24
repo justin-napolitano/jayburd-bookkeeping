@@ -27,6 +27,46 @@ digest cannot establish configuration-preserving rollback.
 
 ## Evidence and alternatives
 
+### Explicit owned Hosted repair (#328)
+
+Engineering profile for the source-only328 delivery; actual activation remains
+separately reviewed. Optional boolean `hosted_repair` defaults absent/false.
+Existing absent-field configuration/digests and webhook-only behavior remain
+unchanged. True requires the fixed Sandbox project/receiver, a live finite local
+approval, the encrypted store and source32/33 plus the owned service/receiver.
+It cannot select a provider environment, URL, product or account scope.
+It propagates only as `-plaid-hosted-repair=true` through reviewed runtime metadata.
+
+True is eligible only for `sandbox-promote`/`sandbox-rollback`. Release gates must
+require merged repair SQL/receiver/store/service/runtime source ancestral to both
+workflow and selected same-build images, accepted302/303 readiness and current
+owner compatibility review of schema33, API/receiver images and SQL bootstrap.
+The runtime PR gate must use this delivery's actual published PR identity before
+ready review; a guessed/unbound self-gate is not acceptable. Tests do not authorize
+activation or turn issue closure/prose into automated live-receiver evidence.
+
+The selected migrator's existing read-only status/hash check runs before runtime
+rollout, requiring its exact clean embedded schema (at least33 by source ancestry).
+No direct API schema-table grant or startup SQL/KMS probe is added. For the new
+repair-enabled Sandbox rollback only, run the same selected-image **status** job
+before API rollback; never `up`, force or down. Legacy rollback remains job/DB-inert.
+This explicit exception prevents an old-schema repair rollback from starting bank
+work. Same approved connection digest/prior Sandbox receipt rules still apply.
+
+Alternatives rejected: enabling repair from the existing webhook URL silently
+expands prior approval; skipping status for repair rollback leaves a schema gap;
+running up during rollback mutates data; broadening API SQL grants or runtime key
+matching weakens authority. Keep provider/SourceItem consent unchanged; changed or
+expired approval always requires fresh exact-byte review. Cold expired optional
+enrollment still starts SQL-only bookkeeping recovery without dependency I/O.
+
+This is internal operational authorization/release metadata under STD-01, not an
+ISO20022 financial exchange. Existing crypto, API2020-09-14, currency, original
+units and accounting mappings are unchanged. Named runtime/CLI/release/infra/
+status-before-rollout and expired-recovery evidence is recorded in
+[the runtime stages](../runbooks/hosted-repair-runtime.md). Human security review
+and actual303/275/320 qualification remain independent release requirements.
+
 ### Explicit Sandbox webhook enrollment (#271)
 
 Optional `webhook_url` adds only the fixed reviewed dedicated Sandbox receiver:
