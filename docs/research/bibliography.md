@@ -5,17 +5,18 @@
 
 [Expiry](../contracts/enrollment-availability.md): Go/Cloud Run selections2026-10-24.
 
+[Production](production-pilot-sources.md): PP01–05,2026-10-24; proposed.
+
 ## Reading order
 
-[Verifier IAM](../contracts/verifier-iam-compatibility.md): Google/PG17 selections2026-10-23.
+[Verifier IAM](../contracts/verifier-iam-compatibility.md): Google/PG17,2026-10-23.
 
-[Link recovery](plaid-link-recovery-sources.md): LR01–06, Plaid/React selections,
-2026-10-22; reconnect/OAuth unqualified.
+[Link recovery](plaid-link-recovery-sources.md): LR01–06,2026-10-22; reconnect/OAuth unqualified.
 
 [Plaid #88](plaid-88-test-sources.md): official selections,2026-10-22; hosted gaps.
 [Launch Center](plaid-launch-center-review.md): visible panels,2026-10-22; scope partial.
 [Verifier](../contracts/sandbox-verification.md#sources-standards-and-alternatives):
-selected existing Plaid/PostgreSQL records,2026-10-22; synthetic proof only.
+selected Plaid/PG,2026-10-22; synthetic only.
 
 [PL04](plaid-liability-sources.md): selected loan/product review, 2026-10-22.
 [Webhook release](webhook-release-sources.md), [enrollment](webhook-enrollment-sources.md):
