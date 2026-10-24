@@ -44,6 +44,11 @@ type Tokens interface {
 
 // Validate rejects partial configuration and mutable/cross-project credential references before I/O.
 func (c Config) Validate() error {
+	return c.validateAt(time.Now())
+}
+
+// validateAt separates structural validity from optional provider authority, without extending its deadline.
+func (c Config) validateAt(now time.Time) error {
 	if !c.Enabled {
 		if c != (Config{}) {
 			return ErrConfiguration
@@ -55,9 +60,8 @@ func (c Config) Validate() error {
 		return ErrConfiguration
 	}
 	expiry, e := time.Parse(time.RFC3339, c.ConsentExpiresAt)
-	now := time.Now()
 	// Hosted Link has session results by default; ordinary SDK enablement is metadata only.
-	if !project.MatchString(c.ProjectID) || !number.MatchString(c.ProjectNumber) || !nonzeroUUID(c.InfisicalProject) || !nonzeroUUID(c.InfisicalIdentity) || c.InfisicalEnvironment != "dev" || c.RegistryBucket != c.ProjectID+"-jayburd-dev-credential-registry" || c.RegistryPrefix != "provider-credentials-v1" || e != nil || !expiry.After(now) || expiry.After(now.Add(30*24*time.Hour)) {
+	if !project.MatchString(c.ProjectID) || !number.MatchString(c.ProjectNumber) || !nonzeroUUID(c.InfisicalProject) || !nonzeroUUID(c.InfisicalIdentity) || c.InfisicalEnvironment != "dev" || c.RegistryBucket != c.ProjectID+"-jayburd-dev-credential-registry" || c.RegistryPrefix != "provider-credentials-v1" || e != nil || expiry.IsZero() || expiry.Year() < 1 || expiry.After(now.Add(30*24*time.Hour)) {
 		return ErrConfiguration
 	}
 	if c.InfisicalOrigin != "https://us.infisical.com" && c.InfisicalOrigin != "https://eu.infisical.com" && c.InfisicalOrigin != "https://app.infisical.com" {
@@ -87,10 +91,16 @@ func nonzeroUUID(v string) bool {
 	return uuid.MatchString(v) && v != "00000000-0000-0000-0000-000000000000"
 }
 
-// New is inert when disabled; enabled startup reads only two exact static Secret Manager versions.
+// New is inert when disabled; approved startup reads only two exact static Secret Manager versions.
+// Expired optional enrollment starts with SQL-only operations and no credential or provider I/O.
 // It never opens another DB pool, begins a Link session, writes a secret or calls Plaid at startup.
 func New(parent context.Context, c Config, db connections.Beginner, transport http.RoundTripper, tokens Tokens) (*connections.Service, error) {
-	if c.Validate() != nil {
+	return newWithClock(parent, c, db, transport, tokens, time.Now)
+}
+
+// newWithClock enables deterministic expiry proofs; production always supplies the real clock through New.
+func newWithClock(parent context.Context, c Config, db connections.Beginner, transport http.RoundTripper, tokens Tokens, now func() time.Time) (*connections.Service, error) {
+	if now == nil || c.validateAt(now()) != nil {
 		return nil, ErrConfiguration
 	}
 	if !c.Enabled {
@@ -99,6 +109,16 @@ func New(parent context.Context, c Config, db connections.Beginner, transport ht
 	if parent == nil || db == nil || transport == nil || tokens == nil {
 		return nil, ErrConfiguration
 	}
+	expiry, _ := time.Parse(time.RFC3339, c.ConsentExpiresAt)
+	logins := connections.WorkerLogins{Sync: "jayburd-dev-sync@" + c.ProjectID + ".iam", Publisher: "jayburd-dev-publisher@" + c.ProjectID + ".iam"}
+	withoutProvider := func() (*connections.Service, error) {
+		return connections.NewForBookCreatorsWithApproval(db, nil, nil, logins, expiry, now)
+	}
+	if !expiry.After(now()) {
+		return withoutProvider()
+	}
+	// Every outgoing dependency request rechecks the same approval, including multi-call provider operations.
+	transport = approvalTransport{base: transport, deadline: expiry, now: now}
 	reader, e := providersecrets.NewGCPReader(providersecrets.GCPConfig{ProjectID: c.ProjectNumber, Tokens: tokens, Transport: transport})
 	if e != nil {
 		return nil, ErrConfiguration
@@ -118,21 +138,47 @@ func New(parent context.Context, c Config, db connections.Beginner, transport ht
 	}
 	id, e := reader.Read(ctx, c.ClientIDVersion)
 	if e != nil {
+		if !expiry.After(now()) {
+			return withoutProvider()
+		}
 		return nil, ErrUnavailable
+	}
+	if !expiry.After(now()) {
+		return withoutProvider()
 	}
 	secret, e := reader.Read(ctx, c.ClientSecretVersion)
 	if e != nil || ctx.Err() != nil {
+		if !expiry.After(now()) {
+			return withoutProvider()
+		}
 		return nil, ErrUnavailable
 	}
-	expiry, _ := time.Parse(time.RFC3339, c.ConsentExpiresAt)
+	if !expiry.After(now()) {
+		return withoutProvider()
+	}
 	provider, e := connections.NewHTTPProvider(connections.HTTPConfig{ClientID: connections.NewSecret(string(id)), ClientSecret: connections.NewSecret(string(secret)), ConsentExpiresAt: expiry, WebhookURL: c.WebhookURL}, transport)
 	if e != nil {
+		if !expiry.After(now()) {
+			return withoutProvider()
+		}
 		return nil, ErrUnavailable
 	}
-	return connections.NewForBookCreators(db, provider, store, connections.WorkerLogins{
-		Sync:      "jayburd-dev-sync@" + c.ProjectID + ".iam",
-		Publisher: "jayburd-dev-publisher@" + c.ProjectID + ".iam",
-	})
+	return connections.NewForBookCreatorsWithApproval(db, provider, store, logins, expiry, now)
+}
+
+// approvalTransport denies new dependency requests at expiry without invoking the underlying transport.
+type approvalTransport struct {
+	base     http.RoundTripper
+	deadline time.Time
+	now      func() time.Time
+}
+
+// RoundTrip never extends approval while a multi-request operation or secret initialization is in progress.
+func (t approvalTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if !t.deadline.After(t.now()) {
+		return nil, ErrUnavailable
+	}
+	return t.base.RoundTrip(r)
 }
 
 // ManagedScope rejects accidental URL database mode or a different hosting project before dependency startup.
