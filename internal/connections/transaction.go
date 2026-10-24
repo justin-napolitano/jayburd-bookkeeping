@@ -140,6 +140,7 @@ var queries = map[string]string{
 	"confirm_connection_credential":    "SELECT integration.confirm_connection_credential($1,$2,$3,$4,$5)::text",
 	"connection_failure":               "SELECT integration.connection_failure($1,$2,$3,$4,$5,$6)::text",
 	"connection_context":               "SELECT integration.connection_context($1,$2,$3,$4)::text",
+	"connection_link_proof":            "SELECT integration.connection_link_proof($1,$2,$3,$4)::text",
 	"get_connection_attempt":           "SELECT integration.get_connection_attempt($1,$2,$3,$4)::text",
 	"bind_connection":                  "SELECT integration.bind_connection($1,$2,$3,$4,$5,$6)::text",
 	"list_connections":                 "SELECT integration.list_connections($1,$2,$3)::text",

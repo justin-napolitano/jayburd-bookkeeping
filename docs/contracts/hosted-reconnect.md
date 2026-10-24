@@ -248,6 +248,57 @@ Named evidence and limits: [signed receiver stages](../runbooks/hosted-link-rece
 This phase adds no credential reader, concrete reconnect capability, API/UI
 completion wiring or hosted acceptance; subsequent319/320 and303 remain required.
 
+## Service integration profile — #319
+
+The concrete adapter requires a separate explicit `HTTPConfig.HostedRepair`
+capability, default false, **and** the existing exact fixed Sandbox receiver.
+Constructor validation rejects repair without that receiver before I/O. An
+existing Transactions webhook opt-in alone stays repair-disabled. Alternative
+reuse of that old URL setting as implicit repair permission was rejected: it
+would silently expand an already reviewed configuration. No new endpoint, key,
+product, account selection or Production environment is selected by a request.
+This source phase does not propagate the flag through CLI/runtime/release; that
+needs a separately reviewed finite activation and current schema/bootstrap.
+
+Enabled qualification composition requests explicit Hosted update using the
+SQL-selected existing credential,900second URL lifetime, US/English, fixed
+receiver and server actor identifier. Products/additional consent/update-account
+selection/user-based multi-Item options are omitted. Local SQL's15minute cap and
+earlier original source consent stay authoritative regardless of URL lifetime.
+Encrypted handoff must commit and verify before the service returns the URL;
+concurrent/replayed begin cannot create another provider Link.
+
+Owner completion reads current SQL context and owned proof before even the Link
+handoff/KMS read. Pending returns the same attempt; exited/ambiguous block.
+Direct execute rejects a public token or changed nonce/Link hash; SQL still pins
+proof atomically with claim. Repair never calls new-mode `VerifySession`, token
+get, exchange, rotation, generic secret read, wrapping preflight or credential Put.
+All bank reads use the optional exact-attempt purpose reader with addressed
+existing reference/version/Item checks. A missing reader fails closed.
+
+Only an explicit committed-claim completion/reconcile may repeat the read-only
+manifest and SQL confirmation, even when no manifest was saved after a lost
+claim reply. Preserve the existing credential version and full approved account
+manifest; SQL owns sibling/type/currency/current scope checks. Cap provider
+manifest expiry at the original SQL-projected approval and any earlier already
+known manifest deadline. Immutable manifest replay must match; a changed account
+set or narrower expiry remains blocked for review rather than overwriting evidence.
+No later response renews consent. Current SQL rejects expired/revoked scope before
+key work, and confirmation rechecks it before one stable repair-caused demand per
+active approved stream. Owner-paused streams and unapproved new accounts stay so.
+
+Local unclaimed repair cancellation inspects the public scoped attempt then calls
+only SQL abandonment, so an expired Link does not prevent it or trigger Item
+removal/restart. The existing independent global provider-enrollment approval gate
+still precedes this entrypoint and every provider entry; no grace/renewal was added.
+New/rotate/remove uncertainty rules and the new-enrollment Hosted resolver remain
+unchanged. This operational proprietary protocol retains the STD-01 assessment
+and existing crypto/ISO currency/accounting profiles; no ISO conformance claim.
+
+Delivery stages and limits: [service integration](../runbooks/hosted-repair-service.md).
+Actual ordinary update notification, managed identities, browser reload and
+independent acquisition equality still require303/320/275 qualification.
+
 ## Replay, recovery and operational limits
 
 Exact body/receipt replay has no new effect; re-signed same session/outcome may

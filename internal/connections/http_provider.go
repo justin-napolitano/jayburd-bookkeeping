@@ -23,7 +23,8 @@ import (
 type HTTPConfig struct {
 	ClientID, ClientSecret Secret
 	ConsentExpiresAt       time.Time
-	WebhookURL             string // Empty retains legacy enrollment; only the reviewed Sandbox receiver is allowed.
+	WebhookURL             string // Empty retains legacy enrollment and disables repair; only the reviewed Sandbox receiver is allowed.
+	HostedRepair           bool   // Separate explicit qualification opt-in; an existing Transactions webhook setting never enables repair.
 }
 
 // SandboxTransactionsWebhookURL pins the dedicated receiver; request metadata cannot redirect notifications.
@@ -45,7 +46,7 @@ func (*HTTPProvider) GoString() string { return "[connection provider redacted]"
 
 // NewHTTPProvider requires explicit synthetic/provider credentials and a bounded transport.
 func NewHTTPProvider(config HTTPConfig, transport http.RoundTripper) (*HTTPProvider, error) {
-	if transport == nil || !secretValid(config.ClientID) || !secretValid(config.ClientSecret) || !config.ConsentExpiresAt.After(time.Now()) || config.ConsentExpiresAt.Year() > 9999 || config.WebhookURL != "" && config.WebhookURL != SandboxTransactionsWebhookURL {
+	if transport == nil || !secretValid(config.ClientID) || !secretValid(config.ClientSecret) || !config.ConsentExpiresAt.After(time.Now()) || config.ConsentExpiresAt.Year() > 9999 || config.WebhookURL != "" && config.WebhookURL != SandboxTransactionsWebhookURL || config.HostedRepair && config.WebhookURL != SandboxTransactionsWebhookURL {
 		return nil, failed("configuration_error")
 	}
 	clientID, version := config.ClientID.value, "2020-09-14"
@@ -56,9 +57,9 @@ func NewHTTPProvider(config HTTPConfig, transport http.RoundTripper) (*HTTPProvi
 	return &HTTPProvider{config: config, link: link.NewClient(options), item: item.NewClient(options), accounts: accounts.NewClient(options)}, nil
 }
 
-// SupportsMode rejects unqualified ordinary update-session proof before creating or claiming an attempt.
-func (*HTTPProvider) SupportsMode(mode string) bool {
-	return mode == "new" || mode == "rotate" || mode == "remove"
+// SupportsMode requires explicit fixed receiver opt-in for owned Hosted repair; default configuration stays disabled.
+func (p *HTTPProvider) SupportsMode(mode string) bool {
+	return mode == "new" || mode == "rotate" || mode == "remove" || mode == "reconnect" && p.config.HostedRepair
 }
 
 // boundedPlaidTransport validates responses before generated decoding; no upstream error escapes.
@@ -146,10 +147,13 @@ func (p *HTTPProvider) CreateLink(ctx context.Context, input LinkRequest) (LinkR
 			request.Webhook = &p.config.WebhookURL
 		}
 	} else {
-		if !secretValid(input.AccessToken) {
+		if !p.SupportsMode("reconnect") || !secretValid(input.AccessToken) {
 			return LinkResult{}, failed("invalid_request")
 		}
+		lifetime := 900
 		request.AccessToken = &input.AccessToken.value
+		request.HostedLink = &plaid.LinkTokenCreateHostedLink{URLLifetimeSeconds: &lifetime}
+		request.Webhook = &p.config.WebhookURL
 	}
 	response, e := p.link.CreateToken(ctx, request)
 	if e != nil || response == nil {
