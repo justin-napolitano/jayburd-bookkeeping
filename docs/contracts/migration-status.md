@@ -30,6 +30,23 @@ An exact successful `status` execution emits `migration-verification-passed`,
 distinct from `migration-execution-passed`; neither qualifies for app rollback.
 Missing tables, dirty/wrong versions, artifact drift and unsafe identities fail.
 
+## Owned Hosted repair rollback verification (#328)
+
+The separate repair-enabled Sandbox profile adds the same exact selected-image
+read-only status/hash check before `sandbox-rollback` runtime rollout. It may
+update/execute the existing job with `-action=status`, never up/down, using the
+existing workload identity. The same-build source ancestry includes33 and the
+repair runtime; the actual database must match the selected image's highest
+embedded version and complete hash set. This adds no direct API table grant or
+startup probe. Legacy rollback without the explicit capability stays job/DB-inert.
+
+This operation can emit a bounded `migration-verification-passed` receipt for its
+own read-only step; it is not a substitute prior application rollback receipt.
+The prior successful Sandbox transport receipt and identical approved connection
+digest remain required. A failed/foreign/up/retried/mismatched status execution
+stops before runtime changes. Source and mocked orchestration tests establish
+these mechanics only; actual job/SQL authority still needs scoped hosted evidence.
+
 ## Evidence and next action
 
 The SQL authority is the existing migration library's version and artifact tables;

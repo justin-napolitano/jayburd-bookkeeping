@@ -34,8 +34,13 @@ disposition. Declaring these complete to unblock deployment is prohibited.
 
 Sandbox app promotion executes read-only schema status using its exact build image
 before runtime apply, never `up`. A schema mismatch blocks deployment. Sandbox
-rollback skips SQL and requires a prior Sandbox receipt with the identical approved
-connection policy. Full and Sandbox receipts cannot cross the rollback boundary.
+rollback without the new explicit repair capability skips SQL and requires a prior
+Sandbox receipt with the identical approved connection policy. Repair-enabled
+Sandbox rollback instead verifies the selected-image clean schema/hash using the
+existing status-only job before runtime; never up/down or automatic repair. It
+retains the same prior receipt/configuration digest and fixed source/readiness
+gates in [connection release](connection-release.md). Full and Sandbox receipts
+cannot cross the rollback boundary.
 Worker rollout retains the existing paused checks and fixed binding/version policy.
 No API IAM bypass, test identity adapter, secret retrieval, SQL grant or new provider
 endpoint is introduced. Runtime receipts explicitly identify Sandbox scope.

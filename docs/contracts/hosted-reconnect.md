@@ -257,8 +257,12 @@ existing Transactions webhook opt-in alone stays repair-disabled. Alternative
 reuse of that old URL setting as implicit repair permission was rejected: it
 would silently expand an already reviewed configuration. No new endpoint, key,
 product, account selection or Production environment is selected by a request.
-This source phase does not propagate the flag through CLI/runtime/release; that
-needs a separately reviewed finite activation and current schema/bootstrap.
+328 propagates the default-false flag through private CLI/runtime/release metadata;
+actual activation still needs separate exact finite approval and compatible
+schema33/API/receiver images/restricted bootstrap. Source ancestry and302/303
+readiness gates precede cloud authentication; selected-image status precedes
+runtime rollout, including the explicitly enabled repair rollback profile.
+No source merge or existing webhook setting alone enables repair.
 
 Enabled qualification composition requests explicit Hosted update using the
 SQL-selected existing credential,900second URL lifetime, US/English, fixed

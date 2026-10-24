@@ -29,9 +29,42 @@ run "fixed_webhook_enrollment" {
     }
   }
   assert {
-    condition     = contains(local.connection_args, "-plaid-webhook-url=https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid") && google_cloud_run_v2_service_iam_binding.api.members == toset(["serviceAccount:jayburd-dev-frontend@jayburd-bookkeeping-dev.iam.gserviceaccount.com"])
+    condition     = contains(local.connection_args, "-plaid-webhook-url=https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid") && !contains(local.connection_args, "-plaid-hosted-repair=true") && google_cloud_run_v2_service_iam_binding.api.members == toset(["serviceAccount:jayburd-dev-frontend@jayburd-bookkeeping-dev.iam.gserviceaccount.com"])
     error_message = "Only the fixed webhook URL is threaded into enrollment; API invocation stays private."
   }
+}
+run "explicit_owned_hosted_repair" {
+  command = plan
+  variables {
+    project_id     = "jayburd-bookkeeping-dev"
+    project_number = "9088794002"
+    images = {
+      api = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      web = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+    connections = {
+      infisical_origin      = "https://app.infisical.com"
+      infisical_project     = "11111111-1111-4111-8111-111111111111"
+      infisical_identity    = "22222222-2222-4222-8222-222222222222"
+      link_events_qualified = false
+      client_id_version     = "projects/9088794002/secrets/jayburd-dev-bank-sync-client-id/versions/1"
+      client_secret_version = "projects/9088794002/secrets/jayburd-dev-bank-sync-client-secret/versions/2"
+      consent_expires_at    = timeadd(timestamp(), "24h")
+      webhook_url           = "https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid"
+      hosted_repair         = true
+    }
+  }
+  assert {
+    condition     = length(local.connection_args) == 14 && contains(local.connection_args, "-plaid-hosted-repair=true") && contains(local.connection_args, "-plaid-link-events-qualified=false") && google_cloud_run_v2_service_iam_binding.api.members == toset(["serviceAccount:jayburd-dev-frontend@jayburd-bookkeeping-dev.iam.gserviceaccount.com"])
+    error_message = "Only explicit approved repair adds its flag; Hosted Link does not assert SDK enablement or expose the API."
+  }
+}
+run "reject_repair_without_receiver" {
+  command = plan
+  variables {
+    connections = { infisical_origin = "https://app.infisical.com", infisical_project = "11111111-1111-4111-8111-111111111111", infisical_identity = "22222222-2222-4222-8222-222222222222", link_events_qualified = false, client_id_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-id/versions/1", client_secret_version = "projects/123456789012/secrets/jayburd-dev-bank-sync-client-secret/versions/2", consent_expires_at = timeadd(timestamp(), "24h"), hosted_repair = true }
+  }
+  expect_failures = [var.connections]
 }
 run "reject_webhook_destination_override" {
   command = plan

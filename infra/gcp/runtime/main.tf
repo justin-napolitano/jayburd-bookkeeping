@@ -12,7 +12,7 @@ locals {
     "-plaid-client-id-version=${var.connections.client_id_version}",
     "-plaid-client-secret-version=${var.connections.client_secret_version}",
     "-plaid-consent-expires-at=${var.connections.consent_expires_at}"
-  ], var.connections.webhook_url == "" ? [] : ["-plaid-webhook-url=${var.connections.webhook_url}"])
+  ], var.connections.webhook_url == "" ? [] : ["-plaid-webhook-url=${var.connections.webhook_url}"], var.connections.hosted_repair ? ["-plaid-hosted-repair=true"] : [])
   public_origin = "https://jayburd-dev-web-${var.project_number}.${var.region}.run.app"
   api_origin    = "https://jayburd-dev-api-${var.project_number}.${var.region}.run.app"
   labels        = { application = "jayburd", environment = "dev", managed_by = "terraform" }
