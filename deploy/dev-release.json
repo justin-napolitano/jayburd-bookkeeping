@@ -4,23 +4,23 @@
   "projectNumber": "9088794002",
   "operation": "sandbox-promote",
   "build": {
-    "run": "40004622277",
+    "run": "40110865260",
     "attempt": "1",
-    "commit": "fb4ac0411f8f5673ab0659825bcafbdb4e64253e"
+    "commit": "c96d5e94ea6e0762ff631d7bd0bbdeb7435ebad5"
   },
   "images": {
-    "api": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:b0fc8ce1e0f3d4152f4f0908f2f5202fce78e056c521121483f25ad9cd7d5786",
-    "migrate": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:92f4e18ba938834b25a41f4181fe5db6103d1501ebf6bcb9ec079ef5bb921a18",
-    "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:6e2759591a334ec1d88916ab1bd0d8f4fcc399bcacc8404937466b3d7564f854"
+    "api": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:fc97ffdbd946b6c5d72f546090c2496750c76eb18e80f8658d505ead8dbc47c6",
+    "migrate": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:42cec0b2019ed4a6cae6ad3ab2334e08f14124f33a467a840b0a2ffcc7229b74",
+    "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:db7fda783acafc0664f55adb9e1c173e3f7efb63412355cdafe7ff6143648fbf"
   },
   "firebaseApiKey": "AIzaSyDi2taJScO3dnw4NqU9gsdDUXaJ_q0GXGg",
   "evidence": {
     "bootstrap": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6182206357",
     "identity": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/6#issuecomment-6197238285",
     "secrets": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/133#issuecomment-6197028300",
-    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/272#issuecomment-6373360361"
+    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/281#issuecomment-6386746363"
   },
-  "expiresAt": "2026-10-24T02:00:00Z",
+  "expiresAt": "2026-10-24T20:00:00Z",
   "previousDeployment": null,
   "connections": {
     "infisical_origin": "https://app.infisical.com",
