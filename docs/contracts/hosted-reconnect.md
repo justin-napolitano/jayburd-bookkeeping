@@ -126,6 +126,16 @@ no original event or terminal effect is rewritten. Missing/ambiguous begin evide
 denies eligibility. This is the explicit legacy disposition required above.
 Actual synthetic stages and limits are in [the SQL delivery runbook](../runbooks/hosted-repair-sql.md).
 
+Compatibility correction33 (#326): the32 reconnect handoff copied19's numeric-only
+KMS resource check and rejected the canonical project-ID key used by the runtime.
+Restore20's exact numeric-or-canonical grammar without changing any repair gate,
+ACL, ciphertext or AAD. This is not a new key-selection policy: the existing
+runtime still checks its configured key/version during unwrap. The held319
+concrete SQL/AEAD service test exposed this gap; numeric-only profile fixtures
+did not prove canonical compatibility.33 down is disposable/quiesced-only and
+refuses retained canonical reconnect envelopes before replacing the function.
+No managed apply or source qualification follows from this correction alone.
+
 The mutable attempt also gains an immutable-once `repair_scope_sha256`, pinned
 only by a fresh server-authorized begin. Canonical input includes source-binding
 and stream revisions/states, namespace/source identities and consent/worker scope;
