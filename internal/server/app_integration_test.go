@@ -100,6 +100,9 @@ func TestAppIntegrationServer(t *testing.T) {
 		connectionFixture = bootstrapConnectionBrowser(t, ctx, admin, pool)
 		connectionService = connectionFixture.service
 	}
+	if !*appProofConnections && !*appProofDemo {
+		connectionService = expiredEnrollmentProof(t, ctx, pool)
+	}
 	app, err := New(Config{Mode: "managed", Listen: "0.0.0.0:8080", Origin: "http://localhost:39083", Project: "synthetic-browser-proof", DatabaseURL: "synthetic-injected-test-pool"}, Dependencies{Connections: connectionService, Auth: appProofAuth{}, Operations: &ledger.Service{DB: pool}, Ready: func(ctx context.Context) error { return runtimeReady(ctx, pool) }})
 	if err != nil {
 		t.Fatal("synthetic server composition rejected")
