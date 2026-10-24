@@ -25,8 +25,9 @@ API00020-zpd/web00020-zb4; PR288 all five CI checks SUCCESS. Owner signed in and
 the subsequent [Tartan browser run](tartan-browser-qualification.md) created and
 acknowledged a fresh book, recovered the original provider-success attempt, bound
 nine supported accounts, and verified scheduled historical-ready publication for
-all nine through scoped read-only metadata. Transaction review remains blocked
-by a browser socket failure; independent R02/R03 proof remains open. This evidence
+all nine through scoped read-only metadata. After owner browser recovery, all9
+review lists loaded46 rows and savings repeat2/2 retained6 rows/source revision1.
+Category/chart gaps293/294 and independent R02/R03 proof remain open. This evidence
 supersedes the preparation-only stage below; no future expiry281 fix is implied.
 
 Trusted owner build40004622277 attempt1/sourcefb4ac04 has all seven jobs SUCCESS,

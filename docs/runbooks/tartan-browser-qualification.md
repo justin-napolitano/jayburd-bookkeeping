@@ -20,7 +20,7 @@ the pre-authored four-row oracle; that fixture remains unchanged and unexecuted.
 | Provider/recovery | Owner completed Tartan; Success observed; original saved attempt recovered after original link expiry within its recovery window | No second enrollment/Item created |
 | Binding | All9 supported mappings reviewed/confirmed; Item active, unfinished attempts0 | Five types explicitly unbound |
 | Acquisition | Natural publisher HTTP200; nine consumer HTTP204; exact-book READ ONLY metadata confirms all9 current demands completed and published, historical-ready | No complete financial equality/replay/90-day reconciliation claim |
-| Review | Browser transport failed before transaction review could load | Owner manual browser recovery requested |
+| Review | Initially blocked by browser sockets; owner re-authentication and one source retry recovered9 source lists/46 visible rows | Chart/category follow-ups remain; no draft/post submitted |
 
 ## Current evidence
 
@@ -115,11 +115,71 @@ book creation, active connections and the browser blocker; no screenshots upload
 to public issue evidence. The misleading expired-link restart prompt was avoided
 by reviewing and completing the durable original attempt.
 
+### Recovered review and savings repeat,04:05–04:18Z
+
+Owner signed in again. The current workspace displayed revision13 and11 ledger
+accounts (two initial accounts plus nine bank bindings). First source discovery
+failed generically; one explicit Retry source accounts returned HTTP200 at both
+web/API and exposed all nine active sources. No authentication policy, browser
+storage or network-security settings changed. This recovered UI testing; it does
+not establish or fix the socket error's root cause.
+
+Using the visible Source account and All statuses controls, every source list
+loaded. Each ended on one page with Next transactions disabled:
+
+| Source | Visible rows |
+| --- | --- |
+| checking |19 |
+| first credit card |18 |
+| savings |6 |
+| money market |3 |
+| cash management |0 |
+| student loan |0 |
+| mortgage |0 |
+| auto loan |0 |
+| second credit card |0 |
+
+Total46 visible rows; the nonempty tables showed needs-review state. Empty
+inboxes are not proof of zero bank/loan balance or complete provider coverage.
+Checking Needs review also showed19; Posted returned no matches. No fixture
+exercised held rows or pagination here. These are bounded UI counts, not R02/R03.
+
+Current-period checking and card details/category forms loaded. Available
+counterpart categories were only the initial control asset and opening equity;
+the bank-added accounts did not supply expense/revenue categories. Accounts
+exposed the11-account posted-balance/trial-balance read, with no observed
+existing-book add-category action. No inappropriate category was chosen to force
+a passing draft test. [294](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/294)
+requires a reviewed existing-book chart setup contract before implementation.
+
+A pre-book-period card row's selection lost its detail after a generic policy
+rejection; a current-period row in the same source worked. Exact backend status/
+cause was not captured. ReviewInbox.select's category-error catch clears detail;
+[293](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/293) tracks
+preserving authorized read-only detail while retaining draft/permission gates.
+No accounting date/open period was changed and no draft/journal was submitted.
+
+Savings before repeat: requested1/completed1, HISTORICAL_UPDATE_COMPLETE, no
+queue/lease. Request sync now displayed the exact savings-only confirmation and
+current Item generation2/binding revision1/stream revision1. Explicit Confirm
+sync request recorded requested2/completed1 and queued work; no sibling operation
+was requested. Natural scheduling then completed generation2, historical-ready,
+no queue/lease, publication2026-10-24T04:14:06.840399+00:00. UI All statuses after
+repeat still showed6 rows, source revision1 and no next page, matching the same
+pre-repeat view. Needs review also showed6. This is savings L06's bounded first/
+repeat UI+metadata acceptance, not an independent transaction-field/replay proof.
+
+Final live tab is left on the populated checking inbox for owner review. Private
+screenshots record checking rows and savings repeat; none uploaded to public
+issue evidence. Lease VERIFY272-REVIEW-20261024T0406Z owned only documentation
+and actual UI checks; source fixes remain unimplemented/unclaimed issues.
+
 ## Remaining work
 
-Recover browser connectivity and inspect review rows/categories/holds, then test
-unchanged repeat acquisition without duplicate effects. Savings initial bind/sync
-now has bounded metadata evidence, but L06's repeat/review acceptance remains open.
+Implement reviewed category-account setup and safe detail/error recovery, then
+exercise legitimate categorization/draft/post policy with suitable synthetic
+counterpart accounts. Held cases, larger pagination and other source repeats are
+not covered by this run. Savings first/repeat now has bounded UI/metadata proof.
 Author a new isolated custom-user case for the independent four-row fixture; never
 adjust expected amounts/identities to match default Tartan observations. Complete
 identity-only map, finite one-source mandate, equality/no-journal comparison and
@@ -129,7 +189,7 @@ Issue281's future consent-expiry outage is not fixed by this run.
 
 ## PR handoff
 
-Documentation only; no new migration/product code/cloud mutation. Registry owns
+Documentation-only patch; no new migration/product code/cloud configuration. Registry owns
 lease state;272/88/156 remain open. Exact source/receipt and scope above distinguish
 actual managed setup/recovery/initial acquisition from synthetic CI and unexecuted
 financial proof. No financial conformance or production-readiness claim.
@@ -137,3 +197,6 @@ make check/test/build PASS with documented cached local Go1.26.5 temporary
 modfile; tracked1.26.10 unchanged. Canonical source/image/browser/API/SQL gates
 already passed in the trusted application build. This documentation adds no
 product/browser/API code or database migration requiring new integration gates.
+Review follow-up make check/test/build also PASS with the same documented local
+toolchain; staged runbook validation required before its evidence commit. The
+actual scoped savings sync request is recorded above, not hidden as a read-only test.
