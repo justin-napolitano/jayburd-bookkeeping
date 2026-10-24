@@ -88,7 +88,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if ctx.Err() != nil || !validReceipt(receipt) {
+	if ctx.Err() != nil || !validReceipt(receipt) || (verified.session != nil) != (receipt.sessionCount != nil) {
 		rejected(w, 503)
 		return
 	}
@@ -97,5 +97,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // validReceipt prevents a malformed injected receiver from acknowledging uncommitted work.
 func validReceipt(r Receipt) bool {
+	if r.sessionCount != nil {
+		return r.ReceiptID == "" && r.StreamCount == 0 &&
+			((r.State == "accepted" || r.State == "duplicate") && *r.sessionCount == 1 || r.State == "ignored" && *r.sessionCount == 0)
+	}
 	return (r.State == "accepted" || r.State == "duplicate") && validID(r.ReceiptID) && r.StreamCount >= 1 && r.StreamCount <= 25
 }

@@ -31,7 +31,13 @@ func NewSQLReceiver(db Beginner) (*SQLReceiver, error) {
 
 // Receive returns only a confirmed receipt; unknown commits remain retryable delivery failures.
 func (r *SQLReceiver) Receive(ctx context.Context, v Verified) (Receipt, error) {
-	if v.Environment != "sandbox" || !opaque.MatchString(v.ItemID) || !digest.MatchString(v.ReceiptKey) || !digest.MatchString(v.BodySHA256) || v.IssuedAt <= 0 {
+	if v.Environment != "sandbox" || !digest.MatchString(v.ReceiptKey) || !digest.MatchString(v.BodySHA256) || v.IssuedAt <= 0 {
+		return Receipt{}, errInvalid
+	}
+	if v.session != nil {
+		return r.receiveLinkSession(ctx, v)
+	}
+	if !opaque.MatchString(v.ItemID) {
 		return Receipt{}, errInvalid
 	}
 	raw, _ := json.Marshal(map[string]any{"item_id": v.ItemID, "body_sha256": v.BodySHA256, "issued_at": v.IssuedAt, "webhook_type": "TRANSACTIONS", "webhook_code": "SYNC_UPDATES_AVAILABLE"})
@@ -41,6 +47,32 @@ func (r *SQLReceiver) Receive(ctx context.Context, v Verified) (Receipt, error) 
 	}
 	var receipt Receipt
 	if object(out, []string{"state", "receipt_id", "stream_count"}, nil, &receipt) != nil || !validReceipt(receipt) {
+		return Receipt{}, errUnavailable
+	}
+	return receipt, nil
+}
+
+// receiveLinkSession uses one fixed restricted-purpose function; receipts cannot authorize secret or sync work.
+func (r *SQLReceiver) receiveLinkSession(ctx context.Context, v Verified) (Receipt, error) {
+	s := v.session
+	if v.ItemID != "" || !digest.MatchString(s.linkHash) || !digest.MatchString(s.sessionHash) || (s.status != "success" && s.status != "exited") {
+		return Receipt{}, errInvalid
+	}
+	raw, _ := json.Marshal(map[string]any{"link_token_sha256": s.linkHash, "link_session_sha256": s.sessionHash,
+		"body_sha256": v.BodySHA256, "status": s.status, "issued_at": v.IssuedAt})
+	out, e := call(ctx, r.db, "bookkeeping_webhook", "SELECT integration.accept_verified_link_session($1,$2,$3)", v.Environment, v.ReceiptKey, string(raw))
+	if e != nil {
+		return Receipt{}, e
+	}
+	var wire struct {
+		State string `json:"state"`
+		Count *int   `json:"receipt_count"`
+	}
+	if object(out, []string{"state", "receipt_count"}, nil, &wire) != nil || wire.Count == nil {
+		return Receipt{}, errUnavailable
+	}
+	receipt := Receipt{State: wire.State, sessionCount: wire.Count}
+	if !validReceipt(receipt) {
 		return Receipt{}, errUnavailable
 	}
 	return receipt, nil
@@ -135,7 +167,7 @@ func rollbackKnown(e error) bool {
 // safeSQL discards all raw SQL diagnostics and keeps only uniform denial classification.
 func safeSQL(e error) error {
 	var p *pgconn.PgError
-	if errors.As(e, &p) && (p.Code == "P2801" || p.Code == "P2601" || p.Code == "42501") {
+	if errors.As(e, &p) && (p.Code == "P2801" || p.Code == "P2601" || p.Code == "P2701" || p.Code == "P2703" || p.Code == "42501") {
 		return errDenied
 	}
 	return errUnavailable
