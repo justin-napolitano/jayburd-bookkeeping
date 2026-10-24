@@ -1,5 +1,8 @@
 # Project context
 
+[Actual Tartan registration/initial sync](runbooks/tartan-browser-qualification.md):
+nine supported accounts published; browser review and independent equality pending.
+
 Sandbox app recovery after31: [finite release and preserved browser command](runbooks/app-recovery31.md),
 issues272/281; actual browser acceptance pending.
 
