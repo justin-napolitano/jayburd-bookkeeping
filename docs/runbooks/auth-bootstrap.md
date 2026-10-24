@@ -18,6 +18,9 @@ memory-only verified identity and MFA remain authoritative.
 | Browser |25 browser regressions PASS; new desktop/mobile keyboard retry case uses actual production bootstrap/SDK initialization with fictional public identifiers, no credentials, blocked external requests and zero attempted external calls |
 | Core/web build | make check/test/build and web-check/web-build PASS; tracked Go1.26.10 and all dependencies unchanged; cached local Go1.26.5 temporary modfile only |
 | Full stack | make app-integration PASS: real browser -> production Next bridge -> Go -> restricted disposable PostgreSQL, setup, explicit posting and dropped-commit recovery |
+| CI follow-up | PR309 frontend unit/browser stages PASS, but exact-image smoke retained the old pre-hydration unconfigured heading assertion. Updated it to require loading/no premature credential/invalid state; all config503/no-store, non-root/read-only/no-finance/no-external-network controls retained |
+| Exact image local limit | Docker build attempted with unchanged image/package pins, blocked by local Alpine registry TLS trust before runtime proof. No TLS/package/security gate weakened. Exact x86 image proof remains canonical CI; standalone local shell assertions are separate partial evidence |
+| Corrected smoke local proof | Production standalone shell checks PASS: loading/no credential form, no-store/frame denial and missing-runtime-config503; shell syntax/whitespace PASS. This does not claim non-root/read-only image acceptance |
 
 ## Current evidence
 

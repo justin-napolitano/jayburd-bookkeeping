@@ -18,6 +18,10 @@ no-store/omit credentials/no redirect and a five-second timeout. Network,
 timeout, non-success HTTP and incomplete JSON transport failures show generic
 temporary unavailability with one explicit retry control. No automatic retries,
 raw diagnostics, secrets or session resurrection.
+The pre-hydration server shell also renders loading; it cannot classify the
+browser's runtime configuration before that request. The exact-image smoke
+requires this shell without password inputs, while separately requiring absent
+runtime configuration to return503/no-store and finance/demo routes to deny.
 
 Successful HTTP/supplied configuration must pass the existing exact public-field
 validation. Invalid configuration, unavailable SDK adapter or conflicting SDK
