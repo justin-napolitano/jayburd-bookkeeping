@@ -38,6 +38,7 @@ type memoryRepo struct {
 	claimUnknown bool
 	contextReads int
 	staleAt      int
+	proofStatus  string
 }
 
 // call models fixed operation sequencing for unit tests, not SQL authority.
@@ -59,6 +60,12 @@ func (r *memoryRepo) call(_ context.Context, op string, args ...any) (json.RawMe
 	c.ExecuteLink = false
 	c.ExecuteProvider = false
 	switch op {
+	case "connection_link_proof":
+		status := r.proofStatus
+		if status == "" {
+			status = "pending"
+		}
+		return encode(map[string]any{"status": status, "receipt_key": strings.Repeat("a", 64)}), nil
 	case "begin_connection", "creator_begin_connection":
 		var in BeginRequest
 		_ = json.Unmarshal([]byte(args[4].(string)), &in)
@@ -89,6 +96,10 @@ func (r *memoryRepo) call(_ context.Context, op string, args ...any) (json.RawMe
 				r.c.State = "disconnect_pending"
 			}
 			r.c.PublicHash = v.Public
+			if r.c.Mode == "reconnect" {
+				r.c.CredentialRef = r.c.PreviousCredentialRef
+				r.c.CredentialVersion = r.c.PreviousCredentialVersion
+			}
 			c = r.c
 			c.ExecuteProvider = true
 			if r.claimUnknown {
@@ -126,7 +137,7 @@ func (r *memoryRepo) call(_ context.Context, op string, args ...any) (json.RawMe
 		}
 		c = r.c
 	case "get_connection_attempt":
-		return encode(map[string]any{"attempt_id": attemptID, "state": r.c.State, "manifest": r.c.Manifest}), nil
+		return encode(map[string]any{"attempt_id": attemptID, "mode": r.c.Mode, "state": r.c.State, "manifest": r.c.Manifest}), nil
 	case "list_connections", "creator_list_connections":
 		return encode(map[string]any{"items": []any{}}), nil
 	case "bind_connection":
@@ -245,6 +256,11 @@ func (s *memorySecrets) ReadLink(_ context.Context, id string) (Secret, error) {
 		return token, nil
 	}
 	return Secret{}, errors.New("missing link")
+}
+
+// ReadRepair models only the purpose-reader interface; real SQL/AEAD/signed tests own its authority evidence.
+func (s *memorySecrets) ReadRepair(ctx context.Context, _ string, r CredentialReference) (StoredCredential, error) {
+	return s.Read(ctx, r)
 }
 
 // Put simulates immutable version storage and lost acknowledgement.
@@ -495,6 +511,9 @@ func TestPlaidStreamAndCredentials(t *testing.T) {
 			store.values[CredentialReference{oldRefID, "1", "synthetic-item", "sandbox"}] = NewSecret("old-access")
 			input := ExecuteRequest{Nonce: nonceID}
 			if mode == "reconnect" {
+				r.c.State = "link_ready"
+				r.c.ItemConsentExpiresAt = p.manifest.ConsentExpiresAt
+				r.proofStatus = "success"
 				input.LinkToken = "synthetic-link"
 			}
 			_, e := s.Execute(context.Background(), scope, attemptID, input)

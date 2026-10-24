@@ -54,6 +54,7 @@ type attemptContext struct {
 	Manifest                  *Manifest `json:"manifest"`
 	ExecuteLink               bool      `json:"execute_link"`
 	ExecuteProvider           bool      `json:"execute_provider"`
+	ItemConsentExpiresAt      string    `json:"item_consent_expires_at"`
 }
 
 // verifiedHostedCompletion is created only from a trusted server lookup inside Execute, never transport input.
@@ -188,6 +189,15 @@ func (s *Service) Begin(parent context.Context, scope Scope, key string, input B
 		return out, e
 	}
 	if c.ExecuteLink {
+		if c.Mode == "reconnect" {
+			ceiling, err := time.Parse(time.RFC3339, c.ItemConsentExpiresAt)
+			if err != nil || !ceiling.After(time.Now()) {
+				return out, failed("stale_connection")
+			}
+			var stop context.CancelFunc
+			ctx, stop = context.WithDeadline(ctx, ceiling)
+			defer stop()
+		}
 		request := LinkRequest{ActorID: scope.Actor, Mode: c.Mode}
 		if c.Mode == "reconnect" {
 			request.AccessToken, e = s.readPrevious(ctx, scope, c)
@@ -210,6 +220,9 @@ func (s *Service) Begin(parent context.Context, scope Scope, key string, input B
 			return out, failed("invalid_metadata")
 		}
 		if link.HostedURL.value != "" && !validHostedURL(link.HostedURL.value) {
+			return out, failed("invalid_metadata")
+		}
+		if c.Mode == "reconnect" && link.HostedURL.value == "" {
 			return out, failed("invalid_metadata")
 		}
 		_, e = s.privateCall(ctx, scope, c.AttemptID, "record_link_session", scope.Actor, scope.Entity, scope.Book, c.AttemptID, c.Nonce, jsonText(map[string]any{"link_token_sha256": hash(link.Token.value), "expires_at": link.ExpiresAt.UTC().Format(time.RFC3339)}))
@@ -252,6 +265,9 @@ func (s *Service) CompleteHosted(parent context.Context, scope Scope, id string)
 	if e != nil {
 		slog.Warn("hosted completion unavailable", "stage", "attempt_context", "attempt_id", id)
 		return nil, e
+	}
+	if c.Mode == "reconnect" {
+		return s.completeHostedRepair(ctx, scope, c)
 	}
 	if c.Mode != "new" || c.State != "link_ready" {
 		return s.Attempt(ctx, scope, id)
@@ -303,6 +319,9 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 	}
 	if support, ok := s.provider.(interface{ SupportsMode(string) bool }); ok && !support.SupportsMode(before.Mode) {
 		return nil, failed("unsupported_connection_mode")
+	}
+	if before.Mode == "reconnect" {
+		return s.executeRepair(ctx, scope, before, input)
 	}
 	var verified *verifiedHostedCompletion
 	// Hosted completion resolves public material only after current scoped SQL authority.
@@ -375,7 +394,7 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 	if !validID(value(c.ClaimID)) {
 		return nil, failed("invalid_metadata")
 	}
-	if c.Mode == "new" || c.Mode == "reconnect" {
+	if c.Mode == "new" {
 		if input.LinkToken == "" || c.Mode == "new" && input.PublicToken == "" || value(c.LinkHash) != hash(input.LinkToken) {
 			return s.recovery(ctx, scope, c, "manifest_rejected")
 		}
@@ -415,8 +434,6 @@ func (s *Service) Execute(parent context.Context, scope Scope, id string, input 
 			return s.Attempt(ctx, scope, id)
 		case "rotate":
 			credential, e = s.provider.Rotate(ctx, old)
-		case "reconnect":
-			credential = ExchangeResult{ItemID: value(c.ExpectedItemID), AccessToken: old}
 		}
 	}
 	if e != nil || ctx.Err() != nil {
@@ -475,6 +492,9 @@ func (s *Service) Reconcile(parent context.Context, scope Scope, id string) (jso
 	}
 	if c.State == "active" || c.State == "binding_review" || c.State == "disconnected" {
 		return s.Attempt(ctx, scope, id)
+	}
+	if c.Mode == "reconnect" {
+		return s.finishRepair(ctx, scope, c)
 	}
 	if c.Manifest == nil || !validID(value(c.ClaimID)) || c.Mode == "remove" {
 		return nil, failed("credential_recovery_required")
@@ -543,7 +563,16 @@ func (s *Service) readPrevious(ctx context.Context, scope Scope, c attemptContex
 	if e != nil {
 		return Secret{}, e
 	}
-	v, e := s.secretStore(scope).Read(ctx, r)
+	var v StoredCredential
+	if c.Mode == "reconnect" {
+		reader, ok := s.secretStore(scope).(RepairCredentialReader)
+		if !ok {
+			return Secret{}, failed("configuration_error")
+		}
+		v, e = reader.ReadRepair(ctx, c.AttemptID, r)
+	} else {
+		v, e = s.secretStore(scope).Read(ctx, r)
+	}
 	if e != nil || !matches(v, r) {
 		return Secret{}, failed("credential_recovery_required")
 	}
@@ -673,6 +702,22 @@ func (s *Service) Abandon(parent context.Context, scope Scope, id string) (json.
 	}
 	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
 	defer cancel()
+	// Local unclaimed repair cancellation must work after the Link window
+	// expires. Public scoped inspection precedes SQL's current-authority claim check;
+	// no private context, handoff, credential or provider call is needed here.
+	public, e := s.Attempt(ctx, scope, id)
+	if e != nil {
+		return nil, e
+	}
+	var inspected struct {
+		Mode string `json:"mode"`
+	}
+	if json.Unmarshal(public, &inspected) != nil {
+		return nil, failed("invalid_metadata")
+	}
+	if inspected.Mode == "reconnect" {
+		return s.repo.call(ctx, "abandon_connection", scope.Actor, scope.Entity, scope.Book, id)
+	}
 	c, e := s.context(ctx, scope, id)
 	if e != nil {
 		return nil, e
