@@ -2,6 +2,7 @@ import React from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import {
   cleanup,
+  act,
   fireEvent,
   render,
   screen,
@@ -144,6 +145,142 @@ async function choose() {
   );
   await screen.findByLabelText("Category account");
 }
+
+// A category read is optional presentation authority; readable detail must survive its temporary failure.
+it("keeps exact detail while categories are delayed, then disables drafts on failure and permits explicit retry", async () => {
+  const { api, props } = fixture();
+  const original = api.getMockImplementation()!;
+  let reject!: (error: unknown) => void;
+  api.mockImplementation(async (path: string) =>
+    path.endsWith("/categories")
+      ? new Promise((_resolve, fail) => {
+          reject = fail;
+        })
+      : original(path),
+  );
+  render(<ReviewInbox {...props} />);
+  await screen.findByRole("option", { name: /Checking/ });
+  fireEvent.change(screen.getByLabelText("Source account"), {
+    target: { value: "s" },
+  });
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Review Synthetic supplies" }),
+  );
+  await screen.findByRole("heading", { name: "Synthetic supplies" });
+  expect(screen.queryByLabelText("Category account")).toBeNull();
+  await act(async () => {
+    reject(new APIError(503, false));
+  });
+  expect(
+    screen.getByRole("heading", { name: "Synthetic supplies" }),
+  ).toBeTruthy();
+  expect(screen.getByRole("alert").textContent).toContain(
+    "Creating a draft is disabled",
+  );
+  expect(
+    screen.queryByRole("button", { name: "Review posting command" }),
+  ).toBeNull();
+  expect(props.prepare).not.toHaveBeenCalled();
+  expect(props.denied).not.toHaveBeenCalled();
+  api.mockImplementation(original);
+  fireEvent.click(screen.getByRole("button", { name: "Retry categorization" }));
+  await screen.findByLabelText("Category account");
+  expect(screen.queryByText(/Creating a draft is disabled/)).toBeNull();
+  expect(api.mock.calls.every((args) => !args[0].endsWith("/drafts"))).toBe(
+    true,
+  );
+});
+
+it.each([400, 409, 422, 503])(
+  "keeps historical read-only detail when category lookup returns %s",
+  async (status) => {
+    const { api, props } = fixture();
+    const original = api.getMockImplementation()!;
+    api.mockImplementation(async (path: string) => {
+      if (path.endsWith("/categories")) throw new APIError(status, false);
+      if (path.endsWith("/review-items/r"))
+        return { ...detail, booked_date: "2025-12-20" };
+      return original(path);
+    });
+    render(<ReviewInbox {...props} />);
+    await screen.findByRole("option", { name: /Checking/ });
+    fireEvent.change(screen.getByLabelText("Source account"), {
+      target: { value: "s" },
+    });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Review Synthetic supplies" }),
+    );
+    await screen.findByRole("button", { name: "Retry categorization" });
+    expect(
+      screen.getByRole("heading", { name: "Synthetic supplies" }),
+    ).toBeTruthy();
+    expect(screen.getByText(/2025-12-20.*9007199254740993.01/)).toBeTruthy();
+    expect(screen.queryByLabelText("Category account")).toBeNull();
+    expect(props.prepare).not.toHaveBeenCalled();
+    expect(props.denied).not.toHaveBeenCalled();
+  },
+);
+
+it.each([401, 403, 404])(
+  "clears independently fetched detail after category authority denial %s",
+  async (status) => {
+    const { api, props } = fixture();
+    const original = api.getMockImplementation()!;
+    api.mockImplementation(async (path: string) => {
+      if (path.endsWith("/categories")) throw new APIError(status, false);
+      return original(path);
+    });
+    render(<ReviewInbox {...props} />);
+    await screen.findByRole("option", { name: /Checking/ });
+    fireEvent.change(screen.getByLabelText("Source account"), {
+      target: { value: "s" },
+    });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Review Synthetic supplies" }),
+    );
+    await waitFor(() => expect(props.denied).toHaveBeenCalled());
+    expect(
+      screen.queryByRole("heading", { name: "Synthetic supplies" }),
+    ).toBeNull();
+    expect(screen.queryByLabelText("Category account")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Retry categorization" }),
+    ).toBeNull();
+  },
+);
+
+it("cannot restore old category choices after a book change while lookup is pending", async () => {
+  const { api, props } = fixture();
+  const original = api.getMockImplementation()!;
+  let resolve!: (value: unknown) => void;
+  api.mockImplementation(async (path: string) =>
+    path.endsWith("/categories")
+      ? new Promise((done) => {
+          resolve = done;
+        })
+      : original(path),
+  );
+  const view = render(<ReviewInbox {...props} />);
+  await screen.findByRole("option", { name: /Checking/ });
+  fireEvent.change(screen.getByLabelText("Source account"), {
+    target: { value: "s" },
+  });
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Review Synthetic supplies" }),
+  );
+  await screen.findByRole("heading", { name: "Synthetic supplies" });
+  view.rerender(
+    <ReviewInbox {...props} book={{ ...props.book, book_id: "new-book" }} />,
+  );
+  await act(async () => {
+    resolve(categories);
+  });
+  expect(
+    screen.queryByRole("heading", { name: "Synthetic supplies" }),
+  ).toBeNull();
+  expect(screen.queryByLabelText("Category account")).toBeNull();
+  expect(props.prepare).not.toHaveBeenCalled();
+});
 // Provider changes retain posted history; held and zero-valued source rows cannot prepare journals.
 it.each(["correction_hold", "posted"])(
   "keeps %s source changes outside the draft workflow",
@@ -214,16 +351,26 @@ it("shows every source digit and explains the precision hold", async () => {
   const { api, props } = fixture();
   const original = api.getMockImplementation()!;
   api.mockImplementation(async (path: string) => {
-    if (path.endsWith("/review-items/r")) return {
-      ...detail, state: "correction_hold", amount: "1.001000001",
-      blockers: ["provider_correction_required", "source_precision_review_required"],
-    };
+    if (path.endsWith("/review-items/r"))
+      return {
+        ...detail,
+        state: "correction_hold",
+        amount: "1.001000001",
+        blockers: [
+          "provider_correction_required",
+          "source_precision_review_required",
+        ],
+      };
     return original(path);
   });
   render(<ReviewInbox {...props} />);
   await screen.findByRole("option", { name: /Checking/ });
-  fireEvent.change(screen.getByLabelText("Source account"), { target: { value: "s" } });
-  fireEvent.click(await screen.findByRole("button", { name: "Review Synthetic supplies" }));
+  fireEvent.change(screen.getByLabelText("Source account"), {
+    target: { value: "s" },
+  });
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Review Synthetic supplies" }),
+  );
   await screen.findByText(/All digits are preserved/);
   expect(screen.getAllByText(/1.001000001/).length).toBeGreaterThan(0);
   expect(screen.queryByLabelText("Category account")).toBeNull();

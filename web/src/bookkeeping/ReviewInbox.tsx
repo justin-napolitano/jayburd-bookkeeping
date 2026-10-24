@@ -57,6 +57,7 @@ function Inbox({
   const [page, setPage] = useState<ReviewPage | null>(null);
   const [detail, setDetail] = useState<ReviewDetail | null>(null);
   const [categories, setCategories] = useState<ReviewCategories | null>(null);
+  const [categoryUnavailable, setCategoryUnavailable] = useState(false);
   const [journal, setJournal] = useState<Journal | null>(null);
   const [draft, setDraft] = useState<ReviewDraft | null>(null);
   const [category, setCategory] = useState("");
@@ -97,6 +98,7 @@ function Inbox({
     setJournal(null);
     setDraft(null);
     setCategories(null);
+    setCategoryUnavailable(false);
     setError("");
     if (!available)
       return () => {
@@ -137,6 +139,7 @@ function Inbox({
     setDetail(null);
     setJournal(null);
     setCategories(null);
+    setCategoryUnavailable(false);
     setDraft(null);
     setRetry(null);
     setCategory("");
@@ -173,7 +176,7 @@ function Inbox({
       if (alive.current && version === epoch.current) setBusy(false);
     }
   };
-  // Fetch current item and category authority together; no categories are inferred from account names.
+  // Detail is independently authorized; optional category failure must not erase readable source evidence.
   const select = async (id: string) => {
     const version = ++epoch.current;
     resetDetail();
@@ -196,14 +199,26 @@ function Inbox({
           value.blockers.length > 0 &&
           value.blockers.every((blocker) => blocker === "draft_stale"))
       ) {
-        const choices = await api<ReviewCategories>(
-          `${base}/review-items/${encodeURIComponent(id)}/categories`,
-        );
-        if (!alive.current || version !== epoch.current) return;
-        if (choices.source_account_id !== source || choices.review_id !== id)
-          throw new Error("Mismatched categories");
-        setCategories(choices);
-        setDate(choices.accounting_date);
+        try {
+          const choices = await api<ReviewCategories>(
+            `${base}/review-items/${encodeURIComponent(id)}/categories`,
+          );
+          if (!alive.current || version !== epoch.current) return;
+          if (choices.source_account_id !== source || choices.review_id !== id)
+            throw new Error("Mismatched categories");
+          setCategories(choices);
+          setDate(choices.accounting_date);
+        } catch (e) {
+          if (!alive.current || version !== epoch.current) return;
+          // Authority loss still clears every snapshot through the existing outer failure path.
+          if (e instanceof APIError && [401, 403, 404].includes(e.status))
+            throw e;
+          setCategories(null);
+          setCategory("");
+          setDraft(null);
+          setRetry(null);
+          setCategoryUnavailable(true);
+        }
       }
       heading.current?.focus();
     } catch (e) {
@@ -444,6 +459,21 @@ function Inbox({
             {detail.booked_date} · {detail.direction} · {amount(detail)} ·{" "}
             {detail.state.replaceAll("_", " ")}
           </p>
+          {categoryUnavailable && (
+            <>
+              <p role="alert">
+                Categorization is unavailable. You can still review this
+                transaction. Creating a draft is disabled.
+              </p>
+              <button
+                type="button"
+                disabled={busy || !available}
+                onClick={() => void select(detail.review_id)}
+              >
+                Retry categorization
+              </button>
+            </>
+          )}
           {detail.blockers.length > 0 && (
             <p role="alert">
               {detail.blockers.includes("source_precision_review_required")
