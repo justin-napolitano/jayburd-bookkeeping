@@ -1,9 +1,11 @@
-# Annotated bibliography and reading guide
+# Research index
 
-[Position source review](position-sources.md): P01–P05 and fixed USD/EUR examples.
-[Available-to-use sources](available-to-use-sources.md): ATU-01–07; model proposed.
+[Position](position-sources.md): P01–05, fixed USD/EUR.
+[Available-to-use](available-to-use-sources.md): ATU01–07, proposed.
 
-## Purpose and reading order
+[Expiry](../contracts/enrollment-availability.md): Go/Cloud Run selections2026-10-24.
+
+## Reading order
 
 [Verifier IAM](../contracts/verifier-iam-compatibility.md): Google/PG17 selections2026-10-23.
 
