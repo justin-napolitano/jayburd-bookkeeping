@@ -14,7 +14,7 @@ Lease `APP281-CANDIDATE-20261024T1618Z`, branch
 writer or SQL version reservation. Earlier queued06:40 lease text was corrected
 in #65 before authoring these files; it did not authorize edits after expiry.
 Lease yielded temporarily for the two-document reconnect review correction;
-`APP281-CANDIDATE-RESUME` reclaimed these exact paths at16:33Z through18:03Z,
+`APP281-CANDIDATE-RESUME` reclaimed these exact paths at16:34Z through18:04Z,
 before manifest authoring. Current #65 comments own the precise timestamps.
 
 ## Stage ledger
