@@ -68,6 +68,7 @@ bootstrap enable-2 true >/dev/null
 docker exec -i "$proof_id" psql -X -w -v ON_ERROR_STOP=1 -U 'jayburd-dev-webhook@jayburd-bookkeeping-dev.iam' -d bookkeeping <<'SQL' >/dev/null
 DO $$ BEGIN
  IF current_user<>session_user OR NOT pg_has_role(current_user,'bookkeeping_webhook','USAGE') OR pg_has_role(current_user,'bookkeeping_webhook','SET') OR current_setting('search_path')<>'pg_catalog' OR (SELECT rolconnlimit FROM pg_roles WHERE rolname=current_user)<>4 THEN RAISE EXCEPTION 'unsafe runtime grants'; END IF;
+ IF NOT has_function_privilege(current_user,'integration.accept_verified_link_session(text,text,text)','EXECUTE') OR has_function_privilege(current_user,'integration.connection_link_proof(uuid,uuid,uuid,uuid)','EXECUTE') THEN RAISE EXCEPTION 'unsafe Link receipt scope';END IF;
  BEGIN EXECUTE 'CREATE TABLE public.forbidden(x int)';RAISE EXCEPTION 'DDL allowed';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
  BEGIN EXECUTE 'SELECT * FROM ledger.book LIMIT 0';RAISE EXCEPTION 'table read allowed';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
  BEGIN EXECUTE 'SET ROLE bookkeeping_owner';RAISE EXCEPTION 'owner allowed';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
@@ -89,6 +90,9 @@ query "REVOKE SELECT ON ledger.book FROM $login;CREATE SEQUENCE integration.synt
 reject sequence true
 query "REVOKE USAGE ON SEQUENCE integration.synthetic_bootstrap_sequence FROM $login;GRANT EXECUTE ON FUNCTION integration.accept_verified_webhook(text,text,text) TO $login"
 reject direct-function true
+query "REVOKE EXECUTE ON FUNCTION integration.accept_verified_webhook(text,text,text) FROM $login;GRANT EXECUTE ON FUNCTION integration.accept_verified_link_session(text,text,text) TO $login"
+reject direct-link-function true
+query "REVOKE EXECUTE ON FUNCTION integration.accept_verified_link_session(text,text,text) FROM $login;GRANT EXECUTE ON FUNCTION integration.accept_verified_webhook(text,text,text) TO $login"
 query "REVOKE EXECUTE ON FUNCTION integration.accept_verified_webhook(text,text,text) FROM $login;GRANT EXECUTE ON FUNCTION integration.accept_verified_webhook(text,text,text) TO bookkeeping_webhook WITH GRANT OPTION"
 reject inherited-function-delegation true
 query "REVOKE GRANT OPTION FOR EXECUTE ON FUNCTION integration.accept_verified_webhook(text,text,text) FROM bookkeeping_webhook;GRANT CREATE ON SCHEMA integration TO $login"

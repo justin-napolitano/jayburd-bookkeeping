@@ -177,7 +177,7 @@ func link(t testing.TB, db string, a map[string]any) map[string]any {
 func claim(t testing.TB, db string, a map[string]any) map[string]any {
 	var l, p any
 	if a["mode"] == "new" || a["mode"] == "reconnect" {
-		l = strings.Repeat("a", 64)
+		l = a["link_token_sha256"]
 	}
 	if a["mode"] == "new" {
 		p = strings.Repeat("b", 64)
@@ -397,7 +397,7 @@ func TestConnectionOpsCatchupAndPrivileges(t *testing.T) {
 	}
 	_, e := invoke(t, db, "synthetic_webhook", `SELECT integration.catchup_sync($1,$2,'00000000-0000-4000-8000-000000000091',1,NULL)::text`, entity, book)
 	requireCode(t, e, "42501")
-	if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','banking','integration') AND has_function_privilege('synthetic_webhook',p.oid,'EXECUTE')`) != "1" {
+	if value(t, c, `SELECT string_agg(p.proname,',' ORDER BY p.proname) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','reference','audit','banking','integration','reporting','deployment') AND has_function_privilege('synthetic_webhook',p.oid,'EXECUTE')`) != "accept_verified_link_session,accept_verified_webhook" {
 		t.Fatal("webhook function surface")
 	}
 	exec(t, c, `GRANT bookkeeping_api TO synthetic_webhook`)

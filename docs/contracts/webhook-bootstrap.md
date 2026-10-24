@@ -35,8 +35,11 @@ success or failure. Metadata check is not authentication or permission evidence.
 Before grants, SQL rejects unsafe LOGIN/capability attributes, owner/API/sync/other
 bookkeeping, predefined `pg_*` and privileged transitive memberships, ADMIN or SET options from any
 grantor, database CREATE/TEMP, schema CREATE, product table/sequence privileges,
-and unintended function EXECUTE. The sole permitted inherited function is
-`integration.accept_verified_webhook(text,text,text)`. Direct product function
+and unintended function EXECUTE. The closed permitted inherited functions are
+`integration.accept_verified_webhook(text,text,text)` and, after migration32,
+`integration.accept_verified_link_session(text,text,text)`. The latter stores
+owned signed session receipts only; no API identity, claim, bank secret or wakeup
+authority is added. The API/ledger cross-role guard remains unchanged. Direct product function
 ACLs and schema/database delegation options are rejected, even for the intended
 function. Existing normal USAGE on the integration schema through the capability
 is expected. Unknown extra roles with no elevated/app privilege are not represented
