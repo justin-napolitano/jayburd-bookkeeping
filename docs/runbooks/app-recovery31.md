@@ -20,6 +20,15 @@ Exact manifest owner review remains required under deploy/README.md.
 
 ## Current evidence
 
+Actual release40014820903 passed transport with exact images/config digest,
+API00020-zpd/web00020-zb4; PR288 all five CI checks SUCCESS. Owner signed in and
+the subsequent [Tartan browser run](tartan-browser-qualification.md) created and
+acknowledged a fresh book, recovered the original provider-success attempt, bound
+nine supported accounts, and verified scheduled historical-ready publication for
+all nine through scoped read-only metadata. Transaction review remains blocked
+by a browser socket failure; independent R02/R03 proof remains open. This evidence
+supersedes the preparation-only stage below; no future expiry281 fix is implied.
+
 Trusted owner build40004622277 attempt1/sourcefb4ac04 has all seven jobs SUCCESS,
 including canonical Go1.26.10, full browser/API/SQL and exact four-image runtime/
 security gates. API/web/runtime source paths show no changes from previously
