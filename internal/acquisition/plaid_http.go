@@ -11,17 +11,32 @@ import (
 	"time"
 
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/plaid"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 )
 
-// PlaidHTTP fixes the Sandbox endpoint and version without credential or environment discovery.
-type PlaidHTTP struct{ client *http.Client }
+// PlaidHTTP fixes its reviewed endpoint and version without credential or environment discovery.
+type PlaidHTTP struct {
+	client        *http.Client
+	profile       plaidprofile.Profile
+	legacySandbox bool
+}
 
 // NewPlaidHTTP accepts an injected network implementation; construction performs no request.
 func NewPlaidHTTP(transport http.RoundTripper) (*PlaidHTTP, error) {
-	if transport == nil {
+	return newPlaidHTTP(plaidprofile.Sandbox(), transport, true)
+}
+
+// NewPlaidHTTPForProfile requires explicit matching execution metadata even for the Sandbox profile.
+func NewPlaidHTTPForProfile(profile plaidprofile.Profile, transport http.RoundTripper) (*PlaidHTTP, error) {
+	return newPlaidHTTP(profile, transport, false)
+}
+
+// newPlaidHTTP preserves omitted metadata only for the original Sandbox constructor.
+func newPlaidHTTP(profile plaidprofile.Profile, transport http.RoundTripper, legacy bool) (*PlaidHTTP, error) {
+	if !profile.Valid() || transport == nil || legacy && profile.Environment() != "sandbox" {
 		return nil, failure("configuration_error", false)
 	}
-	return &PlaidHTTP{&http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+	return &PlaidHTTP{client: &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, profile: profile, legacySandbox: legacy}, nil
 }
 
 // credentialText rejects missing, oversized or header-injection credential values without logging them.
@@ -31,7 +46,7 @@ func credentialText(v string) bool {
 
 // Fetch sends one account-filtered request and returns exact bounded bytes, never SDK floats.
 func (p *PlaidHTTP) Fetch(parent context.Context, f FetchRequest) ([]byte, error) {
-	if !opaque.MatchString(f.AccountID) || !validCursor(f.Cursor) || !credentialText(f.Credentials.AccessToken) || !credentialText(f.Credentials.ClientID) || !credentialText(f.Credentials.Secret) {
+	if !p.profile.Valid() || (f.Environment != p.profile.Environment() && !(p.legacySandbox && f.Environment == "")) || !opaque.MatchString(f.AccountID) || !validCursor(f.Cursor) || !credentialText(f.Credentials.AccessToken) || !credentialText(f.Credentials.ClientID) || !credentialText(f.Credentials.Secret) {
 		return nil, failure("invalid_provider_request", false)
 	}
 	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
@@ -40,12 +55,12 @@ func (p *PlaidHTTP) Fetch(parent context.Context, f FetchRequest) ([]byte, error
 		return nil, &ProviderFailure{Code: "provider_transient"}
 	}
 	raw, _ := json.Marshal(map[string]any{"client_id": f.Credentials.ClientID, "secret": f.Credentials.Secret, "access_token": f.Credentials.AccessToken, "cursor": f.Cursor, "count": 500, "options": map[string]any{"account_id": f.AccountID, "include_original_description": true}})
-	req, e := http.NewRequestWithContext(ctx, http.MethodPost, "https://sandbox.plaid.com/transactions/sync", bytes.NewReader(raw))
-	if e != nil {
+	req, e := http.NewRequestWithContext(ctx, http.MethodPost, p.profile.BaseURL()+"/transactions/sync", bytes.NewReader(raw))
+	if e != nil || !p.profile.AllowsSync(req) {
 		return nil, failure("invalid_provider_request", false)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Plaid-Version", plaid.APIVersion)
+	req.Header.Set("Plaid-Version", plaidprofile.APIVersion)
 	resp, e := p.client.Do(req)
 	if e != nil {
 		return nil, &ProviderFailure{Code: "provider_transient"}

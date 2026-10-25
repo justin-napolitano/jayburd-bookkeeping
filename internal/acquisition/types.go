@@ -82,6 +82,7 @@ type CredentialResolver interface {
 
 // FetchRequest fixes one authorized account and cursor; it accepts no destination URL.
 type FetchRequest struct {
+	Environment string // Trusted execution-context routing pin; legacy omission is Sandbox-only.
 	AccountID   string
 	Cursor      *string
 	Credentials ProviderCredentials

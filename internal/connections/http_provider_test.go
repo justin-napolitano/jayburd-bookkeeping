@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -295,9 +297,9 @@ func TestSDKExplicitConfiguration(t *testing.T) {
 
 // TestSDKAccountProjection proves monetary fields never reach generated float models.
 func TestSDKAccountProjection(t *testing.T) {
-	transport := boundedPlaidTransport{roundTripFunc(func(*http.Request) (*http.Response, error) {
+	transport := boundedPlaidTransport{base: roundTripFunc(func(*http.Request) (*http.Response, error) {
 		return response(200, `{"item":{"item_id":"synthetic-item"},"accounts":[{"account_id":"one","type":"depository","subtype":"checking","name":"unused-private-name","balances":{"iso_currency_code":"USD","current":1e1000,"available":9007199254740993.01}}]}`), nil
-	})}
+	}), profile: plaidprofile.Sandbox()}
 	req, _ := http.NewRequest("POST", "https://sandbox.plaid.com/accounts/get", nil)
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
