@@ -5,7 +5,7 @@
 
 [Expiry](../contracts/enrollment-availability.md): Go/Cloud Run selections2026-10-24.
 
-[Production](production-pilot-sources.md): PP01–06,2026-10-25; source/pilot.
+[Production](production-pilot-sources.md): PP01–07,2026-10-25; source/pilot.
 
 ## Reading order
 
