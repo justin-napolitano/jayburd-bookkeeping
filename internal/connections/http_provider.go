@@ -11,6 +11,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
+
 	plaid "github.com/plaid/plaid-go/v49"
 	"github.com/plaid/plaid-go/v49/accounts"
 	"github.com/plaid/plaid-go/v49/core"
@@ -30,7 +32,7 @@ type HTTPConfig struct {
 // SandboxTransactionsWebhookURL pins the dedicated receiver; request metadata cannot redirect notifications.
 const SandboxTransactionsWebhookURL = "https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid"
 
-// HTTPProvider is an opt-in fixed Sandbox adapter. Construction never reads credentials or calls a network.
+// HTTPProvider is a closed-profile adapter; legacy construction stays Sandbox and performs no network I/O.
 type HTTPProvider struct {
 	config   HTTPConfig
 	link     *link.Client
@@ -46,13 +48,21 @@ func (*HTTPProvider) GoString() string { return "[connection provider redacted]"
 
 // NewHTTPProvider requires explicit synthetic/provider credentials and a bounded transport.
 func NewHTTPProvider(config HTTPConfig, transport http.RoundTripper) (*HTTPProvider, error) {
-	if transport == nil || !secretValid(config.ClientID) || !secretValid(config.ClientSecret) || !config.ConsentExpiresAt.After(time.Now()) || config.ConsentExpiresAt.Year() > 9999 || config.WebhookURL != "" && config.WebhookURL != SandboxTransactionsWebhookURL || config.HostedRepair && config.WebhookURL != SandboxTransactionsWebhookURL {
+	return NewHTTPProviderForProfile(config, plaidprofile.Sandbox(), transport)
+}
+
+// NewHTTPProviderForProfile chooses only a reviewed destination, not SQL, credential-origin or runtime authority.
+// Production notification/repair composition remains unavailable until its separately reviewed integration.
+func NewHTTPProviderForProfile(config HTTPConfig, profile plaidprofile.Profile, transport http.RoundTripper) (*HTTPProvider, error) {
+	if !profile.Valid() || transport == nil || !secretValid(config.ClientID) || !secretValid(config.ClientSecret) || !config.ConsentExpiresAt.After(time.Now()) || config.ConsentExpiresAt.Year() > 9999 ||
+		profile.Environment() == "sandbox" && (config.WebhookURL != "" && config.WebhookURL != SandboxTransactionsWebhookURL || config.HostedRepair && config.WebhookURL != SandboxTransactionsWebhookURL) ||
+		profile.Environment() == "production" && (config.WebhookURL != "" || config.HostedRepair) {
 		return nil, failed("configuration_error")
 	}
-	clientID, version := config.ClientID.value, "2020-09-14"
-	options := core.NewRequestOptions(option.WithBaseURL("https://sandbox.plaid.com"),
+	clientID, version := config.ClientID.value, plaidprofile.APIVersion
+	options := core.NewRequestOptions(option.WithBaseURL(profile.BaseURL()),
 		option.WithClientID(&clientID), option.WithSecret(config.ClientSecret.value), option.WithVersion(&version), option.WithoutRetries(),
-		option.WithHTTPClient(&http.Client{Transport: boundedPlaidTransport{transport}, Timeout: 3 * time.Second,
+		option.WithHTTPClient(&http.Client{Transport: boundedPlaidTransport{base: transport, profile: profile}, Timeout: 3 * time.Second,
 			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}))
 	return &HTTPProvider{config: config, link: link.NewClient(options), item: item.NewClient(options), accounts: accounts.NewClient(options)}, nil
 }
@@ -63,15 +73,13 @@ func (p *HTTPProvider) SupportsMode(mode string) bool {
 }
 
 // boundedPlaidTransport validates responses before generated decoding; no upstream error escapes.
-type boundedPlaidTransport struct{ base http.RoundTripper }
+type boundedPlaidTransport struct {
+	base    http.RoundTripper
+	profile plaidprofile.Profile
+}
 
 func (t boundedPlaidTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	if r.URL.Scheme != "https" || r.URL.Host != "sandbox.plaid.com" || r.Method != "POST" {
-		return nil, failed("invalid_request")
-	}
-	switch r.URL.Path {
-	case "/link/token/create", "/link/token/get", "/item/public_token/exchange", "/item/get", "/accounts/get", "/item/access_token/invalidate", "/item/remove":
-	default:
+	if !t.profile.AllowsConnection(r) {
 		return nil, failed("invalid_request")
 	}
 	resp, e := t.base.RoundTrip(r)

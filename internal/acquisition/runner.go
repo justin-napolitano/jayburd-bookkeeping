@@ -192,7 +192,7 @@ func (r *Runner) acquire(ctx context.Context, s Scope, a attempt) (Outcome, bool
 				return Outcome{}, false, e
 			}
 			fetchCtx, stop := context.WithTimeout(ctx, 10*time.Second)
-			raw, e = r.provider.Fetch(fetchCtx, FetchRequest{AccountID: c.AccountID, Cursor: c.RequestCursor, Credentials: credentials})
+			raw, e = r.provider.Fetch(fetchCtx, FetchRequest{Environment: c.Environment, AccountID: c.AccountID, Cursor: c.RequestCursor, Credentials: credentials})
 			expired = fetchCtx.Err() != nil
 			stop()
 			if e != nil || expired {
