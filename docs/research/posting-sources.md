@@ -86,3 +86,25 @@ rejected because its old snapshot can miss a committed version after waiting.
 Read-committed setup sees the subsequent statement snapshot; serializable setup
 must retry a serialization failure. Hash collisions only serialize extra codes.
 This is a setup concurrency choice, not a financial standard or a runtime grant.
+
+## P07 — Provider revisions and linked journal corrections (2026-10-25)
+
+[Plaid Transaction states](https://plaid.com/docs/transactions/transactions-data/),
+Pending and posted transactions: full selected section reviewed. Pending may be
+removed/replaced with a distinct settled identity; settled records can also change.
+API2020-09-14 sync added/modified/removed facts must preserve provider consistency.
+These are feed mechanics, not authorization for accounting recognition or policy.
+The existing proprietary mapping and ISO4217 units remain unchanged.
+
+Refreshed PostgreSQL17 P03 selected full Serializable Isolation and Writing
+SECURITY DEFINER Functions Safely sections2026-10-25: retries cover the complete
+transaction, trusted search path/privilege setup protects restricted functions.
+These mechanisms support one atomic correction but do not establish our lock
+order, current actor/source permissions or exactly-once effects by themselves.
+
+[Correction decision](../contracts/source-journal-corrections.md) compares linked
+reversal/replacement with in-place edits, bank-table regeneration and delta
+adjustments. SQL retains exact money/current authority and original historical
+valuation; no new live policy is selected. USD50->55->60 and EUR examples are
+independently fixed proposed acceptance, not generated implementation results.
+Full Plaid manuals/paid accounting or ISO normative text were not reviewed here.
