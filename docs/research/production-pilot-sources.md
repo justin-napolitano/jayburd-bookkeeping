@@ -4,6 +4,9 @@
 engineering sources, not accounting-policy or Production-access approval. No
 Dashboard keys, private profile/questionnaire answers or financial records read.
 Contract: [proposed pilot profile](../contracts/production-pilot.md).
+Refresh2026-10-25: PP01 full protocol/header/host/storage paragraphs, PP04 API
+sync request/cursor/count/account filter/readiness sections and PP06 below read
+before the closed source transport decision. API2020-09-14/SDK49.0.0 unchanged.
 
 | ID | Authoritative source / selected sections | Fact established | Interpretation / limit |
 | --- | --- | --- | --- |
@@ -12,6 +15,7 @@ Contract: [proposed pilot profile](../contracts/production-pilot.md).
 | PP03 | [OAuth guide](https://plaid.com/docs/link/oauth/), introduction, prerequisites, platform reinitialization table, Hosted Link and testing | Financial-institution flows require OAuth support; access/registration depends on actual app/plan; Hosted Link has no Link reinitialization requirement; test supported client platforms and update mode | Keep Hosted Link scope; do not add a custom SDK redirect merely from a generic example. No browser token persistence. Desktop-only pilot/platform exclusions need explicit review, not a viewport substitution |
 | PP04 | [Transactions introduction](https://plaid.com/docs/transactions/), history and integration overview | History request differs from supplied coverage; first sync activates notifications and may be empty; pagination/mutation restarts and saved cursors are required | Preserve current atomic acquisition/readiness protocol and independent equality; no90-day completeness claim from readiness alone. Investment history is a different product |
 | PP05 | [Hosted Link](https://plaid.com/docs/link/hosted-link/), overview and Obtaining a public token | Retain user-associated link token; completion uses SESSION_FINISHED or link/token/get; modern results are recommended and lookup is available for a bounded period | Existing owned attempt/completion association still needs #187/#275 evidence; hosted frontend/redirect does not grant backend authority. Reconnect's exact update-result shape needs further selected API review |
+| PP06 | [Transactions states](https://plaid.com/docs/transactions/transactions-data/), Pending and posted transactions including added/removed linkage and posted modifications, reviewed2026-10-25 | Pending and settled details may differ; settled transactions can change; sync added/modified/removed updates preserve current provider state | Keep source revisions and explicit accounting corrections. Vendor feed mechanics do not select a book's recognition/category/FX rule or justify blanket ledger prohibition; owner approved the bookkeeping direction2026-10-25. Exact policy/current authority and independent replay/correction evidence remain project obligations |
 
 Review depth: PP01 selected complete protocol/host sections; PP02 selected notice
 and operational sections, explicitly historical; PP03 selected prerequisite/table/
@@ -37,3 +41,14 @@ These are reviewed examples, not a claim that grep exhausts every SQL replacemen
 worker/evidence/grant path. Each implementation child must inventory the latest
 owned functions and callers before changing them, with negative cross-environment
 tests. Merged SQL remains immutable; no migration number reserved.
+
+## Source baseline refresh at main1bacecda
+
+Rechecked2026-10-25: connection HTTPConfig/SDK/boundedPlaidTransport still use
+Sandbox host; Hosted repair is a separate false-by-default capability and its
+receiver is the fixed Sandbox URL. Acquisition.NewPlaidHTTP and Fetch still fix
+Sandbox, runner supplies AccountID/cursor/credentials but not environment metadata;
+SQL validContext still requires sandbox. #312 may add explicit profile construction
+and trusted fetch metadata without changing SQL or runtime. Binding/AAD/routing
+and current roles remain separately gated311/313/314. Closed source profiles do
+not authorize Production ingress, secrets, resource creation or real-account use.
