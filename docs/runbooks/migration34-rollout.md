@@ -22,6 +22,9 @@ call, credential retrieval, Production scope configuration or consent renewal.
 | Compatibility |34 is additive and private connection JSON uses additional fields; reviewed old deployed service decoder uses json.Unmarshal and ignores those fields, retains Sandbox references. Public function signatures/projections and existing Sandbox rows stay compatible. Current synthetic service/recovery gates passed34; no actual old-binary/managed-data rehearsal claimed |
 | Database metadata | Existing jayburd-dev is RUNNABLE/POSTGRES_17 with backup and PITR flags enabled. This is configuration metadata, not a restore drill or fresh schema/hash proof. Diff from deployed31 source fb4ac04 adds only32–34 SQL pairs; existing1–31 unchanged |
 | Local release gates | make check/test/build PASS;34 release/receipt/smoke tests and migration-only failure/isolation shell checks PASS; locked provider mirror, migration root backend-disabled initialization and four mocked Terraform cases PASS. No plan/state/provider-private diagnostic content read |
+| Owner approval / source | Owner approved both exact hashes and sequential metadata merges/executions in-session. PR341873e7f9 passed all five checks and merged26ff59ff3dc9cae6de3b9a9e887a41088c8623a1. No scope or expiry changed |
+| Apply | Guarded release40160644093 SUCCESS; retained receipt migration-execution-passed, selected execution jayburd-dev-migrate-zvq8b completed2026-10-25T04:08:02.087094Z with the approved image/source. Independent bounded Cloud Run readback validated by the existing receipt parser: fixed migrator/task1/retry0/660s, exact up arguments and one completed success. No financial rows/logs/environment/state read |
+| Verify preparation | Dedicated release/34-development-verify from merged26ff59f; copied already-approved candidate byte-for-byte to fixed release path, hash a84c87e... unchanged. Separate status execution still required before clean34/full-checksum acceptance |
 
 ## Current evidence
 
@@ -30,18 +33,22 @@ job metadata above retains the old image. The old committed release/consent wind
 is expired and must not be reused. Successful new image publication is not a release.
 Forward32–34 preserve immutable existing financial data, posted journals and token
 envelopes; migration34 installs no Production scope rows or new grants automatically.
-No managed database action has occurred in this preparation stage.
+The historical preparation stage above was database-inert. Apply40160644093 has
+now completed successfully with independently checked execution metadata; exact
+schema34/full-artifact status remains the next distinct acceptance step.
 
 ## Remaining work
 
 Prepared exact operation=migrate and separate verify candidates with the fresh
 same-build receipts and current compatibility evidence. Both release validators
 PASS against the retained real build metadata and all three component receipts.
-Required local core/release/mocked infrastructure gates PASS; final doc/staged check
-and canonical metadata-PR CI remain separate. Publish concrete source review.
+Required local core/release/mocked infrastructure gates PASS; PR341 all five
+canonical checks passed. Status metadata copy uses the already-approved bytes;
+its required local/core/staged and canonical checks precede its merge/dispatch.
 deploy/README.md requires owner review of exact source/digests/hash before dispatch;
-an updated manifest or expired approval needs a new hash review. No generic
-deployment instruction is represented as review of not-yet-built bytes.
+an updated manifest or expired approval needs a new hash review. Both present
+hashes were explicitly approved; no further approval is needed for their unchanged
+sequential execution before expiry.
 
 After exact approval, merge/dispatch migration-only manifest, validate selected
 immutable success receipt, then promote the byte-identical separately approved
