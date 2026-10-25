@@ -24,6 +24,7 @@ build:
 	go build -trimpath -o bin/sandbox-probe ./cmd/sandbox-probe
 	go build -trimpath -o bin/sandbox-verify ./cmd/sandbox-verify
 	go build -trimpath -o bin/sandbox-identity-map ./cmd/sandbox-identity-map
+	go build -trimpath -o bin/sandbox-identity-readback ./cmd/sandbox-identity-readback
 	go build -trimpath -o bin/database-probe ./cmd/database-probe
 
 web-check:

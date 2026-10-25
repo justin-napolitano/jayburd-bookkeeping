@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -103,12 +104,13 @@ func TestPrivateInputCannotReadSavedPayloads(t *testing.T) {
 		t.Fatal("saved input file accepted")
 	}
 	_ = f.Close()
-	r, w, err := os.Pipe()
-	if err != nil {
+	// Inherited CLI descriptors have no preexisting Go poller owner in this process.
+	fds := make([]int, 2)
+	if syscall.Pipe(fds) != nil {
 		t.Fatal("pipe setup")
 	}
-	defer w.Close()
-	input, err := privateInput(int(r.Fd()))
+	defer syscall.Close(fds[1])
+	input, err := privateInput(fds[0])
 	if err != nil {
 		t.Fatal("private pipe rejected")
 	}

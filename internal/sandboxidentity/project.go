@@ -38,27 +38,26 @@ func objects(raw json.RawMessage) ([]json.RawMessage, bool) {
 	return values, true
 }
 
-// Project supports only a complete fresh posted-only page, never cursor/history reconstruction.
-// It copies IDs and reads tags only; observed financial fields cannot update the independent fixture.
-func Project(fixture, page []byte, account string) ([]byte, int, error) {
-	if len(fixture) == 0 || len(page) == 0 || len(fixture)+len(page) > sandboxverification.MaxInputBytes || !ValidIdentity(account) {
-		return nil, 0, ErrProjection
+// fixtureIdentity validates the independently authored posted-only identity profile before any readback.
+func fixtureIdentity(fixture []byte) (string, map[string]string, []string, error) {
+	if len(fixture) == 0 || len(fixture) > sandboxverification.MaxInputBytes {
+		return "", nil, nil, ErrProjection
 	}
 	f, err := sandboxverification.StrictObject(fixture)
 	if err != nil || len(f) != 4 || string(f["profile"]) != `"jayburd-sandbox-verification/1"` {
-		return nil, 0, ErrProjection
+		return "", nil, nil, ErrProjection
 	}
 	fixtureID, ok := text(f, "fixture_id")
 	if !ok || !opaque.MatchString(fixtureID) || len(fixtureID) > 64 {
-		return nil, 0, ErrProjection
+		return "", nil, nil, ErrProjection
 	}
 	links, ok := objects(f["pending_links"])
 	if !ok || len(links) != 0 {
-		return nil, 0, ErrProjection
+		return "", nil, nil, ErrProjection
 	}
 	rows, ok := objects(f["rows"])
 	if !ok || len(rows) == 0 {
-		return nil, 0, ErrProjection
+		return "", nil, nil, ErrProjection
 	}
 	tags := map[string]string{}
 	logicalIDs := map[string]bool{}
@@ -69,10 +68,33 @@ func Project(fixture, page []byte, account string) ([]byte, int, error) {
 		tag, tagOK := text(r, "description")
 		if e != nil || !idOK || !tagOK || !opaque.MatchString(id) || logicalIDs[id] || tags[tag] != "" ||
 			string(r["revision"]) != `"1"` || string(r["current"]) != "true" || string(r["previous_revision"]) != "null" || string(r["source_state"]) != `"booked"` {
-			return nil, 0, ErrProjection
+			return "", nil, nil, ErrProjection
 		}
 		logicalIDs[id], tags[tag] = true, id
 		order = append(order, id)
+	}
+	return fixtureID, tags, order, nil
+}
+
+// ValidateReadbackFixture rejects unsupported/incomplete identity expectations before private credential access.
+// The stricter500-row bound belongs only to the single-response producer, not the offline projector.
+func ValidateReadbackFixture(fixture []byte) error {
+	_, _, order, err := fixtureIdentity(fixture)
+	if err != nil || len(order) > 500 {
+		return ErrProjection
+	}
+	return nil
+}
+
+// Project supports only a complete fresh posted-only page, never cursor/history reconstruction.
+// It copies IDs and reads tags only; observed financial fields cannot update the independent fixture.
+func Project(fixture, page []byte, account string) ([]byte, int, error) {
+	if len(page) == 0 || len(fixture)+len(page) > sandboxverification.MaxInputBytes || !ValidIdentity(account) {
+		return nil, 0, ErrProjection
+	}
+	fixtureID, tags, order, err := fixtureIdentity(fixture)
+	if err != nil {
+		return nil, 0, ErrProjection
 	}
 	p, err := sandboxverification.StrictObject(page)
 	if err != nil || string(p["has_more"]) != "false" || string(p["transactions_update_status"]) != `"HISTORICAL_UPDATE_COMPLETE"` {
@@ -85,7 +107,7 @@ func Project(fixture, page []byte, account string) ([]byte, int, error) {
 		}
 	}
 	added, ok := objects(p["added"])
-	if !ok || len(added) != len(rows) {
+	if !ok || len(added) != len(order) {
 		return nil, 0, ErrProjection
 	}
 	identities := map[string]string{}

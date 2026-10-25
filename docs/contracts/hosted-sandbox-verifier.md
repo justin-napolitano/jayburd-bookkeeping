@@ -101,6 +101,10 @@ authored transactions before Link; no transaction-create endpoint call is needed
 Use a separate complete initial provider readback for identity association. If the
 owner cannot supply the authorized private pipe, leave the hosted proof blocked;
 do not substitute observed SQL rows, browser UI counts or a general data dump.
+The separate [owner-private transport](sandbox-identity-transport.md) prepares a
+bounded single-request producer for this gap. It requires independently reviewed
+owner injection and source scope; it adds no application credential export or
+automatic provider authority. Actual injection/transport remains unproved.
 
 Alternative matching by amount/date or regenerating expectations from observed
 rows would destroy oracle independence. Trusting creation-array order is not
