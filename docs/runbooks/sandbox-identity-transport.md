@@ -4,7 +4,8 @@
 ## Status and boundary
 
 Lease IDENTITY299-PRIVATE-TRANSPORT through2026-10-25T01:44Z, source-only.
-Dedicated feat/299-private-identity-transport based on3763b579. No SQL, IAM,
+Dedicated feat/299-private-identity-transport, initially3763b579 and rebased onto
+accepted330/main1bacecda. No SQL, IAM,
 deployment, secret retrieval, provider call, personal data or consent renewal.
 
 ## Stage ledger
@@ -18,6 +19,7 @@ deployment, secret retrieval, provider call, personal data or consent renewal.
 | Focused gates | Exact request/version/account, changed observed finance with fixed identical map, private descriptor/file/symlink/replay, redirect/HTTP/oversize/foreign/incomplete/duplicate/cancel failures PASS; actual1second blocked input expiry now PASS |
 | Core | `make check test build` PASS, including full race suite and new local binary; local cached Go1.26.5, tracked1.26.10 unchanged |
 | Comparison regression | `make sandbox-verification-test` PASS against actual restricted disposable PostgreSQL, including expected values/review identity/foreign history/pins/concurrent revoke; no hosted proof |
+| Final review | Actual raw blocking pipe deadline and private socket tests, lost terminal acknowledgement/repeat-without-I/O cases and focused race PASS; final rebased `make check test build` PASS after330 merge |
 
 ## Current evidence
 
