@@ -23,13 +23,8 @@ var errCommand = errors.New("sandbox_identity_command_failed")
 
 // privateInput accepts only an explicit pipe/socket, never stdin, a saved payload file or a credential path.
 func privateInput(fd int) (io.ReadCloser, error) {
-	f := os.NewFile(uintptr(fd), "private-sandbox-identity-input")
-	if f == nil {
-		return nil, errCommand
-	}
-	info, err := f.Stat()
-	if err != nil || info.Mode()&(os.ModeNamedPipe|os.ModeSocket) == 0 {
-		_ = f.Close()
+	f, err := sandboxidentity.OpenPrivateInput(fd)
+	if err != nil {
 		return nil, errCommand
 	}
 	return f, nil
