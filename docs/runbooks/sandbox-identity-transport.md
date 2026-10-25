@@ -5,7 +5,7 @@
 
 Lease IDENTITY299-PRIVATE-TRANSPORT through2026-10-25T01:44Z, source-only.
 Dedicated feat/299-private-identity-transport, initially3763b579 and rebased onto
-accepted330/main1bacecda. No SQL, IAM,
+merged330/main1bacecda. No SQL, IAM,
 deployment, secret retrieval, provider call, personal data or consent renewal.
 
 ## Stage ledger
@@ -20,6 +20,7 @@ deployment, secret retrieval, provider call, personal data or consent renewal.
 | Core | `make check test build` PASS, including full race suite and new local binary; local cached Go1.26.5, tracked1.26.10 unchanged |
 | Comparison regression | `make sandbox-verification-test` PASS against actual restricted disposable PostgreSQL, including expected values/review identity/foreign history/pins/concurrent revoke; no hosted proof |
 | Final review | Actual raw blocking pipe deadline and private socket tests, lost terminal acknowledgement/repeat-without-I/O cases and focused race PASS; final rebased `make check test build` PASS after330 merge |
+| Canonical CI correction | Head246ff62 Linux1.26.10 rejected two positive fixtures that wrapped already Go-owned os.Pipe descriptors again. Reproduced the same failure with pre-fix Linux binary in non-root/read-only/network-none container. Corrected fixtures use actual inherited-style raw blocking descriptors with one Go owner; preserve all assertions and require successful open plus actual expiry in the blocked-read case. No production opener/deadline weakened or timeout increased; corrected Linux/local results recorded before push |
 
 ## Current evidence
 
@@ -31,10 +32,13 @@ response enters the projector directly; no raw output/file, cursor or DB exists.
 An acknowledgement failure preserves the complete private map, with repeat refused
 before credential/provider work; this does not claim power-loss filesystem durability.
 Actual authorized owner injection/transport and subsequent comparison remain missing.
+Human security-sensitive source review of330/331 is still pending.330 was merged
+after CI without a recorded human review;328 and dependent319 were reopened so
+the repair activation closure gate remains blocked. No live activation occurred.
 
 ## Remaining work
 
-Final source review/CI and human transport/security review. Owner must separately
+Final corrected-head CI and human transport/security review. Owner must separately
 supply an authorized private injection path and fresh finite source scope; helper
 does not retrieve/decrypt an application Item or grant such authority.300 actual
 equality/cleanup stays open; no existing source consent or approvals are renewed.

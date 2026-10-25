@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -93,21 +95,25 @@ func TestDefaultAndInvalidStayOffline(t *testing.T) {
 // TestPrivatePipeSuccessAndReplay proves private create-only output, closed input and no repeat request.
 func TestPrivatePipeSuccessAndReplay(t *testing.T) {
 	args, path := invocation(t)
-	r, w, e := os.Pipe()
-	if e != nil {
+	// Model an inherited blocking descriptor with one Go owner, not a second wrapper of os.Pipe.
+	fds := make([]int, 2)
+	if syscall.Pipe(fds) != nil {
 		t.Fatal("pipe setup")
 	}
-	if _, e = w.Write([]byte(injectedCredential)); e != nil {
+	if _, e := syscall.Write(fds[1], []byte(injectedCredential)); e != nil {
+		_ = syscall.Close(fds[0])
+		_ = syscall.Close(fds[1])
 		t.Fatal("pipe write")
 	}
-	_ = w.Close()
+	_ = syscall.Close(fds[1])
+	args[4] = "-credential-fd=" + strconv.Itoa(fds[0])
 	opened, calls := 0, 0
 	open := func(fd int) (io.ReadCloser, error) {
 		opened++
-		if fd != 3 {
+		if fd != fds[0] {
 			t.Fatal("wrong fd")
 		}
-		return privateInput(int(r.Fd()))
+		return privateInput(fd)
 	}
 	transport := fakeTransport(func(*http.Request) (*http.Response, error) {
 		calls++
@@ -117,7 +123,8 @@ func TestPrivatePipeSuccessAndReplay(t *testing.T) {
 	if execute(args, &out, open, transport) != nil || out.String() != "{\"identity_map_ready\":true,\"count\":\"1\"}\n" || opened != 1 || calls != 1 {
 		t.Fatal("private readback failed")
 	}
-	if _, e := r.Stat(); e == nil {
+	var stat syscall.Stat_t
+	if syscall.Fstat(fds[0], &stat) == nil {
 		t.Fatal("credential pipe left open")
 	}
 	mapPath := filepath.Join(filepath.Dir(path), "identity-map.json")
@@ -182,19 +189,27 @@ func TestRejectedTransportAndCredentialInputLeaveNoMap(t *testing.T) {
 // TestBlockedPipeExpiresAndCloses proves the operator deadline includes private injection, not just HTTP.
 func TestBlockedPipeExpiresAndCloses(t *testing.T) {
 	args, _ := invocation(t)
-	args[5] = "-expires-at=" + time.Now().Add(time.Second).UTC().Format(time.RFC3339Nano)
-	r, w, e := os.Pipe()
-	if e != nil {
+	expiry := time.Now().Add(time.Second)
+	args[5] = "-expires-at=" + expiry.UTC().Format(time.RFC3339Nano)
+	fds := make([]int, 2)
+	if syscall.Pipe(fds) != nil {
 		t.Fatal("pipe setup")
 	}
-	defer w.Close()
+	defer syscall.Close(fds[1])
+	args[4] = "-credential-fd=" + strconv.Itoa(fds[0])
 	var out bytes.Buffer
 	start := time.Now()
-	e = execute(args, &out, func(int) (io.ReadCloser, error) { return privateInput(int(r.Fd())) }, fakeTransport(func(*http.Request) (*http.Response, error) { t.Fatal("expired pipe reached provider"); return nil, nil }))
-	if e != errCommand || out.Len() != 0 || time.Since(start) > 3*time.Second {
+	opened := false
+	e := execute(args, &out, func(fd int) (io.ReadCloser, error) {
+		input, err := privateInput(fd)
+		opened = err == nil
+		return input, err
+	}, fakeTransport(func(*http.Request) (*http.Response, error) { t.Fatal("expired pipe reached provider"); return nil, nil }))
+	if e != errCommand || !opened || time.Now().Before(expiry) || out.Len() != 0 || time.Since(start) > 3*time.Second {
 		t.Fatal("private injection deadline not enforced")
 	}
-	if _, e := r.Stat(); e == nil {
+	var stat syscall.Stat_t
+	if syscall.Fstat(fds[0], &stat) == nil {
 		t.Fatal("expired pipe left open")
 	}
 }
