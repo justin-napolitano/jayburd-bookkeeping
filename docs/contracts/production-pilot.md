@@ -37,6 +37,28 @@ decimal strings and original currencies; no unrelated-currency totals. A history
 hold/overflow/partial response is not complete acquisition and cannot advance a
 cursor over discarded data. Posted book balances are not bank balances.
 
+Read-only is also a ledger authorization boundary. During the pilot, deny manual
+and automatic posting, including direct API/SQL calls, background jobs and execution
+or replay of previously saved posting commands under the pilot capability. A hidden
+or disabled button, lack of an acquisition posting call or a user's ordinary owner
+role does not establish this restriction. Current SQL authority must enforce it;
+API/runtime policy adds defense in depth, never an alternative grant. Existing
+immutable journals and operation history must remain unchanged. Require a separately
+reviewed accounting mandate under #1/#10/#90 before any later posting permission;
+no browser request, categorization action or source enrollment can confer it.
+
+Permitted pilot effects remain explicit owned setup/enrollment, read-only source
+acquisition, review and approved categorization metadata, and scoped pause/revoke/
+cleanup. Such metadata is not posted accounting, and assigning a category must not
+prepare, execute or authorize a journal. No change here chooses a recognition,
+valuation, loan/card accounting or close policy. The proposed SQL/role contract
+must inventory all current posting entry points and their capability checks before
+DDL, preserving durable command inspection/recovery without allowing execution.
+Current-authorized readback of an already committed immutable receipt remains a
+recovery read. Distinguish that from applying an uncommitted command or producing
+any new ledger effect; do not erase receipts or make the entire workspace unusable
+to enforce the posting restriction. Follow the existing command-recovery contract.
+
 This is source-to-statement reconciliation, not an official close or accountant
 approval. Relevant #1/#10 criteria and policy implications must be explicitly
 dispositioned under #90; this proposal neither closes those issues nor silently
@@ -71,6 +93,7 @@ test reset/cleanup assumptions. No Sandbox diagnostic/verifier can reach Product
 | Token storage | Infisical-owned static secret injection with reviewed numeric destination pins; encrypted per-Item tokens with correct environment in AAD and current SQL scope. Cross-environment unwrap/reference/read/write fails before returning plaintext |
 | API/provider transport | Closed host/path allowlist and fixed reviewed API-Version; authorized credentials must match runtime environment. No redirect, Sandbox test endpoint or surprise optional product in Production |
 | Worker acquisition | Current scoped source consent, generation/binding/lease/cursor checks and exact-money decoder; execution context, credential and runtime environments must agree. Acquisition commits no journal |
+| Ledger posting/replay | Pilot API/SQL/worker capabilities deny manual, background and saved-command posting even for the owner. Current authority rechecked at execution; review/categorization metadata cannot grant posting. No ledger mutation or journal.posted outbox intent |
 | Signed webhook | Environment-matched key service, cryptographic verification and durable SQL receipt; no unverified body/environment can select a credential or tenant. Owned Item/session repair remains #275; no generic login timestamp as proof |
 | Status/disconnect/revoke | Current SQL-authorized reads and local pause/disconnect remain distinct from explicit Item-wide provider removal. Revoke fences queued/inflight authority, retains immutable provenance and records cleanup truthfully |
 | Release/rollback | Exact source/images/config/approval/targets and accepted schema floor; separate finite activation, deny expired/mixed/fallback configurations. Old Sandbox image cannot be a compatible Production rollback merely because it starts |
@@ -109,6 +132,7 @@ security review before release.
 | Tampered/replayed Item or event (high) | Signed matched-environment event, owned session proof, durable dedup/revision fences; TestProductionWebhookEnvironmentDeny and existing exact replay/repair cases |
 | Financial disclosure or synthetic cleanup of real data (high) | Private Production resources/retention/least privilege, immutable origin, no fixture reset route; TestProductionRecordsNotSynthetic and reviewed backup/deletion receipts |
 | Duplicate exchange/journal or false readiness (high) | One durable attempt, uncertain-result recovery, atomic publication and independent complete-set comparison; TestProductionProfileJourney, zero automatic journal/outbox assertions |
+| Read-only bypass through existing owner/posting authority (high) | Current SQL pilot restriction plus API/runtime checks; TestProductionPilotPostingDenied covers actual API/restricted SQL/worker and saved-command execution/replay after policy or permission change, with independently fixed unchanged journal and journal.posted counters |
 | Outage/overload/cost amplification (medium/high) | Accepted bounded workload/cost/consent limits, no automatic refresh add-on, pause/revoke/restore/kill switch; #64/#89/#58 exact fault evidence |
 
 Proposed names are acceptance obligations, not existing tests. Synthetic fixtures
@@ -118,6 +142,18 @@ and retain current Sandbox regression expectations independently of the new code
 Run applicable migration/ledger/core/web/full-stack gates. No default CI makes
 Production calls or injects real data. Hosted activation requires a separate
 owner-reviewed exact manifest after applicable #88/#274/#275/#276 evidence.
+
+`TestProductionPilotPostingDenied` must prove the positive authorized acquisition/
+review path and the negative posting paths under the actual intended restricted
+runtime SQL logins, not administrator impersonation. Include direct callable
+functions, owner-role attempts, repeated/lost-reply saved commands and current
+permission changes. Independently assert no new journal or journal.posted intent
+and unchanged existing history. For a fresh empty pilot book, both financial
+counters must remain absolutely zero; a reviewed preexisting baseline needs
+explicit unchanged-history evidence and cannot be relabeled empty. Acquisition
+wakeup intent and approved review metadata are distinct from journal.posted.
+Tests must not obtain PASS by removing posting controls from the test fixture,
+making every operation unavailable, or treating a route/UI denial as SQL evidence.
 
 ## Decisions still needed before implementation/activation
 
@@ -136,11 +172,11 @@ and independent synthetic integration. Their IDs and current blockers live in
 
 | Issue | Bounded delivery | Hard source prerequisites |
 | --- | --- | --- |
-| [#311](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/311) | SQL environment/data-origin/current authority and restricted functions | Accepted #308, exact reviewed SQL contract; sole SQL writer |
+| [#311](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/311) | SQL environment/data-origin/current authority, explicit pilot posting denial and restricted functions | Accepted #308, exact reviewed SQL contract; sole SQL writer |
 | [#312](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/312) | Closed provider profile, enrollment and sync transports | Accepted #308 |
 | [#313](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/313) | Credential AAD/addressed storage and managed API/worker composition | #311/#312 |
 | [#314](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/314) | Matched-environment key/event/receipt/wakeup | #311/#312; coordinate #271/#275 interfaces and exclusive files |
-| [#315](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/315) | Independent offline Production-profile journey and cross-environment denials | #311/#312/#313/#314 |
+| [#315](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/315) | Independent offline Production-profile journey, cross-environment and actual restricted posting denials | #311/#312/#313/#314 |
 | [#316](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/316) | Exact finite release/rollback/isolation package | #308/#311–#315; actual activation stays separately scoped in #90 |
 
 These are native children/blockers of #90, not competing epics. All remain
