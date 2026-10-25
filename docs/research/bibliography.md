@@ -5,18 +5,20 @@
 
 [Expiry](../contracts/enrollment-availability.md): Go/Cloud Run selections2026-10-24.
 
+[Production](production-pilot-sources.md): PP01–06,2026-10-25; source/pilot.
+
 ## Reading order
 
-[Verifier IAM](../contracts/verifier-iam-compatibility.md): Google/PG17 selections2026-10-23.
+[Verifier IAM](../contracts/verifier-iam-compatibility.md): Google/PG17,2026-10-23.
 
-[Link recovery](plaid-link-recovery-sources.md): LR01–07, Plaid/React selections,
+[Link recovery](plaid-link-recovery-sources.md): LR01–07, Plaid/React,
 2026-10-24; reconnect/OAuth unqualified.
 
-[Plaid #88](plaid-88-test-sources.md): official selections,2026-10-22; hosted gaps.
-[Launch Center](plaid-launch-center-review.md): visible panels,2026-10-22; scope partial.
+[Plaid #88](plaid-88-test-sources.md): selected official,2026-10-22; hosted gaps.
+[Launch Center](plaid-launch-center-review.md): panels,2026-10-22; partial.
 [Verifier](../contracts/sandbox-verification.md#sources-standards-and-alternatives):
-Plaid/PG selections2026-10-22; synthetic only.
-[Identity](sandbox-identity-transport-sources.md): sync/date sections2026-10-24; hosted unproved.
+selected Plaid/PG,2026-10-22; synthetic.
+[Identity](sandbox-identity-transport-sources.md): sync/date2026-10-24; hosted unproved.
 
 [PL04](plaid-liability-sources.md): selected loan/product review, 2026-10-22.
 [Webhook release](webhook-release-sources.md), [enrollment](webhook-enrollment-sources.md):
@@ -255,8 +257,8 @@ accounting generator, with pins, review depth, rights and observed limitations.
 
 The [posting policy source notes](posting-sources.md) add P01 accrual mechanics
 and the US GAAP authority gap, P02 numeric rounding, P03 restricted functions and
-P04 strict JSON/replay handling, P05 pinned pgx transactions and P06 reference
-version serialization. Read these before the first posting implementation.
+P04 strict JSON/replay handling, P05 pinned pgx transactions, P06 reference
+serialization and P07 provider corrections (2026-10-25 selections).
 
 The [identity source notes](identity-sources.md) add I01–I06: managed ID-token
 verification, revocation, TOTP MFA the pinned Firebase Admin Go API and dependency maintenance evidence. These
