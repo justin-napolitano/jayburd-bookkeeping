@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "project": "jayburd-bookkeeping-dev",
+  "projectNumber": "9088794002",
+  "operation": "verify",
+  "build": {
+    "run": "40158617244",
+    "attempt": "1",
+    "commit": "fbafb2ad9b5020187c22fd5b10e3e04828671957"
+  },
+  "images": {
+    "api": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:8ce71448071bfb2199034c505345d5c36a2bcc3fb35e4cde052cb1c0e5d85813",
+    "migrate": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:199213ef1b299534dfbcc069cec71d351f20813a8cb22b90e53e99d057e00d1b",
+    "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:ccea8da26ce9563042ce48033a29762bc8025e38f03a1c12404e65f849899860"
+  },
+  "evidence": {
+    "bootstrap": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6182206357",
+    "compatibility": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/26#issuecomment-6393047282"
+  },
+  "expiresAt": "2026-10-25T12:00:00Z"
+}
