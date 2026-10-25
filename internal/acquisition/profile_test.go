@@ -194,15 +194,21 @@ func TestEnvironmentIsInternalMetadata(t *testing.T) {
 	}
 }
 
-// TestSourceSQLContextRemainsSandboxOnly prevents a transport component from silently broadening durable authority.
-func TestSourceSQLContextRemainsSandboxOnly(t *testing.T) {
+// TestSourceSQLContextClosedEnvironments preserves structural validation after #311's actual SQL scope checks.
+func TestSourceSQLContextClosedEnvironments(t *testing.T) {
 	c := contextFixture()
 	a := attempt{SetID: c.SetID, Fence: c.Fence}
 	if !validContext(c, scopeFixture(), a) {
 		t.Fatal("positive current SQL context fixture invalid")
 	}
 	c.Environment = "production"
-	if validContext(c, scopeFixture(), a) {
-		t.Fatal("transport source change broadened SQL authority")
+	if !validContext(c, scopeFixture(), a) {
+		t.Fatal("authorized Production SQL context rejected")
+	}
+	for _, env := range []string{"", "Production", "production ", "development", "https://production.plaid.com"} {
+		c.Environment = env
+		if validContext(c, scopeFixture(), a) {
+			t.Fatal("unknown execution environment accepted")
+		}
 	}
 }
