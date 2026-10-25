@@ -5,6 +5,12 @@ agent registry [#65][i65].
 GitHub owns current status, blockers and leases. This document owns delivery
 sequence and acceptance boundaries; it does not dispatch agents or authorize releases.
 
+Owner clarification2026-10-25: read-only refers to bank access, not a blanket
+ledger posting ban. The [source-driven bookkeeping plan](source-driven-bookkeeping.md)
+tracks initial registration separately from reviewed rules/immutable corrections
+under #332–#336. #337 retains the unresolved actual Production deployment/pilot
+decision. No old source-consent or release approval is renewed by this change.
+
 ## Starting evidence
 
 Owner activated the one-account goal on2026-10-24. Immediate source fixes merged:
@@ -58,7 +64,8 @@ successful deployment cannot substitute for the exact acceptance case.
 3. Complete applicable Plaid, privacy, security and recovery qualification with
    independent expectations and truthful evidence. Run independent lanes alongside
    product work where paths and authority do not overlap.
-4. After the live gate and a concrete owner grant, qualify one read-only account.
+4. After the live gate and a concrete owner grant, qualify one bank-read-only account
+   with legitimate scoped bookkeeping and source-to-statement reconciliation.
    Official books require additional reconciliation, accounting and cutover gates.
 
 ```mermaid
@@ -136,7 +143,7 @@ direct Ledger and [#255](https://github.com/justin-napolitano/jayburd-bookkeepin
 they must not invent attention metrics or add unposted transactions to balances.
 Scope these as separate 3–5 point claims after their contracts, with coordinator
 ownership of navigation. [#251](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/251) available-to-use remains proposed planning work,
-not required to fix bookkeeping or prove a read-only pilot. [#59](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/59) consolidation
+not required to fix bookkeeping or prove the bank-read-only pilot. [#59](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/59) consolidation
 and advanced FX are deferred; ordinary multicurrency accounting remains required.
 
 ### C. Plaid qualification and security
@@ -194,7 +201,7 @@ fences. Actual account/platform/interval/cost/retention scope remains pending.
 | [#64](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/64)/#89 | Owner accepts workload/cost/SLO/RTO/RPO targets. Synthetic 1k/10k/100k events, 1/10/100 books, 1/2/4/8 workers; measure latency/throughput/resources, independent effects and noisy-neighbor bounds. Isolated restore, queue/cursor replay and fault recovery; exact cleanup. | Harness/audit READY; hosted soak needs budget/duration/scope. Proposed efficiency/latency numbers are not accepted SLOs. 5–8 L per bounded run |
 | [#62](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/62)/#56/#11/#164/#174/#154 | Audit actual MFA/current permission/revocation, secrets/KMS/federation/canonical-origin and retention/deletion/audit evidence. Reconcile shipped implementation with remaining operator setup; no secret/env/state reads. | Separate exact-path defects/receipts, human review of sensitive authority changes; 3–5 M per gap |
 | [#58][i58]/#13 | Support incident contact, pause/revoke/rollback/restore playbooks, costs, retention, reconciliation and official-bookkeeping go/no-go. | Accepted targets and isolated recovery evidence; never overwrite a real ledger to test restore |
-| [#90][i90] | One explicitly authorized read-only personal account: exact owner/entity/source/purpose/duration/audience/retention/budget/kill switch. Complete interval opening/closing statement reconciliation and explained discrepancies; disconnect/revoke/reconnect/delay recovery. | Existing [#90][i90] prerequisites remain: correctness/security/Sandbox/scale, [#1][i1], [#10][i10], [#27](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/27) and privacy approval. Owner privately supplies records/credentials; agent evidence only redacted outcomes. 5 L |
+| [#90][i90] | One explicitly authorized bank-read-only personal account: no money movement; internal journals/corrections under scoped permission/policy. Exact owner/entity/source/purpose/duration/audience/retention/budget/kill switch. Complete opening/closing statement reconciliation and explained discrepancies; disconnect/revoke/reconnect/delay recovery. | Existing [#90][i90] prerequisites remain: correctness/security/Sandbox/scale, [#1][i1], [#10][i10], [#27](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/27) and privacy approval; actual deployment decision337. Owner privately supplies records/credentials; agent evidence only redacted outcomes. Full rule engine is not a registration prerequisite. 5 L |
 | [#1][i1]/#2/#54/#60/#67/#17 | Owner/accountant basis/jurisdiction, entities, functional currencies, dates, opening balances, chart/loan principal-interest/card-payment/FX/rounding/correction policy. Audit existing invariant/reversal/corpus proofs; add independently expected gaps only. | Development policy supports synthetic work; real books/cross-entity treatment need explicit accepted policy |
 | [#10][i10]/#51/#53/#13 | Full fictional month reconciliation/adjustment/close/correction plus reviewed traceable export, then limited real cutover plan. | Never mount deferred close route or call reports/accountant approval complete from builds |
 

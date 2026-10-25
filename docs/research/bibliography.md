@@ -5,9 +5,11 @@
 
 [Expiry](../contracts/enrollment-availability.md): Go/Cloud Run selections2026-10-24.
 
+[Production](production-pilot-sources.md): PP01–06,2026-10-25; source/pilot.
+
 ## Reading order
 
-[Verifier IAM](../contracts/verifier-iam-compatibility.md): Google/PG17 selections2026-10-23.
+[Verifier IAM](../contracts/verifier-iam-compatibility.md): Google/PG17,2026-10-23.
 
 [Link recovery](plaid-link-recovery-sources.md): LR01–07, Plaid/React selections,
 2026-10-24; reconnect/OAuth unqualified.
@@ -15,7 +17,7 @@
 [Plaid #88](plaid-88-test-sources.md): official selections,2026-10-22; hosted gaps.
 [Launch Center](plaid-launch-center-review.md): visible panels,2026-10-22; scope partial.
 [Verifier](../contracts/sandbox-verification.md#sources-standards-and-alternatives):
-selected existing Plaid/PostgreSQL records,2026-10-22; synthetic proof only.
+selected Plaid/PG,2026-10-22; synthetic only.
 
 [PL04](plaid-liability-sources.md): selected loan/product review, 2026-10-22.
 [Webhook release](webhook-release-sources.md), [enrollment](webhook-enrollment-sources.md):
@@ -23,7 +25,7 @@ selected existing Plaid/PostgreSQL records,2026-10-22; synthetic proof only.
 synthetic proof, hosted acceptance open.
 
 [History](../contracts/plaid-history-currency.md).
-[PI13 source-first Plaid review](plaid-ingestion-sources.md#pi13--source-first-accounthistory-refresh-2026-10-21): Item/account/history mechanics; ownership remains project policy.
+[PI13](plaid-ingestion-sources.md#pi13--source-first-accounthistory-refresh-2026-10-21): Item/account/history; ownership is project policy.
 
 [Plaid types](automatic-account-binding-sources.md), [loans](plaid-liability-sources.md).
 [Shared sync](shared-acquisition-sources.md): Plaid cursor/webhooks.
