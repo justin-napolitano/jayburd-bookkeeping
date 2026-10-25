@@ -42,6 +42,20 @@ worker/evidence/grant path. Each implementation child must inventory the latest
 owned functions and callers before changing them, with negative cross-environment
 tests. Merged SQL remains immutable; no migration number reserved.
 
+## PP07 — Production SQL authority source refresh2026-10-25
+
+[PostgreSQL17 CREATE FUNCTION](https://www.postgresql.org/docs/17/sql-createfunction.html),
+full Writing SECURITY DEFINER Functions Safely section266–292 reviewed: safe
+search_path, PUBLIC EXECUTE revocation and selective grant in one transaction.
+[Constraints5.5.1](https://www.postgresql.org/docs/17/ddl-constraints.html), selected
+NULL and cross-table CHECK limitations paragraphs92–101 reviewed: NOT NULL must be
+explicit and cross-table runtime authority is not an immutable CHECK expression.
+Plaid PP01 full host/storage sections refreshed: Items do not move environments,
+tokens and consumer data require protected handling. Mechanism facts support the
+book-scoped proposal in [Production source SQL](../contracts/production-source-sql.md);
+the specific capability/trigger/role design is our inference, not vendor policy.
+No whole PG chapter, Dashboard, ISO normative or accounting policy text reviewed.
+
 ## Source baseline refresh at main1bacecda
 
 Rechecked2026-10-25: connection HTTPConfig/SDK/boundedPlaidTransport still use
