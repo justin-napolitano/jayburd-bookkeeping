@@ -16,10 +16,16 @@ import (
 var errConfiguration = errors.New("invalid server configuration")
 
 // Config carries owner-injected connection material; errors never format its fields.
-type Config struct{ Mode, Listen, Origin, Project, DatabaseURL, DatabaseMode, CloudSQLInstance string }
+type Config struct{ Mode, Listen, Origin, Project, DatabaseURL, DatabaseMode, CloudSQLInstance, ProviderEnvironment string }
 
 // Validate rejects ambiguous listener and origin configuration before dependencies start.
 func (c Config) Validate() error {
+	if c.ProviderEnvironment != "" && c.ProviderEnvironment != "sandbox" && c.ProviderEnvironment != "production" {
+		return errConfiguration
+	}
+	if c.ProviderEnvironment == "production" && (c.Mode != "managed" || c.DatabaseMode != "cloudsql") {
+		return errConfiguration
+	}
 	if c.Mode != "health" && c.Mode != "managed" {
 		return errConfiguration
 	}
@@ -41,7 +47,11 @@ func (c Config) Validate() error {
 		}
 	case "cloudsql":
 		db := clouddb.Config{Instance: c.CloudSQLInstance, Component: "api"}
-		if c.DatabaseURL != "" || db.Validate() != nil || db.Project() != c.Project {
+		environment := c.ProviderEnvironment
+		if environment == "" {
+			environment = "sandbox"
+		}
+		if c.DatabaseURL != "" || db.ValidateEnvironment(environment) != nil || db.Project() != c.Project {
 			return errConfiguration
 		}
 	default:

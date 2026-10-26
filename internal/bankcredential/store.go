@@ -20,8 +20,10 @@ type DB interface {
 
 // APIStore binds each operation to the verified caller and selected book at service dispatch.
 type APIStore struct {
-	db      DB
-	wrapper Wrapper
+	db          DB
+	wrapper     Wrapper
+	linkWrapper Wrapper
+	policy      *ProductionPolicy
 }
 type scopedStore struct {
 	parent *APIStore
@@ -33,7 +35,7 @@ func NewAPIStore(db DB, w Wrapper) (*APIStore, error) {
 	if db == nil || w == nil {
 		return nil, ErrUnavailable
 	}
-	return &APIStore{db, w}, nil
+	return &APIStore{db: db, wrapper: w, linkWrapper: w}, nil
 }
 
 // ForScope never trusts browser-supplied identity; the service passes its verified scope.
@@ -87,6 +89,9 @@ func call(parent context.Context, db DB, query string, args ...any) (json.RawMes
 
 // lookup requires SQL to authorize the reference before any key-unwrapping request.
 func (s *scopedStore) lookup(ctx context.Context, r connections.CredentialReference) (*Envelope, error) {
+	if s.authorizeReference(ctx, r) != nil {
+		return nil, ErrUnavailable
+	}
 	b := Binding{s.scope.Entity, s.scope.Book, r}
 	if _, e := b.aad(); e != nil {
 		return nil, ErrUnavailable
@@ -99,6 +104,9 @@ func (s *scopedStore) lookup(ctx context.Context, r connections.CredentialRefere
 		Envelope *Envelope `json:"envelope"`
 	}
 	if json.Unmarshal(raw, &out) != nil {
+		return nil, ErrUnavailable
+	}
+	if s.bankEnvelope(out.Envelope) != nil {
 		return nil, ErrUnavailable
 	}
 	return out.Envelope, nil
@@ -131,8 +139,8 @@ func (s *scopedStore) Put(ctx context.Context, r connections.CredentialReference
 		return same(ctx, s.parent.wrapper, b, *old, token)
 	}
 	v, e := Seal(ctx, s.parent.wrapper, b, token)
-	if e != nil {
-		return e
+	if e != nil || s.bankEnvelope(&v) != nil {
+		return ErrUnavailable
 	}
 	body, e := json.Marshal(v)
 	if e != nil {
@@ -145,7 +153,7 @@ func (s *scopedStore) Put(ctx context.Context, r connections.CredentialReference
 	var out struct {
 		Envelope *Envelope `json:"envelope"`
 	}
-	if json.Unmarshal(raw, &out) != nil || out.Envelope == nil {
+	if json.Unmarshal(raw, &out) != nil || out.Envelope == nil || s.bankEnvelope(out.Envelope) != nil {
 		return ErrUnavailable
 	}
 	return same(ctx, s.parent.wrapper, b, *out.Envelope, token)
@@ -169,6 +177,7 @@ type Resolver struct {
 	db      DB
 	wrapper Wrapper
 	static  func(context.Context) (acquisition.ProviderCredentials, error)
+	policy  *ProductionPolicy
 }
 
 // NewResolver performs no I/O; only a current scoped lease can subsequently unwrap a token.
@@ -176,7 +185,7 @@ func NewResolver(db DB, w Wrapper, static func(context.Context) (acquisition.Pro
 	if db == nil || w == nil || static == nil {
 		return nil, ErrUnavailable
 	}
-	return &Resolver{db, w, static}, nil
+	return &Resolver{db: db, wrapper: w, static: static}, nil
 }
 
 // Resolve refuses legacy unscoped token resolution; it cannot fall back to an old vault mapping.
@@ -187,6 +196,9 @@ func (*Resolver) Resolve(context.Context, acquisition.CredentialReference) (acqu
 // ResolveScoped derives stored identity from sync_context before decrypting, then checks the runner's pin.
 func (r *Resolver) ResolveScoped(ctx context.Context, s acquisition.Scope, setID, fence string, expected acquisition.CredentialReference) (acquisition.ProviderCredentials, error) {
 	var empty acquisition.ProviderCredentials
+	if expected.Environment != r.environment() {
+		return empty, ErrUnavailable
+	}
 	if !validID(s.EntityID) || !validID(s.BookID) || !validID(s.StreamID) || !validID(setID) {
 		return empty, ErrUnavailable
 	}
@@ -202,6 +214,9 @@ func (r *Resolver) ResolveScoped(ctx context.Context, s acquisition.Scope, setID
 		Environment string   `json:"environment"`
 	}
 	if json.Unmarshal(raw, &out) != nil || out.Ref != expected.ReferenceID || out.Version != expected.Version || out.Item != expected.ItemID || out.Environment != expected.Environment {
+		return empty, ErrUnavailable
+	}
+	if r.policy != nil && !keyVersionMatches(r.policy.BankKey, out.Envelope.KeyVersion) {
 		return empty, ErrUnavailable
 	}
 	ref := connections.CredentialReference{ReferenceID: out.Ref, Version: out.Version, ItemID: out.Item, Environment: out.Environment}
@@ -220,6 +235,9 @@ func (r *Resolver) ResolveScoped(ctx context.Context, s acquisition.Scope, setID
 // Check prevents known KMS permission/configuration failures from consuming a public token.
 func (s *scopedStore) Check(ctx context.Context) error {
 	if !validID(s.scope.Actor) || !validID(s.scope.Entity) || !validID(s.scope.Book) {
+		return ErrUnavailable
+	}
+	if s.AuthorizeProvider(ctx) != nil {
 		return ErrUnavailable
 	}
 	// Check the additive SQL surface before a token can be consumed, even outside the hosted release pipeline.

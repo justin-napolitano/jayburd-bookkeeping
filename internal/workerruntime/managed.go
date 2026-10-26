@@ -2,12 +2,14 @@ package workerruntime
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/acquisition"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/clouddb"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/observer"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 )
 
 // ConsumerAdapters are explicitly constructed durable storage and credential resolution capabilities.
@@ -23,20 +25,24 @@ func Managed(parent context.Context, c Config, a ConsumerAdapters) (*Runtime, er
 	if c.Validate() != nil || c.Mode == "consumer" && ((a.Credentials == nil && a.CredentialFactory == nil) || (a.Credentials != nil && a.CredentialFactory != nil) || a.Evidence == nil) || c.Mode == "publisher" && (a.Credentials != nil || a.CredentialFactory != nil || a.Evidence != nil) {
 		return nil, ErrConfiguration
 	}
+	if !c.ApprovedAt(time.Now()) {
+		return nil, ErrUnavailable
+	}
 	transport := DirectTransport()
-	tokens, e := NewMetadataTokens(transport)
+	dependency := c.ApprovedTransport(transport)
+	tokens, e := NewMetadataTokens(dependency)
 	if e != nil {
 		transport.CloseIdleConnections()
 		return nil, ErrConfiguration
 	}
-	verifier, e := observer.NewGoogleTokenVerifier(transport)
+	verifier, e := observer.NewGoogleTokenVerifier(dependency)
 	if e != nil {
 		transport.CloseIdleConnections()
 		return nil, ErrConfiguration
 	}
 	var queue observer.Transport
 	if c.Mode == "publisher" {
-		queue, e = observer.NewAcquisitionCloudTasksTransport(c.Queue, tokens, transport)
+		queue, e = observer.NewAcquisitionCloudTasksTransport(c.Queue, tokens, dependency)
 		if e != nil {
 			transport.CloseIdleConnections()
 			return nil, ErrConfiguration
@@ -49,7 +55,7 @@ func Managed(parent context.Context, c Config, a ConsumerAdapters) (*Runtime, er
 	}
 	ctx, cancel := context.WithTimeout(parent, 20*time.Second)
 	defer cancel()
-	config, closeConnector, e := clouddb.Connector(ctx, clouddb.Config{Instance: c.Instance, Component: c.component()})
+	config, closeConnector, e := clouddb.ConnectorForEnvironment(ctx, clouddb.Config{Instance: c.Instance, Component: c.component()}, c.ProviderEnvironment())
 	if e != nil {
 		transport.CloseIdleConnections()
 		return nil, ErrUnavailable
@@ -67,7 +73,8 @@ func Managed(parent context.Context, c Config, a ConsumerAdapters) (*Runtime, er
 	}
 	var runner *acquisition.Runner
 	if c.Mode == "consumer" {
-		provider, err := acquisition.NewPlaidHTTP(transport)
+		profile, _ := plaidprofile.New(c.ProviderEnvironment())
+		provider, err := acquisition.NewPlaidHTTPForProfile(profile, dependency)
 		if err != nil {
 			closeAll()
 			return nil, ErrConfiguration
@@ -96,6 +103,37 @@ func Managed(parent context.Context, c Config, a ConsumerAdapters) (*Runtime, er
 		return nil, ErrConfiguration
 	}
 	return r, nil
+}
+
+// ApprovedAt keeps a finite Production worker inert after approval expires, including cold restart.
+func (c Config) ApprovedAt(now time.Time) bool {
+	if c.ProviderEnvironment() == "sandbox" {
+		return true
+	}
+	if c.ProviderEnvironment() != "production" {
+		return false
+	}
+	expiry, e := time.Parse(time.RFC3339, c.ApprovalExpiresAt)
+	return e == nil && expiry.After(now)
+}
+
+// ApprovedTransport fences each new dependency request during multi-call worker work.
+func (c Config) ApprovedTransport(base http.RoundTripper) http.RoundTripper {
+	return approvedTransport{config: c, base: base}
+}
+
+// approvedTransport checks local approval without minting identity or opening a dependency connection.
+type approvedTransport struct {
+	config Config
+	base   http.RoundTripper
+}
+
+// RoundTrip never extends authority on a warm instance or reveals rejected configuration.
+func (t approvedTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if !t.config.ApprovedAt(time.Now()) {
+		return nil, ErrUnavailable
+	}
+	return t.base.RoundTrip(r)
 }
 
 // inertConsumer validates policy construction only and is never exposed by a runtime listener.

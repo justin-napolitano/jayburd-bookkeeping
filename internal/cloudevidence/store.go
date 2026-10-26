@@ -26,7 +26,7 @@ type AccessTokenProvider interface {
 	AccessToken(context.Context) (string, error)
 }
 
-// Store owns one explicit development bucket and never exposes raw provider diagnostics.
+// Store owns one explicit profile-specific bucket and never exposes raw provider diagnostics.
 type Store struct {
 	bucket string
 	tokens AccessTokenProvider
@@ -39,6 +39,14 @@ var uuid = regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-
 // New fixes the endpoint and credential boundary without network or filesystem access.
 func New(bucket string, tokens AccessTokenProvider, transport http.RoundTripper) (*Store, error) {
 	if !bucketName.MatchString(bucket) || tokens == nil || transport == nil {
+		return nil, failed("configuration_error", false)
+	}
+	return &Store{bucket, tokens, &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+}
+
+// NewProduction pins a separate project's evidence bucket; it never reuses a development store.
+func NewProduction(project, bucket string, tokens AccessTokenProvider, transport http.RoundTripper) (*Store, error) {
+	if project == "jayburd-bookkeeping-dev" || !bucketName.MatchString(project+"-jayburd-dev-acquisition-evidence") || bucket != project+"-jayburd-prod-acquisition-evidence" || tokens == nil || transport == nil {
 		return nil, failed("configuration_error", false)
 	}
 	return &Store{bucket, tokens, &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
