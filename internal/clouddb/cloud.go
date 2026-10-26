@@ -36,10 +36,30 @@ func (c Config) Project() string { return strings.Split(c.Instance, ":")[0] }
 // PoolConfig disables pgx TLS only inside the connector's encrypted tunnel, never for raw TCP.
 // The injected dial function also makes the network boundary independently testable.
 func PoolConfig(c Config, dial func(context.Context, string, string) (net.Conn, error)) (*pgxpool.Config, error) {
-	if c.Validate() != nil || dial == nil || ForbiddenEnvironment(func(k string) bool { _, ok := os.LookupEnv(k); return ok }) {
+	return PoolConfigForEnvironment(c, "sandbox", dial)
+}
+
+// ValidateEnvironment reserves a separate IAM naming profile without granting or provisioning roles.
+func (c Config) ValidateEnvironment(environment string) error {
+	if c.Validate() != nil || (environment != "sandbox" && environment != "production") {
+		return ErrConfiguration
+	}
+	if environment == "production" && (c.Project() == "jayburd-bookkeeping-dev" || strings.HasSuffix(c.Instance, ":jayburd-dev") || (c.Component != "api" && c.Component != "sync" && c.Component != "publisher")) {
+		return ErrConfiguration
+	}
+	return nil
+}
+
+// PoolConfigForEnvironment derives a dedicated role from a closed profile, never a caller login string.
+func PoolConfigForEnvironment(c Config, environment string, dial func(context.Context, string, string) (net.Conn, error)) (*pgxpool.Config, error) {
+	if c.ValidateEnvironment(environment) != nil || dial == nil || ForbiddenEnvironment(func(k string) bool { _, ok := os.LookupEnv(k); return ok }) {
 		return nil, ErrConfiguration
 	}
-	u := url.URL{Scheme: "postgres", Host: "localhost", Path: "/bookkeeping", User: url.User("jayburd-dev-" + c.Component + "@" + c.Project() + ".iam")}
+	prefix := "jayburd-dev-"
+	if environment == "production" {
+		prefix = "jayburd-prod-"
+	}
+	u := url.URL{Scheme: "postgres", Host: "localhost", Path: "/bookkeeping", User: url.User(prefix + c.Component + "@" + c.Project() + ".iam")}
 	q := url.Values{"sslmode": {"disable"}, "passfile": {"/dev/null"}, "sslcert": {""}, "sslkey": {""}, "sslrootcert": {""}, "connect_timeout": {"15"}}
 	u.RawQuery = q.Encode()
 	p, err := pgxpool.ParseConfig(u.String())
@@ -70,7 +90,12 @@ func PoolConfig(c Config, dial func(context.Context, string, string) (net.Conn, 
 
 // Connector returns an explicit pgx configuration and a close hook; it never discovers ADC files.
 func Connector(ctx context.Context, c Config) (*pgxpool.Config, func(), error) {
-	if c.Validate() != nil || ForbiddenEnvironment(func(k string) bool { _, ok := os.LookupEnv(k); return ok }) {
+	return ConnectorForEnvironment(ctx, c, "sandbox")
+}
+
+// ConnectorForEnvironment keeps metadata-only authentication and rejects mixed profiles before SDK I/O.
+func ConnectorForEnvironment(ctx context.Context, c Config, environment string) (*pgxpool.Config, func(), error) {
+	if c.ValidateEnvironment(environment) != nil || ForbiddenEnvironment(func(k string) bool { _, ok := os.LookupEnv(k); return ok }) {
 		return nil, nil, ErrConfiguration
 	}
 	d, err := cloudsqlconn.NewDialer(ctx, cloudsqlconn.WithIAMAuthN(), cloudsqlconn.WithLazyRefresh(), cloudsqlconn.WithRefreshTimeout(15*time.Second), cloudsqlconn.WithIAMAuthNTokenSources(
@@ -80,7 +105,7 @@ func Connector(ctx context.Context, c Config) (*pgxpool.Config, func(), error) {
 		return nil, nil, errors.New("database transport unavailable")
 	}
 	close := func() { _ = d.Close() }
-	cfg, err := PoolConfig(c, func(ctx context.Context, _, _ string) (net.Conn, error) {
+	cfg, err := PoolConfigForEnvironment(c, environment, func(ctx context.Context, _, _ string) (net.Conn, error) {
 		return d.Dial(ctx, c.Instance, cloudsqlconn.WithPublicIP())
 	})
 	if err != nil {

@@ -20,12 +20,15 @@ import (
 func main() {
 	flag.CommandLine.SetOutput(io.Discard)
 	var enrollment connectionruntime.Config
-	flag.BoolVar(&enrollment.Enabled, "connections-enabled", false, "explicitly enable Sandbox connection composition")
+	flag.StringVar(&enrollment.Environment, "provider-environment", "", "explicit sandbox or production profile; omitted retains legacy Sandbox")
+	flag.StringVar(&enrollment.BankKey, "bank-credential-key", "", "explicit approved Production cryptoKey resource")
+	flag.StringVar(&enrollment.LinkKey, "link-handoff-key", "", "explicit approved Production Link cryptoKey resource")
+	flag.BoolVar(&enrollment.Enabled, "connections-enabled", false, "explicitly enable reviewed connection composition")
 	flag.BoolVar(&enrollment.LinkEventsQualified, "plaid-link-events-qualified", false, "ordinary SDK account metadata; not required by Sandbox Hosted Link")
 	flag.StringVar(&enrollment.ProjectNumber, "provider-project-number", "", "canonical Secret Manager project number")
 	flag.StringVar(&enrollment.InfisicalOrigin, "infisical-origin", "", "approved Infisical HTTPS origin")
 	flag.StringVar(&enrollment.InfisicalProject, "infisical-project", "", "explicit Infisical project UUID")
-	flag.StringVar(&enrollment.InfisicalEnvironment, "infisical-environment", "", "explicit dev namespace")
+	flag.StringVar(&enrollment.InfisicalEnvironment, "infisical-environment", "", "explicit dev or prod namespace matching the provider profile")
 	flag.StringVar(&enrollment.InfisicalIdentity, "infisical-identity", "", "GCP-auth writer identity UUID")
 	flag.StringVar(&enrollment.RegistryBucket, "provider-registry-bucket", "", "private metadata registry bucket")
 	flag.StringVar(&enrollment.RegistryPrefix, "provider-registry-prefix", "", "registry object prefix")
@@ -49,7 +52,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "server configuration rejected")
 		os.Exit(1)
 	}
-	c := server.Config{Mode: *mode, Listen: *listen, Origin: *origin, Project: *project, DatabaseMode: *databaseMode, CloudSQLInstance: *instance}
+	c := server.Config{Mode: *mode, Listen: *listen, Origin: *origin, Project: *project, DatabaseMode: *databaseMode, CloudSQLInstance: *instance, ProviderEnvironment: enrollment.Environment}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	var d server.Dependencies
