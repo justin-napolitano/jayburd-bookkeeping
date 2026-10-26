@@ -140,10 +140,11 @@ func decodeMetadata(raw []byte, out any) error {
 	return nil
 }
 
-// validCompletion ensures only a scoped, bounded receipt becomes acquisition success.
+// validCompletion accepts an initial empty source at revision zero while keeping generations strictly positive.
 func validCompletion(c completion, s Scope, a attempt) bool {
 	n, e := strconv.Atoi(c.ChangedCount)
-	return c.StreamID == s.StreamID && c.SetID == a.SetID && positive(c.CompletedGeneration) && positive(c.SourceRevision) && e == nil && n >= 0 && n <= 1000 && strconv.Itoa(n) == c.ChangedCount && validCursor(c.Cursor) && oneOf(c.Readiness, "TRANSACTIONS_UPDATE_STATUS_UNKNOWN", "NOT_READY", "INITIAL_UPDATE_COMPLETE", "HISTORICAL_UPDATE_COMPLETE")
+	revision, revisionErr := strconv.ParseInt(c.SourceRevision, 10, 64)
+	return c.StreamID == s.StreamID && c.SetID == a.SetID && positive(c.CompletedGeneration) && revisionErr == nil && revision >= 0 && strconv.FormatInt(revision, 10) == c.SourceRevision && e == nil && n >= 0 && n <= 1000 && strconv.Itoa(n) == c.ChangedCount && validCursor(c.Cursor) && oneOf(c.Readiness, "TRANSACTIONS_UPDATE_STATUS_UNKNOWN", "NOT_READY", "INITIAL_UPDATE_COMPLETE", "HISTORICAL_UPDATE_COMPLETE")
 }
 
 // oneOf compares only closed protocol enums.
