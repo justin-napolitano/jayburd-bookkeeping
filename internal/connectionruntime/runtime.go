@@ -184,7 +184,11 @@ func newWithClock(parent context.Context, c Config, db connections.Beginner, tra
 	if c.Environment == "production" {
 		profile, _ = plaidprofile.New("production")
 	}
-	provider, e := connections.NewHTTPProviderForProfile(connections.HTTPConfig{ClientID: connections.NewSecret(string(id)), ClientSecret: connections.NewSecret(string(secret)), ConsentExpiresAt: expiry, WebhookURL: c.WebhookURL, HostedRepair: c.HostedRepair}, profile, transport)
+	webhookProject := ""
+	if c.Environment == "production" && c.WebhookURL != "" {
+		webhookProject = c.ProjectNumber
+	}
+	provider, e := connections.NewHTTPProviderForProfile(connections.HTTPConfig{ClientID: connections.NewSecret(string(id)), ClientSecret: connections.NewSecret(string(secret)), ConsentExpiresAt: expiry, WebhookURL: c.WebhookURL, HostedRepair: c.HostedRepair, WebhookProjectNumber: webhookProject}, profile, transport)
 	if e != nil {
 		if !expiry.After(now()) {
 			return withoutProvider()
@@ -200,7 +204,15 @@ func newWithClock(parent context.Context, c Config, db connections.Beginner, tra
 // validateProduction requires explicit separated metadata; it never discovers actual resources or values.
 func (c Config) validateProduction(now time.Time) error {
 	expiry, e := time.Parse(time.RFC3339, c.ConsentExpiresAt)
-	if !project.MatchString(c.ProjectID) || c.ProjectID == "jayburd-bookkeeping-dev" || !number.MatchString(c.ProjectNumber) || c.ProjectNumber == "9088794002" || !nonzeroUUID(c.InfisicalProject) || !nonzeroUUID(c.InfisicalIdentity) || c.InfisicalEnvironment != "prod" || c.RegistryBucket != c.ProjectID+"-jayburd-prod-credential-registry" || c.RegistryPrefix != "provider-credentials-v1" || e != nil || expiry.IsZero() || expiry.Year() < 1 || expiry.After(now.Add(30*24*time.Hour)) || c.WebhookURL != "" || c.HostedRepair {
+	if !project.MatchString(c.ProjectID) || c.ProjectID == "jayburd-bookkeeping-dev" || !number.MatchString(c.ProjectNumber) || c.ProjectNumber == "9088794002" || !nonzeroUUID(c.InfisicalProject) || !nonzeroUUID(c.InfisicalIdentity) || c.InfisicalEnvironment != "prod" || c.RegistryBucket != c.ProjectID+"-jayburd-prod-credential-registry" || c.RegistryPrefix != "provider-credentials-v1" || e != nil || expiry.IsZero() || expiry.Year() < 1 || expiry.After(now.Add(30*24*time.Hour)) {
+		return ErrConfiguration
+	}
+	if c.WebhookURL != "" {
+		expected, e := connections.ProductionTransactionsWebhookURL(c.ProjectNumber)
+		if e != nil || c.WebhookURL != expected {
+			return ErrConfiguration
+		}
+	} else if c.HostedRepair {
 		return ErrConfiguration
 	}
 	if c.InfisicalOrigin != "https://us.infisical.com" && c.InfisicalOrigin != "https://eu.infisical.com" && c.InfisicalOrigin != "https://app.infisical.com" {

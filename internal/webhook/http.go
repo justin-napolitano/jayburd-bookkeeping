@@ -20,6 +20,9 @@ func NewHandler(v *Verifier, r Receiver) (*Handler, error) {
 	if v == nil || r == nil {
 		return nil, errUnavailable
 	}
+	if profiled, ok := r.(interface{ Environment() string }); ok && profiled.Environment() != v.profile.Environment() {
+		return nil, errUnavailable
+	}
 	return &Handler{v, r, make(chan struct{}, 16)}, nil
 }
 

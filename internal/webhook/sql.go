@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 )
 
 // Beginner supplies one separately provisioned restricted login pool.
@@ -19,19 +20,30 @@ type Beginner interface {
 }
 
 // SQLReceiver invokes only the verified-notification entrypoint with webhook authority.
-type SQLReceiver struct{ db Beginner }
+type SQLReceiver struct {
+	db      Beginner
+	profile plaidprofile.Profile
+}
 
 // NewSQLReceiver performs no connection or role mutation.
 func NewSQLReceiver(db Beginner) (*SQLReceiver, error) {
-	if db == nil {
+	return NewSQLReceiverForProfile(db, plaidprofile.Sandbox())
+}
+
+// NewSQLReceiverForProfile selects no role override; SQL independently binds the actual login to this profile.
+func NewSQLReceiverForProfile(db Beginner, p plaidprofile.Profile) (*SQLReceiver, error) {
+	if db == nil || !p.Valid() {
 		return nil, errUnavailable
 	}
-	return &SQLReceiver{db}, nil
+	return &SQLReceiver{db, p}, nil
 }
+
+// Environment exposes the immutable adapter profile so host composition can reject mixed capabilities.
+func (r *SQLReceiver) Environment() string { return r.profile.Environment() }
 
 // Receive returns only a confirmed receipt; unknown commits remain retryable delivery failures.
 func (r *SQLReceiver) Receive(ctx context.Context, v Verified) (Receipt, error) {
-	if v.Environment != "sandbox" || !digest.MatchString(v.ReceiptKey) || !digest.MatchString(v.BodySHA256) || v.IssuedAt <= 0 {
+	if !r.profile.Valid() || v.Environment != r.profile.Environment() || !digest.MatchString(v.ReceiptKey) || !digest.MatchString(v.BodySHA256) || v.IssuedAt <= 0 {
 		return Receipt{}, errInvalid
 	}
 	if v.session != nil {
@@ -148,7 +160,7 @@ func (c *Catchup) Tick(ctx context.Context, s Scope, tick string, maximum int, a
 // roleQuery rechecks effective authority per request, including powerful predefined roles without superuser flags.
 const roleQuery = `SELECT session_user=current_user AND r.rolcanlogin AND NOT(r.rolsuper OR r.rolbypassrls OR r.rolcreaterole OR r.rolcreatedb OR r.rolreplication)
 AND pg_has_role(r.oid,$1,'USAGE')
-AND NOT EXISTS(SELECT FROM pg_roles p WHERE (p.rolsuper OR p.rolbypassrls OR p.rolcreaterole OR p.rolcreatedb OR p.rolreplication OR p.rolname ~ '^pg_' OR p.rolname IN ('bookkeeping_owner','bookkeeping_api','bookkeeping_identity_operator','bookkeeping_publisher','bookkeeping_observer','bookkeeping_migrator','cloudsqlsuperuser','bookkeeping_sync','bookkeeping_webhook') AND p.rolname<>$1) AND pg_has_role(r.oid,p.oid,'MEMBER'))
+AND NOT EXISTS(SELECT FROM pg_roles p WHERE (p.rolsuper OR p.rolbypassrls OR p.rolcreaterole OR p.rolcreatedb OR p.rolreplication OR p.rolname ~ '^pg_' OR p.rolname IN ('bookkeeping_owner','bookkeeping_api','bookkeeping_identity_operator','bookkeeping_publisher','bookkeeping_observer','bookkeeping_migrator','bookkeeping_verifier','cloudsqlsuperuser','bookkeeping_sync','bookkeeping_webhook') AND p.rolname<>$1) AND pg_has_role(r.oid,p.oid,'MEMBER'))
 AND NOT EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','deployment') AND c.relkind IN ('r','p','v','m','S') AND has_table_privilege(r.oid,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'))
 FROM pg_roles r WHERE r.rolname=session_user`
 
