@@ -1,5 +1,20 @@
 # Production pilot source review
 
+## PP09 — signed webhook profile, 2026-10-26
+
+[Plaid verification](https://plaid.com/docs/api/webhooks/webhook-verification/),
+header/ES256/JWK retrieval+metadata/age/raw-body validation sections reviewed;
+[Link SESSION_FINISHED](https://plaid.com/docs/api/link/#session_finished),
+full modern field table incl environment and Hosted defaults reviewed. Different
+profiles retain separate hosts/cache; raw-body verification precedes field routing.
+Vendor fields do not prove Item ownership or consent; our stored-attempt association
+and current SQL authority are engineering policy. [PG17 CREATE FUNCTION](https://www.postgresql.org/docs/17/sql-createfunction.html),
+Writing SECURITY DEFINER Functions Safely266–292 reread for search_path and atomic
+PUBLIC revoke/selective grants. Selected public sections only; no whole manuals,
+Dashboard/keys/payloads or normative ISO reviewed. Applied decision:
+[Production webhooks](../contracts/production-webhooks.md); actual signed delivery
+and independent security review remain separate from source/injected tests.
+
 ## PP08 — credential/runtime source review, 2026-10-26
 
 [Google KMS AAD](https://docs.cloud.google.com/kms/docs/additional-authenticated-data),

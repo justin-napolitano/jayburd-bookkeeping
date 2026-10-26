@@ -1,4 +1,4 @@
-// Package webhookhost composes only the verified Sandbox notification boundary.
+// Package webhookhost composes one explicitly profiled verified notification boundary.
 package webhookhost
 
 import (
@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/webhook"
 )
 
@@ -25,17 +26,23 @@ var (
 
 // Host owns one explicit listener and optional resource cleanup; it selects no cloud identity.
 type Host struct {
-	handler *webhook.Handler
-	close   func()
-	once    sync.Once
-	started atomic.Bool
-	closed  atomic.Bool
+	handler          *webhook.Handler
+	close            func()
+	once             sync.Once
+	started          atomic.Bool
+	closed           atomic.Bool
+	approvalDeadline time.Time
 }
 
 // New composes verification and durable receipt capabilities without opening sockets or resolving keys.
 // The receiver must commit receipt and wakeup atomically; NewSQL supplies the reviewed adapter.
 func New(keys webhook.KeyProvider, receiver webhook.Receiver, close func()) (*Host, error) {
-	v, err := webhook.NewVerifier(keys)
+	return NewForProfile(keys, receiver, plaidprofile.Sandbox(), close)
+}
+
+// NewForProfile rejects mismatched key/verifier/receipt capabilities without resolving keys or opening listeners.
+func NewForProfile(keys webhook.KeyProvider, receiver webhook.Receiver, p plaidprofile.Profile, close func()) (*Host, error) {
+	v, err := webhook.NewVerifierForProfile(keys, p)
 	if err != nil {
 		return nil, ErrConfiguration
 	}
@@ -48,11 +55,16 @@ func New(keys webhook.KeyProvider, receiver webhook.Receiver, close func()) (*Ho
 
 // NewSQL uses a separately provisioned webhook-only pool; runtime SQL checks its actual authority.
 func NewSQL(keys webhook.KeyProvider, db webhook.Beginner, close func()) (*Host, error) {
-	r, err := webhook.NewSQLReceiver(db)
+	return NewSQLForProfile(keys, db, plaidprofile.Sandbox(), close)
+}
+
+// NewSQLForProfile retains a separately provisioned webhook-only login, never API/worker authority.
+func NewSQLForProfile(keys webhook.KeyProvider, db webhook.Beginner, p plaidprofile.Profile, close func()) (*Host, error) {
+	r, err := webhook.NewSQLReceiverForProfile(db, p)
 	if err != nil {
 		return nil, ErrConfiguration
 	}
-	return New(keys, r, close)
+	return NewForProfile(keys, r, p, close)
 }
 
 // Close releases explicitly owned dependencies at most once, after Serve has drained.
@@ -79,6 +91,15 @@ func (h *Host) server(ctx context.Context) *http.Server {
 			w.Header().Set("Referrer-Policy", "no-referrer")
 			w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000")
+			if !h.approvalDeadline.IsZero() {
+				if !h.approvalDeadline.After(time.Now()) {
+					w.WriteHeader(http.StatusServiceUnavailable)
+					return
+				}
+				var stop context.CancelFunc
+				bounded, stop = context.WithDeadline(bounded, h.approvalDeadline)
+				defer stop()
+			}
 			h.handler.ServeHTTP(w, r.WithContext(bounded))
 		}),
 		DisableGeneralOptionsHandler: true,

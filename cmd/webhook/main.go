@@ -1,4 +1,4 @@
-// Command webhook explicitly composes a dedicated Sandbox notification listener.
+// Command webhook explicitly composes a dedicated closed-profile notification listener.
 package main
 
 import (
@@ -18,6 +18,8 @@ func parse(args []string) (webhookhost.Config, error) {
 	var c webhookhost.Config
 	f := flag.NewFlagSet("webhook", flag.ContinueOnError)
 	f.SetOutput(io.Discard)
+	f.StringVar(&c.Environment, "provider-environment", "", "explicit sandbox or production; omission retains Sandbox")
+	f.StringVar(&c.ApprovalExpiresAt, "provider-approval-expires-at", "", "finite Production receiver approval deadline")
 	f.StringVar(&c.Listen, "listen", "127.0.0.1:8080", "explicit TCP listener")
 	f.StringVar(&c.Instance, "cloud-sql-instance", "", "project:us-central1:instance")
 	f.StringVar(&c.ProjectNumber, "project-number", "", "numeric secret project identifier")

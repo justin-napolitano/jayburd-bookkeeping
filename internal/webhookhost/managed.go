@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/clouddb"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/providersecrets"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/webhook"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/workerruntime"
@@ -18,6 +19,15 @@ import (
 // Config contains explicit public identifiers only, never credentials, DSNs or role overrides.
 type Config struct {
 	Listen, Instance, ProjectNumber, ClientIDVersion, ClientSecretVersion string
+	Environment, ApprovalExpiresAt                                        string
+}
+
+// ProviderEnvironment preserves the legacy Sandbox default but never normalizes explicit metadata.
+func (c Config) ProviderEnvironment() string {
+	if c.Environment == "" {
+		return "sandbox"
+	}
+	return c.Environment
 }
 
 // numeric requires a canonical positive identifier/version, excluding aliases and leading zeros.
@@ -34,7 +44,7 @@ func secretVersion(value, project, name string) bool {
 
 // Validate rejects role, destination and secret substitution before any external access.
 func (c Config) Validate() error {
-	if (clouddb.Config{Instance: c.Instance, Component: "webhook"}).Validate() != nil || !numeric(c.ProjectNumber) {
+	if (clouddb.Config{Instance: c.Instance, Component: "webhook"}).ValidateEnvironment(c.ProviderEnvironment()) != nil || !numeric(c.ProjectNumber) {
 		return ErrConfiguration
 	}
 	host, port, err := net.SplitHostPort(c.Listen)
@@ -42,7 +52,17 @@ func (c Config) Validate() error {
 	if err != nil || pe != nil || n < 1 || n > 65535 || strconv.Itoa(n) != port || (host != "127.0.0.1" && host != "0.0.0.0") {
 		return ErrConfiguration
 	}
-	if !secretVersion(c.ClientIDVersion, c.ProjectNumber, "jayburd-dev-bank-sync-client-id") || !secretVersion(c.ClientSecretVersion, c.ProjectNumber, "jayburd-dev-bank-sync-client-secret") {
+	prefix := "jayburd-dev"
+	if c.ProviderEnvironment() == "production" {
+		prefix = "jayburd-prod"
+		expiry, e := time.Parse(time.RFC3339, c.ApprovalExpiresAt)
+		if e != nil || expiry.IsZero() || expiry.Year() < 1 || expiry.After(time.Now().Add(30*24*time.Hour)) || c.ProjectNumber == "9088794002" {
+			return ErrConfiguration
+		}
+	} else if c.ApprovalExpiresAt != "" {
+		return ErrConfiguration
+	}
+	if !secretVersion(c.ClientIDVersion, c.ProjectNumber, prefix+"-bank-sync-client-id") || !secretVersion(c.ClientSecretVersion, c.ProjectNumber, prefix+"-bank-sync-client-secret") {
 		return ErrConfiguration
 	}
 	return nil
@@ -94,7 +114,9 @@ type factories struct {
 // Managed constructs concrete metadata-only adapters; only startup transport Ping contacts Cloud SQL.
 // Secrets and provider keys are resolved lazily for bounded JWT key-ID cache misses, never during startup.
 func Managed(ctx context.Context, c Config) (*Runtime, error) {
-	return managed(ctx, c, factories{keys: managedKeys, pool: managedPool})
+	return managed(ctx, c, factories{keys: managedKeys, pool: func(ctx context.Context, db clouddb.Config) (webhook.Beginner, func(), error) {
+		return managedPoolForEnvironment(ctx, db, c.ProviderEnvironment())
+	}})
 }
 
 // managed validates first and unwinds partial ownership in reverse acquisition order.
@@ -105,11 +127,22 @@ func managed(ctx context.Context, c Config, f factories) (*Runtime, error) {
 	if ctx.Err() != nil {
 		return nil, ErrServe
 	}
+	var expiry time.Time
+	if c.ProviderEnvironment() == "production" {
+		expiry, _ = time.Parse(time.RFC3339, c.ApprovalExpiresAt)
+		if !expiry.After(time.Now()) {
+			return nil, ErrServe
+		}
+	}
 	keys, closeKeys, err := f.keys(c)
 	if closeKeys == nil {
 		closeKeys = func() {}
 	}
 	if err != nil || keys == nil {
+		closeKeys()
+		return nil, ErrConfiguration
+	}
+	if profiled, ok := keys.(interface{ Environment() string }); ok && profiled.Environment() != c.ProviderEnvironment() {
 		closeKeys()
 		return nil, ErrConfiguration
 	}
@@ -128,17 +161,24 @@ func managed(ctx context.Context, c Config, f factories) (*Runtime, error) {
 		cleanup()
 		return nil, ErrServe
 	}
-	h, err := NewSQL(keys, db, cleanup)
+	profile, _ := plaidprofile.New(c.ProviderEnvironment())
+	h, err := NewSQLForProfile(keys, db, profile, cleanup)
 	if err != nil {
 		cleanup()
 		return nil, ErrConfiguration
 	}
+	h.approvalDeadline = expiry
 	return &Runtime{host: h, listen: c.Listen}, nil
 }
 
 // managedPool owns a dedicated webhook connector/pool and tests transport only, not SQL role authority.
 func managedPool(ctx context.Context, c clouddb.Config) (webhook.Beginner, func(), error) {
-	p, closeConnector, err := clouddb.Connector(ctx, c)
+	return managedPoolForEnvironment(ctx, c, "sandbox")
+}
+
+// managedPoolForEnvironment derives only the dedicated profile's webhook IAM login.
+func managedPoolForEnvironment(ctx context.Context, c clouddb.Config, environment string) (webhook.Beginner, func(), error) {
+	p, closeConnector, err := clouddb.ConnectorForEnvironment(ctx, c, environment)
 	if err != nil {
 		return nil, nil, ErrServe
 	}
@@ -182,18 +222,20 @@ func (c clientCredentials) Resolve(ctx context.Context) (webhook.Credentials, er
 // managedKeys creates inert bounded adapters with fixed secret paths and direct proxy-free transport.
 func managedKeys(c Config) (webhook.KeyProvider, func(), error) {
 	t := workerruntime.DirectTransport()
+	dependency := workerruntime.Config{Environment: c.ProviderEnvironment(), ApprovalExpiresAt: c.ApprovalExpiresAt}.ApprovedTransport(t)
 	closeAll := func() { t.CloseIdleConnections() }
-	tokens, err := workerruntime.NewMetadataTokens(t)
+	tokens, err := workerruntime.NewMetadataTokens(dependency)
 	if err != nil {
 		closeAll()
 		return nil, nil, ErrConfiguration
 	}
-	reader, err := providersecrets.NewGCPReader(providersecrets.GCPConfig{ProjectID: c.ProjectNumber, Tokens: tokens, Transport: t})
+	reader, err := providersecrets.NewGCPReader(providersecrets.GCPConfig{ProjectID: c.ProjectNumber, Tokens: tokens, Transport: dependency})
 	if err != nil {
 		closeAll()
 		return nil, nil, ErrConfiguration
 	}
-	keys, err := webhook.NewHTTPKeys(t, clientCredentials{reader: reader, id: c.ClientIDVersion, secret: c.ClientSecretVersion})
+	profile, _ := plaidprofile.New(c.ProviderEnvironment())
+	keys, err := webhook.NewHTTPKeysForProfile(dependency, clientCredentials{reader: reader, id: c.ClientIDVersion, secret: c.ClientSecretVersion}, profile)
 	if err != nil {
 		closeAll()
 		return nil, nil, ErrConfiguration

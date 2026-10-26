@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 )
 
 // Credentials exist only in memory and are never serialized except in the deliberate key request.
@@ -31,19 +33,28 @@ type CredentialSource interface {
 type HTTPKeys struct {
 	client      *http.Client
 	credentials CredentialSource
+	profile     plaidprofile.Profile
 }
 
 // NewHTTPKeys constructs an inert client; no credentials are resolved until a bounded cache miss.
 func NewHTTPKeys(t http.RoundTripper, c CredentialSource) (*HTTPKeys, error) {
-	if t == nil || c == nil {
-		return nil, errUnavailable
-	}
-	return &HTTPKeys{&http.Client{Transport: t, Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, c}, nil
+	return NewHTTPKeysForProfile(t, c, plaidprofile.Sandbox())
 }
 
-// Get fetches only the requested public key from fixed Sandbox, without redirect or retry.
+// NewHTTPKeysForProfile binds lazy key retrieval to one closed runtime destination before any credentials resolve.
+func NewHTTPKeysForProfile(t http.RoundTripper, c CredentialSource, p plaidprofile.Profile) (*HTTPKeys, error) {
+	if t == nil || c == nil || !p.Valid() {
+		return nil, errUnavailable
+	}
+	return &HTTPKeys{&http.Client{Transport: t, Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, c, p}, nil
+}
+
+// Environment identifies this capability's immutable profile, never event-provided routing.
+func (p *HTTPKeys) Environment() string { return p.profile.Environment() }
+
+// Get fetches only the requested public key from the fixed profile host, without redirect or retry.
 func (p *HTTPKeys) Get(parent context.Context, id string) (JWK, error) {
-	if !keyID.MatchString(id) {
+	if !p.profile.Valid() || !keyID.MatchString(id) {
 		return JWK{}, errInvalid
 	}
 	ctx, cancel := context.WithTimeout(parent, 3*time.Second)
@@ -56,12 +67,12 @@ func (p *HTTPKeys) Get(parent context.Context, id string) (JWK, error) {
 		return JWK{}, errUnavailable
 	}
 	raw, _ := json.Marshal(map[string]string{"client_id": c.ClientID, "secret": c.Secret, "key_id": id})
-	req, e := http.NewRequestWithContext(ctx, "POST", "https://sandbox.plaid.com/webhook_verification_key/get", bytes.NewReader(raw))
+	req, e := http.NewRequestWithContext(ctx, "POST", p.profile.BaseURL()+"/webhook_verification_key/get", bytes.NewReader(raw))
 	if e != nil {
 		return JWK{}, errUnavailable
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Plaid-Version", "2020-09-14")
+	req.Header.Set("Plaid-Version", plaidprofile.APIVersion)
 	response, e := p.client.Do(req)
 	if e != nil {
 		return JWK{}, errUnavailable
