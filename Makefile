@@ -170,3 +170,7 @@ sandbox-verification-test:
 .PHONY: verifier-bootstrap-test
 verifier-bootstrap-test:
 	bash scripts/test-verifier-bootstrap.sh
+
+.PHONY: production-journey-test
+production-journey-test:
+	bash scripts/test-app-integration.sh --production
