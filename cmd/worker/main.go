@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/acquisition"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/bankcredential"
@@ -23,6 +24,7 @@ import (
 type options struct {
 	Worker                                                                                            workerruntime.Config
 	MappingBucket, MappingPrefix, EvidenceBucket, ClientIDVersion, ClientSecretVersion, ProjectNumber string
+	BankKey, LinkKey                                                                                  string
 }
 
 // parse rejects unknown flags and suppresses argument contents in errors.
@@ -30,6 +32,10 @@ func parse(args []string) (options, error) {
 	var o options
 	f := flag.NewFlagSet("worker", flag.ContinueOnError)
 	f.SetOutput(io.Discard)
+	f.StringVar(&o.Worker.Environment, "provider-environment", "", "explicit sandbox or production; legacy omission is Sandbox")
+	f.StringVar(&o.Worker.ApprovalExpiresAt, "provider-approval-expires-at", "", "finite Production runtime approval deadline")
+	f.StringVar(&o.BankKey, "bank-credential-key", "", "approved Production bank cryptoKey resource")
+	f.StringVar(&o.LinkKey, "link-handoff-key", "", "approved Production Link cryptoKey resource for scope matching")
 	f.StringVar(&o.Worker.Mode, "mode", "", "publisher or consumer")
 	f.StringVar(&o.Worker.Listen, "listen", "127.0.0.1:8080", "explicit TCP listener")
 	f.StringVar(&o.Worker.Instance, "cloud-sql-instance", "", "project:us-central1:instance")
@@ -59,7 +65,7 @@ func parse(args []string) (options, error) {
 		return options{}, workerruntime.ErrConfiguration
 	}
 	if o.Worker.Mode == "publisher" {
-		if o.MappingBucket != "" || o.MappingPrefix != "" || o.EvidenceBucket != "" || o.ClientIDVersion != "" || o.ClientSecretVersion != "" || o.ProjectNumber != "" {
+		if o.MappingBucket != "" || o.MappingPrefix != "" || o.EvidenceBucket != "" || o.ClientIDVersion != "" || o.ClientSecretVersion != "" || o.ProjectNumber != "" || o.BankKey != "" || o.LinkKey != "" {
 			return options{}, workerruntime.ErrConfiguration
 		}
 	} else if o.MappingBucket == "" || o.MappingPrefix == "" || o.EvidenceBucket == "" || o.ClientIDVersion == "" || o.ClientSecretVersion == "" || o.ProjectNumber == "" {
@@ -72,14 +78,28 @@ func parse(args []string) (options, error) {
 		}
 	}
 	p := project(o.Worker.Instance)
-	expectedCaller := "jayburd-dev-task-invoker@" + p + ".iam.gserviceaccount.com"
+	prefix := "jayburd-dev"
+	if o.Worker.ProviderEnvironment() == "production" {
+		prefix = "jayburd-prod"
+	}
+	expectedCaller := prefix + "-task-invoker@" + p + ".iam.gserviceaccount.com"
 	if o.Worker.Mode == "publisher" {
-		expectedCaller = "jayburd-dev-scheduler@" + p + ".iam.gserviceaccount.com"
-		if o.Worker.Queue.Queue != "jayburd-dev-acquisition" || o.Worker.Queue.Location != "us-central1" || o.Worker.Queue.ServiceAccount != "jayburd-dev-task-invoker@"+p+".iam.gserviceaccount.com" {
+		expectedCaller = prefix + "-scheduler@" + p + ".iam.gserviceaccount.com"
+		if o.Worker.Queue.Queue != prefix+"-acquisition" || o.Worker.Queue.Location != "us-central1" || o.Worker.Queue.ServiceAccount != prefix+"-task-invoker@"+p+".iam.gserviceaccount.com" {
 			return options{}, workerruntime.ErrConfiguration
 		}
-	} else if o.MappingBucket != p+"-jayburd-dev-credential-registry" || o.MappingPrefix != "provider-credentials-v1" || o.EvidenceBucket != p+"-jayburd-dev-acquisition-evidence" || !secretVersion(o.ClientIDVersion, o.ProjectNumber, "jayburd-dev-bank-sync-client-id") || !secretVersion(o.ClientSecretVersion, o.ProjectNumber, "jayburd-dev-bank-sync-client-secret") {
+	} else if o.MappingBucket != p+"-"+prefix+"-credential-registry" || o.MappingPrefix != "provider-credentials-v1" || o.EvidenceBucket != p+"-"+prefix+"-acquisition-evidence" || !secretVersion(o.ClientIDVersion, o.ProjectNumber, prefix+"-bank-sync-client-id") || !secretVersion(o.ClientSecretVersion, o.ProjectNumber, prefix+"-bank-sync-client-secret") {
 		return options{}, workerruntime.ErrConfiguration
+	}
+	if o.Worker.Mode == "consumer" {
+		if o.Worker.ProviderEnvironment() == "production" {
+			policy := bankcredential.ProductionPolicy{BankKey: o.BankKey, LinkKey: o.LinkKey}
+			if !policy.Valid() || o.ProjectNumber == "9088794002" || !strings.HasPrefix(o.BankKey, "projects/"+p+"/") || !strings.HasPrefix(o.LinkKey, "projects/"+p+"/") {
+				return options{}, workerruntime.ErrConfiguration
+			}
+		} else if o.BankKey != "" || o.LinkKey != "" {
+			return options{}, workerruntime.ErrConfiguration
+		}
 	}
 	if o.Worker.Caller.Email != expectedCaller {
 		return options{}, workerruntime.ErrConfiguration
@@ -110,29 +130,36 @@ func project(instance string) string {
 
 // managed owns resolver/evidence HTTP resources and composes only concrete reviewed adapters.
 func managed(ctx context.Context, o options) (*workerruntime.Runtime, func(), error) {
+	if !o.Worker.ApprovedAt(time.Now()) {
+		return nil, nil, workerruntime.ErrUnavailable
+	}
 	if o.Worker.Mode == "publisher" {
 		r, e := workerruntime.Managed(ctx, o.Worker, workerruntime.ConsumerAdapters{})
 		return r, func() {}, e
 	}
 	t := workerruntime.DirectTransport()
+	dependency := o.Worker.ApprovedTransport(t)
 	cleanup := func() { t.CloseIdleConnections() }
-	tokens, e := workerruntime.NewMetadataTokens(t)
+	tokens, e := workerruntime.NewMetadataTokens(dependency)
 	if e != nil {
 		cleanup()
 		return nil, nil, workerruntime.ErrConfiguration
 	}
-	reader, e := providersecrets.NewGCPReader(providersecrets.GCPConfig{ProjectID: o.ProjectNumber, Tokens: tokens, Transport: t})
+	reader, e := providersecrets.NewGCPReader(providersecrets.GCPConfig{ProjectID: o.ProjectNumber, Tokens: tokens, Transport: dependency})
 	if e != nil {
 		cleanup()
 		return nil, nil, workerruntime.ErrConfiguration
 	}
 	wrapper, e := bankcredential.NewKMS("projects/"+project(o.Worker.Instance)+"/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials", tokens, t)
+	if o.Worker.ProviderEnvironment() == "production" {
+		wrapper, e = bankcredential.NewProductionKMS(o.BankKey, tokens, dependency)
+	}
 	if e != nil {
 		cleanup()
 		return nil, nil, workerruntime.ErrConfiguration
 	}
 	factory := func(db acquisition.Beginner) (acquisition.CredentialResolver, error) {
-		return bankcredential.NewResolver(db, wrapper, func(ctx context.Context) (acquisition.ProviderCredentials, error) {
+		static := func(ctx context.Context) (acquisition.ProviderCredentials, error) {
 			var result acquisition.ProviderCredentials
 			id, err := reader.Read(ctx, o.ClientIDVersion)
 			if err != nil {
@@ -145,9 +172,16 @@ func managed(ctx context.Context, o options) (*workerruntime.Runtime, func(), er
 			result.ClientID = string(id)
 			result.Secret = string(secret)
 			return result, nil
-		})
+		}
+		if o.Worker.ProviderEnvironment() == "production" {
+			return bankcredential.NewProductionResolver(db, wrapper, bankcredential.ProductionPolicy{BankKey: o.BankKey, LinkKey: o.LinkKey}, static)
+		}
+		return bankcredential.NewResolver(db, wrapper, static)
 	}
-	evidence, e := cloudevidence.New(o.EvidenceBucket, tokens, t)
+	evidence, e := cloudevidence.New(o.EvidenceBucket, tokens, dependency)
+	if o.Worker.ProviderEnvironment() == "production" {
+		evidence, e = cloudevidence.NewProduction(project(o.Worker.Instance), o.EvidenceBucket, tokens, dependency)
+	}
 	if e != nil {
 		cleanup()
 		return nil, nil, workerruntime.ErrConfiguration

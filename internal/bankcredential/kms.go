@@ -20,7 +20,7 @@ type Tokens interface {
 	AccessToken(context.Context) (string, error)
 }
 
-// KMS uses only the fixed Google endpoint and a reviewed development wrapping-key resource.
+// KMS uses only the fixed Google endpoint and one explicitly reviewed wrapping-key resource.
 type KMS struct {
 	key    string
 	tokens Tokens
@@ -29,6 +29,21 @@ type KMS struct {
 
 // Cloud KMS uses the canonical project ID, independently of numeric GSM references.
 var keyPattern = regexp.MustCompile(`^projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials$`)
+
+var productionKeyPattern = regexp.MustCompile(`^projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/locations/us-central1/keyRings/[A-Za-z0-9_-]{1,63}/cryptoKeys/[A-Za-z0-9_-]{1,63}$`)
+
+// ValidProductionKey rejects development keys and noncanonical resources before authentication.
+func ValidProductionKey(key string) bool {
+	return productionKeyPattern.MatchString(key) && !strings.Contains(key, "/keyRings/jayburd-dev/")
+}
+
+// NewProductionKMS pins one explicitly approved resource; SQL must independently authorize it.
+func NewProductionKMS(key string, tokens Tokens, transport http.RoundTripper) (*KMS, error) {
+	if !ValidProductionKey(key) || tokens == nil || transport == nil {
+		return nil, ErrUnavailable
+	}
+	return &KMS{key, tokens, &http.Client{Transport: transport, Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
+}
 
 // NewKMS validates configuration and performs no network access.
 func NewKMS(key string, tokens Tokens, transport http.RoundTripper) (*KMS, error) {

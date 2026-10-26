@@ -24,8 +24,28 @@ func linkAAD(scope connections.Scope, id string) ([]byte, error) {
 
 // sealLink uses a distinct profile and AAD from long-lived bank credentials.
 func sealLink(ctx context.Context, w Wrapper, scope connections.Scope, id string, token connections.Secret) (Envelope, error) {
+	return sealLinkEnvironment(ctx, w, scope, id, token, "sandbox")
+}
+
+// scopedLinkAAD preserves historical Sandbox tuples and authenticates Production explicitly.
+func scopedLinkAAD(scope connections.Scope, id, environment string) ([]byte, error) {
+	aad, e := linkAAD(scope, id)
+	if e != nil {
+		return nil, e
+	}
+	if environment == "sandbox" {
+		return aad, nil
+	}
+	if environment != "production" {
+		return nil, ErrUnavailable
+	}
+	return json.Marshal([]string{linkProfile, scope.Actor, scope.Entity, scope.Book, id, environment})
+}
+
+// sealLinkEnvironment adds no new cryptography; only the closed authenticated identity differs.
+func sealLinkEnvironment(ctx context.Context, w Wrapper, scope connections.Scope, id string, token connections.Secret, environment string) (Envelope, error) {
 	var empty Envelope
-	aad, err := linkAAD(scope, id)
+	aad, err := scopedLinkAAD(scope, id, environment)
 	if err != nil || w == nil || ctx.Err() != nil {
 		return empty, ErrUnavailable
 	}
@@ -68,8 +88,13 @@ func sealLink(ctx context.Context, w Wrapper, scope connections.Scope, id string
 
 // openLink authenticates the attempt binding before a server-side Plaid status lookup.
 func openLink(ctx context.Context, w Wrapper, scope connections.Scope, id string, value Envelope) (connections.Secret, error) {
+	return openLinkEnvironment(ctx, w, scope, id, value, "sandbox")
+}
+
+// openLinkEnvironment cannot reinterpret a retained Sandbox handoff as Production.
+func openLinkEnvironment(ctx context.Context, w Wrapper, scope connections.Scope, id string, value Envelope, environment string) (connections.Secret, error) {
 	var empty connections.Secret
-	aad, err := linkAAD(scope, id)
+	aad, err := scopedLinkAAD(scope, id, environment)
 	if err != nil || w == nil || ctx.Err() != nil || value.Profile != linkProfile || len(value.KeyVersion) > 512 || len(value.WrappedKey) > 11000 || len(value.Nonce) > 16 || len(value.Ciphertext) > 5500 {
 		return empty, ErrUnavailable
 	}
@@ -109,9 +134,15 @@ func openLink(ctx context.Context, w Wrapper, scope connections.Scope, id string
 
 // PutLink stores only authenticated ciphertext and checks a concurrent immutable winner.
 func (s *scopedStore) PutLink(ctx context.Context, id string, token connections.Secret) error {
-	value, err := sealLink(ctx, s.parent.wrapper, s.scope, id, token)
+	if s.AuthorizeProvider(ctx) != nil {
+		return ErrUnavailable
+	}
+	value, err := sealLinkEnvironment(ctx, s.parent.linkWrapper, s.scope, id, token, s.environment())
 	if err != nil {
 		return err
+	}
+	if s.linkEnvelope(value) != nil {
+		return ErrUnavailable
 	}
 	body, err := json.Marshal(value)
 	if err != nil {
@@ -124,10 +155,10 @@ func (s *scopedStore) PutLink(ctx context.Context, id string, token connections.
 	var result struct {
 		Envelope Envelope `json:"envelope"`
 	}
-	if json.Unmarshal(raw, &result) != nil {
+	if json.Unmarshal(raw, &result) != nil || s.linkEnvelope(result.Envelope) != nil {
 		return ErrUnavailable
 	}
-	stored, err := openLink(ctx, s.parent.wrapper, s.scope, id, result.Envelope)
+	stored, err := openLinkEnvironment(ctx, s.parent.linkWrapper, s.scope, id, result.Envelope, s.environment())
 	if err != nil {
 		return err
 	}
@@ -144,6 +175,9 @@ func (s *scopedStore) PutLink(ctx context.Context, id string, token connections.
 // ReadLink reauthorizes the exact attempt in SQL before unwrapping its token.
 func (s *scopedStore) ReadLink(ctx context.Context, id string) (connections.Secret, error) {
 	var empty connections.Secret
+	if s.AuthorizeProvider(ctx) != nil {
+		return empty, ErrUnavailable
+	}
 	if _, err := linkAAD(s.scope, id); err != nil {
 		return empty, err
 	}
@@ -154,8 +188,8 @@ func (s *scopedStore) ReadLink(ctx context.Context, id string) (connections.Secr
 	var result struct {
 		Envelope *Envelope `json:"envelope"`
 	}
-	if json.Unmarshal(raw, &result) != nil || result.Envelope == nil {
+	if json.Unmarshal(raw, &result) != nil || result.Envelope == nil || s.linkEnvelope(*result.Envelope) != nil {
 		return empty, ErrUnavailable
 	}
-	return openLink(ctx, s.parent.wrapper, s.scope, id, *result.Envelope)
+	return openLinkEnvironment(ctx, s.parent.linkWrapper, s.scope, id, *result.Envelope, s.environment())
 }

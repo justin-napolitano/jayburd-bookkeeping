@@ -68,7 +68,11 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 		if _, present := os.LookupEnv("JAYBURD_DATABASE_URL"); present {
 			return Dependencies{}, errConfiguration
 		}
-		cfg, closeTransport, err = clouddb.Connector(ctx, clouddb.Config{Instance: c.CloudSQLInstance, Component: "api"})
+		environment := c.ProviderEnvironment
+		if environment == "" {
+			environment = "sandbox"
+		}
+		cfg, closeTransport, err = clouddb.ConnectorForEnvironment(ctx, clouddb.Config{Instance: c.CloudSQLInstance, Component: "api"}, environment)
 	} else {
 		cfg, err = poolConfig(c.DatabaseURL)
 	}

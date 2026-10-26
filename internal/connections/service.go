@@ -26,6 +26,7 @@ type Service struct {
 	secrets          SecretStore
 	creatorLogins    *WorkerLogins
 	providerApproved func() bool
+	environment      string
 }
 
 // New composes injected boundaries without startup credential discovery.
@@ -55,6 +56,7 @@ type attemptContext struct {
 	ExecuteLink               bool      `json:"execute_link"`
 	ExecuteProvider           bool      `json:"execute_provider"`
 	ItemConsentExpiresAt      string    `json:"item_consent_expires_at"`
+	Environment               string    `json:"environment"`
 }
 
 // verifiedHostedCompletion is created only from a trusted server lookup inside Execute, never transport input.
@@ -121,11 +123,38 @@ func (s *Service) ready(scope Scope) error {
 
 // context validates SQL routing metadata before any provider or secret-store operation.
 func (s *Service) context(ctx context.Context, scope Scope, id string) (attemptContext, error) {
+	if e := s.authorizeProvider(ctx, scope); e != nil {
+		return attemptContext{}, e
+	}
 	raw, e := s.repo.call(ctx, "connection_context", scope.Actor, scope.Entity, scope.Book, id)
 	if e != nil {
 		return attemptContext{}, e
 	}
-	return decodeContext(raw, scope, id)
+	return s.decodeContext(raw, scope, id)
+}
+
+// decodeContext applies explicit runtime profile matching to current private SQL projections.
+func (s *Service) decodeContext(raw []byte, scope Scope, id string) (attemptContext, error) {
+	c, e := decodeContext(raw, scope, id)
+	if e != nil {
+		return c, e
+	}
+	if s.environment != "" && c.Environment != s.environment || s.environment == "" && c.Environment != "" && c.Environment != "sandbox" {
+		return c, failed("invalid_metadata")
+	}
+	return c, nil
+}
+
+// authorizeProvider checks scoped runtime/key authority before durable begin or external dependency work.
+func (s *Service) authorizeProvider(ctx context.Context, scope Scope) error {
+	if s.environment == "" {
+		return nil
+	}
+	store, ok := s.secretStore(scope).(interface{ AuthorizeProvider(context.Context) error })
+	if !ok || store.AuthorizeProvider(ctx) != nil {
+		return failed("temporarily_unavailable")
+	}
+	return nil
 }
 
 // decodeContext rejects cross-scope or malformed trusted routing metadata.
@@ -151,7 +180,7 @@ func (s *Service) privateCall(ctx context.Context, scope Scope, id, op string, a
 	if e != nil {
 		return attemptContext{}, e
 	}
-	return decodeContext(raw, scope, id)
+	return s.decodeContext(raw, scope, id)
 }
 
 // Begin creates one durable attempt before returning an ephemeral Link handoff.
@@ -168,6 +197,9 @@ func (s *Service) Begin(parent context.Context, scope Scope, key string, input B
 	}
 	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
 	defer cancel()
+	if e := s.authorizeProvider(ctx, scope); e != nil {
+		return out, e
+	}
 	op := "begin_connection"
 	args := []any{scope.Actor, scope.Entity, scope.Book, key, jsonText(input)}
 	if s.creatorLogins != nil {
@@ -184,7 +216,7 @@ func (s *Service) Begin(parent context.Context, scope Scope, key string, input B
 	if json.Unmarshal(raw, &identity) != nil {
 		return out, failed("invalid_metadata")
 	}
-	c, e := decodeContext(raw, scope, identity.AttemptID)
+	c, e := s.decodeContext(raw, scope, identity.AttemptID)
 	if e != nil {
 		return out, e
 	}
@@ -534,7 +566,14 @@ func (s *Service) recovery(ctx context.Context, scope Scope, c attemptContext, r
 
 // reference requires an exact SQL-selected immutable credential version and Item.
 func reference(c attemptContext, old bool) (CredentialReference, error) {
-	r := CredentialReference{ReferenceID: value(c.CredentialRef), Version: value(c.CredentialVersion), Environment: "sandbox"}
+	environment := c.Environment
+	if environment == "" {
+		environment = "sandbox"
+	} // Legacy synthetic repositories predate explicit profile projections.
+	if environment != "sandbox" && environment != "production" {
+		return CredentialReference{}, failed("invalid_metadata")
+	}
+	r := CredentialReference{ReferenceID: value(c.CredentialRef), Version: value(c.CredentialVersion), Environment: environment}
 	if c.Manifest != nil {
 		r.ItemID = c.Manifest.ItemID
 	}

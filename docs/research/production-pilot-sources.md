@@ -1,5 +1,18 @@
 # Production pilot source review
 
+## PP08 — credential/runtime source review, 2026-10-26
+
+[Google KMS AAD](https://docs.cloud.google.com/kms/docs/additional-authenticated-data),
+overview/When to use AAD/confused-deputy explanation reviewed: equal AAD is required
+to decrypt; it authenticates context, not permissions. [Secret Manager version access](https://docs.cloud.google.com/secret-manager/docs/access-secret-version),
+intro/required-role/version-ID sections reviewed: access returns a value and accepts
+versions or aliases. We choose exact numeric pins and owner delivery evidence,
+not mutable latest. [Plaid API overview](https://plaid.com/docs/api/), protocol,
+host/storage sections refreshed: closed environments and protected credentials;
+no account/Dashboard/secret access. These are selected public guide sections, not
+entire API manuals, normative ISO, IAM deployment proof or cryptographic certification.
+Applied engineering decision: [Production runtime](../contracts/production-runtime.md).
+
 #308/#90; reviewed selected public official sections on2026-10-24. These are
 engineering sources, not accounting-policy or Production-access approval. No
 Dashboard keys, private profile/questionnaire answers or financial records read.
