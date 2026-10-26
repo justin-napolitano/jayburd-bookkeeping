@@ -223,6 +223,9 @@ func TestHostedRepairSQLRoleAndReceiptBoundary(t *testing.T) {
 	_, e := invoke(t, db, "synthetic_webhook", "SELECT integration.get_connection_attempt($1,$2,$3,$4)::text", actor, entity, book, a["attempt_id"])
 	requireCode(t, e, "42501")
 	_, e = invoke(t, db, "synthetic_webhook", "SELECT integration.accept_verified_link_session('production',$1,$2)::text", repairHash("key"), wire)
+	// Production is a valid profile; a Sandbox receiver still has no authority in it.
+	requireCode(t, e, "P2801")
+	_, e = invoke(t, db, "synthetic_webhook", "SELECT integration.accept_verified_link_session('unknown',$1,$2)::text", repairHash("key"), wire)
 	requireCode(t, e, "P2800")
 	_, e = invoke(t, db, "synthetic_webhook", "SELECT integration.accept_verified_link_session('sandbox',$1,$2)::text", repairHash("key"), strings.TrimSuffix(wire, "}")+`,"actor_id":"untrusted"}`)
 	requireCode(t, e, "P2800")

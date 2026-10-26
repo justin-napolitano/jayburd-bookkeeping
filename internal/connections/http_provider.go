@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 	"unicode/utf8"
 
@@ -25,12 +26,22 @@ import (
 type HTTPConfig struct {
 	ClientID, ClientSecret Secret
 	ConsentExpiresAt       time.Time
-	WebhookURL             string // Empty retains legacy enrollment and disables repair; only the reviewed Sandbox receiver is allowed.
+	WebhookURL             string // Empty disables notifications/repair; nonempty selects the profile's canonical receiver.
 	HostedRepair           bool   // Separate explicit qualification opt-in; an existing Transactions webhook setting never enables repair.
+	WebhookProjectNumber   string // Trusted Production deployment metadata; never supplied by browser JSON.
 }
 
 // SandboxTransactionsWebhookURL pins the dedicated receiver; request metadata cannot redirect notifications.
 const SandboxTransactionsWebhookURL = "https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid"
+
+// ProductionTransactionsWebhookURL derives one canonical nondevelopment receiver, never arbitrary HTTPS routing.
+func ProductionTransactionsWebhookURL(projectNumber string) (string, error) {
+	n, e := strconv.ParseUint(projectNumber, 10, 63)
+	if e != nil || n == 0 || strconv.FormatUint(n, 10) != projectNumber || projectNumber == "9088794002" {
+		return "", failed("configuration_error")
+	}
+	return "https://jayburd-prod-webhook-" + projectNumber + ".us-central1.run.app/webhooks/plaid", nil
+}
 
 // HTTPProvider is a closed-profile adapter; legacy construction stays Sandbox and performs no network I/O.
 type HTTPProvider struct {
@@ -52,12 +63,23 @@ func NewHTTPProvider(config HTTPConfig, transport http.RoundTripper) (*HTTPProvi
 }
 
 // NewHTTPProviderForProfile chooses only a reviewed destination, not SQL, credential-origin or runtime authority.
-// Production notification/repair composition remains unavailable until its separately reviewed integration.
+// Notification and repair opt-ins require the selected profile's canonical receiver metadata.
 func NewHTTPProviderForProfile(config HTTPConfig, profile plaidprofile.Profile, transport http.RoundTripper) (*HTTPProvider, error) {
 	if !profile.Valid() || transport == nil || !secretValid(config.ClientID) || !secretValid(config.ClientSecret) || !config.ConsentExpiresAt.After(time.Now()) || config.ConsentExpiresAt.Year() > 9999 ||
-		profile.Environment() == "sandbox" && (config.WebhookURL != "" && config.WebhookURL != SandboxTransactionsWebhookURL || config.HostedRepair && config.WebhookURL != SandboxTransactionsWebhookURL) ||
-		profile.Environment() == "production" && (config.WebhookURL != "" || config.HostedRepair) {
+		profile.Environment() == "sandbox" && (config.WebhookURL != "" && config.WebhookURL != SandboxTransactionsWebhookURL || config.HostedRepair && config.WebhookURL != SandboxTransactionsWebhookURL || config.WebhookProjectNumber != "") {
 		return nil, failed("configuration_error")
+	}
+	if profile.Environment() == "production" {
+		if config.WebhookURL == "" {
+			if config.WebhookProjectNumber != "" || config.HostedRepair {
+				return nil, failed("configuration_error")
+			}
+		} else {
+			expected, e := ProductionTransactionsWebhookURL(config.WebhookProjectNumber)
+			if e != nil || config.WebhookURL != expected {
+				return nil, failed("configuration_error")
+			}
+		}
 	}
 	clientID, version := config.ClientID.value, plaidprofile.APIVersion
 	options := core.NewRequestOptions(option.WithBaseURL(profile.BaseURL()),

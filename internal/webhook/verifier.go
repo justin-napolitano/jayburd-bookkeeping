@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 )
 
 // Verifier owns a small environment-fixed key cache; callers cannot select a key URL.
@@ -26,14 +27,23 @@ type Verifier struct {
 	misses   int
 	lookup   chan struct{}
 	now      func() time.Time
+	profile  plaidprofile.Profile
 }
 
 // NewVerifier constructs an inert verifier without external I/O.
 func NewVerifier(p KeyProvider) (*Verifier, error) {
-	if p == nil {
+	return NewVerifierForProfile(p, plaidprofile.Sandbox())
+}
+
+// NewVerifierForProfile never shares a cache across environments and rejects mismatched typed key capabilities.
+func NewVerifierForProfile(p KeyProvider, profile plaidprofile.Profile) (*Verifier, error) {
+	if p == nil || !profile.Valid() {
 		return nil, errUnavailable
 	}
-	return &Verifier{provider: p, cache: map[string]cachedKey{}, lookup: make(chan struct{}, 1), now: time.Now}, nil
+	if keyed, ok := p.(interface{ Environment() string }); ok && keyed.Environment() != profile.Environment() {
+		return nil, errUnavailable
+	}
+	return &Verifier{provider: p, cache: map[string]cachedKey{}, lookup: make(chan struct{}, 1), now: time.Now, profile: profile}, nil
 }
 
 // segment enforces canonical unpadded URL encoding, preventing equivalent alternate receipt identities.
@@ -131,6 +141,9 @@ func (v *Verifier) key(ctx context.Context, id string) (JWK, error) {
 
 // Verify authenticates original bytes and returns only the reviewed metadata projection.
 func (v *Verifier) Verify(ctx context.Context, token string, body []byte) (Verified, error) {
+	if !v.profile.Valid() {
+		return Verified{}, errInvalid
+	}
 	if ctx.Err() != nil {
 		return Verified{}, errUnavailable
 	}
@@ -196,9 +209,9 @@ func (v *Verifier) Verify(ctx context.Context, token string, body []byte) (Verif
 	if json.Unmarshal(body, &kind) != nil {
 		return Verified{}, errInvalid
 	}
-	verified := Verified{Environment: "sandbox", BodySHA256: claims.Hash, IssuedAt: claims.Issued}
+	verified := Verified{Environment: v.profile.Environment(), BodySHA256: claims.Hash, IssuedAt: claims.Issued}
 	if kind.Type == "LINK" {
-		verified.session, e = parseLinkSession(body)
+		verified.session, e = parseLinkSessionForProfile(body, v.profile)
 		if e != nil {
 			return Verified{}, e
 		}
@@ -212,7 +225,7 @@ func (v *Verifier) Verify(ctx context.Context, token string, body []byte) (Verif
 			Initial     *bool   `json:"initial_update_complete"`
 			Historical  *bool   `json:"historical_update_complete"`
 		}
-		if object(body, []string{"webhook_type", "webhook_code", "item_id", "environment", "initial_update_complete", "historical_update_complete"}, []string{"user_id"}, &event) != nil || event.Type != "TRANSACTIONS" || event.Code != "SYNC_UPDATES_AVAILABLE" || event.Environment != "sandbox" || !opaque.MatchString(event.Item) || event.User != nil && !opaque.MatchString(*event.User) || event.Initial == nil || event.Historical == nil {
+		if object(body, []string{"webhook_type", "webhook_code", "item_id", "environment", "initial_update_complete", "historical_update_complete"}, []string{"user_id"}, &event) != nil || event.Type != "TRANSACTIONS" || event.Code != "SYNC_UPDATES_AVAILABLE" || event.Environment != v.profile.Environment() || !opaque.MatchString(event.Item) || event.User != nil && !opaque.MatchString(*event.User) || event.Initial == nil || event.Historical == nil {
 			return Verified{}, errInvalid
 		}
 		verified.ItemID = event.Item
