@@ -3,6 +3,8 @@ package webhook
 import (
 	"crypto/sha256"
 	"encoding/hex"
+
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 )
 
 // verifiedLinkSession contains only the closed operational proof, never raw tokens or ownership.
@@ -33,6 +35,14 @@ func tokenHash(s string) string {
 // parseLinkSession validates the modern signed event profile and discards optional public tokens/user ID.
 // Provider Item identity and completion time are deliberately absent: SQL owns association and eligibility.
 func parseLinkSession(body []byte) (*verifiedLinkSession, error) {
+	return parseLinkSessionForProfile(body, plaidprofile.Sandbox())
+}
+
+// parseLinkSessionForProfile compares authenticated event origin to trusted runtime metadata before hashing identity.
+func parseLinkSessionForProfile(body []byte, profile plaidprofile.Profile) (*verifiedLinkSession, error) {
+	if !profile.Valid() {
+		return nil, errInvalid
+	}
 	var event struct {
 		Type        string   `json:"webhook_type"`
 		Code        string   `json:"webhook_code"`
@@ -46,7 +56,7 @@ func parseLinkSession(body []byte) (*verifiedLinkSession, error) {
 	}
 	if object(body, []string{"webhook_type", "webhook_code", "status", "link_token", "link_session_id", "environment"},
 		[]string{"public_token", "public_tokens", "user_id"}, &event) != nil ||
-		event.Type != "LINK" || event.Code != "SESSION_FINISHED" || event.Environment != "sandbox" ||
+		event.Type != "LINK" || event.Code != "SESSION_FINISHED" || event.Environment != profile.Environment() ||
 		(event.Status != "success" && event.Status != "exited") || !boundedToken(event.Link, 4096) ||
 		!boundedToken(event.Session, 256) || event.Public != nil && !boundedToken(*event.Public, 4096) ||
 		event.User != nil && !boundedToken(*event.User, 256) || len(event.Publics) > 25 {
