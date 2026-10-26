@@ -151,5 +151,7 @@ jobs:
         run: make app-integration
       - name: Prove synthetic connection through source posting
         run: make connection-browser-test
+      - name: Prove fictional Production profile through browser and restricted SQL
+        run: make production-journey-test
       - name: Prove generated demo balances and cent display
         run: make demo-test

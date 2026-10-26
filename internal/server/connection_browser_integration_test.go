@@ -27,6 +27,7 @@ import (
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/staging"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 )
 
 var appProofConnections = flag.Bool("app-proof-connections", false, "Inject fictional connection and acquisition dependencies only in disposable browser proof")
@@ -42,6 +43,7 @@ const connectionProofClaim = "10000000-0000-4000-8000-000000000030"
 // connectionProofProvider drives the real SDK adapter through fictional HTTP responses.
 type connectionProofProvider struct {
 	*connections.HTTPProvider
+	profile     plaidprofile.Profile
 	exchanges   atomic.Int64
 	completions atomic.Int64
 	removals    atomic.Int64
@@ -50,7 +52,7 @@ type connectionProofProvider struct {
 
 // RoundTrip counts provider effects and never sends a request outside the synthetic fixture.
 func (p *connectionProofProvider) RoundTrip(r *http.Request) (*http.Response, error) {
-	if r.URL.Scheme != "https" || r.URL.Host != "sandbox.plaid.com" || r.Header.Get("PLAID-CLIENT-ID") != "synthetic-client" || r.Header.Get("PLAID-SECRET") != "synthetic-secret" {
+	if r.URL.Scheme != "https" || r.URL.Host != p.profile.BaseURL()[8:] || r.Header.Get("PLAID-CLIENT-ID") != "synthetic-client" || r.Header.Get("PLAID-SECRET") != "synthetic-secret" {
 		return nil, errors.New("wrong provider routing")
 	}
 	var body map[string]json.RawMessage
@@ -107,15 +109,24 @@ func (p *connectionProofProvider) RoundTrip(r *http.Request) (*http.Response, er
 	default:
 		return nil, errors.New("unexpected provider operation")
 	}
+	if p.profile.Environment() == "production" && r.URL.Path == "/accounts/get" {
+		data = `{"item":{"item_id":"synthetic-flow-item"},"accounts":[{"account_id":"synthetic-flow-account","type":"depository","subtype":"checking","balances":{"iso_currency_code":"USD","current":9007199254740993.01}}]}`
+	}
 	return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(data))}, nil
 }
 
 // connectionProofTransport intercepts the pinned production adapter; no request reaches Plaid.
-type connectionProofTransport struct{ calls atomic.Int64 }
+type connectionProofTransport struct {
+	calls      atomic.Int64
+	production bool
+}
 
 // RoundTrip verifies account filtering and serves exact original decimal bytes.
 func (p *connectionProofTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	p.calls.Add(1)
+	if p.production {
+		return productionJourneyPage(r)
+	}
 	if r.URL.String() != "https://sandbox.plaid.com/transactions/sync" || r.Header.Get("Plaid-Version") != "2020-09-14" {
 		return nil, errors.New("wrong destination")
 	}
@@ -143,6 +154,8 @@ type connectionBrowserFixture struct {
 	admin     *pgx.Conn
 	provider  *connectionProofProvider
 	transport *connectionProofTransport
+	worker    *pgxpool.Pool
+	claim     string
 }
 
 // bootstrapConnectionBrowser supplies creator evidence but leaves connection provisioning to the runtime API.
@@ -181,14 +194,22 @@ func bootstrapConnectionBrowser(t *testing.T, ctx context.Context, admin *pgx.Co
 	if err != nil {
 		t.Fatal("evidence composition failed")
 	}
-	provider, transport := &connectionProofProvider{}, &connectionProofTransport{}
-	provider.HTTPProvider, err = connections.NewHTTPProvider(connections.HTTPConfig{
+	profile := plaidprofile.Sandbox()
+	if *appProofProduction {
+		profile, _ = plaidprofile.New("production")
+		configureProductionJourney(t, ctx, admin)
+	}
+	provider, transport := &connectionProofProvider{profile: profile}, &connectionProofTransport{production: *appProofProduction}
+	provider.HTTPProvider, err = connections.NewHTTPProviderForProfile(connections.HTTPConfig{
 		ClientID: connections.NewSecret("synthetic-client"), ClientSecret: connections.NewSecret("synthetic-secret"), ConsentExpiresAt: time.Date(2099, 1, 1, 0, 0, 0, 0, time.UTC),
-	}, provider)
+	}, profile, provider)
 	if err != nil {
 		t.Fatal("SDK fixture composition failed", err)
 	}
 	store, err := bankcredential.NewAPIStore(pool, browserKeyWrapper{})
+	if *appProofProduction {
+		store, err = bankcredential.NewProductionAPIStore(pool, productionJourneyWrapper{key: productionJourneyBank}, productionJourneyWrapper{key: productionJourneyLink}, productionJourneyPolicy())
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +219,15 @@ func bootstrapConnectionBrowser(t *testing.T, ctx context.Context, admin *pgx.Co
 	if err != nil {
 		t.Fatal(err)
 	}
-	client, err := acquisition.NewPlaidHTTP(transport)
+	if *appProofProduction {
+		resolver, err = bankcredential.NewProductionResolver(workerPool, productionJourneyWrapper{key: productionJourneyBank}, productionJourneyPolicy(), func(context.Context) (acquisition.ProviderCredentials, error) {
+			return acquisition.ProviderCredentials{ClientID: "synthetic-client", Secret: "synthetic-secret"}, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	client, err := acquisition.NewPlaidHTTPForProfile(profile, transport)
 	if err != nil {
 		t.Fatal("synthetic provider composition failed")
 	}
@@ -207,10 +236,13 @@ func bootstrapConnectionBrowser(t *testing.T, ctx context.Context, admin *pgx.Co
 		t.Fatal("synthetic runner composition failed")
 	}
 	service, err := connections.NewForBookCreators(pool, provider, store, connections.WorkerLogins{Sync: "synthetic_connection_sync", Publisher: "synthetic_connection_publisher"})
+	if *appProofProduction {
+		service, err = connections.NewProductionWithApproval(pool, provider, store, time.Now().Add(time.Hour), time.Now)
+	}
 	if err != nil {
 		t.Fatal("creator onboarding composition failed", err)
 	}
-	return &connectionBrowserFixture{service: service, runner: runner, admin: admin, provider: provider, transport: transport}
+	return &connectionBrowserFixture{service: service, runner: runner, admin: admin, provider: provider, transport: transport, worker: workerPool, claim: connectionProofClaim}
 }
 
 // ServeHTTP triggers only the single fictional binding; it accepts no caller scope or provider data.
@@ -258,7 +290,7 @@ func (f *connectionBrowserFixture) ServeHTTP(w http.ResponseWriter, r *http.Requ
 			return
 		}
 	}
-	result, err := f.runner.Run(ctx, acquisition.Scope{EntityID: connectionProofEntity, BookID: connectionProofBook, StreamID: stream}, connectionProofClaim)
+	result, err := f.runner.Run(ctx, acquisition.Scope{EntityID: connectionProofEntity, BookID: connectionProofBook, StreamID: stream}, f.claim)
 	if err != nil {
 		writeProblem(w, 500, "proof_failed")
 		return

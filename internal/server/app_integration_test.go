@@ -48,6 +48,9 @@ func TestAppIntegrationServer(t *testing.T) {
 	if !*appProof {
 		t.Skip("disposable browser runner only")
 	}
+	if *appProofProduction && !*appProofConnections {
+		t.Fatal("Production fixture requires explicit connection proof mode")
+	}
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 	setupCtx, stop := context.WithTimeout(ctx, 15*time.Second)
@@ -94,6 +97,9 @@ func TestAppIntegrationServer(t *testing.T) {
 	var connectionFixture *connectionBrowserFixture
 	var connectionService *connections.Service
 	if *appProofConnections {
+		if *appProofProduction && *appProofDemo {
+			t.Fatal("exclusive Production fixture")
+		}
 		if *appProofDemo {
 			t.Fatal("proof fixture modes are exclusive")
 		}
@@ -109,7 +115,11 @@ func TestAppIntegrationServer(t *testing.T) {
 	}
 	handler := app.HTTP.Handler
 	if connectionFixture != nil {
-		handler = connectionFixture.wrap(handler)
+		if *appProofProduction {
+			handler = productionJourneyWrap(connectionFixture, handler)
+		} else {
+			handler = connectionFixture.wrap(handler)
+		}
 	}
 	if acquisition != nil {
 		demoHandler, e := ledger.BrowserBoundary("http://localhost:39083", acquisition)
