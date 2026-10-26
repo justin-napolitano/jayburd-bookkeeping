@@ -1,4 +1,4 @@
-// Package connectionruntime composes optional Sandbox enrollment using explicit managed secret capabilities.
+// Package connectionruntime composes optional closed-profile enrollment from explicit managed capabilities.
 package connectionruntime
 
 import (
@@ -12,6 +12,7 @@ import (
 
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/bankcredential"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/plaidprofile"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/providersecrets"
 )
 
@@ -34,6 +35,7 @@ type Config struct {
 	ClientIDVersion, ClientSecretVersion                                       string
 	ConsentExpiresAt                                                           string
 	WebhookURL                                                                 string
+	Environment, BankKey, LinkKey                                              string
 }
 
 // Tokens separates runtime identity minting from static secrets and permits synthetic tests without discovery.
@@ -54,6 +56,12 @@ func (c Config) validateAt(now time.Time) error {
 			return ErrConfiguration
 		}
 		return nil
+	}
+	if c.Environment == "production" {
+		return c.validateProduction(now)
+	}
+	if c.Environment != "" && c.Environment != "sandbox" || c.BankKey != "" || c.LinkKey != "" {
+		return ErrConfiguration
 	}
 	// Notification routing is an explicit single-project capability, never arbitrary HTTPS configuration.
 	if c.HostedRepair && c.WebhookURL != connections.SandboxTransactionsWebhookURL {
@@ -115,6 +123,9 @@ func newWithClock(parent context.Context, c Config, db connections.Beginner, tra
 	expiry, _ := time.Parse(time.RFC3339, c.ConsentExpiresAt)
 	logins := connections.WorkerLogins{Sync: "jayburd-dev-sync@" + c.ProjectID + ".iam", Publisher: "jayburd-dev-publisher@" + c.ProjectID + ".iam"}
 	withoutProvider := func() (*connections.Service, error) {
+		if c.Environment == "production" {
+			return connections.NewProductionWithApproval(db, nil, nil, expiry, now)
+		}
 		return connections.NewForBookCreatorsWithApproval(db, nil, nil, logins, expiry, now)
 	}
 	if !expiry.After(now()) {
@@ -127,10 +138,20 @@ func newWithClock(parent context.Context, c Config, db connections.Beginner, tra
 		return nil, ErrConfiguration
 	}
 	wrapper, e := bankcredential.NewKMS("projects/"+c.ProjectID+"/locations/us-central1/keyRings/jayburd-dev/cryptoKeys/bank-credentials", tokens, transport)
+	if c.Environment == "production" {
+		wrapper, e = bankcredential.NewProductionKMS(c.BankKey, tokens, transport)
+	}
 	if e != nil {
 		return nil, ErrConfiguration
 	}
 	store, e := bankcredential.NewAPIStore(db, wrapper)
+	if c.Environment == "production" {
+		link, err := bankcredential.NewProductionKMS(c.LinkKey, tokens, transport)
+		if err != nil {
+			return nil, ErrConfiguration
+		}
+		store, e = bankcredential.NewProductionAPIStore(db, wrapper, link, bankcredential.ProductionPolicy{BankKey: c.BankKey, LinkKey: c.LinkKey})
+	}
 	if e != nil {
 		return nil, ErrConfiguration
 	}
@@ -159,14 +180,50 @@ func newWithClock(parent context.Context, c Config, db connections.Beginner, tra
 	if !expiry.After(now()) {
 		return withoutProvider()
 	}
-	provider, e := connections.NewHTTPProvider(connections.HTTPConfig{ClientID: connections.NewSecret(string(id)), ClientSecret: connections.NewSecret(string(secret)), ConsentExpiresAt: expiry, WebhookURL: c.WebhookURL, HostedRepair: c.HostedRepair}, transport)
+	profile := plaidprofile.Sandbox()
+	if c.Environment == "production" {
+		profile, _ = plaidprofile.New("production")
+	}
+	provider, e := connections.NewHTTPProviderForProfile(connections.HTTPConfig{ClientID: connections.NewSecret(string(id)), ClientSecret: connections.NewSecret(string(secret)), ConsentExpiresAt: expiry, WebhookURL: c.WebhookURL, HostedRepair: c.HostedRepair}, profile, transport)
 	if e != nil {
 		if !expiry.After(now()) {
 			return withoutProvider()
 		}
 		return nil, ErrUnavailable
 	}
+	if c.Environment == "production" {
+		return connections.NewProductionWithApproval(db, provider, store, expiry, now)
+	}
 	return connections.NewForBookCreatorsWithApproval(db, provider, store, logins, expiry, now)
+}
+
+// validateProduction requires explicit separated metadata; it never discovers actual resources or values.
+func (c Config) validateProduction(now time.Time) error {
+	expiry, e := time.Parse(time.RFC3339, c.ConsentExpiresAt)
+	if !project.MatchString(c.ProjectID) || c.ProjectID == "jayburd-bookkeeping-dev" || !number.MatchString(c.ProjectNumber) || c.ProjectNumber == "9088794002" || !nonzeroUUID(c.InfisicalProject) || !nonzeroUUID(c.InfisicalIdentity) || c.InfisicalEnvironment != "prod" || c.RegistryBucket != c.ProjectID+"-jayburd-prod-credential-registry" || c.RegistryPrefix != "provider-credentials-v1" || e != nil || expiry.IsZero() || expiry.Year() < 1 || expiry.After(now.Add(30*24*time.Hour)) || c.WebhookURL != "" || c.HostedRepair {
+		return ErrConfiguration
+	}
+	if c.InfisicalOrigin != "https://us.infisical.com" && c.InfisicalOrigin != "https://eu.infisical.com" && c.InfisicalOrigin != "https://app.infisical.com" {
+		return ErrConfiguration
+	}
+	p := bankcredential.ProductionPolicy{BankKey: c.BankKey, LinkKey: c.LinkKey}
+	if !p.Valid() || !strings.HasPrefix(c.BankKey, "projects/"+c.ProjectID+"/") || !strings.HasPrefix(c.LinkKey, "projects/"+c.ProjectID+"/") {
+		return ErrConfiguration
+	}
+	for i, v := range []string{c.ClientIDVersion, c.ClientSecretVersion} {
+		name := []string{"jayburd-prod-bank-sync-client-id", "jayburd-prod-bank-sync-client-secret"}[i]
+		parts := resource.FindStringSubmatch(v)
+		if !strings.HasPrefix(v, "projects/"+c.ProjectNumber+"/secrets/"+name+"/versions/") || len(parts) != 3 || !positiveNumber(parts[2]) {
+			return ErrConfiguration
+		}
+	}
+	return nil
+}
+
+// positiveNumber excludes overflow and aliases from immutable destination version pins.
+func positiveNumber(s string) bool {
+	n, e := strconv.ParseInt(s, 10, 64)
+	return e == nil && n > 0 && strconv.FormatInt(n, 10) == s
 }
 
 // approvalTransport denies new dependency requests at expiry without invoking the underlying transport.

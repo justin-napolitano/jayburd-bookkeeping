@@ -19,6 +19,10 @@ func (*APIStore) ReadRepair(context.Context, string, connections.CredentialRefer
 func (s *scopedStore) ReadRepair(ctx context.Context, attempt string, expected connections.CredentialReference) (connections.StoredCredential, error) {
 	var empty connections.StoredCredential
 	b := Binding{s.scope.Entity, s.scope.Book, expected}
+	// Production owned repair remains a separately qualified SQL/runtime capability.
+	if expected.Environment != "sandbox" || s.authorizeReference(ctx, expected) != nil {
+		return empty, ErrUnavailable
+	}
 	if !validID(s.scope.Actor) || !validID(attempt) || ctx.Err() != nil {
 		return empty, ErrUnavailable
 	}

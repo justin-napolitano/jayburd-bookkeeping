@@ -52,7 +52,7 @@ func validID(s string) bool {
 func (b Binding) aad() ([]byte, error) {
 	r := b.Reference
 	n, e := strconv.ParseInt(r.Version, 10, 64)
-	if !validID(b.Entity) || !validID(b.Book) || !validID(r.ReferenceID) || e != nil || n < 1 || strconv.FormatInt(n, 10) != r.Version || r.Environment != "sandbox" || !tokenValid(r.ItemID) || len(r.ItemID) > 256 {
+	if !validID(b.Entity) || !validID(b.Book) || !validID(r.ReferenceID) || e != nil || n < 1 || strconv.FormatInt(n, 10) != r.Version || (r.Environment != "sandbox" && r.Environment != "production") || !tokenValid(r.ItemID) || len(r.ItemID) > 256 {
 		return nil, ErrUnavailable
 	}
 	return json.Marshal([]string{profile, b.Entity, b.Book, r.ReferenceID, r.Version, r.ItemID, r.Environment})

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/acquisition"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/clouddb"
@@ -28,6 +29,8 @@ var uuid = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-
 // Config contains identifiers only; mode chooses an exact private route and database capability.
 type Config struct {
 	Mode, Instance, Listen, BindingID, PublisherPolicy string
+	Environment                                        string
+	ApprovalExpiresAt                                  string
 	Caller                                             observer.CallerPolicy
 	Queue                                              observer.QueueConfig
 }
@@ -45,7 +48,15 @@ func (c Config) Validate() error {
 	if c.Mode != "publisher" && c.Mode != "consumer" {
 		return ErrConfiguration
 	}
-	if (clouddb.Config{Instance: c.Instance, Component: c.component()}).Validate() != nil {
+	if c.ProviderEnvironment() == "production" {
+		expiry, e := time.Parse(time.RFC3339, c.ApprovalExpiresAt)
+		if e != nil || expiry.IsZero() || expiry.Year() < 1 || expiry.After(time.Now().Add(30*24*time.Hour)) {
+			return ErrConfiguration
+		}
+	} else if c.ApprovalExpiresAt != "" {
+		return ErrConfiguration
+	}
+	if (clouddb.Config{Instance: c.Instance, Component: c.component()}).ValidateEnvironment(c.ProviderEnvironment()) != nil {
 		return ErrConfiguration
 	}
 	host, port, e := net.SplitHostPort(c.Listen)
@@ -63,6 +74,14 @@ func (c Config) Validate() error {
 		return ErrConfiguration
 	}
 	return nil
+}
+
+// ProviderEnvironment fixes omitted legacy worker metadata to Sandbox; unknown values are never normalized.
+func (c Config) ProviderEnvironment() string {
+	if c.Environment == "" {
+		return "sandbox"
+	}
+	return c.Environment
 }
 
 // Dependencies are injected capabilities, never raw credentials or caller-controlled provider routes.
