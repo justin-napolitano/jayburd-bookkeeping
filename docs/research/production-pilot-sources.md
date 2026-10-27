@@ -1,5 +1,28 @@
 # Production pilot source review
 
+## PP11 — public pilot pricing,2026-10-27
+
+[Cloud SQL pricing](https://cloud.google.com/sql/pricing): selected Iowa/us-central1
+shared-core, SSD and backup rows reviewed from public HTML (browser extraction
+exceeded size limit). Rates: micro0.0105/hour, small0.035/hour;
+SSD0.000232877/GiB-hour, backup-used0.000109589/GiB-hour. Shared CPU lacks SQL SLA.
+[Cloud Run pricing](https://cloud.google.com/run/pricing): selected request-based
+free tier/billing-account aggregation and active/idle sections reviewed. Allowances
+are shared across projects; scale-to-zero and low usage do not guarantee zero cost.
+[Plaid billing](https://plaid.com/docs/account/billing/): pricing/plans/Trial sections
+reviewed; public docs do not quote this owner's actual rates.
+[Plaid plan eligibility](https://support.plaid.com/hc/en-us/articles/16110502116887-What-are-Plaid-s-prices-and-pricing-plans-and-how-do-they-differ):
+selected Trial eligibility restrictions reviewed; existing Production applications
+can exclude Trial. No Dashboard/actual bill or private account inspected.
+
+Arithmetic uses730hours,10GiB SSD and10GiB total backup-used allowance; capacity,
+usage, region and prices need verification before provisioning. Approximately25USD
+for GCP only (Plaid excluded) is owner direction; candidate sizing/alerts/Sandbox scheduling are engineering
+proposals, not vendor guarantees or accepted purchases. Current source specifies
+db-g1-small; gcloud sizing readback unavailable (command not installed). No actual
+running size, free-tier balance or provider plan is established. PP10 budget
+limitations still apply. See mandate budget table and production-budget runbook.
+
 ## PP10 — pilot isolation/recovery proposal,2026-10-26
 
 [Cloud Run service identity](https://docs.cloud.google.com/run/docs/securing/service-identity),
