@@ -1,9 +1,9 @@
 # One-account Production pilot mandate — #337
 
-Status: PROPOSED2026-10-26; owner selections and security review pending. This is
+Status: PROPOSED2026-10-27; owner selections and security review pending. This is
 a concrete decision proposal, not a provisioning, spend, credential or live-data
-approval. #315/PR348 merged as6be6c48 after all five CI checks passed. #316 implementation
-still requires this accepted decision. Original review source maineaab6ee.
+approval. #315/PR348 merged as6be6c48 after all five CI checks passed. #316 offline source preparation may proceed with fictional targets; actual
+provisioning/activation requires this accepted decision. Original review source maineaab6ee.
 
 ## Proposed scope and owner selections
 
@@ -11,19 +11,57 @@ still requires this accepted decision. Original review source maineaab6ee.
 | --- | --- | --- |
 | Isolation | Separate Production GCP project, same Go/PostgreSQL/Next architecture | Owner accept additional project/SQL resource cost; no creation yet |
 | Project | `jayburd-bookkeeping-prod`, region `us-central1` | Actual availability, billing account and numeric project number; proposed name is not a provisioned target |
-| Account | One supported US Transactions account, one personal entity/book | Owner names bank, type and currency without sharing account numbers/credentials |
+| Account | One supported US Transactions account, one personal entity/book | Owner selects privately in Plaid; verify returned type/currency and supported capability before import |
 | Client | Desktop browser only | Exact browser/platform and institution/OAuth applicability before live use |
 | History | Request90 days; reconcile all actually returned dates and gaps | Owner selects reconciliation interval; request does not guarantee90-day availability |
 | Connection window | Seven days from separately approved activation | Exact UTC expiry in manifest; no automatic extension |
 | Bookkeeping | Owner-reviewed manual categories/journals; no automatic rules initially | Owner accepts book accounting policy, currency, period and post permission; no default Sandbox policy |
 | Bank authority | Transactions read access; no transfers/payments/money movement | Actual Plaid product/institution/account capability verified |
-| Cost | No spend authorized until a numeric monthly ceiling is chosen | Owner supplies ceiling;316 records sized-resource estimate and shutdown thresholds below it |
+| Cost | Owner target approximately USD25/month for GCP only, recorded2026-10-27 | Costed candidate below; target is not an enforced cap or new-resource purchase approval |
 | Incident owner | Repository owner Justin Napolitano | Owner accepts response responsibility and private contact channel |
 
 User direction to complete the prerequisites authorizes source/testing/planning;
-it does not fill missing bank/budget/policy selections. A text question requesting
-bank/type/currency and monthly ceiling is pending. Do not copy secrets or financial
+it does not settle missing deployment/policy decisions. Bank selection is not
+a prerequisite for offline release software. Actual account capability and book
+policy are verified in the private connection/setup flow. Do not copy secrets or financial
 records into an issue or this document.
+
+## Budget candidate and assumptions
+
+Owner target: approximately USD25/month for GCP only; owner explicitly excludes
+Plaid costs. For planning, include ongoing Sandbox hosting in that GCP total.
+Actual cloud usage and provider fees remain unverified.
+PP11 records public us-central1 prices, reviewed2026-10-27; 730 hours/month,
+USD list prices, no discounts/taxes/network assumptions:
+
+| SQL candidate | Monthly arithmetic | Consequence |
+| --- | --- | --- |
+| Existing checked-in dev db-g1-small | 730 ×0.035 =25.55 compute alone | Already above target before storage; source is not actual running-tier evidence |
+| One db-f1-micro | 730 ×0.0105 =7.665 compute; 10GiB SSD≈1.70; total backup-used allowance10GiB≈0.80 | Approximately10.17 before other services; shared CPU has no Cloud SQL SLA |
+| Two micro instances | Twice the preceding allowance≈20.33 | Leaves≈4.67 for all other usage; too little margin to promise25 total |
+
+Preferred candidate for review: isolated Production micro, scale-to-zero Cloud
+Run services, and Sandbox SQL operated only during bounded test sessions. This
+requires explicit review of dev availability and real workload capacity; no
+resource has been changed. Stopped Sandbox storage/backups still cost money.
+Keeping the current dev tier always on does not meet the planning target.
+Alternatively keep both micro databases running, accepting less headroom and
+shared-CPU limitations. Do not remove backups or IAM isolation to force a price.
+
+Cloud Run's billing-account-wide free allowance can help low usage but is not a
+per-project guarantee. Reserve headroom for Run, KMS, secrets, storage, images,
+builds, logging, restore rehearsals and network. Proposed alert thresholds15/20/25
+notify the owner; they do not impose a hard cap. Verify actual service quantities,
+backup usage and total bill before accepting the candidate. The read-only sizing
+attempt could not run because gcloud was unavailable; no live tier/bill verified.
+Plaid plan and actual fees require private Dashboard confirmation: free Trial
+eligibility is not assumed, especially for an existing Production-approved app.
+
+Acceptance evidence: reviewed itemized estimate including retained Sandbox costs,
+actual nonsecret sizing readback, bounded synthetic capacity/recovery results,
+and owner decision on test-environment availability. Confirm provider pricing
+separately; Plaid fees do not consume the USD25 GCP target.
+This source-only proposal authorizes no spend, resize, shutdown or deployment.
 
 ## Proposed target and capability separation
 
@@ -120,10 +158,11 @@ owner/security acceptance in337 before provisioning/activation. See
 
 ## Sources, standards and alternatives
 
-PP01–09 and PP10 in production-pilot-sources.md distinguish vendor mechanisms
+PP01–11 in production-pilot-sources.md distinguish vendor mechanisms
 from this project's proposed resource, retention, cost and authority choices.
 Cloud Run identity and Cloud SQL backup/billing selections reviewed2026-10-26;
-no account, actual project, price quote, ISO normative or jurisdictional retention
+PP11 adds public list-price sizing, not an account-specific quote. No account,
+actual project, ISO normative or jurisdictional retention
 rule reviewed. No ISO20022 message fits operational release/IAM metadata;
 existing Plaid API2020-09-14, original-unit ISO4217 and ISO21378 limits remain.
 

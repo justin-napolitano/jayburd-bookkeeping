@@ -1,8 +1,9 @@
 # Production release execution plan — #316
 
-Status: PLANNED2026-10-26; no316 source implementation or provisioning started.
-Hard gates: merged308/311–315 and accepted337 mandate, plus applicable actual
-qualification/dispositions. PR348 is now merged6be6c48 with all five exact-head checks PASS.
+Status: PLANNED2026-10-27; no316 source implementation or provisioning started.
+Source gates: merged308/311–315. Offline source/tests may use fictional targets.
+Accepted337 mandate and applicable actual qualification/dispositions gate real
+provisioning, activation and the final real release package. PR348 is now merged6be6c48 with all five exact-head checks PASS.
 Do not close316 from this plan. Exact targets/cost/expiry/retention remain pending
 [337 owner/security decision](../contracts/production-pilot-mandate.md).
 
@@ -10,7 +11,7 @@ Do not close316 from this plan. Exact targets/cost/expiry/retention remain pendi
 
 | Stage | Files/boundary to review | Acceptance evidence |
 | --- | --- | --- |
-| A: settle mandate |337 targets, identities, account/platform, policy, budget/retention and gate table | Accepted decision with named owner/security reviewer; no placeholders |
+| A: settle mandate before provisioning (parallel with offline B–F) |337 targets, identities, account/platform, policy, budget/retention and gate table | Accepted decision with named owner/security reviewer; no placeholders |
 | B: source/release contract | New Production manifest validator/synthetic fixtures; deploy docs; source/profile allowlist and compatibility | Canonical exact hash, explicit Production profile, numeric versions, source/image/schema ancestry; null/omitted/mixed/expired/extra fields deny before cloud auth |
 | C: identity/bootstrap | Extend existing migration/SQL-role bootstrap and scoped workload identity for Production, preserving development | Actual intended Production migrator/operator/runtime names; no implicit dev-derived login; fresh35 floor/status/checksums and least-privilege tests; synthetic-only default |
 | D: runtime delivery | Production composition for existing runtime/worker/webhook/foundation roots or reviewed reusable profile modules | Fixed nondev targets, exact API/origin/audiences/keys/static versions; private API/workers, approved signed receiver exposure; mocked IAM/role/cross-profile negatives; separate state |
@@ -19,7 +20,10 @@ Do not close316 from this plan. Exact targets/cost/expiry/retention remain pendi
 | G: qualification/release | Record applicable88/274/275/276/62/89 outcomes; private identity/secret delivery/resource readback | Concrete candidate with real public metadata and all applicable evidence, exact review hash, duration/cost/retention and human approval |
 | H: actual90 pilot | Separately authorized apply/migration/status/bootstrap/runtime/receiver/paused-worker rollout, verified sign-in, one fresh Item | Owner privately authenticates; controlled first sync; complete-set reconciliation with opening/closing balances and explained timing differences |
 
-StagesB–F are implementation after accepted predecessors, not performed tests.
+StagesB–F are planned offline implementation using fictional metadata after merged
+source predecessors; they need no upfront bank selection or cloud spending.
+Their tests are not yet performed. Actual337 decisions must replace every
+placeholder before final real release review.
 Claim one bounded issue/path lease at a time; create reviewed children if a stage
 cannot remain one bounded delivery. Coordinator serializes common CLI/CI/schema
 integration; no SQL migration planned unless a reviewed defect demands one.
@@ -43,8 +47,8 @@ helper only admits Production api/sync/publisher/webhook components; do not depl
 a dev-derived migration identity into Production. Runtime/worker/receiver image
 schema/key/environment compatibility must be enforced before rollout.
 
-Frontend Hosted Link instructions still say Sandbox despite profile-aware backend.
-Issue349 owns correcting that copy and its tests before actual Production use, without making a
+Issue349/PR351 mergedb75d7c7: Hosted Link copy is now environment-neutral, with
+unit/browser and both journey tests passing. This does not make a
 browser-selected environment authority. Prototype profile strings or backend
 configuration do not grant frontend permission to choose provider destinations.
 
@@ -67,5 +71,5 @@ gates and affected app/web/migration/ledger tests, with exact-head CI.
 
 No financial recognition/currency/message change: STD-01 operational release
 applicability, Plaid API2020-09-14, ISO4217 and current audit-access limits persist.
-PP10 documents selected cloud mechanisms; resource/cost/retention choices are
+PP10–11 document cloud mechanisms and the approximately USD25/month proposal; resource/cost/retention choices are
 project proposals. No successful deployment is live-bookkeeping approval.
