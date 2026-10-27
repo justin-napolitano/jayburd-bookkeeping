@@ -602,7 +602,7 @@ it.each([true, false])(
         name: retry ? "Try connecting again" : "Cancel setup",
       }),
     );
-    if (retry) await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+    if (retry) await screen.findByRole("link", { name: "Open Plaid" });
     else
       await screen.findByText(
         "Setup canceled. You can connect an account whenever you’re ready.",
@@ -679,7 +679,7 @@ it("cancels binding review with explicit confirmation and then starts over", asy
   );
   expect(screen.getByText(/Remove this unbound Plaid Item/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Confirm cancellation" }));
-  await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+  await screen.findByRole("link", { name: "Open Plaid" });
   expect(abandoned).toBe(true);
   expect(
     vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/abandon")),
@@ -1145,7 +1145,7 @@ it("Hosted completion stays pending, then exposes verified binding review", asyn
   await screen.findByText("No connected Items in this book.");
   fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
   const anchor = await screen.findByRole("link", {
-    name: "Open Plaid Sandbox",
+    name: "Open Plaid",
   });
   expect(anchor.getAttribute("rel")).toBe("noopener noreferrer");
   expect(anchor.getAttribute("referrerpolicy")).toBe("no-referrer");
@@ -1160,7 +1160,7 @@ it("Hosted completion stays pending, then exposes verified binding review", asyn
   await screen.findByRole("group", {
     name: "Review verified account bindings",
   });
-  expect(screen.queryByRole("link", { name: "Open Plaid Sandbox" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Open Plaid" })).toBeNull();
   expect(checks).toBe(2);
 });
 
@@ -1184,13 +1184,13 @@ it("expires Hosted navigation while preserving explicit completion recovery", as
       fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
     });
     expect(
-      screen.getByRole("link", { name: "Open Plaid Sandbox" }),
+      screen.getByRole("link", { name: "Open Plaid" }),
     ).toBeTruthy();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_001);
     });
     expect(
-      screen.queryByRole("link", { name: "Open Plaid Sandbox" }),
+      screen.queryByRole("link", { name: "Open Plaid" }),
     ).toBeNull();
     expect(screen.getByText(/This Plaid link has expired/)).toBeTruthy();
     expect(
@@ -1348,7 +1348,7 @@ it.each(["same tab", "after reload"])(
       fireEvent.click(
         await screen.findByRole("button", { name: "Connect account" }),
       );
-      await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+      await screen.findByRole("link", { name: "Open Plaid" });
     } else {
       fireEvent.click(
         await screen.findByRole("button", {
@@ -1511,7 +1511,7 @@ it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
     fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
     if (scenario === "unsafe URL") await screen.findByRole("alert");
     else {
-      await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+      await screen.findByRole("link", { name: "Open Plaid" });
       if (scenario === "scope change")
         view.rerender(<Connections {...p} locked />);
       else if (scenario === "cancel")
@@ -1527,7 +1527,7 @@ it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
     }
     await waitFor(() =>
       expect(
-        screen.queryByRole("link", { name: "Open Plaid Sandbox" }),
+        screen.queryByRole("link", { name: "Open Plaid" }),
       ).toBeNull(),
     );
     expect(p.link.open).not.toHaveBeenCalled();
@@ -1730,7 +1730,7 @@ it("inspects the exact Hosted attempt after conflict without repeating exchange"
   render(<Connections {...props(api)} link={{ open: vi.fn() }} />);
   await screen.findByText("No connected Items in this book.");
   fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
-  await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+  await screen.findByRole("link", { name: "Open Plaid" });
   fireEvent.click(
     screen.getByRole("button", { name: "Check bank setup completion" }),
   );
@@ -1794,7 +1794,7 @@ it.each([false, true])(
         name: retry ? "Try again" : "Cancel setup",
       }),
     );
-    if (retry) await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+    if (retry) await screen.findByRole("link", { name: "Open Plaid" });
     else
       await waitFor(() =>
         expect(
@@ -1854,7 +1854,7 @@ it.each(["abandoned", "exchange_claimed"])(
     render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
     fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
     if (state === "abandoned")
-      await screen.findByRole("link", { name: "Open Plaid Sandbox" });
+      await screen.findByRole("link", { name: "Open Plaid" });
     else
       await screen.findByText(
         "Setup could not be canceled. Check its status before trying again.",

@@ -611,7 +611,7 @@ function ConnectionWorkspace({
         throw Error("handoff");
       setHosted(begun);
       setMessage(
-        "Open Plaid Sandbox in a new tab, finish setup, then return here to check completion.",
+        "Open Plaid in a new tab, finish setup, then return here to check completion.",
       );
       return;
     }
@@ -1016,7 +1016,7 @@ function ConnectionWorkspace({
   return (
     <section aria-label="Connections" aria-busy={busy}>
       {hosted?.hosted_link_url && (
-        <div role="group" aria-label="Complete Sandbox bank setup">
+        <div role="group" aria-label="Complete bank setup">
           {hostedURLExpired ? (
             <p>
               This Plaid link has expired. If you already finished there, check
@@ -1043,7 +1043,7 @@ function ConnectionWorkspace({
                   }
                 }}
               >
-                Open Plaid Sandbox
+                Open Plaid
               </a>
               <p>Plaid link expires: {hosted.expires_at}</p>
             </>
@@ -1469,7 +1469,7 @@ function ConnectionWorkspace({
             <>
               <p>
                 This bank setup did not finish. Trying again checks for a saved
-                connection before opening a new Sandbox session. The earlier
+                connection before opening a new Plaid session. The earlier
                 attempt stays in your history.
               </p>
               <button

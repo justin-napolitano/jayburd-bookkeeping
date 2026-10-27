@@ -20,7 +20,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await expect(connect).toBeEnabled();
   await connect.click();
   await expect(
-    page.getByRole("link", { name: "Open Plaid Sandbox" }),
+    page.getByRole("link", { name: "Open Plaid" }),
   ).toBeVisible();
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
@@ -58,7 +58,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     .click();
   await page.getByRole("button", { name: "Confirm cancellation" }).click();
   await expect(
-    page.getByRole("link", { name: "Open Plaid Sandbox" }),
+    page.getByRole("link", { name: "Open Plaid" }),
   ).toBeVisible();
   // Lose the exchange response after its commit: reload must discover recovery without a saved UUID.
   let exchangeDropped = false;
@@ -75,7 +75,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     await route.abort("failed");
   });
   await expect(
-    page.getByRole("link", { name: "Open Plaid Sandbox" }),
+    page.getByRole("link", { name: "Open Plaid" }),
   ).toHaveAttribute("rel", "noopener noreferrer");
   await page
     .getByRole("button", { name: "Check bank setup completion" })
