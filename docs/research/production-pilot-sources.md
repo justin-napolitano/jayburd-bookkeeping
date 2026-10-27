@@ -1,5 +1,22 @@
 # Production pilot source review
 
+## PP10 — pilot isolation/recovery proposal,2026-10-26
+
+[Cloud Run service identity](https://docs.cloud.google.com/run/docs/securing/service-identity),
+identities/types/least-permission/metadata sections240–280 reviewed: deployer and
+service identities differ; a user-managed minimal-permission identity is recommended.
+[Cloud SQL backup options](https://docs.cloud.google.com/sql/docs/postgres/backup-recovery/backup-options),
+standard backup/storage/retention and transaction-log sections244–297 reviewed:
+retention/location need explicit configuration; on-demand backups can persist;
+PITR log and backup windows must be coordinated. [Billing budgets](https://docs.cloud.google.com/billing/docs/how-to/budgets),
+overview/caution89–110,343–347 reviewed: alerts-only budgets notify rather than
+prevent spend; service-specific cap support needs separate confirmation.
+Selected public sections only, not entire guides, actual cloud configuration,
+price quote, legal retention rule or normative ISO. Facts support mechanisms;
+the resource/retention/duration/cost choices in
+[the337 proposal](../contracts/production-pilot-mandate.md) are project inference
+requiring owner/security acceptance. No resources or billing account inspected.
+
 ## PP09 — signed webhook profile, 2026-10-26
 
 [Plaid verification](https://plaid.com/docs/api/webhooks/webhook-verification/),
