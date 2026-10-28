@@ -59,3 +59,31 @@ receipt/owner verification and is bounded here by no execution capability. Denia
 of service(low for local tooling) has a32KiB parsed-input bound. Runtime key/IAM,
 network, provider and bookkeeping boundaries are unchanged. Human review is needed
 before integrating this code into a deployment authority path.
+
+## Build receipt comparison — follow-up at05716f1
+
+Before implementation2026-10-28: reuse the reviewed owner/main/run identity
+contract from image-delivery.md and scripts/release-manifest.mjs, extending to
+four Production images. No new external protocol or vendor mechanism. Input is
+candidate bytes/hash, canonical build-receipt bundle bytes, and a separately
+trusted GitHub run object. The caller must retrieve that object via authenticated
+GitHub metadata; parsing an untrusted file as the trusted run is not verification.
+This pure function performs no retrieval or authentication and is not wired to CI
+or rollout. Trust separation must be enforced by the future orchestrator.
+
+Pin the proposed Production workflow path build-production-images.yml, canonical
+repository ID1414515318, owner actor ID55423093/login, main/workflow_dispatch,
+success, exact commit/run/attempt. Existing dev workflow cannot qualify. That
+Production workflow is not implemented yet; no real build can be declared proven
+by fictional fixtures. Candidate evidence.build binds exact canonical receipt
+bundle bytes; all four unique components must match candidate images/source/run.
+Each closed receipt records environment production, candidate-only/nondeployable,
+passed high/critical scan and component runtime tests; worker requires worker and
+webhook tests. Claims in artifacts are only as trustworthy as their publisher;
+workflow/scan/ancestry verification remains separate before deployment.
+
+Acceptance: reject failed/fork/foreign actor/event/path/run/attempt/source, changed
+bundle hash, missing/duplicate/swapped/tagged images, absent scan or webhook proof,
+unknown metadata and secret-bearing extras; retain fixed diagnostics. The result
+remains deployable:false. This reduces cross-build confusion; it does not prove
+source ancestry, schema compatibility, effective IAM or actual hosted qualification.
