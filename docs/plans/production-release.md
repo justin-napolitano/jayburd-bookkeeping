@@ -1,6 +1,7 @@
 # Production release execution plan — #316
 
-Status: PLANNED2026-10-27; no316 source implementation or provisioning started.
+Status: IN PROGRESS2026-10-28; stage B candidate validator merged PR353/05716f1.
+Build receipt comparison is the next offline slice; no provisioning started.
 Source gates: merged308/311–315. Offline source/tests may use fictional targets.
 Accepted337 mandate and applicable actual qualification/dispositions gate real
 provisioning, activation and the final real release package. PR348 is now merged6be6c48 with all five exact-head checks PASS.
@@ -22,7 +23,7 @@ Do not close316 from this plan. Exact targets/cost/expiry/retention remain pendi
 
 StagesB–F are planned offline implementation using fictional metadata after merged
 source predecessors; they need no upfront bank selection or cloud spending.
-Their tests are not yet performed. Actual337 decisions must replace every
+Stage B candidate tests pass; remaining stage evidence is not yet established. Actual337 decisions must replace every
 placeholder before final real release review.
 Claim one bounded issue/path lease at a time; create reviewed children if a stage
 cannot remain one bounded delivery. Coordinator serializes common CLI/CI/schema
