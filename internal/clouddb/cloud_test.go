@@ -47,3 +47,23 @@ func TestConnectorRejectsAmbiguity(t *testing.T) {
 		t.Fatal("credential override accepted")
 	}
 }
+
+// TestProductionMigratorConfiguration proves exact IAM naming and preserves restricted migration pool limits.
+func TestProductionMigratorConfiguration(t *testing.T) {
+	c := Config{"fictional-project:us-central1:jayburd-prod", "migrator"}
+	cfg, err := PoolConfigForEnvironment(c, "production", func(context.Context, string, string) (net.Conn, error) { return nil, errors.New("synthetic") })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.ConnConfig.User != "jayburd-prod-migrator@fictional-project.iam" || cfg.ConnConfig.Database != "bookkeeping" || cfg.MaxConns != 2 || cfg.MinConns != 0 || cfg.ConnConfig.RuntimeParams["search_path"] != "deployment,pg_catalog" || cfg.ConnConfig.RuntimeParams["statement_timeout"] != "60000" || cfg.ConnConfig.Password != "" || len(cfg.ConnConfig.Fallbacks) != 0 {
+		t.Fatal("unsafe Production migrator configuration")
+	}
+	for _, instance := range []string{"jayburd-bookkeeping-dev:us-central1:jayburd-prod", "fictional-project:us-central1:jayburd-dev", "fictional-project:us-central1:other-db"} {
+		if (Config{instance, "migrator"}).ValidateEnvironment("production") == nil {
+			t.Fatal("mixed target accepted")
+		}
+	}
+	if (Config{c.Instance, "verifier"}).ValidateEnvironment("production") == nil {
+		t.Fatal("Production verifier accidentally enabled")
+	}
+}
