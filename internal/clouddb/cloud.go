@@ -44,7 +44,10 @@ func (c Config) ValidateEnvironment(environment string) error {
 	if c.Validate() != nil || (environment != "sandbox" && environment != "production") {
 		return ErrConfiguration
 	}
-	if environment == "production" && (c.Project() == "jayburd-bookkeeping-dev" || strings.HasSuffix(c.Instance, ":jayburd-dev") || (c.Component != "api" && c.Component != "sync" && c.Component != "publisher" && c.Component != "webhook")) {
+	if environment == "production" && (c.Project() == "jayburd-bookkeeping-dev" || strings.HasSuffix(c.Instance, ":jayburd-dev") || (c.Component != "api" && c.Component != "sync" && c.Component != "publisher" && c.Component != "webhook" && c.Component != "migrator")) {
+		return ErrConfiguration
+	}
+	if environment == "production" && c.Component == "migrator" && !strings.HasSuffix(c.Instance, ":us-central1:jayburd-prod") {
 		return ErrConfiguration
 	}
 	return nil

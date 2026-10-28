@@ -5,42 +5,68 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/justin-napolitano/jayburd-bookkeeping/db/migrations"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/clouddb"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/migration"
 )
 
-// run defaults to offline artifact verification; status and up require explicit instance and action.
-func run() error {
-	action := flag.String("action", "verify", "offline verify, read-only status or up; no down, force or arbitrary target")
-	instance := flag.String("instance", "", "explicit project:region:instance for IAM migration")
-	flag.Parse()
-	if flag.NArg() != 0 {
+// connectorFactory permits synthetic pre-I/O tests without a credential source.
+type connectorFactory func(context.Context, clouddb.Config, string) (*pgxpool.Config, func(), error)
+
+// run defaults to offline verification; only explicit bounded profiles reach IAM transport.
+func run() error { return runWith(os.Args[1:], time.Now(), clouddb.ConnectorForEnvironment) }
+
+// runWith parses a closed command and checks authority metadata before any connector construction.
+func runWith(args []string, now time.Time, connect connectorFactory) error {
+	flags := flag.NewFlagSet("migrate", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	action := flags.String("action", "verify", "offline verify, read-only status or up")
+	instance := flags.String("instance", "", "explicit project:region:instance")
+	environment := flags.String("environment", "sandbox", "sandbox or production")
+	expiry := flags.String("approval-expires-at", "", "Production execution deadline in UTC")
+	if flags.Parse(args) != nil || flags.NArg() != 0 || (*environment != "sandbox" && *environment != "production") {
 		return migration.ErrMigration
 	}
 	if _, err := migration.Verify(migrations.Files); err != nil {
 		return err
 	}
-	if *action == "verify" && *instance == "" {
+	if *action == "verify" && *instance == "" && *expiry == "" {
 		return nil
 	}
 	if (*action != "up" && *action != "status") || *instance == "" {
 		return migration.ErrMigration
+	}
+	cfgInput := clouddb.Config{Instance: *instance, Component: "migrator"}
+	if cfgInput.ValidateEnvironment(*environment) != nil || (*environment == "sandbox" && (strings.HasSuffix(*instance, ":jayburd-prod") || *expiry != "")) {
+		return migration.ErrMigration
+	}
+	deadline := now.Add(10 * time.Minute)
+	if *environment == "production" {
+		approvedUntil, err := time.Parse("2006-01-02T15:04:05Z", *expiry)
+		if err != nil || approvedUntil.Format("2006-01-02T15:04:05Z") != *expiry || !approvedUntil.After(now) || approvedUntil.After(now.Add(7*24*time.Hour)) {
+			return migration.ErrMigration
+		}
+		if approvedUntil.Before(deadline) {
+			deadline = approvedUntil
+		}
 	}
 	if _, present := os.LookupEnv("JAYBURD_DATABASE_URL"); present {
 		return migration.ErrMigration
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	ctx, timeout := context.WithTimeout(ctx, 10*time.Minute)
+	ctx, timeout := context.WithDeadline(ctx, deadline)
 	defer timeout()
-	cfg, closeConnector, err := clouddb.Connector(ctx, clouddb.Config{Instance: *instance, Component: "migrator"})
+	cfg, closeConnector, err := connect(ctx, cfgInput, *environment)
 	if err != nil {
 		return migration.ErrMigration
 	}
