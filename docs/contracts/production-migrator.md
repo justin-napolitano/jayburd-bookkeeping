@@ -45,3 +45,32 @@ closed profile/expiry inputs and context deadline; connector tests assert exact
 Production login/pool/SQL timeouts and wrong-target denial. Core, migration-test
 and existing Sandbox/Production release regressions required. These synthetic
 checks do not establish live IAM/SQL bootstrap compatibility or apply migration35.
+
+## Manual image publication companion
+
+The same branch adds build-production-images.yml, matching354's pinned workflow
+identity. Like the existing development builder, it builds once, tests exact local
+images including worker/webhook commands, scans HIGH/CRITICAL vulnerabilities and
+publishes without rebuilding. Dedicated jayburd-prod registry/builder/WIF names
+prevent development federation reuse. No deployment is part of publication.
+
+Owner-only main workflow_dispatch takes the SHA256 of a separately committed
+public deploy/production-build-target.json. That file is intentionally absent:
+there is no actionable target until337 approves exact resources and spend. Closed
+schema: schemaVersion1, project, projectNumber, expiresAt, mandate (337 issue-comment
+URL). Canonical compact JSON plus newline; nondevelopment target, numeric project
+number, UTC expiry at most seven days. The owner must review the target and supply
+its exact hash; the URL is a reference, not proof of review. No target/schema or
+credential contents may be supplied via free-form workflow inputs. Verify target
+before build and again before cloud auth and push, and bind its hash in artifacts.
+A missing/expired/mixed target fails before auth. Existing dev workflow unchanged.
+
+Candidate receipt matches354's closed contract. Supporting evidence separately
+retains exact tested image ID/build provenance and target hash, plus original
+scan/SBOM/build metadata. Worker runtimeTests means existing inert/rejection tests
+for worker and webhook, not live ingress qualification. Receipt generation checks
+matching Buildx/local identity, one registry digest and no HIGH/CRITICAL scan
+findings; successful trusted workflow establishes runtime-test step execution.
+Source ancestry, authenticated collection and four-receipt assembly remain pending.
+The future Production WIF provider must independently restrict this exact workflow
+and owner/main identity; YAML guards are not a substitute for effective IAM.

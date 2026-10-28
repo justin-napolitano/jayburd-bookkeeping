@@ -9,7 +9,7 @@ check:
 	git diff --check
 
 test:
-	node --test scripts/production-release-candidate.test.mjs scripts/production-build-proof.test.mjs
+	node --test scripts/production-release-candidate.test.mjs scripts/production-build-proof.test.mjs scripts/production-image-build.test.mjs
 	go test -race ./...
 	bash scripts/test-migration-files.sh
 
