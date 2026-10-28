@@ -13,7 +13,7 @@ secret access, provider calls or spending. Existing merged SQL unchanged.
 | --- | --- |
 | Resume |316 open;353/354 merged, no active conflicting lease; current contracts/source reviewed |
 | Design | Explicit Production migrator login and exact target, canonical finite expiry, pre-I/O rejection; context bounds execution |
-| Implementation | cmd/migrate flags/injected transport tests; clouddb Production migrator allowlist only |
+| Implementation | cmd/migrate explicit profile; dedicated manual Production build workflow and exact-hash public target/receipt helper |
 | Validation | Core check/test/build and migration-test PASS; focused race and38 release tests PASS |
 
 ## Current evidence
@@ -24,10 +24,19 @@ Synthetic identifiers only. Invalid/offline commands construct no connector;
 Production status/up select correct profile and the earlier expiry/ten-minute
 deadline. Default Sandbox pool and Production verifier prohibition retained.
 No actual Production login/bootstrap/runtime or migration35 apply established.
+Manual Production workflow is source only: no target file exists and no dispatch
+occurred. Production WIF/registry setup and reviewed target remain required.
+Publication must pass local runtime tests/scan before cloud auth and recheck expiry
+before auth and push; receipt generation retains independent image binding.
+Public target/receipt tests and YAML syntax PASS. Final make check/test/build
+and release-test PASS. Local non-root/no-network migrator container verifies
+offline and rejects down: PASS. Host-built binary fallback proves runtime only;
+canonical source-builder remains a CI gate. Migration-test passed before the
+workflow addition; migration engine/SQL remained unchanged afterward.
 
 ## Remaining work
 
-Human source review; Production build workflow, migration Job/IAM/role bootstrap,
+Human source review; actual build target/builder federation, migration Job/IAM/role bootstrap,
 trusted evidence collection and actual337 mandate/hosted qualification. Context
 cancellation cannot undo committed DDL; inspect actual status before any retry.
 
