@@ -21,6 +21,20 @@ import (
 // tokenStub supplies a fictional token without external identity discovery.
 type tokenStub struct{ calls int }
 
+// TestSharedProductionBucket keeps Production evidence separate within the shared project.
+func TestSharedProductionBucket(t *testing.T) {
+	tokens := &tokenStub{}
+	transport := transportFunc(func(*http.Request) (*http.Response, error) { t.Fatal("constructor opened network"); return nil, nil })
+	if _, err := NewProduction("jayburd-bookkeeping-dev", "jayburd-bookkeeping-dev-jayburd-prod-acquisition-evidence", tokens, transport); err != nil {
+		t.Fatal("dedicated Production bucket rejected")
+	}
+	for _, bucket := range []string{"jayburd-bookkeeping-dev-jayburd-dev-acquisition-evidence", "foreign-project-jayburd-prod-acquisition-evidence"} {
+		if _, err := NewProduction("jayburd-bookkeeping-dev", bucket, tokens, transport); err == nil {
+			t.Fatal("mixed bucket accepted")
+		}
+	}
+}
+
 func (t *tokenStub) AccessToken(ctx context.Context) (string, error) {
 	t.calls++
 	if ctx.Err() != nil {

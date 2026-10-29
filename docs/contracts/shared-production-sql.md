@@ -31,6 +31,15 @@ proof and reviewed workload activation remain required. Acceptance:
 TestSharedRuntimeRouting, TestProductionIAMProfile, core gates and synthetic
 application integration; hosted acceptance remains a separate release stage.
 
+Provider-profile follow-up: onboarding accepts the exact existing project ID
+only with numeric project9088794002, retaining Production Infisical environment,
+secret-name/version and key policy. Production evidence remains in the separately
+named jayburd-prod-acquisition-evidence bucket, and notifications derive the
+jayburd-prod-webhook receiver even when its numeric project is shared. Sandbox
+bucket/receiver names remain denied. Acceptance: TestSharedProductionMetadata,
+TestSharedProductionBucket, TestProductionWebhookDestinationDeny and synthetic
+application integration. These constructors do not create resources or grant IAM.
+
 Shared bootstrap verifies current_database and exact prod api/migrator login names
 in the existing project, administrator-owned database, and absence of Production
 login CONNECT rights to Sandbox. It uses the existing reviewed bootstrap statements in a separate wrapper, then

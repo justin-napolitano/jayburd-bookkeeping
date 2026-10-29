@@ -50,9 +50,12 @@ func TestProductionWebhookDestinationDeny(t *testing.T) {
 			t.Fatal("invalid destination accepted")
 		}
 	}
-	for _, number := range []string{"", "0", "01", "9088794002", "1/other", "9223372036854775808"} {
+	for _, number := range []string{"", "0", "01", "1/other", "9223372036854775808"} {
 		if _, e := ProductionTransactionsWebhookURL(number); e == nil {
 			t.Fatal("invalid receiver identifier accepted")
 		}
+	}
+	if got, err := ProductionTransactionsWebhookURL("9088794002"); err != nil || got != "https://jayburd-prod-webhook-9088794002.us-central1.run.app/webhooks/plaid" {
+		t.Fatal("shared Production receiver mismatch")
 	}
 }
