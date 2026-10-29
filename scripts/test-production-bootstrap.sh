@@ -37,7 +37,7 @@ for bad in dev-project dev-api foreign-migrator; do
   foreign-migrator) migrator='jayburd-prod-migrator@other-project.iam' ;;
  esac
  if bootstrap "$project" "$api" "$migrator" >"$proof_dir/rejected" 2>&1;then exit 1;fi
- rg -q 'Production bootstrap identity rejected' "$proof_dir/rejected"
+ grep -Fq 'Production bootstrap identity rejected' "$proof_dir/rejected"
  [[ "$(psql_proof -Atc "SELECT count(*) FROM pg_roles WHERE rolname='bookkeeping_owner'")" == 0 ]]
  [[ "$(psql_proof -Atc "SELECT count(*) FROM pg_namespace WHERE nspname='deployment'")" == 0 ]]
 done
@@ -47,5 +47,5 @@ for ((i=0;i<2;i++));do bootstrap fictional-project 'jayburd-prod-api@fictional-p
 [[ "$(psql_proof -Atc "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'bookkeeping_%' AND (rolcanlogin OR rolsuper OR rolcreaterole OR rolcreatedb OR rolbypassrls)")" == 0 ]]
 psql_proof -c 'ALTER ROLE "jayburd-prod-api@fictional-project.iam" CREATEROLE' >/dev/null
 if bootstrap fictional-project 'jayburd-prod-api@fictional-project.iam' 'jayburd-prod-migrator@fictional-project.iam' >"$proof_dir/unsafe" 2>&1;then exit 1;fi
-rg -q 'unsafe IAM login roles' "$proof_dir/unsafe"
+grep -Fq 'unsafe IAM login roles' "$proof_dir/unsafe"
 printf 'PASS: Production bootstrap rejects mixed names before mutation; safe grants replay and unsafe role denial verified.\n'
