@@ -44,3 +44,16 @@ Initial validate run40717990840 failed because the hosted runner lacks ripgrep.
 The two fixed-string assertion checks now use standard grep -Fq; no bootstrap
 behavior or acceptance criteria changed. Rerun the disposable bootstrap proof
 and require green CI on the corrected head before merging.
+
+## Transitive dependency audit correction
+
+CI40793097455 frontend build passed, then audit rejected re2js2.8.6 under newly
+indexed GHSA-gg6h-894w-4m9c. Pin minimal patched2.8.7 using registry integrity
+metadata; existing dependency range unchanged. Reviewed source/limits recorded
+in frontend-sources.md. Locked install reports zero vulnerabilities; required
+frontend checks rerun. No audit suppression. This fixes a merge-blocking dependency
+finding; it does not change Production infrastructure or bootstrap authority.
+
+Correction validation: core check/test/build PASS; frontend check/test/build and
+26 browser tests PASS. re2js2.8.7 raises its Node floor to20, compatible with the
+repository's Node24 runtime. Only the existing transitive lock entry changed.
