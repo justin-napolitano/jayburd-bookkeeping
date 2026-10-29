@@ -94,6 +94,11 @@ users and superuser restrictions; HashiCorp/Google,
 [sql_user at provider 8.6.0](https://github.com/hashicorp/terraform-provider-google/blob/v8.6.0/website/docs/r/sql_user.html.markdown),
 `database_roles` and IAM type arguments. Reviewed selected sections only.
 
+Rechecked provider8.6.0 Import section2026-10-29: PostgreSQL users use
+`project/instance/name`, unlike REST-style resource paths. Passwords are not
+retrieved by import. Actual import success is recorded in foundation-import.md;
+this selected-section review does not establish SQL memberships or runtime grants.
+
 Google documents assigning `cloudsqlsuperuser` to a separate IAM user, including
 a Terraform example. IAM users otherwise receive no application privileges by
 default. The pinned provider documents `database_roles` as write-only and replacing
