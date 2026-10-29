@@ -413,10 +413,11 @@ ISO exchange conformance.
 ## Allowlisted credential delivery — 2026-10-14
 
 - [Source review and alternatives](../contracts/scoped-delivery.md#sources-and-alternatives):
-  pinned Infisical upstream sync implementation, exact-key retrieve REST API, and
-  Google addVersion REST contract. Reviewed relevant functions/sections; establishes
-  native-sync permission mismatch and supports one-shot writes. Hosted version, IAM
-  and real propagation remain unverified.
+  Selected Infisical sync/retrieve and Google addVersion sections: native sync
+  exceeds approved permissions; one-shot writes supported. Hosted IAM/propagation
+  remain unverified.
+
+- [Production extension](../contracts/production-static-delivery.md): selected UI copy source, observed plan gate and isolated-project alternative,2026-10-29.
 
 - [Controlled canary job sources](../contracts/delivery-job.md#sources-alternatives-and-evidence):
   Google provider v8.6.0 job schema and Infisical GCP ID Token Auth guide, reviewed

@@ -1,4 +1,4 @@
-// Command deliver runs only explicitly selected development credential delivery.
+// Command deliver runs only explicitly selected bounded credential delivery profiles.
 package main
 
 import (
@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/providersecrets"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/workerruntime"
@@ -21,6 +22,7 @@ import (
 type config struct {
 	project, number, sourceProject, identity, sourceID, version, key string
 	lookup                                                           bool
+	environment, expiresAt                                           string
 }
 
 var uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
@@ -29,7 +31,16 @@ var projectPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`)
 
 // valid rejects missing bindings before any metadata authentication or external operation.
 func (c config) valid() bool {
-	if c.key != "JAYBURD_DELIVERY_CANARY" && c.key != "PLAID_CLIENT_ID" && c.key != "PLAID_SECRET" && !slotPattern.MatchString(c.key) {
+	if c.environment != "sandbox" && c.environment != "production" {
+		return false
+	}
+	if c.environment == "production" {
+		deadline, err := time.Parse("2006-01-02T15:04:05Z", c.expiresAt)
+		now := time.Now()
+		if err != nil || deadline.Format("2006-01-02T15:04:05Z") != c.expiresAt || !deadline.After(now) || deadline.After(now.Add(7*24*time.Hour)) || (c.key != "PLAID_CLIENT_ID" && c.key != "PLAID_PRODUCTION_SECRET") || ((c.project == "jayburd-bookkeeping-dev") != (c.number == "9088794002")) {
+			return false
+		}
+	} else if c.expiresAt != "" || (c.key != "JAYBURD_DELIVERY_CANARY" && c.key != "PLAID_CLIENT_ID" && c.key != "PLAID_SECRET" && !slotPattern.MatchString(c.key)) {
 		return false
 	}
 	n, e := strconv.ParseInt(c.number, 10, 64)
@@ -67,6 +78,8 @@ func run(ctx context.Context, args []string, out io.Writer, execute func(context
 	f.BoolVar(&authorized, "execute", false, "")
 	f.BoolVar(&check, "check", false, "")
 	f.BoolVar(&c.lookup, "lookup", false, "")
+	f.StringVar(&c.environment, "environment", "sandbox", "")
+	f.StringVar(&c.expiresAt, "approval-expires-at", "", "")
 	if f.Parse(args) != nil {
 		fmt.Fprintln(out, "BLOCKED: delivery configuration")
 		return 1
@@ -110,18 +123,32 @@ func run(ctx context.Context, args []string, out io.Writer, execute func(context
 
 // managed composes fixed endpoints and metadata identity without ADC, proxies, SQL or Plaid access.
 func managed(ctx context.Context, c config) (providersecrets.CanaryMetadata, error) {
+	// Revalidate the finite profile immediately before metadata authentication.
+	if !c.valid() {
+		return providersecrets.CanaryMetadata{}, fmt.Errorf("invalid delivery configuration")
+	}
+	sourceEnvironment, registryBucket, prefix := "dev", c.project+"-jayburd-dev-delivery-registry", "delivery-v1"
+	constructor := providersecrets.NewDelivery
+	if c.environment == "production" {
+		deadline, _ := time.Parse("2006-01-02T15:04:05Z", c.expiresAt)
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, deadline)
+		defer cancel()
+		sourceEnvironment, registryBucket, prefix = "prod", c.project+"-jayburd-prod-credential-registry", "production-static-delivery-v1"
+		constructor = providersecrets.NewProductionDelivery
+	}
 	transport := workerruntime.DirectTransport()
 	defer transport.CloseIdleConnections()
 	tokens, e := workerruntime.NewMetadataTokens(transport)
 	if e != nil {
 		return providersecrets.CanaryMetadata{}, e
 	}
-	registry, e := providersecrets.NewGCSRegistry(providersecrets.GCSConfig{Bucket: c.project + "-jayburd-dev-delivery-registry", Prefix: "delivery-v1", Tokens: tokens, Transport: transport})
+	registry, e := providersecrets.NewGCSRegistry(providersecrets.GCSConfig{Bucket: registryBucket, Prefix: prefix, Tokens: tokens, Transport: transport})
 	if e != nil {
 		return providersecrets.CanaryMetadata{}, e
 	}
-	delivery, e := providersecrets.NewDelivery(providersecrets.DeliveryConfig{
-		Source:      providersecrets.StoreConfig{InfisicalOrigin: "https://app.infisical.com", ProjectID: c.sourceProject, Environment: "dev", IdentityID: c.identity, IdentityTokens: tokens, Transport: transport},
+	delivery, e := constructor(providersecrets.DeliveryConfig{
+		Source:      providersecrets.StoreConfig{InfisicalOrigin: "https://app.infisical.com", ProjectID: c.sourceProject, Environment: sourceEnvironment, IdentityID: c.identity, IdentityTokens: tokens, Transport: transport},
 		Destination: providersecrets.GCPConfig{ProjectID: c.number, Tokens: tokens, Transport: transport},
 	}, registry)
 	if e != nil {

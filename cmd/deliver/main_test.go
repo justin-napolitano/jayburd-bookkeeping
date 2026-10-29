@@ -8,7 +8,38 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
+
+// TestProductionExecutionGate confines the new profile to finite authority and the two static Production keys.
+func TestProductionExecutionGate(t *testing.T) {
+	deadline := time.Now().Add(time.Hour).UTC().Format("2006-01-02T15:04:05Z")
+	base := append(arguments(), "-environment=production", "-key=PLAID_PRODUCTION_SECRET", "-approval-expires-at="+deadline, "-execute")
+	for _, extra := range [][]string{
+		nil, {"-key=PLAID_CLIENT_ID"}, {"-key=PLAID_SECRET"}, {"-key=slot-00"}, {"-key=JAYBURD_DELIVERY_CANARY"},
+		{"-approval-expires-at="}, {"-approval-expires-at=2020-01-01T00:00:00Z"},
+		{"-approval-expires-at=" + time.Now().Add(8*24*time.Hour).UTC().Format("2006-01-02T15:04:05Z")},
+		{"-environment=Production"}, {"-environment=sandbox"}, {"-project-id=jayburd-bookkeeping-dev"},
+	} {
+		calls := 0
+		var out bytes.Buffer
+		status := run(context.Background(), append(append([]string{}, base...), extra...), &out, func(context.Context, config) (providersecrets.CanaryMetadata, error) {
+			calls++
+			return providersecrets.CanaryMetadata{}, nil
+		})
+		allowed := extra == nil || (len(extra) == 1 && extra[0] == "-key=PLAID_CLIENT_ID")
+		if allowed && (status != 0 || calls != 1) {
+			t.Fatal("valid Production command rejected")
+		}
+		if !allowed && (status != 1 || calls != 0) {
+			t.Fatal("invalid Production profile reached dependency")
+		}
+	}
+	var out bytes.Buffer
+	if run(context.Background(), append(arguments(), "-key=PLAID_PRODUCTION_SECRET", "-execute"), &out, nil) != 1 {
+		t.Fatal("legacy mode accepted Production key")
+	}
+}
 
 // arguments supplies fictional metadata only and never discovers credentials.
 func arguments() []string {
