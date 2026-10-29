@@ -38,6 +38,13 @@ function check({m,run,bundle}) {
 test('four same-build Production receipts match but cannot authorize deployment',()=>{
   assert.deepEqual(check(inputs()),{status:'build-metadata-matched',deployable:false,commit:'a'.repeat(40)});
 });
+test('shared target still requires independent Production workflow receipts',()=>{
+ const x=inputs();x.m=JSON.parse(JSON.stringify(x.m).replaceAll('fictional-pilot-prod','jayburd-bookkeeping-dev').replaceAll('123456789012','9088794002'));
+ x.m.database.instance='jayburd-bookkeeping-dev:us-central1:jayburd-dev';x.m.database.name='bookkeeping_prod';
+ for(const r of x.bundle.receipts)r.image=x.m.images[r.component];
+ assert.equal(check(x).deployable,false);
+ x.run.path='.github/workflows/build-images.yml';assert.throws(()=>check(x));
+});
 test('trusted build metadata denies dev workflow forks reruns and unauthorized actors',()=>{
   for (const mutate of [
     r=>r.path='.github/workflows/build-images.yml',r=>r.conclusion='failure',r=>r.status='in_progress',

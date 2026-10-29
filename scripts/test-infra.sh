@@ -8,17 +8,18 @@ trap 'rm -rf "$test_root"' EXIT
 # Optional bounded targets avoid repeating unrelated foundation checks during a scoped change.
 targets=("$@")
 if [[ ${#targets[@]} == 0 ]]; then
-  targets=(production-foundation foundation application migration runtime identity workers worker-runtime delivery database-probe webhook-bootstrap webhook-runtime webhook-delivery sandbox-verifier)
+  targets=(shared-production-foundation production-foundation foundation application migration runtime identity workers worker-runtime delivery database-probe webhook-bootstrap webhook-runtime webhook-delivery sandbox-verifier)
 fi
 for target in "${targets[@]}"; do
 case "$target" in
-  production-foundation|foundation|application|migration|runtime|identity|workers|worker-runtime|delivery|database-probe|webhook-bootstrap|webhook-runtime|webhook-delivery|sandbox-verifier) ;;
+  shared-production-foundation|production-foundation|foundation|application|migration|runtime|identity|workers|worker-runtime|delivery|database-probe|webhook-bootstrap|webhook-runtime|webhook-delivery|sandbox-verifier) ;;
   *) echo 'BLOCKED: unknown synthetic infrastructure target' >&2; exit 1 ;;
 esac
 mkdir -p "$test_root/$target/tests"
 for name in versions.tf variables.tf main.tf outputs.tf .terraform.lock.hcl; do
   cp "infra/gcp/$target/$name" "$test_root/$target/$name"
 done
+if [[ "$target" == shared-production-foundation ]]; then cp "infra/gcp/$target/resources.tf" "$test_root/$target/resources.tf"; fi
 cp "infra/gcp/$target/tests/$target.tftest.hcl" "$test_root/$target/tests/"
 # Empty CLI configuration and clean environment prevent ambient credentials/config injection.
 : > "$test_root/terraform.rc"

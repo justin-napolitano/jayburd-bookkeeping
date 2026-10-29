@@ -22,6 +22,14 @@ function fixture() {
   };
 }
 const encode = m => JSON.stringify(m) + '\n';
+test('shared candidate retains separate database and Production resource profile',()=>{
+ const m=JSON.parse(JSON.stringify(fixture()).replaceAll('fictional-pilot-prod','jayburd-bookkeeping-dev').replaceAll('123456789012','9088794002'));
+ m.database.instance='jayburd-bookkeeping-dev:us-central1:jayburd-dev';m.database.name='bookkeeping_prod';
+ const bytes=encode(m);assert.deepEqual(validateProductionCandidate(bytes,hash(bytes),now),m);
+ for(const change of [m=>m.database.name='bookkeeping',m=>m.database.instance='jayburd-bookkeeping-dev:us-central1:jayburd-prod',m=>m.projectNumber='123456789012',m=>m.images.api=m.images.api.replace('/jayburd-prod/','/jayburd-dev/')]) {
+  const bad=structuredClone(m);change(bad);const b=encode(bad);assert.throws(()=>validateProductionCandidate(b,hash(b),now));
+ }
+});
 // Every negative is rehashed so it exercises semantics rather than only the digest gate.
 function rejected(change) {
   const m = fixture(); change(m); const bytes = encode(m);
