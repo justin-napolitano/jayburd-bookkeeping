@@ -1,8 +1,9 @@
 # Production release execution plan — #316
 
 Status: IN PROGRESS2026-10-28; stage B candidate validator merged PR353/05716f1.
-Build receipt comparison merged PR354/217b2ac. Explicit Production migrator
-transport is the next stage C slice; no provisioning started.
+Build receipt comparison merged PR354/217b2ac. Production migrator and manual
+image-build workflow merged PR355/a572b31. Isolated foundation and guarded
+SQL bootstrap are the next source slice; no provisioning started.
 Source gates: merged308/311–315. Offline source/tests may use fictional targets.
 Accepted337 mandate and applicable actual qualification/dispositions gate real
 provisioning, activation and the final real release package. PR348 is now merged6be6c48 with all five exact-head checks PASS.

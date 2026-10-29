@@ -71,6 +71,7 @@ migration-check:
 
 migration-test:
 	bash scripts/migrate.sh test
+	bash scripts/test-production-bootstrap.sh
 
 ledger-test:
 	bash scripts/test-ledger.sh
