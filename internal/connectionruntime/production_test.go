@@ -3,9 +3,36 @@ package connectionruntime
 import (
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
+
+// TestSharedProductionMetadata binds the shared project pair without admitting Sandbox resources.
+func TestSharedProductionMetadata(t *testing.T) {
+	c := productionConfig()
+	oldProject, oldNumber := c.ProjectID, c.ProjectNumber
+	c.ProjectID, c.ProjectNumber = "jayburd-bookkeeping-dev", "9088794002"
+	c.RegistryBucket = c.ProjectID + "-jayburd-prod-credential-registry"
+	c.BankKey = strings.Replace(c.BankKey, oldProject, c.ProjectID, 1)
+	c.LinkKey = strings.Replace(c.LinkKey, oldProject, c.ProjectID, 1)
+	c.ClientIDVersion = strings.Replace(c.ClientIDVersion, oldNumber, c.ProjectNumber, 1)
+	c.ClientSecretVersion = strings.Replace(c.ClientSecretVersion, oldNumber, c.ProjectNumber, 1)
+	if c.validateProduction(time.Now()) != nil {
+		t.Fatal("matched shared profile rejected")
+	}
+	for _, mutate := range []func(*Config){
+		func(c *Config) { c.ProjectNumber = oldNumber },
+		func(c *Config) { c.ProjectID = oldProject },
+		func(c *Config) { c.RegistryBucket = c.ProjectID + "-jayburd-dev-credential-registry" },
+	} {
+		bad := c
+		mutate(&bad)
+		if bad.validateProduction(time.Now()) == nil {
+			t.Fatal("mixed profile accepted")
+		}
+	}
+}
 
 // productionConfig contains only fictional approved-reference metadata, never an actual credential.
 func productionConfig() Config {
