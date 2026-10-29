@@ -37,3 +37,10 @@ reviewed finite deployment. No deployment federation or runtime permission added
 
 Refs #316, infrastructure/bootstrap source slice; parent remains open. No product
 migration or financial API change. Tests cannot establish effective live IAM.
+
+## CI portability correction
+
+Initial validate run40717990840 failed because the hosted runner lacks ripgrep.
+The two fixed-string assertion checks now use standard grep -Fq; no bootstrap
+behavior or acceptance criteria changed. Rerun the disposable bootstrap proof
+and require green CI on the corrected head before merging.
