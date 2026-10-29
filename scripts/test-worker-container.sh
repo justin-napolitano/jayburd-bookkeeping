@@ -23,7 +23,7 @@ trap 'exit 130' INT TERM
 if [[ "$owned_image" == 1 ]]; then docker build --file Dockerfile.worker --tag "$candidate" .; fi
 candidate_id="$(docker image inspect --format '{{.Id}}' "$candidate")"
 [[ "$candidate_id" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 1
-# Each command must stop itself offline with exact output; only verifier default succeeds inertly.
+# Each command stops offline with exact output; verifier default and delivery check succeed inertly.
 check_rejected() {
   local case_name="$1"
   shift
@@ -49,6 +49,7 @@ check_rejected() {
   local expected_status=1
   if [[ "$case_name" == probe-* ]]; then expected_status=2; fi
   if [[ "$case_name" == verifier-default ]]; then expected_status=0; fi
+  if [[ "$case_name" == delivery-production-check ]]; then expected_status=0; fi
   [[ "$result" == "$expected_status" ]] || { echo 'FAIL: worker did not reject configuration' >&2; exit 1; }
   if [[ "$case_name" == probe-* ]]; then
     node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(r.status!=="blocked"||r.checks[0].reason!=="invalid_invocation")process.exit(1)' "$work_dir/$case_name"
@@ -58,6 +59,8 @@ check_rejected() {
     printf '{"offline":true}\n' >"$work_dir/expected"
   elif [[ "$case_name" == verifier-* ]]; then
     printf 'BLOCKED: Sandbox verification\n' >"$work_dir/expected"
+  elif [[ "$case_name" == delivery-production-check ]]; then
+    printf 'PASS: configuration only; no connection tested\n' >"$work_dir/expected"
   elif [[ "$case_name" == delivery-* ]]; then
     printf 'BLOCKED: delivery configuration\n' >"$work_dir/expected"
   elif [[ "$case_name" == webhook-* ]]; then
@@ -73,6 +76,10 @@ check_rejected missing-consumer -mode=consumer
 check_rejected secret-flag -password=synthetic-rejected-value
 check_rejected delivery-default
 check_rejected delivery-secret-flag -secret=synthetic-rejected-value
+# Synthetic pins exercise the exact new CLI offline; this authorizes no cloud call.
+delivery_deadline=$(node -e 'process.stdout.write(new Date(Date.now()+3600000).toISOString().slice(0,19)+"Z")')
+check_rejected delivery-production-check -check -environment=production -key=PLAID_PRODUCTION_SECRET -approval-expires-at="$delivery_deadline" -project-id=synthetic-project -project-number=123456789012 -infisical-project=00000000-0000-4000-8000-000000000001 -infisical-identity=00000000-0000-4000-8000-000000000002 -source-id=00000000-0000-4000-8000-000000000003 -source-version=7
+check_rejected delivery-production-expired -check -environment=production -key=PLAID_PRODUCTION_SECRET -approval-expires-at=2020-01-01T00:00:00Z -project-id=synthetic-project -project-number=123456789012 -infisical-project=00000000-0000-4000-8000-000000000001 -infisical-identity=00000000-0000-4000-8000-000000000002 -source-id=00000000-0000-4000-8000-000000000003 -source-version=7
 check_rejected probe-default
 check_rejected probe-no-pins -allow-sandbox
 check_rejected webhook-default
@@ -82,4 +89,4 @@ check_rejected verifier-default
 check_rejected verifier-missing-manifest -action=compare
 check_rejected verifier-dsn-flag -dsn=synthetic-rejected-value
 check_rejected verifier-secret-flag -secret=synthetic-rejected-value
-printf 'PASS: worker image commands reject fourteen invalid configurations and verifier defaults inertly offline with fixed diagnostics.\n'
+printf 'PASS: worker image commands enforce offline configuration and expiry checks with fixed diagnostics.\n'

@@ -1,5 +1,9 @@
 # Development canary delivery job
 
+Production static delivery is a separate explicit candidate profile under365:
+[contract](production-static-delivery.md), [stages](../runbooks/production-static-delivery.md).
+It does not widen the default development/canary profile or enable native sync.
+
 ## Decision
 
 Owner requested job/identity wiring on 2026-10-14 while PR #113 is reviewed.
