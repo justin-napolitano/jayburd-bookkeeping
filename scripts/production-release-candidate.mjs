@@ -31,8 +31,8 @@ export function validateProductionCandidate(bytes, approvedHash, now = Date.now(
     keys(m, ['schemaVersion','environment','deployable','operation','project','projectNumber','region','createdAt','expiresAt','scheduling','source','images','database','secrets','keys','evidence']);
     if (m.schemaVersion !== 1 || m.environment !== 'production' || m.deployable !== false || m.operation !== 'prepare' ||
         m.scheduling !== 'paused' || m.region !== 'us-central1' || typeof m.project !== 'string' ||
-        !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(m.project) || m.project === 'jayburd-bookkeeping-dev' ||
-        !integer(m.projectNumber) || m.projectNumber.length < 6 || m.projectNumber === '9088794002') throw new Error(failure);
+        !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(m.project) ||
+        !integer(m.projectNumber) || m.projectNumber.length < 6 || ((m.project === 'jayburd-bookkeeping-dev') !== (m.projectNumber === '9088794002'))) throw new Error(failure);
     const created = timestamp(m.createdAt), expires = timestamp(m.expiresAt);
     if (created > now || expires <= now || expires <= created || expires - created > 7 * 86400000) throw new Error(failure);
     keys(m.source, ['commit','run','attempt']);
@@ -43,7 +43,7 @@ export function validateProductionCandidate(bytes, approvedHash, now = Date.now(
       if (typeof m.images[component] !== 'string' || !m.images[component].startsWith(prefix) || !digest(m.images[component].slice(prefix.length))) throw new Error(failure);
     }
     keys(m.database, ['instance','name','migration','checksumsSHA256']);
-    if (m.database.instance !== `${m.project}:us-central1:jayburd-prod` || m.database.name !== 'bookkeeping' ||
+    if (m.database.instance !== (m.project === 'jayburd-bookkeeping-dev' ? `${m.project}:us-central1:jayburd-dev` : `${m.project}:us-central1:jayburd-prod`) || m.database.name !== (m.project === 'jayburd-bookkeeping-dev' ? 'bookkeeping_prod' : 'bookkeeping') ||
         m.database.migration !== '35' || !digest(m.database.checksumsSHA256)) throw new Error(failure);
     keys(m.secrets, ['clientID','clientSecret']);
     for (const [field, suffix] of [['clientID','id'],['clientSecret','secret']]) {
