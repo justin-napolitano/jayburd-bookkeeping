@@ -44,6 +44,9 @@ func (c Config) ValidateEnvironment(environment string) error {
 	if c.Validate() != nil || (environment != "sandbox" && environment != "production") {
 		return ErrConfiguration
 	}
+	if c.sharedProductionRuntime(environment) {
+		return nil
+	}
 	if environment == "production" && (c.Project() == "jayburd-bookkeeping-dev" || strings.HasSuffix(c.Instance, ":jayburd-dev") || (c.Component != "api" && c.Component != "sync" && c.Component != "publisher" && c.Component != "webhook" && c.Component != "migrator")) {
 		return ErrConfiguration
 	}
@@ -53,12 +56,26 @@ func (c Config) ValidateEnvironment(environment string) error {
 	return nil
 }
 
+// sharedProductionRuntime admits only the owner-selected instance and distinct runtime identities.
+func (c Config) sharedProductionRuntime(environment string) bool {
+	return environment == "production" && c.Instance == "jayburd-bookkeeping-dev:us-central1:jayburd-dev" &&
+		(c.Component == "api" || c.Component == "sync" || c.Component == "publisher" || c.Component == "webhook")
+}
+
+// runtimeDatabase derives the isolated database; callers cannot supply a database or login override.
+func (c Config) runtimeDatabase(environment string) string {
+	if c.sharedProductionRuntime(environment) {
+		return "bookkeeping_prod"
+	}
+	return "bookkeeping"
+}
+
 // PoolConfigForEnvironment derives a dedicated role from a closed profile, never a caller login string.
 func PoolConfigForEnvironment(c Config, environment string, dial func(context.Context, string, string) (net.Conn, error)) (*pgxpool.Config, error) {
 	if c.ValidateEnvironment(environment) != nil || dial == nil || ForbiddenEnvironment(func(k string) bool { _, ok := os.LookupEnv(k); return ok }) {
 		return nil, ErrConfiguration
 	}
-	return poolConfigForDatabase(c, environment, "bookkeeping", dial)
+	return poolConfigForDatabase(c, environment, c.runtimeDatabase(environment), dial)
 }
 
 // poolConfigForDatabase is private: public constructors validate the full target before calling it.
@@ -106,7 +123,7 @@ func ConnectorForEnvironment(ctx context.Context, c Config, environment string) 
 	if c.ValidateEnvironment(environment) != nil || ForbiddenEnvironment(func(k string) bool { _, ok := os.LookupEnv(k); return ok }) {
 		return nil, nil, ErrConfiguration
 	}
-	return connectorForDatabase(ctx, c, environment, "bookkeeping")
+	return connectorForDatabase(ctx, c, environment, c.runtimeDatabase(environment))
 }
 
 // connectorForDatabase uses only metadata identity after an entrypoint validates its exact target.
