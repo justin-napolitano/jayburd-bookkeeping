@@ -14,7 +14,8 @@ before remaining shared Production runtime wiring under316.
 | Finding | API image scan40806816655 reports CVE-2026-116587/HIGH |
 | Investigation | Independent source trace confirms Firebase/storage→gRPC/xDS→SPIFFE bundle→go-jose; public attacker route unproven |
 | Patch | Exact existing dependency patch; retain upstream RSA limits and private-key rejection defaults |
-| Validation | Focused identity/observer/webhook/server and core checks running; fresh API scan pending |
+| Validation | Focused identity/observer/webhook/server, core check/test/build and app-integration PASS; upstream TestRsaKeyChecks, embedded private JWK/EPK rejection and legitimate RSA roundtrip PASS |
+| Independent candidate review | No surviving vulnerable selection, override or concrete auth regression found |
 
 ## Current evidence
 
@@ -25,8 +26,7 @@ Local validation uses Go1.26.5/external temporary modfile; tracked1.26.10 retain
 
 ## Remaining work
 
-Finish core and focused verification, independent candidate review, then exact
-API image runtime/scan. Human security review applies before release of sensitive
+Run exact rebuilt API image runtime/scan after reviewed merge. Human security review applies before release of sensitive
 changes. Shared SQL runtime configuration and live qualification remain separate.
 
 ## PR handoff
