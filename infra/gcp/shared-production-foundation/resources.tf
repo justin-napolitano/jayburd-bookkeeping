@@ -1,4 +1,9 @@
 // Values/versions remain Infisical-owned; Terraform manages empty destinations only.
+locals {
+  // Static keys are necessary during imperative imports, before any resource is planned.
+  provider_destinations = toset(concat(["client-id", "client-secret"], [for i in range(8) : format("slot-%02d", i)]))
+  provider_keys         = toset(["bank-credentials", "hosted-link"])
+}
 resource "google_project_service" "resources" {
   for_each           = toset(["secretmanager.googleapis.com", "cloudkms.googleapis.com", "cloudtasks.googleapis.com", "cloudscheduler.googleapis.com"])
   project            = var.project_id
@@ -6,7 +11,7 @@ resource "google_project_service" "resources" {
   disable_on_destroy = false
 }
 resource "google_secret_manager_secret" "provider" {
-  for_each  = toset(concat(["client-id", "client-secret"], [for i in range(8) : format("slot-%02d", i)]))
+  for_each  = local.provider_destinations
   project   = var.project_id
   secret_id = "jayburd-prod-bank-sync-${each.value}"
   labels    = local.labels
@@ -17,7 +22,7 @@ resource "google_secret_manager_secret" "provider" {
   depends_on = [google_project_service.resources]
 }
 resource "google_secret_manager_secret_iam_member" "reader" {
-  for_each  = { for pair in setproduct(["api", "sync"], keys(google_secret_manager_secret.provider)) : "${pair[0]}-${pair[1]}" => pair }
+  for_each  = { for pair in setproduct(["api", "sync"], local.provider_destinations) : "${pair[0]}-${pair[1]}" => pair }
   project   = var.project_id
   secret_id = google_secret_manager_secret.provider[each.value[1]].secret_id
   role      = "roles/secretmanager.secretAccessor"
@@ -38,9 +43,9 @@ resource "google_project_iam_custom_role" "secret_sync" {
   permissions = ["secretmanager.secrets.get", "secretmanager.versions.add", "secretmanager.versions.list"]
 }
 resource "google_secret_manager_secret_iam_member" "secret_sync" {
-  for_each  = google_secret_manager_secret.provider
+  for_each  = local.provider_destinations
   project   = var.project_id
-  secret_id = each.value.secret_id
+  secret_id = google_secret_manager_secret.provider[each.key].secret_id
   role      = google_project_iam_custom_role.secret_sync.name
   member    = "serviceAccount:${google_service_account.component["secret-sync"].email}"
 }
@@ -77,7 +82,7 @@ resource "google_kms_key_ring" "provider" {
   depends_on = [google_project_service.resources]
 }
 resource "google_kms_crypto_key" "provider" {
-  for_each        = toset(["bank-credentials", "hosted-link"])
+  for_each        = local.provider_keys
   name            = each.value
   key_ring        = google_kms_key_ring.provider.id
   purpose         = "ENCRYPT_DECRYPT"
@@ -89,8 +94,8 @@ resource "google_kms_crypto_key" "provider" {
   lifecycle { prevent_destroy = true }
 }
 resource "google_kms_crypto_key_iam_member" "api" {
-  for_each      = google_kms_crypto_key.provider
-  crypto_key_id = each.value.id
+  for_each      = local.provider_keys
+  crypto_key_id = google_kms_crypto_key.provider[each.key].id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = "serviceAccount:${google_service_account.component["api"].email}"
 }
