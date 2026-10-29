@@ -11,6 +11,8 @@ Before first apply, import already-created prod API/migrator service accounts,
 their SQL IAM users, the existing bookkeeping_prod database and their four
 connector/login IAM memberships into the matching resource addresses. Import
 does not approve a plan or deployment. Keep state/provider logs private.
+Provider8.6.0 PostgreSQL SQL-user IDs use `project/instance/login`, not REST paths;
+see G24 in the repository GCP source register. Never supply a password on import.
 Do not destroy/recreate these resources or manage the existing SQL instance from
 this root. Retain separate lifecycle ownership of the existing migration job.
 
