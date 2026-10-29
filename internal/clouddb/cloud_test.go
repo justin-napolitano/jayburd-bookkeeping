@@ -67,3 +67,31 @@ func TestProductionMigratorConfiguration(t *testing.T) {
 		t.Fatal("Production verifier accidentally enabled")
 	}
 }
+
+// TestSharedMigrationDatabase proves the exception changes only migrator target selection, not runtime authority.
+func TestSharedMigrationDatabase(t *testing.T) {
+	c := Config{"jayburd-bookkeeping-dev:us-central1:jayburd-dev", "migrator"}
+	dial := func(context.Context, string, string) (net.Conn, error) { return nil, errors.New("synthetic") }
+	p, err := MigrationPoolConfig(c, "production", "bookkeeping_prod", dial)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.ConnConfig.Database != "bookkeeping_prod" || p.ConnConfig.User != "jayburd-prod-migrator@jayburd-bookkeeping-dev.iam" {
+		t.Fatal("wrong shared target")
+	}
+	if c.ValidateEnvironment("production") == nil {
+		t.Fatal("ordinary Production guard relaxed")
+	}
+	for _, tc := range []struct {
+		c       Config
+		env, db string
+	}{
+		{c, "production", "bookkeeping"}, {c, "sandbox", "bookkeeping_prod"}, {c, "production", "arbitrary"},
+		{Config{c.Instance, "api"}, "production", "bookkeeping_prod"},
+		{Config{"other-project:us-central1:jayburd-dev", "migrator"}, "production", "bookkeeping_prod"},
+	} {
+		if _, err := MigrationPoolConfig(tc.c, tc.env, tc.db, dial); err == nil {
+			t.Fatal("mixed shared migration target accepted")
+		}
+	}
+}

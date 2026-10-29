@@ -29,7 +29,7 @@ func TestOfflineAndInvalidMigration(t *testing.T) {
 		{[]string{"-action=up", "-environment=production", "-instance=fictional-project:us-central1:jayburd-dev", "-approval-expires-at=2026-10-29T14:00:00Z"}, false},
 	} {
 		calls := 0
-		err := runWith(tc.args, now, func(context.Context, clouddb.Config, string) (*pgxpool.Config, func(), error) {
+		err := runWith(tc.args, now, func(context.Context, clouddb.Config, string, string) (*pgxpool.Config, func(), error) {
 			calls++
 			return nil, nil, errors.New("unexpected")
 		})
@@ -46,7 +46,7 @@ func TestMigrationProfileAndDeadline(t *testing.T) {
 		for _, duration := range []time.Duration{time.Minute, 24 * time.Hour} {
 			calls := 0
 			expiry := now.Add(duration)
-			err := runWith([]string{"-action=" + action, "-environment=production", "-instance=fictional-project:us-central1:jayburd-prod", "-approval-expires-at=" + expiry.Format("2006-01-02T15:04:05Z")}, now, func(ctx context.Context, c clouddb.Config, env string) (*pgxpool.Config, func(), error) {
+			err := runWith([]string{"-action=" + action, "-environment=production", "-instance=fictional-project:us-central1:jayburd-prod", "-approval-expires-at=" + expiry.Format("2006-01-02T15:04:05Z")}, now, func(ctx context.Context, c clouddb.Config, env string, database string) (*pgxpool.Config, func(), error) {
 				calls++
 				want := expiry
 				if duration > 10*time.Minute {
@@ -70,7 +70,7 @@ func TestSandboxMigrationAndURLOverride(t *testing.T) {
 	now := time.Now()
 	args := []string{"-action=status", "-instance=fictional-project:us-central1:jayburd-dev"}
 	calls := 0
-	connect := func(ctx context.Context, c clouddb.Config, env string) (*pgxpool.Config, func(), error) {
+	connect := func(ctx context.Context, c clouddb.Config, env string, database string) (*pgxpool.Config, func(), error) {
 		calls++
 		if env != "sandbox" || c.Component != "migrator" {
 			t.Fatal("legacy profile changed")
@@ -84,5 +84,27 @@ func TestSandboxMigrationAndURLOverride(t *testing.T) {
 	calls = 0
 	if runWith(args, now, connect) == nil || calls != 0 {
 		t.Fatal("URL override reached transport")
+	}
+}
+
+// TestSharedMigrationInvocation requires explicit database/profile/instance and preserves the finite deadline.
+func TestSharedMigrationInvocation(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Second)
+	args := []string{"-action=status", "-environment=production", "-database=bookkeeping_prod", "-instance=jayburd-bookkeeping-dev:us-central1:jayburd-dev", "-approval-expires-at=" + now.Add(time.Minute).Format("2006-01-02T15:04:05Z")}
+	calls := 0
+	connector := func(ctx context.Context, c clouddb.Config, env, db string) (*pgxpool.Config, func(), error) {
+		calls++
+		deadline, _ := ctx.Deadline()
+		if env != "production" || db != "bookkeeping_prod" || !deadline.Equal(now.Add(time.Minute)) {
+			t.Fatal("shared target/deadline lost")
+		}
+		return nil, nil, errors.New("synthetic stop")
+	}
+	if runWith(args, now, connector) == nil || calls != 1 {
+		t.Fatal("explicit shared transport not selected")
+	}
+	calls = 0
+	if runWith(args[:len(args)-1], now, connector) == nil || calls != 0 {
+		t.Fatal("missing approval reached shared transport")
 	}
 }
