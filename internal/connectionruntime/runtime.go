@@ -204,7 +204,9 @@ func newWithClock(parent context.Context, c Config, db connections.Beginner, tra
 // validateProduction requires explicit separated metadata; it never discovers actual resources or values.
 func (c Config) validateProduction(now time.Time) error {
 	expiry, e := time.Parse(time.RFC3339, c.ConsentExpiresAt)
-	if !project.MatchString(c.ProjectID) || c.ProjectID == "jayburd-bookkeeping-dev" || !number.MatchString(c.ProjectNumber) || c.ProjectNumber == "9088794002" || !nonzeroUUID(c.InfisicalProject) || !nonzeroUUID(c.InfisicalIdentity) || c.InfisicalEnvironment != "prod" || c.RegistryBucket != c.ProjectID+"-jayburd-prod-credential-registry" || c.RegistryPrefix != "provider-credentials-v1" || e != nil || expiry.IsZero() || expiry.Year() < 1 || expiry.After(now.Add(30*24*time.Hour)) {
+	// The approved shared project must use its matching numeric identity, never mixed metadata.
+	sharedMismatch := (c.ProjectID == "jayburd-bookkeeping-dev") != (c.ProjectNumber == "9088794002")
+	if !project.MatchString(c.ProjectID) || sharedMismatch || !number.MatchString(c.ProjectNumber) || !nonzeroUUID(c.InfisicalProject) || !nonzeroUUID(c.InfisicalIdentity) || c.InfisicalEnvironment != "prod" || c.RegistryBucket != c.ProjectID+"-jayburd-prod-credential-registry" || c.RegistryPrefix != "provider-credentials-v1" || e != nil || expiry.IsZero() || expiry.Year() < 1 || expiry.After(now.Add(30*24*time.Hour)) {
 		return ErrConfiguration
 	}
 	if c.WebhookURL != "" {
