@@ -21,6 +21,16 @@ instance/profile combinations fail before I/O. Runtime Production paths retain
 separate-instance restrictions until independently updated and tested; this slice
 cannot connect real bank accounts. No arbitrary DSN/login or metadata redirect.
 
+Runtime follow-up under316: explicit production environment plus the exact
+owner-selected shared instance derives bookkeeping_prod for api/sync/publisher/
+webhook only, together with dedicated jayburd-prod identities. Sandbox derives
+bookkeeping and jayburd-dev identities. No free-form database option is added;
+migrator/verifier cannot use this runtime exception. This source change does
+not provision worker grants or enable provider access. Existing catalog isolation
+proof and reviewed workload activation remain required. Acceptance:
+TestSharedRuntimeRouting, TestProductionIAMProfile, core gates and synthetic
+application integration; hosted acceptance remains a separate release stage.
+
 Shared bootstrap verifies current_database and exact prod api/migrator login names
 in the existing project, administrator-owned database, and absence of Production
 login CONNECT rights to Sandbox. It uses the existing reviewed bootstrap statements in a separate wrapper, then

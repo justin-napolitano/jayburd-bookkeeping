@@ -50,6 +50,23 @@ func TestProductionReceiverConfiguration(t *testing.T) {
 	}
 }
 
+// TestSharedProductionReceiver requires matched shared-instance and secret-project metadata.
+func TestSharedProductionReceiver(t *testing.T) {
+	c := productionConfigFixture()
+	old := c.ProjectNumber
+	c.Instance = "jayburd-bookkeeping-dev:us-central1:jayburd-dev"
+	c.ProjectNumber = "9088794002"
+	c.ClientIDVersion = strings.Replace(c.ClientIDVersion, "projects/"+old+"/", "projects/"+c.ProjectNumber+"/", 1)
+	c.ClientSecretVersion = strings.Replace(c.ClientSecretVersion, "projects/"+old+"/", "projects/"+c.ProjectNumber+"/", 1)
+	if c.Validate() != nil {
+		t.Fatal("matched shared Production rejected")
+	}
+	c.Instance = "fictional-production:us-central1:pilot-db"
+	if c.Validate() == nil {
+		t.Fatal("mixed project accepted")
+	}
+}
+
 // TestProductionReceiverWarmExpiry denies even cached-key traffic before body verification or business SQL.
 func TestProductionReceiverWarmExpiry(t *testing.T) {
 	keys, token, body := signedFixture(t)
