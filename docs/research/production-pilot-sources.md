@@ -1,5 +1,18 @@
 # Production pilot source review
 
+## PP12 — shared-instance database isolation,2026-10-29
+
+[PostgreSQL17 database roles](https://www.postgresql.org/docs/17/database-roles.html),
+role scope paragraph reviewed: roles span the cluster's databases.
+[Privileges5.8](https://www.postgresql.org/docs/17/ddl-priv.html), CONNECT and PUBLIC
+default sections reviewed: CONNECT is checked at startup; databases initially grant
+PUBLIC connection rights. Our explicit database allowlist, separate IAM logins and
+atomic bootstrap checks are engineering controls, not physical/admin isolation.
+No entire PG manual, live SQL catalog or private records reviewed. Read-only GCP
+metadata confirms existing PostgreSQL17/us-central1/ZONAL/db-g1-small/10GiB and
+only bookkeeping/postgres databases. Shared instance selection is owner direction;
+actual CONNECT grants, capacity and managed migration remain unproved.
+
 ## PP11 — public pilot pricing,2026-10-27
 
 [Cloud SQL pricing](https://cloud.google.com/sql/pricing): selected Iowa/us-central1
