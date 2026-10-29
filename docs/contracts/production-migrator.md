@@ -55,8 +55,9 @@ publishes without rebuilding. Dedicated jayburd-prod registry/builder/WIF names
 prevent development federation reuse. No deployment is part of publication.
 
 Owner-only main workflow_dispatch takes the SHA256 of a separately committed
-public deploy/production-build-target.json. That file is intentionally absent:
-there is no actionable target until337 approves exact resources and spend. Closed
+public deploy/production-build-target.json. Its bounded shared-project candidate
+is recorded in [operations](../runbooks/production-build-operations.md); exact
+target review is separate from full337 pilot approval. Closed
 schema: schemaVersion1, project, projectNumber, expiresAt, mandate (337 issue-comment
 URL). Canonical compact JSON plus newline; nondevelopment target, numeric project
 number, UTC expiry at most seven days. The owner must review the target and supply
