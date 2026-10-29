@@ -58,11 +58,16 @@ func PoolConfigForEnvironment(c Config, environment string, dial func(context.Co
 	if c.ValidateEnvironment(environment) != nil || dial == nil || ForbiddenEnvironment(func(k string) bool { _, ok := os.LookupEnv(k); return ok }) {
 		return nil, ErrConfiguration
 	}
+	return poolConfigForDatabase(c, environment, "bookkeeping", dial)
+}
+
+// poolConfigForDatabase is private: public constructors validate the full target before calling it.
+func poolConfigForDatabase(c Config, environment, database string, dial func(context.Context, string, string) (net.Conn, error)) (*pgxpool.Config, error) {
 	prefix := "jayburd-dev-"
 	if environment == "production" {
 		prefix = "jayburd-prod-"
 	}
-	u := url.URL{Scheme: "postgres", Host: "localhost", Path: "/bookkeeping", User: url.User(prefix + c.Component + "@" + c.Project() + ".iam")}
+	u := url.URL{Scheme: "postgres", Host: "localhost", Path: "/" + database, User: url.User(prefix + c.Component + "@" + c.Project() + ".iam")}
 	q := url.Values{"sslmode": {"disable"}, "passfile": {"/dev/null"}, "sslcert": {""}, "sslkey": {""}, "sslrootcert": {""}, "connect_timeout": {"15"}}
 	u.RawQuery = q.Encode()
 	p, err := pgxpool.ParseConfig(u.String())
@@ -101,6 +106,11 @@ func ConnectorForEnvironment(ctx context.Context, c Config, environment string) 
 	if c.ValidateEnvironment(environment) != nil || ForbiddenEnvironment(func(k string) bool { _, ok := os.LookupEnv(k); return ok }) {
 		return nil, nil, ErrConfiguration
 	}
+	return connectorForDatabase(ctx, c, environment, "bookkeeping")
+}
+
+// connectorForDatabase uses only metadata identity after an entrypoint validates its exact target.
+func connectorForDatabase(ctx context.Context, c Config, environment, database string) (*pgxpool.Config, func(), error) {
 	d, err := cloudsqlconn.NewDialer(ctx, cloudsqlconn.WithIAMAuthN(), cloudsqlconn.WithLazyRefresh(), cloudsqlconn.WithRefreshTimeout(15*time.Second), cloudsqlconn.WithIAMAuthNTokenSources(
 		google.ComputeTokenSource("default", "https://www.googleapis.com/auth/sqlservice.admin", "https://www.googleapis.com/auth/cloud-platform"),
 		google.ComputeTokenSource("default", "https://www.googleapis.com/auth/sqlservice.login")))
@@ -108,7 +118,7 @@ func ConnectorForEnvironment(ctx context.Context, c Config, environment string) 
 		return nil, nil, errors.New("database transport unavailable")
 	}
 	close := func() { _ = d.Close() }
-	cfg, err := PoolConfigForEnvironment(c, environment, func(ctx context.Context, _, _ string) (net.Conn, error) {
+	cfg, err := poolConfigForDatabase(c, environment, database, func(ctx context.Context, _, _ string) (net.Conn, error) {
 		return d.Dial(ctx, c.Instance, cloudsqlconn.WithPublicIP())
 	})
 	if err != nil {
@@ -116,4 +126,34 @@ func ConnectorForEnvironment(ctx context.Context, c Config, environment string) 
 		return nil, nil, ErrConfiguration
 	}
 	return cfg, close, nil
+}
+
+// ValidateMigrationDatabase allows only the reviewed shared-instance Production database or legacy targets.
+func (c Config) ValidateMigrationDatabase(environment, database string) error {
+	if c.Component != "migrator" {
+		return ErrConfiguration
+	}
+	if database == "bookkeeping" {
+		return c.ValidateEnvironment(environment)
+	}
+	if database != "bookkeeping_prod" || environment != "production" || c.Instance != "jayburd-bookkeeping-dev:us-central1:jayburd-dev" {
+		return ErrConfiguration
+	}
+	return nil
+}
+
+// MigrationPoolConfig exposes the exact target choice for synthetic transport tests, never arbitrary database access.
+func MigrationPoolConfig(c Config, environment, database string, dial func(context.Context, string, string) (net.Conn, error)) (*pgxpool.Config, error) {
+	if c.ValidateMigrationDatabase(environment, database) != nil || dial == nil || ForbiddenEnvironment(func(k string) bool { _, ok := os.LookupEnv(k); return ok }) {
+		return nil, ErrConfiguration
+	}
+	return poolConfigForDatabase(c, environment, database, dial)
+}
+
+// MigrationConnector confines the shared-instance exception to an explicitly named Production migrator.
+func MigrationConnector(ctx context.Context, c Config, environment, database string) (*pgxpool.Config, func(), error) {
+	if c.ValidateMigrationDatabase(environment, database) != nil || ForbiddenEnvironment(func(k string) bool { _, ok := os.LookupEnv(k); return ok }) {
+		return nil, nil, ErrConfiguration
+	}
+	return connectorForDatabase(ctx, c, environment, database)
 }

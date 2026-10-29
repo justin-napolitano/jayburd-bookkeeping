@@ -20,10 +20,10 @@ import (
 )
 
 // connectorFactory permits synthetic pre-I/O tests without a credential source.
-type connectorFactory func(context.Context, clouddb.Config, string) (*pgxpool.Config, func(), error)
+type connectorFactory func(context.Context, clouddb.Config, string, string) (*pgxpool.Config, func(), error)
 
 // run defaults to offline verification; only explicit bounded profiles reach IAM transport.
-func run() error { return runWith(os.Args[1:], time.Now(), clouddb.ConnectorForEnvironment) }
+func run() error { return runWith(os.Args[1:], time.Now(), clouddb.MigrationConnector) }
 
 // runWith parses a closed command and checks authority metadata before any connector construction.
 func runWith(args []string, now time.Time, connect connectorFactory) error {
@@ -31,6 +31,7 @@ func runWith(args []string, now time.Time, connect connectorFactory) error {
 	flags.SetOutput(io.Discard)
 	action := flags.String("action", "verify", "offline verify, read-only status or up")
 	instance := flags.String("instance", "", "explicit project:region:instance")
+	database := flags.String("database", "bookkeeping", "bookkeeping or explicit shared Production bookkeeping_prod")
 	environment := flags.String("environment", "sandbox", "sandbox or production")
 	expiry := flags.String("approval-expires-at", "", "Production execution deadline in UTC")
 	if flags.Parse(args) != nil || flags.NArg() != 0 || (*environment != "sandbox" && *environment != "production") {
@@ -39,14 +40,14 @@ func runWith(args []string, now time.Time, connect connectorFactory) error {
 	if _, err := migration.Verify(migrations.Files); err != nil {
 		return err
 	}
-	if *action == "verify" && *instance == "" && *expiry == "" {
+	if *action == "verify" && *instance == "" && *expiry == "" && *database == "bookkeeping" {
 		return nil
 	}
 	if (*action != "up" && *action != "status") || *instance == "" {
 		return migration.ErrMigration
 	}
 	cfgInput := clouddb.Config{Instance: *instance, Component: "migrator"}
-	if cfgInput.ValidateEnvironment(*environment) != nil || (*environment == "sandbox" && (strings.HasSuffix(*instance, ":jayburd-prod") || *expiry != "")) {
+	if cfgInput.ValidateMigrationDatabase(*environment, *database) != nil || (*environment == "sandbox" && (strings.HasSuffix(*instance, ":jayburd-prod") || *expiry != "")) {
 		return migration.ErrMigration
 	}
 	deadline := now.Add(10 * time.Minute)
@@ -66,7 +67,7 @@ func runWith(args []string, now time.Time, connect connectorFactory) error {
 	defer cancel()
 	ctx, timeout := context.WithDeadline(ctx, deadline)
 	defer timeout()
-	cfg, closeConnector, err := connect(ctx, cfgInput, *environment)
+	cfg, closeConnector, err := connect(ctx, cfgInput, *environment, *database)
 	if err != nil {
 		return migration.ErrMigration
 	}
