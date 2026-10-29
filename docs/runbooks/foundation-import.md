@@ -16,6 +16,8 @@ metadata verified; private Terraform init succeeded. No foundation apply yet.
 | Correction | Use static destination/key sets for graph expansion; same keys, resource addresses, roles and recipients |
 | Validation | Three infrastructure mocks, static-key regression and core check/test/build PASS |
 | Actual imports | All10 resources imported: backend bucket, Production DB, two identities, two SQL IAM users, four project connector/login IAM bindings |
+| Foundation apply | Original approved merged363 source applied successfully; raw provider output/state private |
+| Metadata readback |10 Production identities,5 IAM SQL users,10 secret destinations,2 encryption keys,7 private/versioned buckets and immutable Production image registry; build federation disabled |
 
 ## Current evidence
 
@@ -31,11 +33,16 @@ project/instance/name; corrected imports succeeded. G24 records that selected
 source review. Imports alone do not establish new foundation provisioning.
 Static graph correction was used only for imports. Foundation apply uses the
 original reviewed merged363 source; planning can resolve resource-derived keys.
+Instance readback remains PostgreSQL17/us-central1/db-g1-small/10GiB/ZONAL;
+this root owns no instance settings. Both static secret destinations have no
+versions yet. No secret payload was retrieved. Actual worker SQL permissions,
+secret propagation, identity recovery or hosted application acceptance are not
+established by this provisioning success.
 
 ## Remaining work
 
-Verify imports, then apply the reviewed root only after source checks. Confirm
-actual metadata/least privilege, remaining worker SQL bootstrap, secret
+Imports/apply and infrastructure metadata verified. Confirm actual least
+privilege/runtime sessions, remaining worker SQL bootstrap, secret
 propagation and hosted readiness. Keep316/337 open; no live bank activation.
 
 ## PR handoff
