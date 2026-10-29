@@ -8,6 +8,13 @@ const encode=v=>JSON.stringify(v)+'\n';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 // All identifiers and hashes below are fictional and grant no cloud authority.
 const target=()=>({schemaVersion:1,project:'fictional-prod-project',projectNumber:'123456789012',expiresAt:'2026-10-29T14:00:00Z',mandate:'https://github.com/justin-napolitano/jayburd-bookkeeping/issues/337#issuecomment-123'});
+test('shared build target requires matched project pair and retains finite exact-byte authority',()=>{
+ const t={...target(),project:'jayburd-bookkeeping-dev',projectNumber:'9088794002'};
+ const bytes=encode(t);assert.deepEqual(buildTarget(bytes,hash(bytes),now),t);
+ const sharedImage='us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/worker@sha256:'+'d'.repeat(64);
+ assert.equal(productionImageReceipt({...input,project:t.project},build,[sharedImage],scan).candidate.image,sharedImage);
+ assert.throws(()=>productionImageReceipt({...input,project:t.project},build,[sharedImage.replace('/jayburd-prod/','/jayburd-dev/')],scan));
+});
 test('target binds exact reviewed bytes and finite nondevelopment metadata',()=>{
  const t=target(),bytes=encode(t);assert.deepEqual(buildTarget(bytes,hash(bytes),now),t);
  assert.throws(()=>buildTarget(bytes, '0'.repeat(64),now));

@@ -9,7 +9,7 @@ export function buildTarget(bytes, hash, now=Date.now()) {
  try {
   if ((!Buffer.isBuffer(bytes)&&typeof bytes!=='string') || Buffer.byteLength(bytes)>4096 || !/^[a-f0-9]{64}$/.test(hash) || createHash('sha256').update(bytes).digest('hex')!==hash || !Number.isFinite(now)) throw Error();
   const t=JSON.parse(bytes);
-  if (!t || Object.keys(t).sort().join(',')!=='expiresAt,mandate,project,projectNumber,schemaVersion' || bytes.toString()!==JSON.stringify(t)+'\n' || t.schemaVersion!==1 || typeof t.project!=='string' || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(t.project) || t.project==='jayburd-bookkeeping-dev' || !integer(t.projectNumber) || t.projectNumber.length<6 || t.projectNumber==='9088794002' || typeof t.mandate!=='string' || !/^https:\/\/github\.com\/justin-napolitano\/jayburd-bookkeeping\/issues\/337#issuecomment-[1-9][0-9]*$/.test(t.mandate)) throw Error();
+  if (!t || Object.keys(t).sort().join(',')!=='expiresAt,mandate,project,projectNumber,schemaVersion' || bytes.toString()!==JSON.stringify(t)+'\n' || t.schemaVersion!==1 || typeof t.project!=='string' || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(t.project) || !integer(t.projectNumber) || t.projectNumber.length<6 || ((t.project==='jayburd-bookkeeping-dev') !== (t.projectNumber==='9088794002')) || typeof t.mandate!=='string' || !/^https:\/\/github\.com\/justin-napolitano\/jayburd-bookkeeping\/issues\/337#issuecomment-[1-9][0-9]*$/.test(t.mandate)) throw Error();
   const expiry=Date.parse(t.expiresAt);
   if (typeof t.expiresAt!=='string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(t.expiresAt) || !Number.isFinite(expiry) || new Date(expiry).toISOString().replace('.000Z','Z')!==t.expiresAt || expiry<=now || expiry>now+7*86400000) throw Error();
   return t;
@@ -19,7 +19,7 @@ export function buildTarget(bytes, hash, now=Date.now()) {
 export function productionImageReceipt(input, build, repositories, scan) {
  try {
   const {project,component,commit,run,attempt,imageID,targetHash}=input;
-  if (typeof project!=='string' || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(project) || project==='jayburd-bookkeeping-dev' || !['api','web','worker','migrate'].includes(component) || !/^[a-f0-9]{40}$/.test(commit) || !integer(run) || !integer(attempt) || !digest(imageID) || !/^[a-f0-9]{64}$/.test(targetHash)) throw Error();
+  if (typeof project!=='string' || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(project) || !['api','web','worker','migrate'].includes(component) || !/^[a-f0-9]{40}$/.test(commit) || !integer(run) || !integer(attempt) || !digest(imageID) || !/^[a-f0-9]{64}$/.test(targetHash)) throw Error();
   if (![build['containerimage.config.digest'],build['containerimage.digest']].filter(digest).includes(imageID) || !build['buildx.build.provenance'] || typeof build['buildx.build.provenance']!=='object') throw Error();
   if (scan?.SchemaVersion!==2 || !Array.isArray(scan.Results) || scan.Results.some(r=> !r || (r.Vulnerabilities!==undefined && (!Array.isArray(r.Vulnerabilities) || r.Vulnerabilities.some(v=>!v || typeof v.Severity!=='string' || ['HIGH','CRITICAL'].includes(v.Severity)))))) throw Error();
   const prefix=`us-central1-docker.pkg.dev/${project}/jayburd-prod/${component}@`;
