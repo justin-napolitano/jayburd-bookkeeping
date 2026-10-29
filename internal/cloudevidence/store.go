@@ -44,9 +44,9 @@ func New(bucket string, tokens AccessTokenProvider, transport http.RoundTripper)
 	return &Store{bucket, tokens, &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil
 }
 
-// NewProduction pins a separate project's evidence bucket; it never reuses a development store.
+// NewProduction pins a dedicated Production bucket even when the infrastructure project is shared.
 func NewProduction(project, bucket string, tokens AccessTokenProvider, transport http.RoundTripper) (*Store, error) {
-	if project == "jayburd-bookkeeping-dev" || !bucketName.MatchString(project+"-jayburd-dev-acquisition-evidence") || bucket != project+"-jayburd-prod-acquisition-evidence" || tokens == nil || transport == nil {
+	if !bucketName.MatchString(project+"-jayburd-dev-acquisition-evidence") || bucket != project+"-jayburd-prod-acquisition-evidence" || tokens == nil || transport == nil {
 		return nil, failed("configuration_error", false)
 	}
 	return &Store{bucket, tokens, &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}, nil

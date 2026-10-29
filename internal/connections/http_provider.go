@@ -34,10 +34,10 @@ type HTTPConfig struct {
 // SandboxTransactionsWebhookURL pins the dedicated receiver; request metadata cannot redirect notifications.
 const SandboxTransactionsWebhookURL = "https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid"
 
-// ProductionTransactionsWebhookURL derives one canonical nondevelopment receiver, never arbitrary HTTPS routing.
+// ProductionTransactionsWebhookURL derives a dedicated Production receiver, including the approved shared project.
 func ProductionTransactionsWebhookURL(projectNumber string) (string, error) {
 	n, e := strconv.ParseUint(projectNumber, 10, 63)
-	if e != nil || n == 0 || strconv.FormatUint(n, 10) != projectNumber || projectNumber == "9088794002" {
+	if e != nil || n == 0 || strconv.FormatUint(n, 10) != projectNumber {
 		return "", failed("configuration_error")
 	}
 	return "https://jayburd-prod-webhook-" + projectNumber + ".us-central1.run.app/webhooks/plaid", nil
