@@ -55,8 +55,10 @@ func (c Config) Validate() error {
 	prefix := "jayburd-dev"
 	if c.ProviderEnvironment() == "production" {
 		prefix = "jayburd-prod"
+		// Shared SQL and its secret-project pins must be selected together.
+		shared := c.Instance == "jayburd-bookkeeping-dev:us-central1:jayburd-dev"
 		expiry, e := time.Parse(time.RFC3339, c.ApprovalExpiresAt)
-		if e != nil || expiry.IsZero() || expiry.Year() < 1 || expiry.After(time.Now().Add(30*24*time.Hour)) || c.ProjectNumber == "9088794002" {
+		if e != nil || expiry.IsZero() || expiry.Year() < 1 || expiry.After(time.Now().Add(30*24*time.Hour)) || shared != (c.ProjectNumber == "9088794002") {
 			return ErrConfiguration
 		}
 	} else if c.ApprovalExpiresAt != "" {
