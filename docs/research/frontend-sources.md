@@ -44,3 +44,15 @@ The existing bearer boundary and fixed rewrite minimize this slice. We do not
 infer standards conformance, deployed identity proof or accounting correctness
 from the UI framework. See [UI contract](../contracts/first-ui.md) for acceptance
 and recovery limits; revisit request recovery before live use.
+
+## RE2JS transitive patch — PR356 CI follow-up
+
+Reviewed maintainer [GHSA-gg6h-894w-4m9c](https://github.com/le0pard/re2js/security/advisories/GHSA-gg6h-894w-4m9c),
+affected/patched versions and summary: versions2.2.0–2.8.6 have quadratic matching
+with opt-in lookbehinds;2.8.7 is patched. Selected sections only, no claim that
+Jayburd exercises the vulnerable path. CI40793097455 failed npm audit after the
+advisory entered the database. Lock only re2js2.8.6→2.8.7 within its existing
+transitive range; avoid an unnecessary minor upgrade. Registry integrity metadata
+retrieved for exact2.8.7; no new direct dependency or API change. Acceptance: clean
+locked install/audit and frontend type/unit/build/browser gates; retain security
+audit gate. No suppression or unsafe override.
