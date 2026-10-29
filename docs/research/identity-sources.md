@@ -1,5 +1,19 @@
 # Identity sources
 
+## I07 — go-jose RSA JWK denial of service, reviewed2026-10-29
+
+Reviewed selected summary, affected/patched versions and impact in the maintainer
+[advisory](https://github.com/go-jose/go-jose/security/advisories/GHSA-mgcc-cww5-fp2q)
+and [patch](https://github.com/go-jose/go-jose/commit/a0111f82742fa92bceec9ede40845e73319e6230).
+Versions through4.1.5 permit excessive CPU during crafted RSA JWK validation;
+4.1.6 bounds RSA sizes and rejects embedded private keys. Select the minimal
+patched version rather than scan suppression. Local import-chain/source review
+finds Firebase/storage→gRPC/xDS→SPIFFE bundle→go-jose. Public attacker control
+of that bundle path is unproven. Preserve default limits and legitimate2048-bit
+RSA verification. Acceptance: focused synthetic auth tests, upstream malformed
+JWK rejection tests, core gates and exact rebuilt API vulnerability scan.
+No accounting contract/ISO mapping changes; selected source sections only.
+
 Reviewed 2026-10-11; relevant documentation sections only, not a compliance review.
 
 ## I01 — Google, Verify ID Tokens
