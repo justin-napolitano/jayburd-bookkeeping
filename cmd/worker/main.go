@@ -94,7 +94,9 @@ func parse(args []string) (options, error) {
 	if o.Worker.Mode == "consumer" {
 		if o.Worker.ProviderEnvironment() == "production" {
 			policy := bankcredential.ProductionPolicy{BankKey: o.BankKey, LinkKey: o.LinkKey}
-			if !policy.Valid() || o.ProjectNumber == "9088794002" || !strings.HasPrefix(o.BankKey, "projects/"+p+"/") || !strings.HasPrefix(o.LinkKey, "projects/"+p+"/") {
+			// Shared hosting requires its exact reviewed project pair, while instance isolation remains independently validated.
+			sharedMismatch := (p == "jayburd-bookkeeping-dev") != (o.ProjectNumber == "9088794002")
+			if !policy.Valid() || sharedMismatch || !strings.HasPrefix(o.BankKey, "projects/"+p+"/") || !strings.HasPrefix(o.LinkKey, "projects/"+p+"/") {
 				return options{}, workerruntime.ErrConfiguration
 			}
 		} else if o.BankKey != "" || o.LinkKey != "" {
