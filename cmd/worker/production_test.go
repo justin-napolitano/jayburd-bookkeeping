@@ -19,6 +19,67 @@ func productionArgs() []string {
 	return append(args, "-provider-environment=production", "-provider-approval-expires-at="+time.Now().Add(time.Hour).UTC().Format(time.RFC3339), "-bank-credential-key=projects/synthetic-project/locations/us-central1/keyRings/pilot/cryptoKeys/bank", "-link-handoff-key=projects/synthetic-project/locations/us-central1/keyRings/pilot/cryptoKeys/link")
 }
 
+// sharedProductionArgs pins the reviewed shared instance with fictional caller/version metadata only.
+func sharedProductionArgs() []string {
+	args := productionArgs()
+	for i, value := range args {
+		value = strings.ReplaceAll(value, "synthetic-project", "jayburd-bookkeeping-dev")
+		value = strings.ReplaceAll(value, "projects/123456789012/", "projects/9088794002/")
+		if strings.HasPrefix(value, "-cloud-sql-instance=") {
+			value = "-cloud-sql-instance=jayburd-bookkeeping-dev:us-central1:jayburd-dev"
+		}
+		if strings.HasPrefix(value, "-project-number=") {
+			value = "-project-number=9088794002"
+		}
+		if strings.HasPrefix(value, "-bank-credential-key=") {
+			value = "-bank-credential-key=projects/jayburd-bookkeeping-dev/locations/us-central1/keyRings/jayburd-prod/cryptoKeys/bank-credentials"
+		}
+		if strings.HasPrefix(value, "-link-handoff-key=") {
+			value = "-link-handoff-key=projects/jayburd-bookkeeping-dev/locations/us-central1/keyRings/jayburd-prod/cryptoKeys/hosted-link"
+		}
+		args[i] = value
+	}
+	return args
+}
+
+// TestSharedProductionWorkerArguments covers the actual profile regression and consistent mixed-resource denials.
+func TestSharedProductionWorkerArguments(t *testing.T) {
+	if _, err := parse(sharedProductionArgs()); err != nil {
+		t.Error("reviewed shared Production consumer rejected")
+	}
+	for _, mismatch := range []string{"shared-id-foreign-number", "foreign-id-shared-number", "wrong-shared-instance", "sandbox-secret", "sandbox-key"} {
+		t.Run(mismatch, func(t *testing.T) {
+			args := sharedProductionArgs()
+			for i, value := range args {
+				switch mismatch {
+				case "shared-id-foreign-number":
+					value = strings.ReplaceAll(value, "projects/9088794002/", "projects/123456789012/")
+					if value == "-project-number=9088794002" {
+						value = "-project-number=123456789012"
+					}
+				case "foreign-id-shared-number":
+					value = strings.ReplaceAll(value, "jayburd-bookkeeping-dev", "synthetic-project")
+					if strings.HasPrefix(value, "-cloud-sql-instance=") {
+						value = "-cloud-sql-instance=synthetic-project:us-central1:pilot-db"
+					}
+				case "wrong-shared-instance":
+					if strings.HasPrefix(value, "-cloud-sql-instance=") {
+						value = "-cloud-sql-instance=jayburd-bookkeeping-dev:us-central1:pilot-db"
+					}
+				case "sandbox-secret":
+					value = strings.ReplaceAll(value, "jayburd-prod-bank-sync-client-secret", "jayburd-dev-bank-sync-client-secret")
+				case "sandbox-key":
+					value = strings.ReplaceAll(value, "keyRings/jayburd-prod", "keyRings/jayburd-dev")
+				}
+				args[i] = value
+			}
+			if _, err := parse(args); err == nil {
+				t.Fatal("mixed or unreviewed shared profile accepted")
+			}
+		})
+	}
+}
+
 // TestProductionWorkerArguments rejects cross-profile identities, evidence, keys and secret aliases before startup.
 func TestProductionWorkerArguments(t *testing.T) {
 	if _, e := parse(productionArgs()); e != nil {
