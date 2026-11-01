@@ -143,7 +143,7 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Prove isolated first-book operator bootstrap
-        run: make sandbox-bootstrap-test
+        run: make sandbox-bootstrap-test production-book-bootstrap-test
       - name: Install locked browser dependencies
         run: npm --prefix web ci
       - name: Install Chromium for real application proof

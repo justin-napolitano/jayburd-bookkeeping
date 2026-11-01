@@ -4,7 +4,8 @@
 ## Status and boundary
 
 PROD375-RUNTIME; build/375-production-acquisition from796d41c. Source candidate;
-existing Production app/owner login proven, reference/book scope pending374.
+existing Production app/owner login proven, reference installed under374; book
+scope remains pending.
 No worker, receiver exposure, role mutation or bank activation performed.
 
 ## Stage ledger
@@ -16,6 +17,8 @@ No worker, receiver exposure, role mutation or bank activation performed.
 | Decision | finite-production-acquisition; distinct root, paused scheduling, explicit finite API pilot input |
 | Implementation | Inert Production acquisition root, separate finite API pilot input, strict exact-target webhook bootstrap |
 | CI isolation | Seed caller/ref namespacing retains cancellation of superseded runs while permitting independent same-source Sandbox/Production validation |
+| Owner review | Owner explicitly approved reviewed376/377 source/setup;376 merged06465ec after five checks, integrated here;377 exact-head CI still required |
+| Combined checks | Rechecked combined main376 +375 source: core/release and both Production book/webhook bootstrap PASS; context budget retained |
 | Validation |41 mocked infra cases; migration/tooling, Sandbox+Production webhook/worker bootstrap, core/release/actionlint, ordinary+Production browser/API/SQL journeys PASS |
 
 ## Current evidence

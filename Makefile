@@ -171,6 +171,10 @@ sandbox-bootstrap-test:
 	bash scripts/test-sandbox-bootstrap.sh
 	bash scripts/test-show-worker-binding.sh
 
+.PHONY: production-book-bootstrap-test
+production-book-bootstrap-test:
+	bash scripts/test-production-book-bootstrap.sh
+
 .PHONY: sandbox-verification-test
 sandbox-verification-test:
 	bash scripts/test-sandbox-verification.sh
