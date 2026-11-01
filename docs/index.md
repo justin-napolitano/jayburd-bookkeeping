@@ -1,5 +1,9 @@
 # Project context
 
+[Production personal-book bootstrap](contracts/production-book-bootstrap.md) and
+[delivery stages](runbooks/production-book-bootstrap.md): bounded reference and
+creator-owned scope setup under374, source candidate pending human review/apply.
+
 [Production runtime and readback](runbooks/production-runtime-rollout.md):
 paused Production API/frontend deployed; owner MFA workspace sign-in proven.
 Exact static-version readback and live bank activation remain pending. See the
