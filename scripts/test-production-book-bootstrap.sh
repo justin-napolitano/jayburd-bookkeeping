@@ -51,9 +51,39 @@ reject production_reference_rejected reference_stage -v source_release=fictional
 reject production_reference_rejected reference_stage -v valid_from=2001-01-01
 reject production_reference_rejected reference_stage -v currency_id=00000000-0000-0000-0000-000000000000
 [[ "$(sql "SELECT count(*) FROM reference.currency WHERE valid_from=DATE '2026-09-17'")" == 0 ]]
+# A late history insert failure must roll back the preceding current-reference insert.
+history='3a184659-cf9b-4b80-b140-3f7a7796cbbd'
+sql "CREATE FUNCTION reference.synthetic_history_failure() RETURNS trigger LANGUAGE plpgsql AS \$\$ BEGIN IF NEW.currency_version_id='$history' THEN RAISE EXCEPTION 'synthetic history failure'; END IF; RETURN NEW; END \$\$; CREATE TRIGGER synthetic_history_failure BEFORE INSERT ON reference.currency FOR EACH ROW EXECUTE FUNCTION reference.synthetic_history_failure();" >/dev/null
+reject 'synthetic history failure' reference_stage
+[[ "$(sql 'SELECT count(*) FROM reference.currency')" == 0 ]]
+sql 'DROP TRIGGER synthetic_history_failure ON reference.currency; DROP FUNCTION reference.synthetic_history_failure();' >/dev/null
+sql "INSERT INTO reference.currency VALUES('$history','USD','840',2,'2001-01-01','2026-09-17','fictional-history-conflict');" >/dev/null
+reject production_history_conflict reference_stage
+[[ "$(sql "SELECT count(*) FROM reference.currency WHERE currency_version_id='$currency'")" == 0 ]]
+# Reset only this disposable pre-book fixture; immutable triggers stay enabled and unchanged.
+sql 'TRUNCATE reference.currency CASCADE;' >/dev/null
+sql "INSERT INTO reference.currency VALUES('00000000-0000-4000-8000-000000000097','USD','840',2,'2001-01-01','2026-09-17','fictional-competing-history');" >/dev/null
+reject 'overlapping currency versions' reference_stage
+[[ "$(sql 'SELECT count(*) FROM reference.currency')" == 1 ]]
+sql 'TRUNCATE reference.currency CASCADE;' >/dev/null
+echo 'PASS TestProductionHistoryConflictOverlapAndAtomicRollback'
 first=$(reference_stage)
 [[ "$first" == 'PASS: exact Production reference metadata installed' && "$(reference_stage)" == "$first" ]]
 [[ "$(sql "SELECT alphabetic_code||'|'||numeric_code||'|'||minor_unit||'|'||valid_from||'|'||valid_to||'|'||source_release FROM reference.currency WHERE currency_version_id='$currency'")" == "USD|840|2|2026-09-17|2027-01-01|$source_release" ]]
+[[ "$(sql "SELECT alphabetic_code||'|'||numeric_code||'|'||minor_unit||'|'||valid_from||'|'||valid_to||'|'||source_release FROM reference.currency WHERE currency_version_id='$history'")" == 'USD|840|2|2001-01-01|2026-09-17|ISO4217-MA115:2002-05-13+SIX-list-one:2026-09-17;local-coverage-v1' ]]
+[[ "$(sql 'SELECT count(*) FROM reference.currency')" == 2 ]]
+# Independently fixed observations prove installed versions pass existing SQL dated-money validation.
+history_row() {
+ sql "SET ROLE bookkeeping_owner; SELECT integration.sync_row(jsonb_build_object('account_id','Fictional-A','transaction_id','Fictional-T','pending',false,'pending_transaction_id',NULL,'date','$1','authorized_date',NULL,'datetime',NULL,'authorized_datetime',NULL,'iso_currency_code','USD','currency_version_id','$2','amount_lexeme','$3','amount','$3','direction','outflow','eligible_for_review',true,'name','Fictional history','merchant_name',NULL,'original_description',NULL),'Fictional-A','$currency',false);"
+}
+history_row 2026-08-03 "$history" 1.01 >/dev/null
+history_row 2026-09-16 "$history" 1.01 >/dev/null
+history_row 2026-09-17 "$currency" 1.01 >/dev/null
+reject sync_rejected history_row 2026-09-16 "$currency" 1.01
+reject sync_rejected history_row 2026-09-17 "$history" 1.01
+reject sync_rejected history_row 2026-09-16 "$history" 1.001
+[[ "$(sql 'SELECT (SELECT count(*) FROM integration.sync_item)+(SELECT count(*) FROM ledger.journal_entry)')" == 0 ]]
+echo 'PASS TestProductionHistoryExactReplayAndDatedCurrencyBoundary'
 reject 'overlapping currency versions' reference_stage -v currency_id=00000000-0000-4000-8000-000000000099
 sql "SET ROLE bookkeeping_owner; INSERT INTO reference.currency VALUES('00000000-0000-4000-8000-000000000098','USD','840',2,'2027-01-01','2027-01-02','fictional-reference');" >/dev/null
 reject production_reference_conflict reference_stage -v currency_id=00000000-0000-4000-8000-000000000098
