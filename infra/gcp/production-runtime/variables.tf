@@ -40,3 +40,18 @@ variable "runtime" {
     error_message = "Pin matching Production image digests, public Firebase identifier, numeric static versions and canonical UTC readback deadline."
   }
 }
+
+variable "pilot" {
+  description = "Separate explicit reviewed bank authority; null retains permanently expired recovery. Readback expiry cannot activate it."
+  type        = object({ approval_expires_at = string, webhook_url = string })
+  default     = null
+  validation {
+    condition = var.pilot == null ? true : (
+      var.runtime != null &&
+      var.pilot.webhook_url == "https://jayburd-prod-webhook-${var.project_number}.${var.region}.run.app/webhooks/plaid" &&
+      can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", var.pilot.approval_expires_at)) &&
+      try(timecmp(var.pilot.approval_expires_at, plantimestamp()) > 0 && timecmp(var.pilot.approval_expires_at, timeadd(plantimestamp(), "168h")) <= 0, false)
+    )
+    error_message = "Pilot requires configured Production runtime, exact matching receiver and current UTC authority within seven days."
+  }
+}
