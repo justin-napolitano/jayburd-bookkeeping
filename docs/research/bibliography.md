@@ -7,9 +7,9 @@
 
 [Prod PP01–13](production-pilot-sources.md): selected375.
 
-## Reading order
+## Reading
 
-[Verifier IAM](../contracts/verifier-iam-compatibility.md): Google/PG17,2026-10-23.
+[IAM](../contracts/webhook-iam-compatibility.md): Google/PG17 selected378; verifier272.
 
 [Link recovery](plaid-link-recovery-sources.md): LR01–07, Plaid/React,
 2026-10-24; reconnect/OAuth unqualified.

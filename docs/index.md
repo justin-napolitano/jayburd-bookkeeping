@@ -1,5 +1,8 @@
 # Project context
 
+[Webhook IAM compatibility](contracts/webhook-iam-compatibility.md) and
+[stages](runbooks/webhook-iam-compatibility.md):378 addresses the actual managed-marker bootstrap rejection; source review/apply pending.
+
 [Production personal-book bootstrap](contracts/production-book-bootstrap.md) and
 [delivery stages](runbooks/production-book-bootstrap.md): bounded reference and
 creator-owned scope setup under374, source candidate pending human review/apply.

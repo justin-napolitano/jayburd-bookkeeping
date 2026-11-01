@@ -25,14 +25,20 @@ BEGIN
  OR NOT EXISTS(SELECT FROM pg_roles WHERE rolname=capability AND NOT(rolcanlogin OR rolsuper OR rolcreatedb OR rolcreaterole OR rolbypassrls OR rolreplication)) THEN
   RAISE EXCEPTION 'webhook_bootstrap_rejected';
  END IF;
- -- Check every grantor and transitive membership; never silently repair delegated/mixed authority.
- IF EXISTS(SELECT FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid JOIN pg_roles u ON u.oid=m.member WHERE u.rolname IN (login_value,capability) AND (m.admin_option OR m.set_option))
+ -- Preserve only the safe inherited managed IAM marker; all other SET/ADMIN edges deny.
+ IF EXISTS(SELECT FROM pg_auth_members m JOIN pg_roles u ON u.oid=m.member
+ WHERE u.rolname IN (login_value,capability) AND (m.admin_option OR (m.set_option AND NOT (
+   u.rolname=login_value AND m.inherit_option
+   AND m.roleid IN (SELECT oid FROM pg_roles WHERE rolname='cloudsqliamserviceaccount'
+     AND NOT(rolcanlogin OR rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls))
+   AND NOT EXISTS(SELECT FROM pg_auth_members parent WHERE parent.member=m.roleid)
+  ))))
  OR EXISTS(SELECT FROM pg_roles WHERE rolname<>capability AND (rolsuper OR rolcreatedb OR rolcreaterole OR rolbypassrls OR rolreplication OR rolname LIKE 'bookkeeping_%' OR rolname LIKE 'pg_%' OR rolname='cloudsqlsuperuser') AND (pg_has_role(login_value,oid,'MEMBER') OR pg_has_role(capability,oid,'MEMBER')))
  THEN RAISE EXCEPTION 'webhook_bootstrap_rejected';END IF;
  FOREACH probe_role IN ARRAY ARRAY[login_value,capability] LOOP
  IF has_database_privilege(probe_role,current_database(),'CREATE,TEMP,CONNECT WITH GRANT OPTION')
  OR EXISTS(SELECT FROM pg_namespace n WHERE n.nspname !~ '^pg_temp_' AND has_schema_privilege(probe_role,n.oid,'CREATE,USAGE WITH GRANT OPTION'))
- OR EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','reporting','deployment') AND c.relkind IN ('r','p','v','m','f') AND has_table_privilege(probe_role,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN'))
+ OR EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','reporting','deployment') AND c.relkind IN ('r','p','v','m','f') AND (has_table_privilege(probe_role,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN') OR has_any_column_privilege(probe_role,c.oid,'SELECT,INSERT,UPDATE,REFERENCES')))
  OR EXISTS(SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','reporting','deployment') AND CASE WHEN c.relkind='S' THEN has_sequence_privilege(probe_role,c.oid,'USAGE,SELECT,UPDATE') ELSE false END)
  OR EXISTS(SELECT FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','reference','audit','integration','banking','reporting','deployment') AND (has_function_privilege(probe_role,p.oid,'EXECUTE WITH GRANT OPTION') OR NOT (n.nspname='integration' AND p.proname IN ('accept_verified_webhook','accept_verified_link_session') AND p.proargtypes='25 25 25'::oidvector) AND has_function_privilege(probe_role,p.oid,'EXECUTE'))) THEN
   RAISE EXCEPTION 'webhook_bootstrap_rejected';
