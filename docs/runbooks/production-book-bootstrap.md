@@ -16,6 +16,7 @@ No current reference, book or bank source is created by this source work.
 | Decision | Contract production-book-bootstrap; existing domain functions, one transaction, safe replay/current authority |
 | Implementation | Reference-only and creator-owned Production scope scripts; no identity enrollment/role grants |
 | Validation | Six new Production PostgreSQL groups and unchanged Sandbox bootstrap PASS; ledger/core/release/actionlint and base+Production browser/API/SQL journeys PASS |
+| Stack | PR376 based on pending373; documentation conflict resolved preserving actual deployed status; rebased core PASS |
 
 ## Current evidence
 
