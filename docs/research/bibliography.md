@@ -33,9 +33,10 @@ synthetic only.
 [Removal](binding-review-recovery-sources.md): Item removal and `ITEM_NOT_FOUND` #215.
 [Credentials](../contracts/bank-token-vault.md): Plaid/KMS/CRC32C (2026-10-15).
 
-[Sandbox bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review):
-SIX ISO4217 List One (2026-09-17), retrieved2026-10-15 with SHA256 and USD/840/2
-review. Bounded local reference evidence; paid ISO text was not reviewed.
+[USD bootstrap](../contracts/sandbox-book-bootstrap.md#standards-and-source-review),
+[Prod374](../contracts/production-book-bootstrap.md): SIX2026-09-17, retrieved
+2026-10-15; SHA256/USD840/2 reviewed. Local validity; full ISO text unread.
+Selected SQL/setup/scope reused.
 
 [Plaid browser](../contracts/plaid-link-browser.md): Web SDK lifecycle (2026-10-14),
 pinned Go source (2026-10-19); synthetic policy, not institution qualification.
