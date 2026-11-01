@@ -1,5 +1,8 @@
 # Project context
 
+[Production USD history](contracts/production-book-bootstrap.md#historical-usd-coverage--380) and
+[stages](runbooks/production-usd-history.md):380 repairs missing90-day reference coverage; source review/apply pending.
+
 [Webhook IAM compatibility](contracts/webhook-iam-compatibility.md) and
 [stages](runbooks/webhook-iam-compatibility.md):378 addresses the actual managed-marker bootstrap rejection; source review/apply pending.
 
