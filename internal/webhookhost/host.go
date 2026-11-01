@@ -42,11 +42,16 @@ func New(keys webhook.KeyProvider, receiver webhook.Receiver, close func()) (*Ho
 
 // NewForProfile rejects mismatched key/verifier/receipt capabilities without resolving keys or opening listeners.
 func NewForProfile(keys webhook.KeyProvider, receiver webhook.Receiver, p plaidprofile.Profile, close func()) (*Host, error) {
+	return newForProfile(keys, receiver, p, close, nil)
+}
+
+// newForProfile fixes an optional local observer at construction; requests cannot choose a log sink.
+func newForProfile(keys webhook.KeyProvider, receiver webhook.Receiver, p plaidprofile.Profile, close func(), observe func(webhook.Rejection)) (*Host, error) {
 	v, err := webhook.NewVerifierForProfile(keys, p)
 	if err != nil {
 		return nil, ErrConfiguration
 	}
-	h, err := webhook.NewHandler(v, receiver)
+	h, err := webhook.NewObservedHandler(v, receiver, observe)
 	if err != nil {
 		return nil, ErrConfiguration
 	}
@@ -60,11 +65,16 @@ func NewSQL(keys webhook.KeyProvider, db webhook.Beginner, close func()) (*Host,
 
 // NewSQLForProfile retains a separately provisioned webhook-only login, never API/worker authority.
 func NewSQLForProfile(keys webhook.KeyProvider, db webhook.Beginner, p plaidprofile.Profile, close func()) (*Host, error) {
+	return newSQLForProfile(keys, db, p, close, nil)
+}
+
+// newSQLForProfile retains the same restricted receiver while adding only a construction-owned observer.
+func newSQLForProfile(keys webhook.KeyProvider, db webhook.Beginner, p plaidprofile.Profile, close func(), observe func(webhook.Rejection)) (*Host, error) {
 	r, err := webhook.NewSQLReceiverForProfile(db, p)
 	if err != nil {
 		return nil, ErrConfiguration
 	}
-	return NewForProfile(keys, r, p, close)
+	return newForProfile(keys, r, p, close, observe)
 }
 
 // Close releases explicitly owned dependencies at most once, after Serve has drained.
