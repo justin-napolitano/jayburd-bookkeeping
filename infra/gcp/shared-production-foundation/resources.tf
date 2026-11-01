@@ -166,3 +166,16 @@ resource "google_storage_bucket_iam_member" "registry_reader" {
   }
 }
 
+// The API may check revocation for verified identities, never administer users.
+resource "google_project_iam_custom_role" "identity_lookup" {
+  project     = var.project_id
+  role_id     = "jayburdProdIdentityLookup"
+  title       = "Jayburd Production identity revocation lookup"
+  permissions = ["firebaseauth.users.get"]
+}
+resource "google_project_iam_member" "identity_lookup" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.identity_lookup.name
+  member  = "serviceAccount:${google_service_account.component["api"].email}"
+}
+

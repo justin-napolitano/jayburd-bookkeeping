@@ -30,6 +30,7 @@ check_rejected() {
   local result=0
   local entrypoint=()
   if [[ "$case_name" == delivery-* ]]; then entrypoint=(--entrypoint /deliver); fi
+  if [[ "$case_name" == credential-* ]]; then entrypoint=(--entrypoint /credential-check); fi
   if [[ "$case_name" == probe-* ]]; then entrypoint=(--entrypoint /sandbox-probe); fi
   if [[ "$case_name" == webhook-* ]]; then entrypoint=(--entrypoint /webhook); fi
   if [[ "$case_name" == verifier-* ]]; then entrypoint=(--entrypoint /sandbox-verify); fi
@@ -50,6 +51,7 @@ check_rejected() {
   if [[ "$case_name" == probe-* ]]; then expected_status=2; fi
   if [[ "$case_name" == verifier-default ]]; then expected_status=0; fi
   if [[ "$case_name" == delivery-production-check ]]; then expected_status=0; fi
+  if [[ "$case_name" == credential-check ]]; then expected_status=0; fi
   [[ "$result" == "$expected_status" ]] || { echo 'FAIL: worker did not reject configuration' >&2; exit 1; }
   if [[ "$case_name" == probe-* ]]; then
     node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(r.status!=="blocked"||r.checks[0].reason!=="invalid_invocation")process.exit(1)' "$work_dir/$case_name"
@@ -59,6 +61,10 @@ check_rejected() {
     printf '{"offline":true}\n' >"$work_dir/expected"
   elif [[ "$case_name" == verifier-* ]]; then
     printf 'BLOCKED: Sandbox verification\n' >"$work_dir/expected"
+  elif [[ "$case_name" == credential-check ]]; then
+    printf 'PASS: configuration only; no credential read\n' >"$work_dir/expected"
+  elif [[ "$case_name" == credential-* ]]; then
+    printf 'BLOCKED: credential readback configuration\n' >"$work_dir/expected"
   elif [[ "$case_name" == delivery-production-check ]]; then
     printf 'PASS: configuration only; no connection tested\n' >"$work_dir/expected"
   elif [[ "$case_name" == delivery-* ]]; then
@@ -78,6 +84,9 @@ check_rejected delivery-default
 check_rejected delivery-secret-flag -secret=synthetic-rejected-value
 # Synthetic pins exercise the exact new CLI offline; this authorizes no cloud call.
 delivery_deadline=$(node -e 'process.stdout.write(new Date(Date.now()+3600000).toISOString().slice(0,19)+"Z")')
+check_rejected credential-default
+check_rejected credential-check -check -project-id=jayburd-bookkeeping-dev -project-number=9088794002 -client-id-version=7 -client-secret-version=9 -approval-expires-at="$delivery_deadline"
+check_rejected credential-expired -execute -project-id=jayburd-bookkeeping-dev -project-number=9088794002 -client-id-version=7 -client-secret-version=9 -approval-expires-at=2020-01-01T00:00:00Z
 check_rejected delivery-production-check -check -environment=production -key=PLAID_PRODUCTION_SECRET -approval-expires-at="$delivery_deadline" -project-id=synthetic-project -project-number=123456789012 -infisical-project=00000000-0000-4000-8000-000000000001 -infisical-identity=00000000-0000-4000-8000-000000000002 -source-id=00000000-0000-4000-8000-000000000003 -source-version=7
 check_rejected delivery-production-expired -check -environment=production -key=PLAID_PRODUCTION_SECRET -approval-expires-at=2020-01-01T00:00:00Z -project-id=synthetic-project -project-number=123456789012 -infisical-project=00000000-0000-4000-8000-000000000001 -infisical-identity=00000000-0000-4000-8000-000000000002 -source-id=00000000-0000-4000-8000-000000000003 -source-version=7
 check_rejected probe-default
