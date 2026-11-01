@@ -1,8 +1,9 @@
 # Project context
 
-[Production runtime/readback candidate](runbooks/production-runtime-rollout.md):
-paused API/frontend and exact static-version integrity check under370; source
-review and actual apply pending, no personal-bank readiness claim.
+[Production runtime and readback](runbooks/production-runtime-rollout.md):
+paused Production API/frontend deployed; owner MFA workspace sign-in proven.
+Exact static-version readback and live bank activation remain pending. See the
+[build time-budget repair](runbooks/production-build-time-budget.md).
 
 [Bookkeeping delivery and qualification plan](plans/bookkeeping-readiness.md):
 bounded issues, dependencies, acceptance evidence and future agent leases;

@@ -2,12 +2,16 @@
 
 Update2026-11-01: shared foundation/isolated database/schema35, static credential
 delivery and scanned Production candidates have actual evidence in
-[operations](../runbooks/production-build-operations.md). Shared worker CLI fix369
-is mergedcf335da and build40987388375 succeeded. Production app services are not
-deployed. [370 runtime/readback](../runbooks/production-runtime-rollout.md) is the
-next source candidate: explicit paused API/frontend plus independent GCP integrity
-readback. Prior build target expired; a fresh proposed target needs human review.
-Worker SQL/runtime, receiver, actual identity and pilot decisions remain open.
+[operations](../runbooks/production-build-operations.md). PR371 merged0ea7eb6;
+paused Production API/frontend are deployed using qualified unchanged API/web
+images from build40987388375. Owner enrollment and private password/TOTP sign-in
+through the Production workspace are proven. [Actual370 evidence](../runbooks/production-runtime-rollout.md)
+records exact revisions, boundaries and remaining setup. Fresh build41263883683
+attempts1/2 timed out before publication; [372](../runbooks/production-build-time-budget.md)
+increases only the full validation job budget. Credential-check job remains
+undeployed. Approved target b58f5313 expires2026-11-03T04:00:00Z; no silent renewal.
+Production book/reference setup, worker SQL/runtime, receiver and remaining pilot
+decisions/qualification stay open. No live bank connection is claimed.
 The original staged plan below is historical planning, not current apply evidence.
 
 Status: IN PROGRESS2026-10-28; stage B candidate validator merged PR353/05716f1.
