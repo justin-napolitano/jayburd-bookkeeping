@@ -2,8 +2,8 @@ locals {
   api_origin    = "https://jayburd-prod-api-${var.project_number}.${var.region}.run.app"
   public_origin = "https://jayburd-prod-web-${var.project_number}.${var.region}.run.app"
   labels        = { application = "jayburd", environment = "production", managed_by = "terraform" }
-  # Existing expired recovery composition selects Production SQL without constructing provider dependencies.
-  connection_args = var.runtime == null ? [] : [
+  # Null pilot preserves expired SQL-only recovery; readback authority alone never enables banking.
+  connection_args = var.runtime == null ? [] : concat([
     "-connections-enabled", "-provider-environment=production", "-provider-project-number=${var.project_number}",
     "-infisical-origin=https://app.infisical.com", "-infisical-environment=prod",
     "-infisical-project=cfd371a3-1229-48d8-a9e2-9c2ea37540cc", "-infisical-identity=8d510558-6b96-44c0-b25f-ce73ff7e4d74",
@@ -12,8 +12,8 @@ locals {
     "-plaid-client-secret-version=projects/${var.project_number}/secrets/jayburd-prod-bank-sync-client-secret/versions/${var.runtime.client_secret_version}",
     "-bank-credential-key=projects/${var.project_id}/locations/${var.region}/keyRings/jayburd-prod/cryptoKeys/bank-credentials",
     "-link-handoff-key=projects/${var.project_id}/locations/${var.region}/keyRings/jayburd-prod/cryptoKeys/hosted-link",
-    "-plaid-consent-expires-at=2020-01-01T00:00:00Z"
-  ]
+    "-plaid-consent-expires-at=${var.pilot == null ? "2020-01-01T00:00:00Z" : var.pilot.approval_expires_at}"
+  ], var.pilot == null ? [] : ["-plaid-webhook-url=${var.pilot.webhook_url}"])
   web_environment = var.runtime == null ? {} : {
     BOOKKEEPING_API_MODE         = "cloud-run"
     BOOKKEEPING_API_ORIGIN       = local.api_origin
