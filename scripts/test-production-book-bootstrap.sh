@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 image='postgres:17.11-alpine3.24@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24'
 proof="jayburd-production-book-$(date +%s)-$$"
 created=0
+# Remove only the disposable fixture container owned by this invocation.
 cleanup() { if [[ "$created" == 1 ]]; then docker rm -fv "$proof" >/dev/null; fi; }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
@@ -38,6 +39,7 @@ reject() {
 }
 currency='00000000-0000-4000-8000-000000000002'
 source_release='SIX-list-one:2026-09-17:sha256:33139b438657d1cee116ba737807ea71d19d6de4b90f799a09c56f0cc6a1b0ff'
+# Invoke the reference stage with fixture overrides for explicit denial cases.
 reference_stage() {
  docker exec "$proof" psql -X -qAt -v ON_ERROR_STOP=1 -U "${test_user:-synthetic_operator}" -d "${test_db:-bookkeeping_prod}" -v project=jayburd-bookkeeping-dev -v project_number=9088794002 -v currency_id="$currency" -v source_release="$source_release" -v valid_from=2026-09-17 -v valid_to=2027-01-01 "$@" -f /tmp/bootstrap/production-reference.sql
 }
@@ -63,6 +65,7 @@ create_book() {
  entity=$(sql "SELECT entity_id FROM ledger.setup_receipt WHERE principal_id='$actor' AND idempotency_key='$1'")
  book=$(sql "SELECT book_id FROM ledger.setup_receipt WHERE principal_id='$actor' AND idempotency_key='$1'")
 }
+# Invoke only the synthetic creator's exact target; overrides exercise guard failures.
 book_stage() {
  docker exec "$proof" psql -X -qAt -v ON_ERROR_STOP=1 -U "${test_user:-synthetic_operator}" -d "${test_db:-bookkeeping_prod}" -v project=jayburd-bookkeeping-dev -v project_number=9088794002 -v actor_id="$actor" -v entity_id="$entity" -v book_id="$book" -v worker_login=jayburd-prod-sync@jayburd-bookkeeping-dev.iam -v publisher_login=jayburd-prod-publisher@jayburd-bookkeeping-dev.iam -v scheduler_paused=true "$@" -f /tmp/bootstrap/production-book.sql
 }
