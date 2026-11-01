@@ -1,24 +1,25 @@
 # Project context
 
 [Production USD history](contracts/production-book-bootstrap.md#historical-usd-coverage--380) and
-[stages](runbooks/production-usd-history.md):380 repairs missing90-day reference coverage; source review/apply pending.
+[stages](runbooks/production-usd-history.md):380/381 merged and reference-only apply verified; current USD unchanged and historical coverage exact.
 
 [Webhook IAM compatibility](contracts/webhook-iam-compatibility.md) and
-[stages](runbooks/webhook-iam-compatibility.md):378 addresses the actual managed-marker bootstrap rejection; source review/apply pending.
+[stages](runbooks/webhook-iam-compatibility.md):378 merged/applied; actual permission/profile/isolation readback in [375 operations](runbooks/production-acquisition-rollout.md).
 
 [Production personal-book bootstrap](contracts/production-book-bootstrap.md) and
 [delivery stages](runbooks/production-book-bootstrap.md): bounded reference and
-creator-owned scope setup under374, source candidate pending human review/apply.
+creator-owned scope setup under374 completed; owner Personal book created and acknowledged, scope verified.
 
 [Production runtime and readback](runbooks/production-runtime-rollout.md):
 paused Production API/frontend deployed; owner MFA workspace sign-in proven.
-Exact static-version readback and live bank activation remain pending. See the
+Exact static-version integrity readback passed; live bank activation remains pending. See the
 [build time-budget repair](runbooks/production-build-time-budget.md).
 
 [Finite Production acquisition](contracts/finite-production-acquisition.md) and
-[rollout stages](runbooks/production-acquisition-rollout.md):375 source candidate
-for private workers, paused scheduling and explicit signed receiver/pilot authority;
-actual bank activation remains gated.
+[rollout stages](runbooks/production-acquisition-rollout.md):375 workers/receiver
+deployed, Production scheduling paused; Sandbox35 applied and one fictional
+account imports automatically. Queue recovery passed; signed delivery and
+independent equality remain open. Actual bank activation remains gated.
 
 [Bookkeeping delivery and qualification plan](plans/bookkeeping-readiness.md):
 bounded issues, dependencies, acceptance evidence and future agent leases;
