@@ -11,7 +11,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: seed-${{ github.ref }}
+  # Separate caller workflows may qualify the same commit without canceling each other.
+  group: seed-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -42,7 +43,7 @@ jobs:
       - name: Prove isolated PostgreSQL migrations
         run: make migration-test
       - name: Prove restricted cloud migration roles on disposable PostgreSQL
-        run: make cloud-sql-test worker-bootstrap-test webhook-bootstrap-test verifier-bootstrap-test
+        run: make cloud-sql-test worker-bootstrap-test webhook-bootstrap-test production-webhook-bootstrap-test verifier-bootstrap-test
       - name: Prove transactional ledger on disposable PostgreSQL
         run: make ledger-test
       - name: Prove receipt-only observer on disposable PostgreSQL

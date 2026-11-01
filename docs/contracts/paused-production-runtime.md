@@ -22,8 +22,10 @@ connections-enabled plus all matching Production metadata, with fixed
 2020-01-01T00:00:00Z provider expiry. This selects the isolated database and keeps
 authorized SQL bookkeeping/recovery available, but constructs no secret/KMS/provider
 dependencies. It is deliberately expired authority, not a false pilot approval.
-There is no activation-date input in this root. Webhook, workers, queues, schedulers
-and live enrollment remain outside this slice. Alternative: modify the legacy root
+Original370 introduced no activation-date input.375's separate explicit pilot
+object is specified in finite-production-acquisition; null preserves this expired
+default. Webhook, workers, queues, schedulers and live enrollment remain outside
+the original370 slice. Alternative: modify the legacy root
 or add a new Go pause mechanism; rejected to preserve Sandbox state and reuse the
 already tested expired-recovery behavior. Initial rollback remains stop/forward
 repair; there is no accepted previous Production application revision.

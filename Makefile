@@ -159,6 +159,10 @@ worker-bootstrap-test:
 webhook-bootstrap-test:
 	bash scripts/test-webhook-bootstrap.sh
 
+.PHONY: production-webhook-bootstrap-test
+production-webhook-bootstrap-test:
+	bash scripts/test-production-webhook-bootstrap.sh
+
 sandbox-qualification-test:
 	bash scripts/test-sandbox-qualification.sh
 

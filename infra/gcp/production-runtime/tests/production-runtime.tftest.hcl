@@ -90,3 +90,87 @@ run "reject_mixed_number" {
   variables { project_number = "123456789012" }
   expect_failures = [var.project_number]
 }
+
+run "explicit_finite_pilot" {
+  command = plan
+  variables {
+    runtime = {
+      images = {
+        api    = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        web    = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/web@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        worker = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/worker@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+      firebase_api_key      = "synthetic-public-browser-id"
+      client_id_version     = "7"
+      client_secret_version = "9"
+      readback_expires_at   = "2030-01-01T00:00:00Z"
+    }
+    pilot = { approval_expires_at = timeadd(timestamp(), "24h"), webhook_url = "https://jayburd-prod-webhook-9088794002.us-central1.run.app/webhooks/plaid" }
+  }
+  assert {
+    condition     = contains(local.connection_args, "-plaid-consent-expires-at=${var.pilot.approval_expires_at}") && contains(local.connection_args, "-plaid-webhook-url=https://jayburd-prod-webhook-9088794002.us-central1.run.app/webhooks/plaid") && !contains(local.connection_args, "-plaid-consent-expires-at=2030-01-01T00:00:00Z") && !contains(local.connection_args, "-plaid-hosted-repair=true")
+    error_message = "Only separate finite pilot authority activates the matching receiver; no repair opt-in/readback-date reuse."
+  }
+}
+run "reject_expired_pilot" {
+  command = plan
+  variables {
+    runtime = {
+      images = {
+        api    = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        web    = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/web@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        worker = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/worker@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+      firebase_api_key      = "synthetic-public-browser-id"
+      client_id_version     = "7"
+      client_secret_version = "9"
+      readback_expires_at   = "2030-01-01T00:00:00Z"
+    }
+    pilot = { approval_expires_at = "2020-01-01T00:00:00Z", webhook_url = "https://jayburd-prod-webhook-9088794002.us-central1.run.app/webhooks/plaid" }
+  }
+  expect_failures = [var.pilot]
+}
+run "reject_long_pilot" {
+  command = plan
+  variables {
+    runtime = {
+      images = {
+        api    = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        web    = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/web@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        worker = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/worker@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+      firebase_api_key      = "synthetic-public-browser-id"
+      client_id_version     = "7"
+      client_secret_version = "9"
+      readback_expires_at   = "2030-01-01T00:00:00Z"
+    }
+    pilot = { approval_expires_at = timeadd(timestamp(), "192h"), webhook_url = "https://jayburd-prod-webhook-9088794002.us-central1.run.app/webhooks/plaid" }
+  }
+  expect_failures = [var.pilot]
+}
+run "reject_foreign_receiver" {
+  command = plan
+  variables {
+    runtime = {
+      images = {
+        api    = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        web    = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/web@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        worker = "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-prod/worker@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+      firebase_api_key      = "synthetic-public-browser-id"
+      client_id_version     = "7"
+      client_secret_version = "9"
+      readback_expires_at   = "2030-01-01T00:00:00Z"
+    }
+    pilot = { approval_expires_at = timeadd(timestamp(), "24h"), webhook_url = "https://foreign.invalid/webhooks/plaid" }
+  }
+  expect_failures = [var.pilot]
+}
+run "reject_pilot_without_runtime" {
+  command = plan
+  variables {
+    runtime = null
+    pilot   = { approval_expires_at = timeadd(timestamp(), "24h"), webhook_url = "https://jayburd-prod-webhook-9088794002.us-central1.run.app/webhooks/plaid" }
+  }
+  expect_failures = [var.pilot]
+}
