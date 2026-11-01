@@ -5,6 +5,24 @@ variables {
 }
 run "shared_database_and_scoped_resources" {
   command = plan
+  override_resource {
+    target          = google_service_account.component["api"]
+    override_during = plan
+    values = {
+      email = "jayburd-prod-api@jayburd-bookkeeping-dev.iam.gserviceaccount.com"
+    }
+  }
+  override_resource {
+    target          = google_project_iam_custom_role.identity_lookup
+    override_during = plan
+    values = {
+      name = "projects/jayburd-bookkeeping-dev/roles/jayburdProdIdentityLookup"
+    }
+  }
+  assert {
+    condition     = toset(google_project_iam_custom_role.identity_lookup.permissions) == toset(["firebaseauth.users.get"]) && google_project_iam_member.identity_lookup.member == "serviceAccount:jayburd-prod-api@jayburd-bookkeeping-dev.iam.gserviceaccount.com" && google_project_iam_member.identity_lookup.role == "projects/jayburd-bookkeeping-dev/roles/jayburdProdIdentityLookup"
+    error_message = "Only the API receives revocation lookup, without user administration."
+  }
   assert {
     condition     = google_sql_database.ledger.instance == "jayburd-dev" && google_sql_database.ledger.name == "bookkeeping_prod"
     error_message = "Use only the separate database on the existing instance."
