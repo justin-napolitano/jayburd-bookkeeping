@@ -1,6 +1,6 @@
 # Paused Production API/frontend
 
-Candidate370; human review before apply. Uses existing shared foundation and
+Runtime371 deployed paused;375 activation source requires human review before apply. Uses existing shared foundation and
 bookkeeping_prod, separate Production runtime state bucket/prefix and existing
 Production identities. Never inspect/copy state, plans or owner credential files.
 Default runtime=null creates no service, job or runtime IAM. Inputs contain only
@@ -17,7 +17,7 @@ not an enforced USD25 cap. No SQL/schema/instance, worker, queue or scheduler he
 All connection metadata explicitly selects Production, but provider expiry is
 fixed to2020-01-01T00:00:00Z. Existing cold expired-recovery composition avoids
 secret/KMS/provider startup and preserves authorized local bookkeeping/recovery.
-There is no provider-activation input. Legacy Infisical fields identify static
+The null pilot default preserves expired authority. Legacy Infisical fields identify static
 delivery lineage; they grant no API access to Infisical. Live pilot needs its own
 reviewed activation package, receiver, worker SQL/runtime and qualification gates.
 
@@ -35,3 +35,12 @@ and redacted readback result. API/web images built before370 can run the paused
 profile, but a pre370 worker does not contain /credential-check. Do not deploy
 mixed-source images or claim the full release bundle passed from component receipts.
 See docs/contracts/paused-production-runtime.md and the rollout runbook.
+
+## Separate375 pilot input
+
+The existing app is deployed paused and owner sign-in is proven. Source375 adds
+pilot=null by default. Only an independently reviewed explicit pilot object may
+provide a current UTC <=7day authority and exact matching Production webhook URL.
+Readback expiry remains independent. No repair opt-in or scheduling activation is
+introduced. Both root metadata inputs and actual qualification must be reviewed
+before first account use. See finite-production-acquisition contract/runbook.

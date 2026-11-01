@@ -6,6 +6,14 @@
 PROD374-BOOK; build/374-production-book from0ea7eb6. Source candidate only;
 owner Production identity is already enrolled and actual MFA workspace is proven.
 No current reference, book or bank source is created by this source work.
+Actual operator follow-up2026-11-01: owner approved source/setup; PR376 merged
+06465ec after five exact-head checks. The reference-only stage was transferred as
+public SQL, exact source SHA256f8247e5ca83abc36a4bc0e27aa51a5729285b5b9365b42c0eb242dd93d38d131
+verified before execution, and committed on the independently selected Production
+database/instance. Separate read-only equality returned true for all pinned fields;
+operator owner SET and all three Production worker Sandbox CONNECT denials verified.
+No identity/book/source/journal/role mutation from this stage. Worker grant capability
+needs its own checked operation; no aggregate metadata check is treated as a grant.
 
 ## Stage ledger
 

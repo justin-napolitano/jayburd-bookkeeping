@@ -9,6 +9,11 @@ paused Production API/frontend deployed; owner MFA workspace sign-in proven.
 Exact static-version readback and live bank activation remain pending. See the
 [build time-budget repair](runbooks/production-build-time-budget.md).
 
+[Finite Production acquisition](contracts/finite-production-acquisition.md) and
+[rollout stages](runbooks/production-acquisition-rollout.md):375 source candidate
+for private workers, paused scheduling and explicit signed receiver/pilot authority;
+actual bank activation remains gated.
+
 [Bookkeeping delivery and qualification plan](plans/bookkeeping-readiness.md):
 bounded issues, dependencies, acceptance evidence and future agent leases;
 #50/#237/#88; current owner goal is the one-account #90 pilot.
