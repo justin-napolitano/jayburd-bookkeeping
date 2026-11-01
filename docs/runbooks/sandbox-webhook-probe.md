@@ -15,7 +15,8 @@ activation. Parent375's one fictional stream remains the only intended target.
 | Decision | [Probe contract](../contracts/sandbox-webhook-probe.md); unchanged financial/ISO mapping; no schema or signature weakening |
 | Implementation | Default-off command, fixed Sandbox-only one-shot wrapper, existing SQL-authorized runner/credential/evidence path |
 | Validation | Probe/command unit+races, disposable acquisition SQL suite, core check/test/build and offline scratch-image command proof PASS; full official Dockerfile build remains blocked locally by proxy certificate trust |
-| Human review | Pending sensitive-source review before release/execution |
+| Provenance correction | Foundation CI rejected missing new-command source-equality path; added cmd/sandbox-webhook to existing guard. make release-test and core check/test/build rechecked PASS, retaining all denials |
+| Human review | Owner reviewed/approved386 and one-shot Sandbox execution; exact-head CI and scanned build still gate release |
 | Hosted evidence | OPEN: signed204/receipt/demand/automatic acquisition/equality not inferred from source tests |
 
 ## Current evidence
