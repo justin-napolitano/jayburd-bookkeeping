@@ -1,5 +1,9 @@
 # Project context
 
+[Production runtime/readback candidate](runbooks/production-runtime-rollout.md):
+paused API/frontend and exact static-version integrity check under370; source
+review and actual apply pending, no personal-bank readiness claim.
+
 [Bookkeeping delivery and qualification plan](plans/bookkeeping-readiness.md):
 bounded issues, dependencies, acceptance evidence and future agent leases;
 #50/#237/#88; current owner goal is the one-account #90 pilot.

@@ -21,6 +21,7 @@ build:
 	go build -trimpath -o bin/worker ./cmd/worker
 	go build -trimpath -o bin/webhook ./cmd/webhook
 	go build -trimpath -o bin/deliver ./cmd/deliver
+	go build -trimpath -o bin/credential-check ./cmd/credential-check
 	go build -trimpath -o bin/sandbox-qualify ./cmd/sandbox-qualify
 	go build -trimpath -o bin/sandbox-probe ./cmd/sandbox-probe
 	go build -trimpath -o bin/sandbox-verify ./cmd/sandbox-verify

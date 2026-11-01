@@ -1,5 +1,15 @@
 # Production release execution plan — #316
 
+Update2026-11-01: shared foundation/isolated database/schema35, static credential
+delivery and scanned Production candidates have actual evidence in
+[operations](../runbooks/production-build-operations.md). Shared worker CLI fix369
+is mergedcf335da and build40987388375 succeeded. Production app services are not
+deployed. [370 runtime/readback](../runbooks/production-runtime-rollout.md) is the
+next source candidate: explicit paused API/frontend plus independent GCP integrity
+readback. Prior build target expired; a fresh proposed target needs human review.
+Worker SQL/runtime, receiver, actual identity and pilot decisions remain open.
+The original staged plan below is historical planning, not current apply evidence.
+
 Status: IN PROGRESS2026-10-28; stage B candidate validator merged PR353/05716f1.
 Build receipt comparison merged PR354/217b2ac. Production migrator and manual
 image-build workflow merged PR355/a572b31. Isolated foundation and guarded
