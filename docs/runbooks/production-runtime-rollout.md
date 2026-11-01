@@ -20,6 +20,7 @@ paused API/frontend and independent static readback, not an applied deployment.
 | Container | Pinned Go1.26.10 offline build and network-disabled/nonroot/read-only command suite PASS |
 | Integration | make app-integration and additional --production journey PASS; synthetic identity limitation retained |
 | Actual services | Only existing Sandbox services present; canonical Sandbox shell HTTP200, no Production application deployed |
+| CI correction | Infrastructure CI caught the new worker command missing from webhook ancestry inputs; added its path without removing any guard |
 
 ## Current evidence
 
