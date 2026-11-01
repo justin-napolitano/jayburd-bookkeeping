@@ -67,6 +67,8 @@ reject unsafe-capability true
 query 'REVOKE SELECT ON ledger.book FROM bookkeeping_webhook'
 query "DO \$\$ BEGIN IF EXISTS(SELECT FROM integration.webhook_ingress) OR pg_has_role('jayburd-prod-webhook@jayburd-bookkeeping-dev.iam','bookkeeping_webhook','MEMBER') THEN RAISE EXCEPTION 'partial unsafe bootstrap';END IF;END \$\$;"
 bootstrap enable-1 true >/dev/null
+# Simulate Google's managed marker only in this disposable database; replay must preserve it.
+query 'CREATE ROLE cloudsqliamserviceaccount NOLOGIN;GRANT cloudsqliamserviceaccount TO "jayburd-prod-webhook@jayburd-bookkeeping-dev.iam" WITH ADMIN FALSE, INHERIT TRUE, SET TRUE'
 bootstrap enable-1 true >/dev/null
 reject enable-1 false
 bootstrap disable-1 false >/dev/null
@@ -84,8 +86,44 @@ DO $$ BEGIN
  BEGIN EXECUTE 'SET ROLE bookkeeping_owner';RAISE EXCEPTION 'owner allowed';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
  BEGIN EXECUTE 'SELECT integration.set_webhook_ingress(''x'',''production'',''runtime'',false)';RAISE EXCEPTION 'owner function allowed';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
 END $$;
+-- Managed marker SET preserves login authentication but grants no application authority.
+SET ROLE cloudsqliamserviceaccount;
+DO $$ BEGIN
+ BEGIN EXECUTE 'SELECT * FROM ledger.book LIMIT 0';RAISE EXCEPTION 'marker table read allowed';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
+ BEGIN EXECUTE 'SELECT integration.accept_verified_webhook(''x'',''x'',''x'')';RAISE EXCEPTION 'marker ingress allowed';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
+END $$;
+RESET ROLE;
 SQL
 login='"jayburd-prod-webhook@jayburd-bookkeeping-dev.iam"'
+# Each unsafe marker shape must fail without advancing the ingress receipt.
+query "GRANT cloudsqliamserviceaccount TO $login WITH ADMIN TRUE, INHERIT TRUE, SET TRUE"
+reject marker-admin true
+query "GRANT cloudsqliamserviceaccount TO $login WITH ADMIN FALSE, INHERIT FALSE, SET TRUE"
+reject marker-noinherit true
+query "GRANT cloudsqliamserviceaccount TO $login WITH ADMIN FALSE, INHERIT TRUE, SET TRUE;ALTER ROLE cloudsqliamserviceaccount LOGIN"
+reject marker-login true
+query 'ALTER ROLE cloudsqliamserviceaccount NOLOGIN'
+# Role flags are independent privilege paths even without any financial ACL.
+for marker_flag in SUPERUSER CREATEDB CREATEROLE REPLICATION BYPASSRLS; do
+ query "ALTER ROLE cloudsqliamserviceaccount $marker_flag"
+ reject "marker-$marker_flag" true
+ query "ALTER ROLE cloudsqliamserviceaccount NO$marker_flag"
+done
+query 'CREATE ROLE synthetic_marker_parent;GRANT synthetic_marker_parent TO cloudsqliamserviceaccount WITH INHERIT FALSE, SET FALSE'
+reject marker-parent true
+query 'REVOKE synthetic_marker_parent FROM cloudsqliamserviceaccount;GRANT SELECT ON ledger.book TO cloudsqliamserviceaccount'
+reject marker-table true
+query 'REVOKE SELECT ON ledger.book FROM cloudsqliamserviceaccount;GRANT SELECT(book_id) ON ledger.book TO cloudsqliamserviceaccount'
+reject marker-column true
+query 'REVOKE SELECT(book_id) ON ledger.book FROM cloudsqliamserviceaccount;GRANT EXECUTE ON FUNCTION integration.connection_link_proof(uuid,uuid,uuid,uuid) TO cloudsqliamserviceaccount'
+reject marker-function true
+query 'REVOKE EXECUTE ON FUNCTION integration.connection_link_proof(uuid,uuid,uuid,uuid) FROM cloudsqliamserviceaccount;CREATE ROLE synthetic_marker_unrelated'
+query "GRANT synthetic_marker_unrelated TO $login WITH INHERIT TRUE, SET TRUE"
+reject unrelated-set true
+query "REVOKE synthetic_marker_unrelated FROM $login;GRANT bookkeeping_webhook TO $login WITH ADMIN FALSE, INHERIT TRUE, SET TRUE"
+reject capability-set true
+query "GRANT bookkeeping_webhook TO $login WITH ADMIN FALSE, INHERIT TRUE, SET FALSE"
+bootstrap enable-2 true >/dev/null
 query "GRANT bookkeeping_api TO $login WITH INHERIT FALSE, SET FALSE"
 reject mixed true
 query "REVOKE bookkeeping_api FROM $login;GRANT pg_execute_server_program TO $login WITH INHERIT TRUE, SET FALSE"
