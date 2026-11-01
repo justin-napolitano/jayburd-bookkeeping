@@ -8,6 +8,7 @@ COPY cmd/worker/ ./cmd/worker/
 COPY cmd/webhook/ ./cmd/webhook/
 COPY cmd/sandbox-probe/ ./cmd/sandbox-probe/
 COPY cmd/sandbox-verify/ ./cmd/sandbox-verify/
+COPY cmd/sandbox-webhook/ ./cmd/sandbox-webhook/
 COPY cmd/deliver/ ./cmd/deliver/
 COPY cmd/credential-check/ ./cmd/credential-check/
 RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /worker ./cmd/worker
@@ -16,6 +17,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /deliver ./cmd/deliver
 RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /credential-check ./cmd/credential-check
 RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /sandbox-probe ./cmd/sandbox-probe
 RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /sandbox-verify ./cmd/sandbox-verify
+RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /sandbox-webhook ./cmd/sandbox-webhook
 FROM scratch
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /worker /worker
@@ -24,6 +26,7 @@ COPY --from=build /deliver /deliver
 COPY --from=build /credential-check /credential-check
 COPY --from=build /sandbox-probe /sandbox-probe
 COPY --from=build /sandbox-verify /sandbox-verify
+COPY --from=build /sandbox-webhook /sandbox-webhook
 USER 65532:65532
 EXPOSE 8080
 ENTRYPOINT ["/worker"]
