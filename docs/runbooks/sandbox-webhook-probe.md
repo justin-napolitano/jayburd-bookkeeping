@@ -3,8 +3,11 @@
 
 ## Status and boundary
 
-Implementation candidate; no hosted firing, new image release or Production
-activation. Parent375's one fictional stream remains the only intended target.
+Approved386 mergedb1ff7ca after all five checks passed atcdd4351. Build41348735663
+succeeded and all four receipts/scans independently matched. Actual supported
+callback returned401; qualification FAILED, Production remains paused. Current
+fix/385-webhook-diagnostics adds fixed rejection stages for review. Parent375's
+one fictional stream and unchanged04Z consent remain the only test scope.
 
 ## Stage ledger
 
@@ -16,8 +19,14 @@ activation. Parent375's one fictional stream remains the only intended target.
 | Implementation | Default-off command, fixed Sandbox-only one-shot wrapper, existing SQL-authorized runner/credential/evidence path |
 | Validation | Probe/command unit+races, disposable acquisition SQL suite, core check/test/build and offline scratch-image command proof PASS; full official Dockerfile build remains blocked locally by proxy certificate trust |
 | Provenance correction | Foundation CI rejected missing new-command source-equality path; added cmd/sandbox-webhook to existing guard. make release-test and core check/test/build rechecked PASS, retaining all denials |
-| Human review | Owner reviewed/approved386 and one-shot Sandbox execution; exact-head CI and scanned build still gate release |
-| Hosted evidence | OPEN: signed204/receipt/demand/automatic acquisition/equality not inferred from source tests |
+| Human review | Owner reviewed/approved386/probe execution; new rejection-diagnostic source review pending before deployment |
+| Actual merge/build |386 mergedb1ff7ca after evidence384/5894772. Build41348735663 completed: all four runtime/scanned component receipts matched trusted owner/main/source/attempt1; worker700e36dffc7f7d1968ca0255017b30f4ab0b6cc13f82df2f22f38311f5215efe |
+| Target preparation | Read-only exact single fictional stream metadata and durable webhook baseline0 obtained; temporary proxy stopped; private one-shot proposal pins existing sync identity/retries0/short deadline within unchanged04Z scope |
+| Receiver compatibility | git diff equality from deployed1eec1f0 to mergedb1ff7ca for webhook/webhookhost/command/module locks passed; actual receiver stays on its already scanned image |
+| Actual one-shot | Exact new job metadata/readiness verified, existing sync identity/tasks1/retries0/120s/expiry21:25:25Z; queue paused then restored RUNNING on exit. Executionmw6pd completed/succeeded1 at21:22:37Z; fixed stdout webhook_requested=true/sync_completed=true at21:22:31Z |
+| Actual rejection | Genuine supported callback21:22:30Z returned401/0.276s; no raw fields inspected. Pre-test SQL1 active stream/requested3/completed3/no lease/0 receipts/3 publications/18 observations/18 review/0 journals. Post-test readback connection status2, no post-count proof inferred; proxy stopped |
+| Diagnostic implementation | [Closed diagnostic contract](../contracts/webhook-rejection-diagnostics.md); existing errors/HTTP acceptance unchanged, no identifiers/payloads/headers/keys logged. Bounded nonblocking stdout stage observer; unit/race, disposable webhook SQL, core/release and offline scratch runtime proofs PASS |
+| Hosted evidence | FAILED/OPEN: signed204/durable receipt/new demand/automatic publication not proven; endpoint acknowledgement and probe sync cannot clear this |
 
 ## Current evidence
 
@@ -30,6 +39,14 @@ passed all offline commands with networknone/read-only/nonroot/capdrop and expli
 Docker platform. This local adapter proof does not replace official same-source
 Dockerfile build, scan and trusted publication receipts. Bibliography remains
 within32768bytes; no cap increase. Staged gate required before every commit.
+
+Diagnostic source additionally passed unchanged key/signature/socket/profile/SQL
+regressions and new stage/error-equality/no-SQL/redaction/blocked-writer/queue/rate
+cases. Current offline diagnostic scratch image is
+1fcb067deb7131bc7a095ea5d9fe1a9b2dd7eb6282afa4228dd5efac63a5d87b,
+with the same local toolchain/official-Dockerfile limits above. `make webhook-test`,
+`make check test build` and `make release-test` passed; exact CI/build and fresh
+human diagnostic-source review remain necessary before Sandbox receiver rollout.
 
 ## Remaining work
 
