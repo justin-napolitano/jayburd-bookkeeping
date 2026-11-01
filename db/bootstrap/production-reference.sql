@@ -26,7 +26,9 @@ DO $$ BEGIN
 END $$;
 SET LOCAL ROLE bookkeeping_owner;
 -- Exact replay preserves all fields; the existing currency constraint owns overlap rejection.
-DO $$ DECLARE c reference.currency; id uuid:=current_setting('jayburd.bootstrap.currency')::uuid; BEGIN
+DO $$ DECLARE c reference.currency; id uuid:=current_setting('jayburd.bootstrap.currency')::uuid;
+ history_id constant uuid:='3a184659-cf9b-4b80-b140-3f7a7796cbbd';
+ history_source constant text:='ISO4217-MA115:2002-05-13+SIX-list-one:2026-09-17;local-coverage-v1'; BEGIN
  PERFORM pg_advisory_xact_lock(77421,hashtext('USD'));
  SELECT * INTO c FROM reference.currency WHERE currency_version_id=id;
  IF FOUND THEN
@@ -36,6 +38,16 @@ DO $$ DECLARE c reference.currency; id uuid:=current_setting('jayburd.bootstrap.
  ELSE
   INSERT INTO reference.currency(currency_version_id,alphabetic_code,numeric_code,minor_unit,valid_from,valid_to,source_release)
   VALUES(id,'USD','840',2,'2026-09-17','2027-01-01',current_setting('jayburd.bootstrap.source'));
+ END IF;
+ -- Acquisition resolves original dates; install the separately reviewed local history without rewriting current provenance.
+ SELECT * INTO c FROM reference.currency WHERE currency_version_id=history_id;
+ IF FOUND THEN
+  IF ROW(c.alphabetic_code,c.numeric_code,c.minor_unit,c.valid_from,c.valid_to,c.source_release) IS DISTINCT FROM
+   ROW('USD'::text,'840'::text,2::smallint,DATE '2001-01-01',DATE '2026-09-17',history_source)
+  THEN RAISE EXCEPTION 'production_history_conflict'; END IF;
+ ELSE
+  INSERT INTO reference.currency(currency_version_id,alphabetic_code,numeric_code,minor_unit,valid_from,valid_to,source_release)
+  VALUES(history_id,'USD','840',2,'2001-01-01','2026-09-17',history_source);
  END IF;
 END $$;
 COMMIT;

@@ -3,7 +3,7 @@
 [Position](position-sources.md): P01–05, fixed USD/EUR.
 [Available-to-use](available-to-use-sources.md): ATU01–07, proposed.
 
-[Expiry](../contracts/enrollment-availability.md): Go/Cloud Run selections2026-10-24.
+[Expiry](../contracts/enrollment-availability.md): selected2026-10-24.
 
 [Prod PP01–13](production-pilot-sources.md): selected375.
 
@@ -11,8 +11,7 @@
 
 [IAM](../contracts/webhook-iam-compatibility.md): Google/PG17 selected378; verifier272.
 
-[Link recovery](plaid-link-recovery-sources.md): LR01–07, Plaid/React,
-2026-10-24; reconnect/OAuth unqualified.
+[Link](plaid-link-recovery-sources.md): LR01–07,2026-10-24; reconnect/OAuth unqualified.
 
 [Plaid #88](plaid-88-test-sources.md): selected official,2026-10-22; hosted gaps.
 [Launch Center](plaid-launch-center-review.md): panels,2026-10-22; partial.
@@ -25,7 +24,7 @@ selected Plaid/PG,2026-10-22; synthetic.
 [updater](webhook-rollout-sources.md), WU01–07: official selections2026-10-22;
 synthetic only.
 
-[History](../contracts/plaid-history-currency.md).
+[USD380](../contracts/production-book-bootstrap.md): MA115 p1 text; pinned SIX.
 [PI13](plaid-ingestion-sources.md#pi13--source-first-accounthistory-refresh-2026-10-21): Item/account/history; ownership is project policy.
 
 [Plaid types](automatic-account-binding-sources.md), [loans](plaid-liability-sources.md).

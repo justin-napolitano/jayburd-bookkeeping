@@ -29,6 +29,38 @@ currency overlaps and setup requires a contained policy window. Inference: a Q4
 book can use this reference while90-day transaction review keeps original dates;
 historical review does not authorize posting outside the chosen open period.
 
+## Historical USD coverage — #380
+
+Actual metadata2026-11-01 found the Production history interval absent. Migration25
+ran before this bootstrap reference existed. Missing dated metadata rejects the
+whole acquisition set; a Q4 book therefore does not alone support a90-day import.
+Source review: [dated currency decision](plaid-history-currency.md), migration25
+installer/context/SQL validation and existing acquisition history tests. Re-reviewed
+MA115 primary PDF page1 text on2026-11-01: El Salvador USD/840/2 effective2001-01-01.
+Web screenshot cache failed; native rendering had a transparency limitation. This
+is historical corroboration, not USD inception or a full amendment-series audit.
+The existing pinned SIX2026-09-17 USD record/hash remains unchanged.
+
+Decision: the same guarded Production reference transaction also appends exact
+USD/840/2 local coverage[2001-01-01,2026-09-17), fixed public-reference ID
+3a184659-cf9b-4b80-b140-3f7a7796cbbd and provenance
+ISO4217-MA115:2002-05-13+SIX-list-one:2026-09-17;local-coverage-v1.
+This reuses the reviewed public ISO metadata identity, never a Sandbox bank Item,
+credential or financial record. Both current and historical rows are insert-only;
+exact replay checks every field, conflict/overlap aborts both inserts atomically.
+Existing advisory lock and interval constraint remain authoritative. Do not invoke
+the Sandbox-named helper in Production or install reference data at runtime.
+
+Alternatives of shortening history, changing transaction dates/current provenance,
+or ignoring reference dates lose source fidelity or rewrite evidence. ISO4217
+identifiers/minor units and the existing local supported-coverage profile apply;
+no new ISO20022 operation or ISO21378 conformance claim. No currency/FX/recognition
+policy, book period, source observation, cursor or journal changes. Human review
+of this concrete reference-only change precedes actual apply. Acceptance adds
+independent fixed history/current metadata, immutable replay, late rollback,
+conflict/overlap denials and SQL dated validation at the interval boundary; existing
+historical acquisition/ledger regressions and core/CI remain required.
+
 ## Book and acquisition scope
 
 Owner privately signs in and prepares/reviews/acknowledges the ordinary durable
