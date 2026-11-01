@@ -7,6 +7,8 @@
 
 [Prod PP01–13](production-pilot-sources.md): selected375.
 
+[Probe385](../contracts/sandbox-webhook-probe.md): Plaid selected2026-11-01;401 unproved.
+
 ## Reading
 
 [IAM](../contracts/webhook-iam-compatibility.md): Google/PG17 selected378; verifier272.
@@ -42,16 +44,14 @@ pinned Go source (2026-10-19); synthetic policy, not institution qualification.
 [Worker release](../contracts/worker-release.md): bootstrap/runtime federation.
 [Operator guide](../../deploy/WORKERS.md): exact-byte promotion/rollback limits.
 
-Worker review (2026-10-14); [#258 rollout/CI sources](plaid-rollout-sources.md)
-(selected sections, 2026-10-22):
+Worker review2026-10-14; [#258 sources](plaid-rollout-sources.md), selected2026-10-22:
 [Cloud Run ServiceStatus](https://docs.cloud.google.com/run/docs/reference/rest/v1/namespaces.services#ServiceStatus)
-covers generation/Ready/revisions;
+generation/Ready/revisions;
 [TrafficTarget](https://docs.cloud.google.com/run/docs/reference/rest/v1/TrafficTarget)
-covers revision allocation/tagged routes;
+revision allocation/tagged routes;
 [Scheduler Job/State](https://docs.cloud.google.com/scheduler/docs/reference/rest/v1/projects.locations.jobs#State)
-covers paused/disabled/error states and HTTP OIDC. Receipt policy requires
-reconciled generations, one exact-image 100% target and paused exact Scheduler.
-It does not prove queue drain, IAM or provider qualification.
+paused/disabled/error states, HTTP OIDC. Local receipts require reconciled generations,
+one exact-image100% target, paused exact Scheduler; no queue-drain/IAM/provider proof.
 
 [Connection release](../contracts/connection-release.md): selected HashiCorp
 variable precedence/Cloud Run revision sections,2026-10-14. Omitted inputs reset;
@@ -87,8 +87,8 @@ Sections/inferences/limits recorded; no normative ISO, cloud config or credentia
   Durable local evidence and current SQL authority are project decisions with
   synthetic fault tests, not provider or cloud guarantees.
 
-The [sync implementation boundary](../contracts/provider-runtime-boundaries.md)
-records refreshed Plaid pagination/account-filter sections and PostgreSQL17
+The [sync boundary](../contracts/provider-runtime-boundaries.md)
+records Plaid pagination/account-filter and PostgreSQL17
 isolation/function-privilege sections. It distinguishes vendor mechanisms from
 our bounded publication and role decisions. No live-provider or measured scalability proof.
 

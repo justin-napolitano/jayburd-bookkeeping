@@ -1,5 +1,9 @@
 # Project context
 
+[Sandbox webhook diagnosis](contracts/sandbox-webhook-probe.md) and
+[stages](runbooks/sandbox-webhook-probe.md):385 one-shot supported-event probe;
+source review pending, no hosted signed-chain pass.
+
 [Production USD history](contracts/production-book-bootstrap.md#historical-usd-coverage--380) and
 [stages](runbooks/production-usd-history.md):380/381 merged and reference-only apply verified; current USD unchanged and historical coverage exact.
 

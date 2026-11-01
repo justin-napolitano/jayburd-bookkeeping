@@ -34,6 +34,7 @@ check_rejected() {
   if [[ "$case_name" == probe-* ]]; then entrypoint=(--entrypoint /sandbox-probe); fi
   if [[ "$case_name" == webhook-* ]]; then entrypoint=(--entrypoint /webhook); fi
   if [[ "$case_name" == verifier-* ]]; then entrypoint=(--entrypoint /sandbox-verify); fi
+  if [[ "$case_name" == event-* ]]; then entrypoint=(--entrypoint /sandbox-webhook); fi
   docker run --cidfile "$work_dir/$case_name.cid" --rm --pull=never --network=none --read-only --cap-drop=ALL \
     --security-opt=no-new-privileges:true --user=65532:65532 --pids-limit=64 \
     --memory=128m --cpus=1 "${entrypoint[@]}" "$candidate_id" "$@" >"$work_dir/$case_name" 2>&1 &
@@ -50,6 +51,7 @@ check_rejected() {
   local expected_status=1
   if [[ "$case_name" == probe-* ]]; then expected_status=2; fi
   if [[ "$case_name" == verifier-default ]]; then expected_status=0; fi
+  if [[ "$case_name" == event-default ]]; then expected_status=0; fi
   if [[ "$case_name" == delivery-production-check ]]; then expected_status=0; fi
   if [[ "$case_name" == credential-check ]]; then expected_status=0; fi
   [[ "$result" == "$expected_status" ]] || { echo 'FAIL: worker did not reject configuration' >&2; exit 1; }
@@ -57,8 +59,10 @@ check_rejected() {
     node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(r.status!=="blocked"||r.checks[0].reason!=="invalid_invocation")process.exit(1)' "$work_dir/$case_name"
     return
   fi
-  if [[ "$case_name" == verifier-default ]]; then
+  if [[ "$case_name" == verifier-default || "$case_name" == event-default ]]; then
     printf '{"offline":true}\n' >"$work_dir/expected"
+  elif [[ "$case_name" == event-* ]]; then
+    printf 'BLOCKED: Sandbox webhook probe\n' >"$work_dir/expected"
   elif [[ "$case_name" == verifier-* ]]; then
     printf 'BLOCKED: Sandbox verification\n' >"$work_dir/expected"
   elif [[ "$case_name" == credential-check ]]; then
@@ -98,4 +102,8 @@ check_rejected verifier-default
 check_rejected verifier-missing-manifest -action=compare
 check_rejected verifier-dsn-flag -dsn=synthetic-rejected-value
 check_rejected verifier-secret-flag -secret=synthetic-rejected-value
+check_rejected event-default
+check_rejected event-missing-scope -action=run -allow-sandbox
+check_rejected event-production -action=run -allow-sandbox -provider-environment=production
+check_rejected event-secret-flag -secret=synthetic-rejected-value
 printf 'PASS: worker image commands enforce offline configuration and expiry checks with fixed diagnostics.\n'
