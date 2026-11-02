@@ -7,7 +7,7 @@
 
 [Prod PP01–13](production-pilot-sources.md): selected375.
 
-[Probe385](../contracts/sandbox-webhook-probe.md): Plaid selected2026-11-01;401 unproved.
+[Probe385](../contracts/sandbox-webhook-probe.md), [diagnostics](../contracts/webhook-rejection-diagnostics.md): selected Plaid/Go;401 confirmed2026-11-01.
 
 ## Reading
 
@@ -63,9 +63,8 @@ Hosted/Sandbox (2026-10-14):
 official guide/API review and snapshot hashes, 2026-10-18. User-associated token
 and completion webhook are recommended; browser-only recovery is project policy.
 
-- [Hosted workers](../contracts/hosted-workers.md): selected Cloud Run metadata
-  identity, Cloud SQL IAM login and container lifecycle references; understand
-  private caller binding and bounded pools. Synthetic checks do not prove hosted IAM.
+- [Hosted workers](../contracts/hosted-workers.md): Cloud Run identity/lifecycle,
+  SQL IAM, private caller/pool bounds selected; synthetic, not hosted IAM proof.
 - [Provider vault](../contracts/provider-vault.md): Infisical v4 create/read,
   GCP ID-token login and GCP sync options, plus Secret Manager numeric addressing
   and CRC32C. Explains why source/logical/destination versions are independent.

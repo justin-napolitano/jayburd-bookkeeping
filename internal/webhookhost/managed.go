@@ -3,6 +3,7 @@ package webhookhost
 import (
 	"context"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -164,9 +165,11 @@ func managed(ctx context.Context, c Config, f factories) (*Runtime, error) {
 		return nil, ErrServe
 	}
 	profile, _ := plaidprofile.New(c.ProviderEnvironment())
-	h, err := NewSQLForProfile(keys, db, profile, cleanup)
+	observe, closeObserver := newRejectionReporter(os.Stdout)
+	closeAll := func() { closeObserver(); cleanup() }
+	h, err := newSQLForProfile(keys, db, profile, closeAll, observe)
 	if err != nil {
-		cleanup()
+		closeAll()
 		return nil, ErrConfiguration
 	}
 	h.approvalDeadline = expiry
