@@ -3086,11 +3086,46 @@
         "summary": "Check a Hosted Link session after browser reload",
         "description": "Authenticated, attempt-scoped status check. The server retrieves an encrypted Link token, resolves Plaid completion, and retains the one-shot exchange claim. No token is supplied by the browser.",
         "parameters": [
-          {"name": "entity_id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}},
-          {"name": "book_id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}},
-          {"name": "attempt_id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}}
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "additionalProperties": false, "properties": {}}}}},
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
         "responses": {
           "200": {"description": "Current authorized attempt state", "headers": {"Cache-Control": {"schema": {"type": "string", "const": "no-store"}}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ConnectionAttempt"}}}},
           "default": {"description": "Fixed safe failure", "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}}}
@@ -3631,6 +3666,91 @@
                     "const": true
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/registration": {
+      "post": {
+        "operationId": "prepareAccountRegistration",
+        "summary": "Prepare selected accounts for recoverable registration",
+        "description": "Verified scoped selection only; strict16KiB JSON,1–25 unique account IDs. SQL persists exact mappings without binding.201 returns a saved register_accounts command. Execute/cancel/acknowledge through the existing command routes. No provider calls, new Item, automatic execution or browser persistence. Requires installed migration36 and finite runtime profile; see docs/contracts/registration-http.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attempt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Authorized safe result",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DurableCommand"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure; uncertain credentials/commits remain unresolved.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountRegistrationSelection"
               }
             }
           }
@@ -5139,7 +5259,8 @@
               "setup",
               "post",
               "import",
-              "source_post"
+              "source_post",
+              "register_accounts"
             ]
           },
           "entity_id": {
@@ -5177,6 +5298,9 @@
               },
               {
                 "$ref": "#/components/schemas/SourcePostCommandBody"
+              },
+              {
+                "$ref": "#/components/schemas/RegistrationCommandBody"
               }
             ]
           },
@@ -5196,6 +5320,12 @@
               },
               {
                 "$ref": "#/components/schemas/SourcePostCommandResult"
+              },
+              {
+                "$ref": "#/components/schemas/ConnectionBindingResult"
+              },
+              {
+                "$ref": "#/components/schemas/AppendRegistrationResult"
               }
             ]
           },
@@ -6432,11 +6562,17 @@
                     },
                     "category": {
                       "type": "string",
-                      "enum": ["asset", "liability"]
+                      "enum": [
+                        "asset",
+                        "liability"
+                      ]
                     },
                     "normal_side": {
                       "type": "string",
-                      "enum": ["debit", "credit"]
+                      "enum": [
+                        "debit",
+                        "credit"
+                      ]
                     },
                     "monetary": {
                       "type": "boolean",
@@ -7058,6 +7194,278 @@
           "expected_binding_revision",
           "expected_stream_revision"
         ]
+      },
+      "AccountRegistrationSelection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "account_ids"
+        ],
+        "properties": {
+          "account_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 25,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[!-~]+$"
+            }
+          }
+        }
+      },
+      "RegistrationCommandBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "selection",
+          "attempt_id",
+          "sync_item_id",
+          "item_generation",
+          "worker_revision",
+          "scope_revision",
+          "limit_revision",
+          "manifest_digest",
+          "book_revision",
+          "policy_id",
+          "binding_date",
+          "expires_at",
+          "initial",
+          "bindings",
+          "digest"
+        ],
+        "properties": {
+          "selection": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 25,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[!-~]+$"
+            }
+          },
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sync_item_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "item_generation": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "worker_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "scope_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "limit_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "manifest_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "binding_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "initial": {
+            "type": "boolean"
+          },
+          "bindings": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 25,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "account_id": {
+                  "type": "string"
+                },
+                "ledger_account_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "currency_version_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "source_account_id": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expected_binding_revision": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Revision"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "binding_date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "binding_evidence_ref": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "new_ledger_account": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "account_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "code": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "category": {
+                      "type": "string",
+                      "enum": [
+                        "asset",
+                        "liability"
+                      ]
+                    },
+                    "normal_side": {
+                      "type": "string",
+                      "enum": [
+                        "debit",
+                        "credit"
+                      ]
+                    },
+                    "monetary": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "active_from": {
+                      "type": "string",
+                      "format": "date"
+                    }
+                  },
+                  "required": [
+                    "account_id",
+                    "code",
+                    "name",
+                    "category",
+                    "normal_side",
+                    "monetary",
+                    "active_from"
+                  ]
+                }
+              },
+              "required": [
+                "account_id",
+                "ledger_account_id",
+                "currency_version_id",
+                "source_account_id",
+                "expected_binding_revision",
+                "binding_date",
+                "binding_evidence_ref"
+              ]
+            }
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "AppendRegistrationResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entity_id",
+          "book_id",
+          "sync_item_id",
+          "streams"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sync_item_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "streams": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "stream_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "source_account_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "namespace_id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "binding_revision": {
+                  "$ref": "#/components/schemas/Revision"
+                },
+                "overlap_review_required": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "stream_id",
+                "source_account_id",
+                "namespace_id",
+                "binding_revision",
+                "overlap_review_required"
+              ]
+            }
+          }
+        }
       }
     },
     "responses": {

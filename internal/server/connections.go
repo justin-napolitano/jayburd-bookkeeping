@@ -40,18 +40,19 @@ var connectionKey = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
 func mountConnections(mux *http.ServeMux, auth ledger.Authenticator, ops ConnectionOperations) {
 	base := "/v1/entities/{entity}/books/{book}"
 	for pattern, operation := range map[string]string{
-		"GET " + base + "/connection-attempts":                      "attempts",
-		"GET " + base + "/connections/streams/{stream}/status":      "status",
-		"POST " + base + "/connections/streams/{stream}/operations": "operate",
-		"POST " + base + "/connection-attempts":                     "begin",
-		"GET " + base + "/connection-attempts/{attempt}":            "attempt",
-		"POST " + base + "/connection-attempts/{attempt}/execute":   "execute",
-		"POST " + base + "/connection-attempts/{attempt}/complete":  "complete",
-		"POST " + base + "/connection-attempts/{attempt}/reconcile": "reconcile",
-		"POST " + base + "/connection-attempts/{attempt}/abandon":   "abandon",
-		"POST " + base + "/connection-attempts/{attempt}/bindings":  "bind",
-		"GET " + base + "/connections":                              "list",
-		"POST " + base + "/connections/streams/{stream}/disconnect": "disconnect",
+		"GET " + base + "/connection-attempts":                         "attempts",
+		"GET " + base + "/connections/streams/{stream}/status":         "status",
+		"POST " + base + "/connections/streams/{stream}/operations":    "operate",
+		"POST " + base + "/connection-attempts":                        "begin",
+		"GET " + base + "/connection-attempts/{attempt}":               "attempt",
+		"POST " + base + "/connection-attempts/{attempt}/execute":      "execute",
+		"POST " + base + "/connection-attempts/{attempt}/complete":     "complete",
+		"POST " + base + "/connection-attempts/{attempt}/reconcile":    "reconcile",
+		"POST " + base + "/connection-attempts/{attempt}/abandon":      "abandon",
+		"POST " + base + "/connection-attempts/{attempt}/bindings":     "bind",
+		"POST " + base + "/connection-attempts/{attempt}/registration": "prepare_registration",
+		"GET " + base + "/connections":                                 "list",
+		"POST " + base + "/connections/streams/{stream}/disconnect":    "disconnect",
 	} {
 		mux.HandleFunc(pattern, connectionEndpoint(auth, ops, operation))
 	}
@@ -88,7 +89,7 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 			return
 		}
 		key := ""
-		if operation == "begin" || operation == "bind" || operation == "disconnect" || operation == "operate" {
+		if operation == "begin" || operation == "bind" || operation == "disconnect" || operation == "operate" || operation == "prepare_registration" {
 			keys := r.Header.Values("Idempotency-Key")
 			if len(keys) != 1 || !connectionKey.MatchString(keys[0]) {
 				fail(400, "invalid_request")
@@ -103,8 +104,12 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 				fail(400, "invalid_request")
 				return
 			}
-			raw, err = io.ReadAll(io.LimitReader(r.Body, (32<<10)+1))
-			if len(raw) > 32<<10 {
+			maximum := 32 << 10
+			if operation == "prepare_registration" {
+				maximum = 16 << 10
+			}
+			raw, err = io.ReadAll(io.LimitReader(r.Body, int64(maximum)+1))
+			if len(raw) > maximum {
 				fail(413, "request_too_large")
 				return
 			}
@@ -118,6 +123,20 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 		}
 		var result any
 		switch operation {
+		case "prepare_registration":
+			var in connections.RegistrationSelection
+			if !decodeConnectionJSON(raw, &in) {
+				fail(400, "invalid_request")
+				return
+			}
+			registration, ok := ops.(interface {
+				PrepareRegistration(context.Context, connections.Scope, string, string, string, connections.RegistrationSelection) (json.RawMessage, error)
+			})
+			if !ok {
+				fail(503, "temporarily_unavailable")
+				return
+			}
+			result, err = registration.PrepareRegistration(r.Context(), scope, attempt, key, newRequestID(), in)
 		case "attempts":
 			limit, after, ok := connectionPage(r.URL.RawQuery)
 			if !ok {
@@ -212,7 +231,7 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 				fail(500, "internal_error")
 				return
 			}
-			status := map[string]int{"invalid_request": 400, "permission_denied": 403, "not_found": 404, "connection_conflict": 409, "stale_connection": 409, "credential_recovery_required": 409, "connection_operation_blocked": 409, "connection_limit": 422, "unsupported_connection_mode": 422, "commit_unknown": 503, "temporarily_unavailable": 503}[f.Code]
+			status := map[string]int{"invalid_request": 400, "permission_denied": 403, "not_found": 404, "connection_conflict": 409, "stale_connection": 409, "credential_recovery_required": 409, "connection_operation_blocked": 409, "connection_limit": 422, "unsupported_connection_mode": 422, "commit_unknown": 503, "temporarily_unavailable": 503, "pending_command": 409, "registration_not_ready": 409}[f.Code]
 			if status == 0 {
 				fail(500, "internal_error")
 				return
@@ -226,7 +245,11 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		status := http.StatusOK
+		if operation == "prepare_registration" {
+			status = http.StatusCreated
+		}
+		w.WriteHeader(status)
 		_, _ = w.Write(encoded)
 	}
 }

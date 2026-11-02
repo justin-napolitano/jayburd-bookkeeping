@@ -33,6 +33,8 @@ const runtimeSafety = `SELECT
  AND has_function_privilege(current_user,'ledger.clear_inaccessible_command(uuid,uuid,text)','EXECUTE')
  AND to_regprocedure('ledger.transition_command(uuid,uuid,uuid,text,text)') IS NOT NULL
  AND has_function_privilege(current_user,'ledger.transition_command(uuid,uuid,uuid,text,text)','EXECUTE')
+	AND to_regprocedure('integration.prepare_registration(uuid,uuid,uuid,uuid,text,uuid,text)') IS NOT NULL
+	AND has_function_privilege(current_user,'integration.prepare_registration(uuid,uuid,uuid,uuid,text,uuid,text)','EXECUTE')
  AND to_regprocedure('reporting.workspace(uuid)') IS NOT NULL
  AND has_function_privilege(current_user,'reporting.workspace(uuid)','EXECUTE')
  AND to_regprocedure('banking.list_sources(uuid,uuid,uuid)') IS NOT NULL

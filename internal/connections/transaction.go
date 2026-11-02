@@ -46,6 +46,8 @@ func sqlFailure(err error) error {
 			return failed("connection_operation_blocked")
 		case "P2705", "P2805":
 			return failed("connection_limit")
+		case "P2112":
+			return failed("pending_command")
 		}
 	}
 	return failed("temporarily_unavailable")
@@ -124,6 +126,7 @@ func (r *sqlRepository) attempt(ctx context.Context, query string, args ...any) 
 
 // queries is a closed trusted-backend SQL surface; request strings never select SQL.
 var queries = map[string]string{
+	"prepare_registration":             "SELECT integration.prepare_registration($1,$2,$3,$4,$5,$6,$7)::text",
 	"abandon_connection":               "SELECT integration.abandon_connection($1,$2,$3,$4)::text",
 	"begin_binding_abandon":            "SELECT integration.begin_binding_abandon($1,$2,$3,$4)::text",
 	"confirm_binding_abandoned":        "SELECT integration.confirm_binding_abandoned($1,$2,$3,$4,$5)::text",

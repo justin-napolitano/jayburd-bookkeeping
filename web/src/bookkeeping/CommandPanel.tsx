@@ -21,6 +21,18 @@ export function CommandPanel({
   )?.minor_unit;
   const accountingDate =
     body && "accounting_date" in body ? body.accounting_date : "";
+  // Do not execute a recovered account plan until its book and exact currency references are visible.
+  const registrationReady =
+    c?.operation !== "register_accounts" ||
+    (!!book &&
+      !!body &&
+      "bindings" in body &&
+      body.bindings.every((binding) =>
+        workspace?.currencies.some(
+          (currency) =>
+            currency.currency_version_id === binding.currency_version_id,
+        ),
+      ));
   return (
     <section
       className={
@@ -90,7 +102,9 @@ export function CommandPanel({
                   ? "Posting confirmed"
                   : c.operation === "import"
                     ? "Import confirmed"
-                    : "Book creation confirmed"}
+                    : c.operation === "register_accounts"
+                      ? "Account registration confirmed"
+                      : "Book creation confirmed"}
               </h3>
               <p>
                 The committed result remains saved until you acknowledge it.
@@ -130,6 +144,43 @@ export function CommandPanel({
                   {c.result.created_count} new review items ·{" "}
                   {c.result.existing_count} existing observations. No journals
                   were posted by this import.
+                </p>
+              )}
+            </>
+          ) : "bindings" in body ? (
+            <>
+              <h3>Accounts to register</h3>
+              <p>
+                These accounts use the saved mappings below. Registration
+                imports source data; it does not post journals.
+              </p>
+              <p>
+                Binding date: {body.binding_date}. Setup expires:{" "}
+                {body.expires_at}.
+              </p>
+              <ul>
+                {body.bindings.map((binding) => (
+                  <li key={binding.ledger_account_id}>
+                    {binding.new_ledger_account?.code}{" "}
+                    {binding.new_ledger_account?.name ??
+                      book?.accounts.find(
+                        (account) =>
+                          account.account_id === binding.ledger_account_id,
+                      )?.name ??
+                      "Existing ledger account"}
+                    {" · "}
+                    {workspace?.currencies.find(
+                      (currency) =>
+                        currency.currency_version_id ===
+                        binding.currency_version_id,
+                    )?.alphabetic_code ?? "Currency metadata unavailable"}
+                  </li>
+                ))}
+              </ul>
+              {!registrationReady && (
+                <p role="status">
+                  Load the current book and currency metadata before confirming
+                  this registration.
                 </p>
               )}
             </>
@@ -230,14 +281,21 @@ export function CommandPanel({
           {c.state === "prepared" ? (
             <>
               <button
-                disabled={r.busy || !r.ready || c.operation === "import"}
+                disabled={
+                  r.busy ||
+                  !r.ready ||
+                  c.operation === "import" ||
+                  !registrationReady
+                }
                 onClick={() => void r.transition("execute")}
               >
                 {c.operation === "post" || c.operation === "source_post"
                   ? "Post journal"
                   : c.operation === "import"
                     ? "Review import in originating client"
-                    : "Create book"}
+                    : c.operation === "register_accounts"
+                      ? "Register selected accounts"
+                      : "Create book"}
               </button>
               <button
                 disabled={r.busy || !r.ready}
@@ -251,7 +309,9 @@ export function CommandPanel({
               disabled={r.busy || !r.ready}
               onClick={() => void r.transition("acknowledge")}
             >
-              Acknowledge result
+              {c.operation === "register_accounts"
+                ? "Done"
+                : "Acknowledge result"}
             </button>
           )}
         </>
