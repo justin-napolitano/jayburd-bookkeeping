@@ -7,7 +7,7 @@
 
 [Prod PP01–13](production-pilot-sources.md): selected375.
 
-[Probe385](../contracts/sandbox-webhook-probe.md), [diagnostics](../contracts/webhook-rejection-diagnostics.md): selected Plaid/Go;401 confirmed2026-11-01.
+[385 projection](../contracts/signed-sync-projection.md): Plaid versioning/verification/Sync selections2026-11-02; additive-field401.
 
 ## Reading
 
