@@ -1,14 +1,21 @@
 # Project context
 
+[Current Production picker rollout](runbooks/picker-rollout.md): reviewed403/
+11b9074 scanned images deployed after managed36–38 up and independent clean38
+status. Original checking identities/history/counts preserved;187 review items,
+0journals, default one-account limit and existing04Z expiry unchanged.404 tracks
+existing-account historical availability repair; fresh Sandbox append qualification
+and owner-private reconciliation remain open. Never apply stale Terraform image pins.
+
 [Account picker](contracts/account-picker.md) and [stages](runbooks/account-picker.md):
 394 replaces ordinary binding forms with explicit selection and saved mapping
 review. [Historical ledger availability](contracts/registration-history-start.md)
-records forward38's approved-policy start correction; no managed apply or release.
+records forward38's approved-policy start correction; managed release evidence above.
 
 [Registration options](contracts/registration-options.md) and
 [stages](runbooks/registration-options.md):393 adds SQL-owned advisory eligibility,
-registered identity and capacity for the future picker. Forward37 is source only;
-no managed migration, provider call or source-limit increase.
+registered identity and capacity for the picker. Forward37 is applied in the
+bounded395 rollout above; no source-limit increase.
 
 Account presentation: [existing-field label contract](contracts/account-display-labels.md)
 and [delivery evidence](runbooks/account-display-labels.md) distinguish private
@@ -17,16 +24,16 @@ current-view labels from future bank names/masks under290.
 [Select-and-register plan](plans/select-register-accounts.md), [source review](research/select-register-sources.md)
 and [stages](runbooks/select-register-accounts.md):391–395 propose a checkbox
 picker, server-owned mapping and atomic additional-account registration. Reuse290/
-387; current Production source cap remains1. No migration or second account applied.
+387; current Production source cap remains1.36–38 applied; no second account registered.
 
 [Registration SQL](contracts/registration-sql.md) and [delivery stages](runbooks/registration-sql.md):
 392 implements forward36 for saved automatic setup and atomic existing-Item
 additions, using the existing command recovery gate.399 merged after owner review
-and five passing checks;36 is not applied. API/picker and hosted qualification remain.
+and five passing checks;36/API/picker now deployed. Fresh hosted append qualification remains.
 
 [Registration HTTP/recovery](contracts/registration-http.md) and [stages](runbooks/registration-api.md):
-393 connects selection-only preparation to typed saved-command recovery. Source
-only; no additional private provider metadata or live access.394 owns the picker.
+393 connects selection-only preparation to typed saved-command recovery. Deployed
+in395 without additional private provider metadata or source authority.394 owns the picker.
 
 [Sandbox signed webhook proof](contracts/signed-sync-projection.md) and
 [stages](runbooks/sandbox-webhook-probe.md):385/389 merged, scanned and deployed;

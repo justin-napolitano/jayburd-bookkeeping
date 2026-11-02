@@ -136,6 +136,14 @@ failure, not proof of a particular firewall rule. Resume on a permitted network 
 review a GCP runner; do not weaken Cloud SQL transport policy. Provider example
 commands that print access tokens are not adopted.
 
+395 refresh2026-11-02: selected pinned [v2.26.0 CLI flags](https://github.com/GoogleCloudPlatform/cloud-sql-proxy/blob/v2.26.0/docs/cmd/cloud-sql-proxy.md)
+and official [IAM login guide](https://docs.cloud.google.com/sql/docs/postgres/iam-logins),
+plus changelog's automatic-IAM/gcloud-auth incompatibility; not a full manual
+review. Use automatic IAM with ADC consumed internally, never combine those
+two flags or extract tokens. SDK GCS downloads validate transport integrity;
+a locally calculated SHA is not an independently published checksum. Local3307
+timed out; pinned2.26.0 Cloud Shell owner IAM connection/read-only check passed.
+
 ## G26 — Cloud Shell command access — 2026-10-12
 
 Google, [Launch Cloud Shell](https://docs.cloud.google.com/shell/docs/launching-cloud-shell),
