@@ -37,6 +37,8 @@ const runtimeSafety = `SELECT
 	AND has_function_privilege(current_user,'integration.prepare_registration(uuid,uuid,uuid,uuid,text,uuid,text)','EXECUTE')
 	AND to_regprocedure('integration.registration_options(uuid,uuid,uuid,uuid)') IS NOT NULL
 	AND has_function_privilege(current_user,'integration.registration_options(uuid,uuid,uuid,uuid)','EXECUTE')
+	AND to_regprocedure('integration.registration_account_start(uuid,uuid,date)') IS NOT NULL
+	AND NOT has_function_privilege(current_user,'integration.registration_account_start(uuid,uuid,date)','EXECUTE')
  AND to_regprocedure('reporting.workspace(uuid)') IS NOT NULL
  AND has_function_privilege(current_user,'reporting.workspace(uuid)','EXECUTE')
  AND to_regprocedure('banking.list_sources(uuid,uuid,uuid)') IS NOT NULL

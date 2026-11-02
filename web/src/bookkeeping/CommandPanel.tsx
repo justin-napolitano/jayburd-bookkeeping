@@ -174,6 +174,13 @@ export function CommandPanel({
                         currency.currency_version_id ===
                         binding.currency_version_id,
                     )?.alphabetic_code ?? "Currency metadata unavailable"}
+                    {binding.new_ledger_account && (
+                      <>
+                        {" "}
+                        · Ledger available from{" "}
+                        {binding.new_ledger_account.active_from}
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
