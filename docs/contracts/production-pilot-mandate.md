@@ -1,6 +1,36 @@
 # One-account Production pilot mandate — #337
 
-Status: PROPOSED2026-10-27; owner selections and security review pending. This is
+## Accepted bounded pilot — 2026-11-02
+
+The historical proposal below is superseded for the limited pilot by
+[337 owner acceptance](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/337#issuecomment-6568578003)
+and [actual375 receipts](../runbooks/production-acquisition-rollout.md).
+One Ally USD checking account, desktop, existing creator-owned Personal book,
+requested90 days; bank read-only, no paid Refresh/money movement. Existing scoped
+manual bookkeeping remains available; acquisition never posts journals.
+Production authorization ends2026-11-03T04:00:00Z, without automatic extension or
+second-account approval. Sandbox consent was not renewed.
+
+Owner selected the existing shared GCP project/SQL instance and isolated
+bookkeeping_prod database with dedicated identities/keys/private evidence;
+the separate-project/new-instance candidate below was not selected.
+Approximate25USD/month GCP target excludes Plaid and is not a hard cap.
+Private versioned raw/provenance retention and reviewed later cleanup accepted;
+seven-day soft-delete recovery does not promise seven-day physical erasure.
+Owner incident response and explicit source/Scheduler/queue/API stop controls
+accepted. Posted journals remain immutable.
+
+Exact reviewf44a11b8878a435c4067c1ad2a4520a89dc5403802771c8a494d8420c5dcd330
+records limited-pilot dispositions: actual Sandbox signed/queue/remount recovery
+plus synthetic Production/SQL faults; independent hosted value oracle, provider
+retry/reorder and actual restore remain unproved. These are accepted residual
+limits, not test passes or broader rollout/official-close approval.90 remains
+open for actual import/recovery/private reconciliation.337's decision is accepted;
+this does not itself complete316/375/90.
+
+## Historical proposal — 2026-10-27
+
+Original status: PROPOSED2026-10-27; owner selections and security review pending. This is
 a concrete decision proposal, not a provisioning, spend, credential or live-data
 approval. #315/PR348 merged as6be6c48 after all five CI checks passed. #316 offline source preparation may proceed with fictional targets; actual
 provisioning/activation requires this accepted decision. Original review source maineaab6ee.
