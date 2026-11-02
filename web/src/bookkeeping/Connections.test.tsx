@@ -143,7 +143,7 @@ it("TestConnectionsScopeAndRecovery suppresses old scope and revoked data", asyn
   await screen.findByRole("alert");
   old.resolve(listing);
   await waitFor(() => expect(p.denied).toHaveBeenCalledOnce());
-  expect(screen.queryByText("Provider Item synthetic-item")).toBeNull();
+  expect(screen.queryByText("Bank connection 1")).toBeNull();
 });
 it("TestConnectionsScopeAndRecovery does not execute Link after scope locks", async () => {
   const handoff = deferred<{ publicToken: string } | null>();
@@ -186,7 +186,7 @@ it("TestConnectionsScopeAndRecovery keeps unknown disconnect request exact", asy
   }) as unknown as API;
   render(<Connections {...props(api)} />);
   fireEvent.click(
-    await screen.findByRole("button", { name: "Disconnect synthetic-account" }),
+    await screen.findByRole("button", { name: "Disconnect Bank account 1" }),
   );
   fireEvent.click(screen.getByRole("button", { name: "Confirm disconnect" }));
   fireEvent.click(
@@ -255,7 +255,7 @@ it("TestConnectionsScopeAndRecovery ignores StrictMode's obsolete initial read",
   await screen.findByText("No connected Items in this book.");
   old.resolve(listing);
   await Promise.resolve();
-  expect(screen.queryByText("Provider Item synthetic-item")).toBeNull();
+  expect(screen.queryByText("Bank connection 1")).toBeNull();
 });
 it("TestConnectionsEnrollmentBinding explicitly maps verified account and opens review", async () => {
   let bindings: unknown;
@@ -304,12 +304,11 @@ it("TestConnectionsEnrollmentBinding explicitly maps verified account and opens 
   fireEvent.change(screen.getByLabelText("Binding date"), {
     target: { value: "2026-01-02" },
   });
+  fireEvent.change(screen.getByLabelText("Ledger account for Bank account 1"), {
+    target: { value: id(3) },
+  });
   fireEvent.change(
-    screen.getByLabelText("Ledger account for synthetic-account"),
-    { target: { value: id(3) } },
-  );
-  fireEvent.change(
-    screen.getByLabelText("Currency version for synthetic-account"),
+    screen.getByLabelText("Currency version for Bank account 1"),
     { target: { value: id(4) } },
   );
   fireEvent.click(screen.getByRole("checkbox"));
@@ -333,7 +332,7 @@ it("TestConnectionsEnrollmentBinding explicitly maps verified account and opens 
   });
   fireEvent.click(
     await screen.findByRole("button", {
-      name: "Review transactions for synthetic-account",
+      name: "Review transactions for Bank account 1",
     }),
   );
   expect(p.onReview).toHaveBeenCalledWith(id(8));
@@ -535,7 +534,7 @@ it("TestConnectionsSkippedMapping clears all skipped proposals before confirming
   expect(confirm.disabled).toBe(false);
   for (const suffix of [1, 2]) {
     fireEvent.change(
-      screen.getByLabelText(`Ledger account for skip-example-${suffix}`),
+      screen.getByLabelText(`Ledger account for Bank account ${suffix + 1}`),
       {
         target: { value: "" },
       },
@@ -543,15 +542,15 @@ it("TestConnectionsSkippedMapping clears all skipped proposals before confirming
     expect(
       (
         screen.getByLabelText(
-          `Currency version for skip-example-${suffix}`,
+          `Currency version for Bank account ${suffix + 1}`,
         ) as HTMLSelectElement
       ).value,
     ).toBe("");
     expect(
-      screen.queryByLabelText(`Account code for skip-example-${suffix}`),
+      screen.queryByLabelText(`Account code for Bank account ${suffix + 1}`),
     ).toBeNull();
     expect(
-      screen.queryByLabelText(`Account name for skip-example-${suffix}`),
+      screen.queryByLabelText(`Account name for Bank account ${suffix + 1}`),
     ).toBeNull();
   }
   expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(
@@ -560,27 +559,27 @@ it("TestConnectionsSkippedMapping clears all skipped proposals before confirming
   expect(confirm.disabled).toBe(true);
 
   // Re-selecting a cleared row must still require currency and new-account details.
-  fireEvent.change(screen.getByLabelText("Ledger account for skip-example-1"), {
+  fireEvent.change(screen.getByLabelText("Ledger account for Bank account 2"), {
     target: { value: "new" },
   });
   expect(
     (
       screen.getByLabelText(
-        "Account code for skip-example-1",
+        "Account code for Bank account 2",
       ) as HTMLInputElement
     ).value,
   ).toBe("");
   expect(
     (
       screen.getByLabelText(
-        "Account name for skip-example-1",
+        "Account name for Bank account 2",
       ) as HTMLInputElement
     ).value,
   ).toBe("");
   fireEvent.click(screen.getByRole("checkbox"));
   expect(confirm.disabled).toBe(true);
   expect(submitted).toBeUndefined();
-  fireEvent.change(screen.getByLabelText("Ledger account for skip-example-1"), {
+  fireEvent.change(screen.getByLabelText("Ledger account for Bank account 2"), {
     target: { value: "" },
   });
   fireEvent.click(screen.getByRole("checkbox"));
@@ -800,7 +799,7 @@ it("TestConnectionsScopeAndRecovery clears confirmed disconnect rejection", asyn
   }) as unknown as API;
   render(<Connections {...props(api)} />);
   fireEvent.click(
-    await screen.findByRole("button", { name: "Disconnect synthetic-account" }),
+    await screen.findByRole("button", { name: "Disconnect Bank account 1" }),
   );
   fireEvent.click(screen.getByRole("button", { name: "Confirm disconnect" }));
   await screen.findByRole("alert");
@@ -822,7 +821,7 @@ it("TestConnectionsScopeAndRecovery rejects malformed list state", async () => {
   }) as unknown as API;
   render(<Connections {...props(api)} />);
   await screen.findByRole("alert");
-  expect(screen.queryByText("Provider Item synthetic-item")).toBeNull();
+  expect(screen.queryByText("Bank connection 1")).toBeNull();
   expect(screen.queryByText("No connected Items in this book.")).toBeNull();
 });
 
@@ -968,7 +967,7 @@ it.each([
     render(<Connections {...props(api)} />);
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "View sync status for synthetic-account",
+        name: "View sync status for Bank account 1",
       }),
     );
     await screen.findByText(/Sync stopped after a failure/);
@@ -986,7 +985,7 @@ it("TestConnectionsStreamStatus shows exact generations and honest unknown times
   render(<Connections {...props(api)} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: "View sync status for synthetic-account",
+      name: "View sync status for Bank account 1",
     }),
   );
   await screen.findByText(
@@ -1011,13 +1010,13 @@ it("TestConnectionsStreamStatus confirms one account and resolves unknown reques
   render(<Connections {...props(api)} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: "View sync status for synthetic-account",
+      name: "View sync status for Bank account 1",
     }),
   );
   fireEvent.click(
     await screen.findByRole("button", { name: "Request sync now" }),
   );
-  expect(screen.getByText(/for synthetic-account only/)).toBeTruthy();
+  expect(screen.getByText(/for Bank account 1 only/)).toBeTruthy();
   expect(mutations).toHaveLength(0);
   fireEvent.click(screen.getByRole("button", { name: "Confirm sync request" }));
   await screen.findByRole("alert");
@@ -1049,7 +1048,7 @@ it("TestConnectionsStreamStatus rejects wrong stream and suppresses response aft
   const view = render(<Connections {...p} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: "View sync status for synthetic-account",
+      name: "View sync status for Bank account 1",
     }),
   );
   view.rerender(<Connections {...p} locked />);
@@ -1084,7 +1083,7 @@ it.each(["pause", "resume"])(
     render(<Connections {...props(api)} />);
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "View sync status for synthetic-account",
+        name: "View sync status for Bank account 1",
       }),
     );
     fireEvent.click(
@@ -1121,7 +1120,7 @@ it("TestConnectionsStreamStatus clears stale operation after confirmed conflict"
   render(<Connections {...props(api)} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: "View sync status for synthetic-account",
+      name: "View sync status for Bank account 1",
     }),
   );
   fireEvent.click(
@@ -1143,12 +1142,12 @@ it("TestConnectionsStreamStatus revocation clears discovery and blocks new enrol
   render(<Connections {...p} link={{ open: vi.fn() }} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: "View sync status for synthetic-account",
+      name: "View sync status for Bank account 1",
     }),
   );
   await screen.findByRole("alert");
   expect(p.denied).toHaveBeenCalledOnce();
-  expect(screen.queryByText("Provider Item synthetic-item")).toBeNull();
+  expect(screen.queryByText("Bank connection 1")).toBeNull();
   expect(
     (
       screen.getByRole("button", {
