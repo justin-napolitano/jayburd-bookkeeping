@@ -211,16 +211,17 @@ func (v *Verifier) verify(ctx context.Context, token string, body []byte) (Verif
 	if subtle.ConstantTimeCompare(sum[:], expected) != 1 {
 		return Verified{}, errInvalid, BodyHashRejected
 	}
-	// Classification happens only after exact raw-byte authentication. Each branch
-	// then independently enforces its complete closed schema, including duplicates.
-	var kind struct {
-		Type string `json:"webhook_type"`
-	}
-	if json.Unmarshal(body, &kind) != nil {
+	// Classification happens only after exact raw-byte authentication. LINK remains
+	// closed; sync projects exact routing fields and discards bounded additive metadata.
+	var fields map[string]json.RawMessage
+	var kind string
+	// Select the exact discriminator; encoding/json's struct aliases must not
+	// let additive metadata redirect dispatch before the projection is validated.
+	if json.Unmarshal(body, &fields) != nil || json.Unmarshal(fields["webhook_type"], &kind) != nil {
 		return Verified{}, errInvalid, BodyJSONRejected
 	}
 	verified := Verified{Environment: v.profile.Environment(), BodySHA256: claims.Hash, IssuedAt: claims.Issued}
-	if kind.Type == "LINK" {
+	if kind == "LINK" {
 		verified.session, e = parseLinkSessionForProfile(body, v.profile)
 		if e != nil {
 			return Verified{}, e, LinkSchemaRejected
@@ -235,7 +236,7 @@ func (v *Verifier) verify(ctx context.Context, token string, body []byte) (Verif
 			Initial     *bool   `json:"initial_update_complete"`
 			Historical  *bool   `json:"historical_update_complete"`
 		}
-		if object(body, []string{"webhook_type", "webhook_code", "item_id", "environment", "initial_update_complete", "historical_update_complete"}, []string{"user_id"}, &event) != nil {
+		if syncProjection(body, &event) != nil {
 			return Verified{}, errInvalid, syncRejection(body)
 		}
 		if event.Type != "TRANSACTIONS" || event.Code != "SYNC_UPDATES_AVAILABLE" {

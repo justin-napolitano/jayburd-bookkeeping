@@ -23,7 +23,7 @@ func TestRejectionStages(t *testing.T) {
 		{"null user", []byte(strings.TrimSuffix(string(valid), "}") + `,"user_id":null}`), SyncNullUser},
 		{"missing initial", []byte(strings.Replace(string(valid), `"initial_update_complete":true,`, "", 1)), SyncMissingInitial},
 		{"missing historical", []byte(strings.Replace(string(valid), `,"historical_update_complete":false`, "", 1)), SyncMissingHistorical},
-		{"unknown", []byte(strings.TrimSuffix(string(valid), "}") + `,"synthetic-private-field":"synthetic-private-value"}`), SyncUnexpectedField},
+		{"additive", []byte(strings.TrimSuffix(string(valid), "}") + `,"synthetic-private-field":"synthetic-private-value"}`), Unclassified},
 		{"environment", []byte(strings.Replace(string(valid), `"sandbox"`, `"production"`, 1)), EnvironmentRejected},
 		{"identifier", []byte(strings.Replace(string(valid), `"synthetic-item"`, `"synthetic private identifier"`, 1)), ItemRejected},
 	} {
