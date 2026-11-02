@@ -1,5 +1,10 @@
 # Project context
 
+[Select-and-register plan](plans/select-register-accounts.md), [source review](research/select-register-sources.md)
+and [stages](runbooks/select-register-accounts.md):391–395 propose a checkbox
+picker, server-owned mapping and atomic additional-account registration. Reuse290/
+387; current Production source cap remains1. No migration or second account applied.
+
 [Sandbox signed webhook proof](contracts/signed-sync-projection.md) and
 [stages](runbooks/sandbox-webhook-probe.md):385/389 merged, scanned and deployed;
 actual signed204, durable receipt1 and automatic generation4/4,18 review rows
