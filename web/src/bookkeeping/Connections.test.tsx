@@ -10,6 +10,7 @@ import {
 } from "@testing-library/react";
 import { Connections, type ConnectionsProps } from "./Connections";
 import { APIError, type API } from "./api";
+import { pickerOptions } from "../../tests/registration-options.fixture";
 import type { components } from "../lib/api.generated";
 afterEach(cleanup);
 const id = (n: number) =>
@@ -1965,3 +1966,117 @@ it.each(["abandoned", "exchange_claimed"])(
     ).toHaveLength(state === "abandoned" ? 1 : 0);
   },
 );
+
+// Opening Link is the explicit boundary for finite same-attempt return checks; focus alone never exchanges.
+it("normal registration checks Hosted completion only after opening and at most three times", async () => {
+  let checks = 0;
+  const api = vi.fn(async (path: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.endsWith("/complete")) {
+      checks++;
+      return attempt;
+    }
+    return {
+      attempt,
+      nonce: id(9),
+      link_token: "synthetic-link",
+      expires_at: attempt.expires_at,
+      hosted_link_url: "https://secure.plaid.com/hl/synthetic",
+    };
+  }) as unknown as API;
+  render(
+    <Connections
+      {...props(api)}
+      link={{ open: vi.fn() }}
+      prepareRegistration={vi.fn().mockResolvedValue(undefined)}
+    />,
+  );
+  await screen.findByText("No connected Items in this book.");
+  fireEvent.click(screen.getByRole("button", { name: "Register accounts" }));
+  const anchor = await screen.findByRole("link", { name: "Open Plaid" });
+  fireEvent.focus(window);
+  expect(checks).toBe(0);
+  anchor.addEventListener("click", (event) => event.preventDefault());
+  fireEvent.click(anchor);
+  for (let n = 1; n <= 3; n++) {
+    await act(async () => {
+      fireEvent.focus(window);
+    });
+    await waitFor(() => expect(checks).toBe(n));
+  }
+  await act(async () => {
+    fireEvent.focus(window);
+  });
+  expect(checks).toBe(3);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Check bank setup completion" }),
+  );
+  await waitFor(() => expect(checks).toBe(4));
+});
+
+// The normal path does not inherit hidden advanced proposals or require ledger-code/date/currency inputs.
+it("normal selection keeps optional advanced initial mapping separate and resets choices on return", async () => {
+  const reviewed = {
+    ...attempt,
+    state: "binding_review",
+    sync_item_id: id(6),
+    manifest,
+    expired_unclaimed: false,
+    binding_expired: false,
+    streams: [],
+  };
+  const options = {
+    ...pickerOptions,
+    entity_id: entity.entity_id,
+    book_id: book.book_id,
+    attempt_id: attempt.attempt_id,
+    sync_item_id: id(6),
+    current_sources: "0",
+    remaining_sources: "1",
+    accounts: [
+      {
+        ...pickerOptions.accounts[1],
+        account_id: "synthetic-account",
+        display_label: "Checking 1",
+        type: "depository",
+        subtype: "checking",
+      },
+    ],
+  };
+  const api = vi.fn(async (path: string) =>
+    path.endsWith("/connections")
+      ? { items: [] }
+      : path.includes("/connection-attempts?")
+        ? { items: [reviewed], next_cursor: null, unfinished_count: "1" }
+        : path.endsWith("/registration")
+          ? options
+          : reviewed,
+  ) as unknown as API;
+  const prepare = vi.fn().mockResolvedValue(undefined);
+  render(<Connections {...props(api, false)} prepareRegistration={prepare} />);
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: "Resume account selection",
+    }),
+  );
+  await screen.findByRole("checkbox", { name: /Checking 1/ });
+  expect(screen.queryByLabelText("Binding date")).toBeNull();
+  expect(screen.queryByLabelText(/Account code for/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Advanced mapping" }));
+  expect(
+    screen.queryByRole("region", { name: "Choose accounts to register" }),
+  ).toBeNull();
+  expect(screen.getByLabelText("Binding date")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Ledger account for Bank account 1"), {
+    target: { value: "" },
+  });
+  expect(screen.queryByLabelText("Account code for Bank account 1")).toBeNull();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Hide advanced mapping" }),
+  );
+  const checkbox = (await screen.findByRole("checkbox", {
+    name: /Checking 1/,
+  })) as HTMLInputElement;
+  expect(checkbox.checked).toBe(false);
+  expect(prepare).not.toHaveBeenCalled();
+});

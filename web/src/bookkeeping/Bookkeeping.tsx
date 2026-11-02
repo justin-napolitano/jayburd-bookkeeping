@@ -340,6 +340,7 @@ export function Bookkeeping({
           currencies={workspace?.currencies ?? []}
           api={api}
           connectionLink={connectionLink}
+          prepareRegistration={recovery.prepareRegistration}
           activeView={tool}
           navigationKey={navigationKey}
           onViewChange={setTool}

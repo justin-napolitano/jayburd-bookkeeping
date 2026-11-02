@@ -1,8 +1,17 @@
 "use client";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { APIError, type API } from "./api";
 import { accountLabels } from "./accountLabels";
-import type { Book, Currency, Entity } from "./types";
+import { RegistrationPicker } from "./RegistrationPicker";
+import { checkedStatus, itemStates } from "./connectionStatus";
+import { AccountImportStatus } from "./AccountImportStatus";
+import type { Book, Currency, Entity, DurableCommand } from "./types";
 import type { components } from "../lib/api.generated";
 type Attempt = components["schemas"]["ConnectionAttempt"];
 type Listing = components["schemas"]["ConnectionList"];
@@ -18,6 +27,25 @@ type BindingSelection = Record<
     name: string;
   }
 >;
+// Normal setup hides technical recovery forms without changing the legacy client's explicit controls.
+function ConnectionDetails({
+  compact,
+  title,
+  children,
+}: {
+  compact: boolean;
+  title: string;
+  children: ReactNode;
+}) {
+  return compact ? (
+    <details>
+      <summary>{title}</summary>
+      {children}
+    </details>
+  ) : (
+    <>{children}</>
+  );
+}
 // Public status and action shapes come only from the coordinator's frozen OpenAPI.
 type AttemptPage = components["schemas"]["ConnectionAttemptList"];
 type StreamStatus = components["schemas"]["ConnectionStreamStatus"];
@@ -38,6 +66,13 @@ export type ConnectionsProps = {
   locked: boolean;
   denied: () => void;
   onReview: (sourceID: string) => void;
+  // Only the shared principal gate may prepare normal account registration.
+  prepareRegistration?: (
+    entity: string,
+    book: string,
+    attempt: string,
+    ids: string[],
+  ) => Promise<DurableCommand | undefined>;
   link?: ConnectionLink;
 };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -130,14 +165,7 @@ const states = [
   "disconnected",
   "abandoned",
 ];
-const itemStates = [
-  "active",
-  "paused",
-  "disconnected",
-  "credential_recovery_required",
-  "disconnect_pending",
-  "reauthorization_required",
-];
+
 // Runtime responses still require shape and identity checks despite generated TypeScript.
 function validList(value: Listing): boolean {
   return (
@@ -186,6 +214,7 @@ function ConnectionWorkspace({
   locked,
   denied,
   onReview,
+  prepareRegistration,
   link,
 }: ConnectionsProps) {
   const base = `/v1/entities/${entity.entity_id}/books/${book.book_id}`;
@@ -211,6 +240,8 @@ function ConnectionWorkspace({
   const [selection, setSelection] = useState<BindingSelection>({});
   const [date, setDate] = useState("");
   const [consent, setConsent] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
+  const autoReturn = useRef<{ attempt: string; checks: number } | null>(null);
   const [cancelReview, setCancelReview] = useState("");
   const [disconnect, setDisconnect] = useState<
     Listing["items"][number]["accounts"][number] | null
@@ -234,6 +265,16 @@ function ConnectionWorkspace({
     ) ?? []),
     ...(attempt?.manifest?.accounts.map((account) => account.account_id) ?? []),
   ]);
+  // Bound automatic status traffic across the book; additional rows retain explicit sync-status controls.
+  const autoStatus = new Set(
+    list?.items
+      .flatMap((item) =>
+        item.accounts
+          .filter((account) => account.state === "active")
+          .map((account) => account.stream_id),
+      )
+      .slice(0, 8) ?? [],
+  );
   // URL expiry disables navigation only; server recovery has its own authoritative deadline.
   useEffect(() => {
     setHostedURLExpired(false);
@@ -417,91 +458,6 @@ function ConnectionWorkspace({
     if (listing.status === "rejected") throw listing.reason;
     return page;
   };
-  // A status is useful only for the exact currently selected Item/source/stream scope.
-  const checkedStatus = (
-    value: StreamStatus,
-    expected: {
-      stream_id: string;
-      source_account_id: string;
-      sync_item_id: string;
-    },
-  ) => {
-    if (
-      !value ||
-      value.stream_id !== expected.stream_id ||
-      value.source_account_id !== expected.source_account_id ||
-      value.sync_item_id !== expected.sync_item_id ||
-      !["active", "paused", "disconnected"].includes(value.state) ||
-      !itemStates.includes(value.item_state) ||
-      typeof value.stream_revision !== "string" ||
-      !revision.test(value.stream_revision) ||
-      typeof value.item_generation !== "string" ||
-      !revision.test(value.item_generation) ||
-      typeof value.binding_revision !== "string" ||
-      !revision.test(value.binding_revision) ||
-      typeof value.requested_generation !== "string" ||
-      !revision.test(value.requested_generation) ||
-      typeof value.completed_generation !== "string" ||
-      !/^(0|[1-9][0-9]*)$/.test(value.completed_generation) ||
-      BigInt(value.completed_generation) > BigInt(value.requested_generation) ||
-      typeof value.queued !== "boolean" ||
-      typeof value.lease_active !== "boolean" ||
-      (value.delivery_state != null &&
-        ![
-          "ready",
-          "running",
-          "retry_wait",
-          "succeeded",
-          "quarantined",
-        ].includes(value.delivery_state)) ||
-      (value.decoder_error != null &&
-        ![
-          "invalid_json",
-          "duplicate_key",
-          "limit_exceeded",
-          "invalid_number",
-          "invalid_expectation",
-          "invalid_field",
-          "unknown_field",
-          "unknown_enum",
-          "invalid_cursor_encoding",
-          "invalid_cursor_progress",
-          "account_mismatch",
-          "unsupported_account",
-          "invalid_identity",
-          "duplicate_identity",
-          "invalid_lineage",
-          "invalid_date",
-          "unsupported_currency",
-          "amount_out_of_range",
-          "amount_magnitude_exceeded",
-          "amount_scale_exceeded",
-          "currency_precision_exceeded",
-        ].includes(value.decoder_error)) ||
-      value.provider_updated_at !== null ||
-      (value.last_completed_at !== null &&
-        !Number.isFinite(Date.parse(value.last_completed_at))) ||
-      ![
-        "TRANSACTIONS_UPDATE_STATUS_UNKNOWN",
-        "NOT_READY",
-        "INITIAL_UPDATE_COMPLETE",
-        "HISTORICAL_UPDATE_COMPLETE",
-      ].includes(value.readiness) ||
-      (value.last_error !== null &&
-        ![
-          "pagination_mutation",
-          "provider_failure",
-          "decoder_rejected",
-          "cancelled",
-          "item_changed",
-          "lease_expired",
-          "account_disconnected",
-          "account_paused",
-        ].includes(value.last_error))
-    )
-      throw Error("response");
-    return value;
-  };
   const readStatus = (
     account: Listing["items"][number]["accounts"][number],
     itemID: string,
@@ -534,6 +490,7 @@ function ConnectionWorkspace({
   // Finish defaults before the review form becomes interactive; never overwrite a reviewed user date later.
   useLayoutEffect(() => {
     if (
+      (!prepareRegistration || advanced) &&
       attempt?.state === "binding_review" &&
       attempt.manifest &&
       !bindingExpired &&
@@ -545,12 +502,13 @@ function ConnectionWorkspace({
     }
     // Proposal inputs are immutable within the keyed book workspace.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt, bindingExpired, date]);
+  }, [attempt, bindingExpired, date, advanced, prepareRegistration]);
   // Inspect does not recreate Link or replay exchange after uncertainty.
   const inspect = (id: string, expired = false, bindingExpiry = false) =>
     run(async () => {
       const current = life.current;
       setAttempt(null);
+      setAdvanced(false);
       const discovered = attempts?.items.find((a) => a.attempt_id === id);
       setExpiredAttempt(discovered?.expired_unclaimed ?? expired);
       setBindingExpired(discovered?.binding_expired ?? bindingExpiry);
@@ -872,6 +830,28 @@ function ConnectionWorkspace({
         await readList();
       }
     });
+  // Only explicitly opening this Hosted Link arms bounded same-attempt completion on return.
+  useEffect(() => {
+    if (!prepareRegistration || !hosted || locked) return;
+    const onReturn = () => {
+      const armed = autoReturn.current;
+      if (
+        !armed ||
+        armed.attempt !== hosted.attempt.attempt_id ||
+        armed.checks >= 3 ||
+        busy ||
+        pending ||
+        life.current.flight
+      )
+        return;
+      armed.checks++;
+      void completeHosted();
+    };
+    window.addEventListener("focus", onReturn);
+    return () => window.removeEventListener("focus", onReturn);
+    // The scope/lock-keyed workspace owns the closure and finite in-memory counter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prepareRegistration, hosted, locked, busy, pending]);
   // Recovery checks the exact durable attempt without needing a browser-held handoff.
   const checkHostedAttempt = (id: string) =>
     run(async () => {
@@ -1033,8 +1013,8 @@ function ConnectionWorkspace({
           ) : (
             <>
               <p>
-                Finish fictional bank setup in Plaid, then return here. If this
-                tab closes, sign in and review the unfinished setup to check
+                Finish bank setup in Plaid, then return here. If this tab
+                closes, sign in and review the unfinished setup to check
                 completion.
               </p>
               <a
@@ -1048,12 +1028,26 @@ function ConnectionWorkspace({
                   if (!Number.isFinite(expiry) || expiry <= Date.now()) {
                     event.preventDefault();
                     setHostedURLExpired(true);
+                  } else if (
+                    prepareRegistration &&
+                    autoReturn.current?.attempt !== hosted.attempt.attempt_id
+                  ) {
+                    autoReturn.current = {
+                      attempt: hosted.attempt.attempt_id,
+                      checks: 0,
+                    };
                   }
                 }}
               >
                 Open Plaid
               </a>
               <p>Plaid link expires: {hosted.expires_at}</p>
+              {prepareRegistration && (
+                <p>
+                  Return here after bank setup and we’ll check completion. You
+                  can also check manually.
+                </p>
+              )}
             </>
           )}
           <button
@@ -1097,6 +1091,15 @@ function ConnectionWorkspace({
             role="group"
             aria-label="Unfinished bank setup"
           >
+            {prepareRegistration && !hosted && a.state === "link_ready" && (
+              <button
+                type="button"
+                disabled={mutable}
+                onClick={() => void inspect(a.attempt_id)}
+              >
+                Check bank setup status
+              </button>
+            )}
             <p>
               Your previous bank setup hasn’t finished. Try again to start a
               fresh session, or cancel setup.
@@ -1136,7 +1139,7 @@ function ConnectionWorkspace({
         }
         onClick={() => void start()}
       >
-        Connect account
+        {prepareRegistration ? "Register accounts" : "Connect account"}
       </button>{" "}
       <button
         type="button"
@@ -1169,10 +1172,44 @@ function ConnectionWorkspace({
               <p>Provider Item: {item.item_id}</p>
             </details>
             <p>Current connection status: {item.state.replaceAll("_", " ")}</p>
+            {prepareRegistration &&
+              attempts?.items.some(
+                (candidate) =>
+                  candidate.sync_item_id === item.sync_item_id &&
+                  candidate.mode === "new" &&
+                  candidate.state === "active",
+              ) && (
+                <button
+                  type="button"
+                  disabled={mutable}
+                  onClick={() => {
+                    const owned = attempts.items.find(
+                      (candidate) =>
+                        candidate.sync_item_id === item.sync_item_id &&
+                        candidate.mode === "new" &&
+                        candidate.state === "active",
+                    );
+                    if (owned) void inspect(owned.attempt_id);
+                  }}
+                >
+                  Add shared accounts
+                </button>
+              )}
             <ul>
               {item.accounts.map((account) => (
                 <li key={account.stream_id}>
                   {accountLabel(account.account_id)} — {account.state}{" "}
+                  {prepareRegistration && autoStatus.has(account.stream_id) && (
+                    <AccountImportStatus
+                      api={api}
+                      entity={entity.entity_id}
+                      book={book.book_id}
+                      item={item.sync_item_id}
+                      account={account}
+                      locked={mutable}
+                      denied={denied}
+                    />
+                  )}
                   <details>
                     <summary>
                       Technical account details for{" "}
@@ -1204,61 +1241,92 @@ function ConnectionWorkspace({
           </article>
         ))
       )}
-      <section aria-label="Connection recovery">
-        <h3>Connection recovery</h3>
-        {!attempts ? (
-          <p>Attempt discovery unavailable. New enrollment is disabled.</p>
-        ) : (
-          <>
-            <p>Unfinished attempts: {attempts.unfinished_count}</p>
-            {attempts.items.length === 0 && <p>No attempts on this page.</p>}
-            <ul>
-              {attempts.items.map((a) => (
-                <li key={a.attempt_id}>
-                  {a.mode} —{" "}
-                  {a.binding_expired
-                    ? "binding review expired"
-                    : a.expired_unclaimed
-                      ? "expired before claim"
-                      : a.state.replaceAll("_", " ")}{" "}
-                  <button
-                    disabled={mutable}
-                    onClick={() =>
-                      void inspect(
-                        a.attempt_id,
-                        a.expired_unclaimed,
-                        a.binding_expired,
-                      )
-                    }
-                  >
-                    Review attempt {a.attempt_id}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {attempts.next_cursor && (
-              <button
-                disabled={mutable}
-                onClick={() =>
-                  void run(async () => {
-                    const current = life.current;
-                    const cursor = attempts.next_cursor;
-                    const page = await api<AttemptPage>(
-                      `${base}/connection-attempts?limit=100&before=${cursor}`,
-                    );
-                    if (!current.live) return;
-                    const valid = checkAttempts(page);
-                    if (valid.next_cursor === cursor) throw Error("response");
-                    setAttempts(valid);
-                  })
-                }
-              >
-                Older connection attempts
-              </button>
-            )}
-          </>
-        )}
-      </section>
+      {prepareRegistration &&
+        attempts?.items
+          .filter(
+            (candidate) =>
+              candidate.mode === "new" &&
+              [
+                "binding_review",
+                "credential_pending",
+                "exchange_claimed",
+              ].includes(candidate.state) &&
+              !candidate.binding_expired &&
+              !candidate.expired_unclaimed,
+          )
+          .map((candidate, index, rows) => (
+            <button
+              key={candidate.attempt_id}
+              type="button"
+              disabled={mutable}
+              onClick={() => void inspect(candidate.attempt_id)}
+            >
+              {candidate.state === "binding_review"
+                ? "Resume account selection"
+                : "Review unfinished bank setup"}
+              {rows.length > 1 ? ` ${index + 1}` : ""}
+            </button>
+          ))}
+      <ConnectionDetails
+        compact={!!prepareRegistration}
+        title="Connection recovery"
+      >
+        <section aria-label="Connection recovery">
+          <h3>Connection recovery</h3>
+          {!attempts ? (
+            <p>Attempt discovery unavailable. New enrollment is disabled.</p>
+          ) : (
+            <>
+              <p>Unfinished attempts: {attempts.unfinished_count}</p>
+              {attempts.items.length === 0 && <p>No attempts on this page.</p>}
+              <ul>
+                {attempts.items.map((a) => (
+                  <li key={a.attempt_id}>
+                    {a.mode} —{" "}
+                    {a.binding_expired
+                      ? "binding review expired"
+                      : a.expired_unclaimed
+                        ? "expired before claim"
+                        : a.state.replaceAll("_", " ")}{" "}
+                    <button
+                      disabled={mutable}
+                      onClick={() =>
+                        void inspect(
+                          a.attempt_id,
+                          a.expired_unclaimed,
+                          a.binding_expired,
+                        )
+                      }
+                    >
+                      Review attempt {a.attempt_id}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {attempts.next_cursor && (
+                <button
+                  disabled={mutable}
+                  onClick={() =>
+                    void run(async () => {
+                      const current = life.current;
+                      const cursor = attempts.next_cursor;
+                      const page = await api<AttemptPage>(
+                        `${base}/connection-attempts?limit=100&before=${cursor}`,
+                      );
+                      if (!current.live) return;
+                      const valid = checkAttempts(page);
+                      if (valid.next_cursor === cursor) throw Error("response");
+                      setAttempts(valid);
+                    })
+                  }
+                >
+                  Older connection attempts
+                </button>
+              )}
+            </>
+          )}
+        </section>
+      </ConnectionDetails>
       {status && (
         <section aria-label="Account sync status">
           <h3>Sync status for {accountLabel(statusAccount)}</h3>
@@ -1428,36 +1496,48 @@ function ConnectionWorkspace({
           </button>
         </div>
       )}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (uuid.test(inspectID)) void inspect(inspectID);
-        }}
+      <ConnectionDetails
+        compact={!!prepareRegistration}
+        title="Inspect a known connection"
       >
-        <label>
-          Known connection attempt ID
-          <input
-            value={inspectID}
-            onChange={(e) => setInspectID(e.target.value)}
-            disabled={mutable}
-            autoComplete="off"
-          />
-        </label>
-        <button disabled={mutable || !uuid.test(inspectID)}>
-          Inspect attempt
-        </button>
-      </form>
-      <p>
-        Unfinished enrollment is discovered after reload. Inspect and reconcile
-        it before another new connection. Expired unclaimed attempts cannot be
-        replayed. Reconnect remains unavailable.
-      </p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (uuid.test(inspectID)) void inspect(inspectID);
+          }}
+        >
+          <label>
+            Known connection attempt ID
+            <input
+              value={inspectID}
+              onChange={(e) => setInspectID(e.target.value)}
+              disabled={mutable}
+              autoComplete="off"
+            />
+          </label>
+          <button disabled={mutable || !uuid.test(inspectID)}>
+            Inspect attempt
+          </button>
+        </form>
+        <p>
+          Unfinished enrollment is discovered after reload. Inspect and
+          reconcile it before another new connection. Expired unclaimed attempts
+          cannot be replayed. Reconnect remains unavailable.
+        </p>
+      </ConnectionDetails>
       {attempt && (
         <article>
           <h3>Connection attempt</h3>
-          <p>Attempt ID: {attempt.attempt_id}</p>
-          <p>Historical attempt status: {attempt.state.replaceAll("_", " ")}</p>
-          <p>Setup recovery ends: {attempt.expires_at}</p>
+          <ConnectionDetails
+            compact={!!prepareRegistration}
+            title="Connection details"
+          >
+            <p>Attempt ID: {attempt.attempt_id}</p>
+            <p>
+              Historical attempt status: {attempt.state.replaceAll("_", " ")}
+            </p>
+            <p>Setup recovery ends: {attempt.expires_at}</p>
+          </ConnectionDetails>
           {bindingExpired && (
             <p>
               Binding review expired; start a fresh connection. The known
@@ -1519,7 +1599,47 @@ function ConnectionWorkspace({
               Check connection status
             </button>
           ) : null}
-          {!expiredAttempt &&
+          {prepareRegistration &&
+            !advanced &&
+            !expiredAttempt &&
+            !bindingExpired &&
+            attempt.mode === "new" &&
+            ["binding_review", "active"].includes(attempt.state) &&
+            attempt.manifest && (
+              <RegistrationPicker
+                api={api}
+                entity={entity.entity_id}
+                book={book.book_id}
+                attempt={attempt.attempt_id}
+                locked={mutable}
+                prepare={(ids) =>
+                  prepareRegistration(
+                    entity.entity_id,
+                    book.book_id,
+                    attempt.attempt_id,
+                    ids,
+                  )
+                }
+                denied={denied}
+                onReview={onReview}
+              />
+            )}
+          {prepareRegistration &&
+            !expiredAttempt &&
+            !bindingExpired &&
+            attempt.state === "binding_review" &&
+            attempt.manifest && (
+              <button
+                type="button"
+                disabled={mutable}
+                aria-expanded={advanced}
+                onClick={() => setAdvanced((current) => !current)}
+              >
+                {advanced ? "Hide advanced mapping" : "Advanced mapping"}
+              </button>
+            )}
+          {(!prepareRegistration || advanced) &&
+            !expiredAttempt &&
             !bindingExpired &&
             attempt.state === "binding_review" &&
             attempt.mode === "new" &&
