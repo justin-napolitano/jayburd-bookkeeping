@@ -7,7 +7,7 @@
 
 [Prod PP01–13](production-pilot-sources.md): selected375.
 
-[385 projection](../contracts/signed-sync-projection.md): Plaid versioning/verification/Sync selections2026-11-02; signed chain PASS.
+[385](../contracts/signed-sync-projection.md): selected Plaid Sync/signatures2026-11-02; signed PASS.
 
 ## Reading
 
@@ -29,7 +29,9 @@ synthetic only.
 [USD380](../contracts/production-book-bootstrap.md): MA115 p1 text; pinned SIX.
 [PI13](plaid-ingestion-sources.md#pi13--source-first-accounthistory-refresh-2026-10-21): Item/account/history; ownership is project policy.
 
-[Plaid types](automatic-account-binding-sources.md), [loans](plaid-liability-sources.md).
+[Plaid types](automatic-account-binding-sources.md), [loans](plaid-liability-sources.md),
+[selection](select-register-sources.md): Plaid selected2026-11-02; public only,
+391 proposal; unqualified.
 [Shared sync](shared-acquisition-sources.md): Plaid cursor/webhooks.
 [Removal](binding-review-recovery-sources.md): Item removal and `ITEM_NOT_FOUND` #215.
 [Credentials](../contracts/bank-token-vault.md): Plaid/KMS/CRC32C (2026-10-15).
