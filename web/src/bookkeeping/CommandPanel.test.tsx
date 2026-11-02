@@ -3,8 +3,51 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { CommandPanel } from "./CommandPanel";
 import type { useCommands } from "./commands";
 import type { DurableCommand } from "./types";
+import {
+  savedRegistration,
+  registrationWorkspace,
+} from "../../tests/registration.fixture";
 
 afterEach(cleanup);
+
+it("reviews recovered account mappings and never treats registration as book creation", () => {
+  const r = recovery(savedRegistration);
+  const view = render(
+    <CommandPanel recovery={r} workspace={registrationWorkspace} />,
+  );
+  expect(screen.getByText(/1001 Checking 1/)).toBeTruthy();
+  expect(screen.getByText(/USD/)).toBeTruthy();
+  const execute = screen.getByRole("button", {
+    name: "Register selected accounts",
+  }) as HTMLButtonElement;
+  expect(execute.disabled).toBe(false);
+  fireEvent.click(execute);
+  expect(r.transition).toHaveBeenCalledWith("execute");
+  view.rerender(
+    <CommandPanel
+      recovery={{ ...r, command: { ...savedRegistration, state: "committed" } }}
+      workspace={registrationWorkspace}
+    />,
+  );
+  expect(screen.getByText("Account registration confirmed")).toBeTruthy();
+  expect(screen.queryByText("Book creation confirmed")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  expect(r.transition).toHaveBeenCalledWith("acknowledge");
+});
+
+it("keeps an unreviewable recovered registration cancellable without enabling execution", () => {
+  const r = recovery(savedRegistration);
+  render(<CommandPanel recovery={r} workspace={null} />);
+  expect(
+    (
+      screen.getByRole("button", {
+        name: "Register selected accounts",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel saved command" }));
+  expect(r.transition).toHaveBeenCalledWith("cancel");
+});
 
 // A recovered import cannot be confirmed from IDs alone without its row preview.
 const savedImport: DurableCommand = {
@@ -37,6 +80,7 @@ function recovery(command: DurableCommand): ReturnType<typeof useCommands> {
     registration: null,
     locked: true,
     prepare: vi.fn(),
+    prepareRegistration: vi.fn(),
     transition: vi.fn(),
     clearInaccessible: vi.fn(),
     retryRegistration: vi.fn(),

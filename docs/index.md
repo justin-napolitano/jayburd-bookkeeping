@@ -7,8 +7,12 @@ picker, server-owned mapping and atomic additional-account registration. Reuse29
 
 [Registration SQL](contracts/registration-sql.md) and [delivery stages](runbooks/registration-sql.md):
 392 implements forward36 for saved automatic setup and atomic existing-Item
-additions, using the existing command recovery gate. Source only; human review,
-API/picker and hosted qualification remain before rollout.
+additions, using the existing command recovery gate.399 merged after owner review
+and five passing checks;36 is not applied. API/picker and hosted qualification remain.
+
+[Registration HTTP/recovery](contracts/registration-http.md) and [stages](runbooks/registration-api.md):
+393 connects selection-only preparation to typed saved-command recovery. Source
+only; no additional private provider metadata or live access.394 owns the picker.
 
 [Sandbox signed webhook proof](contracts/signed-sync-projection.md) and
 [stages](runbooks/sandbox-webhook-probe.md):385/389 merged, scanned and deployed;

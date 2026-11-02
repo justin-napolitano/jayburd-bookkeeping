@@ -261,6 +261,7 @@ describe('connection bridge routes', () => {
   ['POST',`/connection-attempts/${id}/reconcile`,false],
   ['POST',`/connection-attempts/${id}/abandon`,false],
   ['POST',`/connection-attempts/${id}/bindings`,true],
+  ['POST',`/connection-attempts/${id}/registration`,true],
   ['GET','/connections',false],
   ['GET','/connection-attempts?limit=100&before='+id,false],
   ['GET',`/connections/streams/${id}/status`,false],
@@ -302,6 +303,17 @@ describe('connection bridge routes', () => {
   for(const [body,authorization,status] of [['x'.repeat((32<<10)+1),bearer,413],['{}','',401]] as const){
    const fetcher=vi.fn<typeof fetch>();
    expect((await createBridge(fetcher,()=>env)(request(base+`/connection-attempts/${id}/execute`,{'Content-Type':'application/json',Authorization:authorization},body))).status).toBe(status);expect(fetcher).not.toHaveBeenCalled();
+  }
+ });
+ it('bounds account selection and rejects ambiguous media before metadata or backend access',async()=>{
+  for(const [body,extra,status] of [
+   ['x'.repeat((16<<10)+1),{},413],
+   ['{}',{'Content-Encoding':'gzip'},400],
+   ['{}',{'Content-Type':'application/json; charset=utf-8'},400],
+  ] as const){
+   const fetcher=vi.fn<typeof fetch>();
+   const result=await createBridge(fetcher,()=>env)(request(base+`/connection-attempts/${id}/registration`,{'Content-Type':'application/json','Idempotency-Key':'selection',...extra},body));
+   expect(result.status).toBe(status);expect(fetcher).not.toHaveBeenCalled();
   }
  });
 });
