@@ -17,6 +17,43 @@ type registrationStub struct {
 	input                 connections.RegistrationSelection
 }
 
+// RegistrationOptions records only the authenticated scope and owned attempt, with no client-selected policy.
+func (s *registrationStub) RegistrationOptions(_ context.Context, scope connections.Scope, id string) (json.RawMessage, error) {
+	s.attempt = id
+	return s.record(scope, "registration_options")
+}
+
+// TestRegistrationOptionsHTTPBoundary rejects alternate authority, query and request bodies before SQL.
+func TestRegistrationOptionsHTTPBoundary(t *testing.T) {
+	path := connectionBase + "/connection-attempts/" + connectionAttempt + "/registration"
+	for _, tc := range []struct {
+		name, method, path, body string
+		change                   func(*http.Request)
+		status, calls            int
+	}{
+		{name: "valid", method: "GET", path: path, status: 200, calls: 1},
+		{name: "query", method: "GET", path: path + "?actor=spoof", status: 400},
+		{name: "body", method: "GET", path: path, body: `{"actor":"spoof"}`, status: 400},
+		{name: "head", method: "HEAD", path: path, status: 405},
+		{name: "identity", method: "GET", path: path, status: 401, change: func(r *http.Request) { r.Header.Del("Authorization") }},
+		{name: "origin", method: "GET", path: path, status: 403, change: func(r *http.Request) { r.Header.Set("Origin", "https://foreign.invalid") }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := &registrationStub{}
+			w := connectionRequest(connectionTestServer(t, s), tc.method, tc.path, tc.body, tc.change)
+			if w.Code != tc.status || s.calls != tc.calls || w.Header().Get("Cache-Control") != "no-store" {
+				t.Fatalf("options status%d calls%d", w.Code, s.calls)
+			}
+			if tc.calls > 0 && (s.scope.Actor != connectionActor || s.attempt != connectionAttempt || s.operation != "registration_options") {
+				t.Fatal("options identity changed")
+			}
+		})
+	}
+	if w := connectionRequest(connectionTestServer(t, &connectionStub{}), "GET", path, "", nil); w.Code != 503 {
+		t.Fatal("missing options capability enabled")
+	}
+}
+
 // PrepareRegistration observes the optional service boundary without simulating SQL authorization.
 func (s *registrationStub) PrepareRegistration(_ context.Context, scope connections.Scope, id, key, request string, in connections.RegistrationSelection) (json.RawMessage, error) {
 	s.attempt = id

@@ -8,7 +8,7 @@ const commandAction = new RegExp(`^/v1/commands/${uuid}/(?:execute|cancel|acknow
 const inaccessibleCommandAction = '/v1/commands/pending/clear';
 const bookPath = `/v1/entities/${uuid}/books/${uuid}`;
 // Connection paths are case-sensitive canonical UUID routes, matching the Go boundary.
-const connectionRead = new RegExp(`^${bookPath}/(?:connections|connection-attempts(?:/${uuid})?|connections/streams/${uuid}/status)$`);
+const connectionRead = new RegExp(`^${bookPath}/(?:connections|connection-attempts(?:/${uuid}(?:/registration)?)?|connections/streams/${uuid}/status)$`);
 const connectionWrite = new RegExp(`^${bookPath}/(?:connection-attempts|connection-attempts/${uuid}/(?:execute|complete|reconcile|abandon|bindings|registration)|connections/streams/${uuid}/(?:disconnect|operations))$`);
 // Selection preparation has a smaller closed JSON boundary than provider handoffs.
 const registrationPreparation = new RegExp(`^${bookPath}/connection-attempts/${uuid}/registration$`);
