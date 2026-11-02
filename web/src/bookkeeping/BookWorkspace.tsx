@@ -7,7 +7,11 @@ import {
   type ReactNode,
 } from "react";
 import { APIError, type API } from "./api";
-import { Connections, type ConnectionLink } from "./Connections";
+import {
+  Connections,
+  type ConnectionLink,
+  type ConnectionsProps,
+} from "./Connections";
 import { ReviewInbox } from "./ReviewInbox";
 import { currencyAt, formatAmount } from "./amount";
 import { Reports, type ReportContext, type ReportSelection } from "./Reports";
@@ -65,6 +69,7 @@ export function BookWorkspace({
   children,
   prepare,
   connectionLink,
+  prepareRegistration,
   activeView,
   onViewChange,
   through,
@@ -81,6 +86,7 @@ export function BookWorkspace({
   children: ReactNode;
   prepare?: (command: RegisterCommand) => void;
   connectionLink?: ConnectionLink;
+  prepareRegistration?: ConnectionsProps["prepareRegistration"];
   activeView?: BookView;
   onViewChange?: (view: BookView) => void;
   through?: string;
@@ -416,6 +422,7 @@ export function BookWorkspace({
           locked={locked}
           denied={denied}
           link={connectionLink}
+          prepareRegistration={prepareRegistration}
           onReview={(source) => {
             setReviewSource(source);
             setView("Review transactions");

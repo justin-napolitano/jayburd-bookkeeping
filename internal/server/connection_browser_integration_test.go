@@ -296,9 +296,10 @@ func (f *connectionBrowserFixture) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	var journals, createdAccounts, sources, streams string
+	// Automatic allocation uses chart gaps, so count new bound identities rather than a legacy code prefix.
 	if err = f.admin.QueryRow(ctx, `SELECT
   (SELECT count(*)::text FROM ledger.journal_entry WHERE entity_id=$1 AND book_id=$2),
-  (SELECT count(*)::text FROM ledger.account WHERE entity_id=$1 AND book_id=$2 AND code LIKE '11%'),
+  (SELECT count(*)::text FROM ledger.account a JOIN banking.source_account s USING(entity_id,book_id) WHERE a.entity_id=$1 AND a.book_id=$2 AND a.account_id=s.ledger_account_id AND a.account_id NOT IN ('10000000-0000-4000-8000-000000000011','10000000-0000-4000-8000-000000000012')),
   (SELECT count(*)::text FROM banking.source_account WHERE entity_id=$1 AND book_id=$2),
   (SELECT count(*)::text FROM integration.sync_stream WHERE entity_id=$1 AND book_id=$2 AND state='active')`, connectionProofEntity, connectionProofBook).Scan(&journals, &createdAccounts, &sources, &streams); err != nil {
 		writeProblem(w, 500, "proof_failed")

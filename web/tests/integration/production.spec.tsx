@@ -27,7 +27,7 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
     });
   await connections();
   await page
-    .getByRole("button", { name: "Connect account", exact: true })
+    .getByRole("button", { name: "Register accounts", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Check bank setup completion" })
@@ -53,14 +53,27 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
   await connections();
   await page.unroute("**/connection-attempts/*/complete");
   await page
-    .getByRole("listitem")
-    .filter({ hasText: "new — binding review" })
-    .getByRole("button", { name: /^Review attempt / })
+    .getByRole("button", { name: "Resume account selection", exact: true })
     .click();
-  await expect(page.getByLabel(/^Ledger account for/)).toHaveCount(1);
-  await page.getByLabel("Binding date").fill("2026-10-13");
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Confirm selected bindings" }).click();
+  const choices = page.getByRole("region", {
+    name: "Choose accounts to register",
+  });
+  await expect(choices.getByRole("checkbox")).toHaveCount(1);
+  await expect(
+    page.getByLabel(/^Account code for|^Currency version for|^Binding date$/),
+  ).toHaveCount(0);
+  for (const checkbox of await choices.getByRole("checkbox").all()) {
+    await expect(checkbox).not.toBeChecked();
+    await checkbox.check();
+  }
+  await page.getByRole("button", { name: "Review selected accounts" }).click();
+  await page
+    .getByRole("button", { name: "Register selected accounts" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Account registration confirmed" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
   const review = page.getByRole("button", {
     name: "Review transactions for Bank account 1",
     exact: true,

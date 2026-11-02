@@ -1,5 +1,10 @@
 # Project context
 
+[Account picker](contracts/account-picker.md) and [stages](runbooks/account-picker.md):
+394 replaces ordinary binding forms with explicit selection and saved mapping
+review. [Historical ledger availability](contracts/registration-history-start.md)
+records forward38's approved-policy start correction; no managed apply or release.
+
 [Registration options](contracts/registration-options.md) and
 [stages](runbooks/registration-options.md):393 adds SQL-owned advisory eligibility,
 registered identity and capacity for the future picker. Forward37 is source only;
