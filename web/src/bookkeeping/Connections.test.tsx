@@ -488,6 +488,112 @@ it("TestConnectionsAutomaticBinding proposes distinct accounts for every support
   ).toBe(false);
 });
 
+// Skipping proposed siblings must leave only the intended source in the reviewed request.
+it("TestConnectionsSkippedMapping clears all skipped proposals before confirming one account", async () => {
+  let submitted: components["schemas"]["ConnectionBindingRequest"] | undefined;
+  const reviewed = {
+    ...attempt,
+    state: "binding_review" as const,
+    manifest: {
+      ...manifest,
+      accounts: ["checking", "savings", "money market"].map(
+        (subtype, index) => ({
+          account_id: `skip-example-${index}`,
+          type: "depository" as const,
+          subtype,
+          iso_currency_code: "USD",
+        }),
+      ),
+    },
+  };
+  const api = vi.fn(async (path: string, body?: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.endsWith(`/connection-attempts/${attempt.attempt_id}`))
+      return reviewed;
+    if (path.endsWith("/bindings")) {
+      submitted = JSON.parse(body!);
+      return { ...reviewed, state: "active", sync_item_id: id(6), streams: [] };
+    }
+    throw Error("unexpected");
+  }) as unknown as API;
+  render(<Connections {...props(api)} />);
+  await screen.findByText("No connected Items in this book.");
+  fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
+    target: { value: attempt.attempt_id },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
+  await screen.findByRole("group", {
+    name: "Review verified account bindings",
+  });
+  fireEvent.change(screen.getByLabelText("Binding date"), {
+    target: { value: "2026-10-19" },
+  });
+  fireEvent.click(screen.getByRole("checkbox"));
+  const confirm = screen.getByRole("button", {
+    name: "Confirm selected bindings",
+  }) as HTMLButtonElement;
+  expect(confirm.disabled).toBe(false);
+  for (const suffix of [1, 2]) {
+    fireEvent.change(
+      screen.getByLabelText(`Ledger account for skip-example-${suffix}`),
+      {
+        target: { value: "" },
+      },
+    );
+    expect(
+      (
+        screen.getByLabelText(
+          `Currency version for skip-example-${suffix}`,
+        ) as HTMLSelectElement
+      ).value,
+    ).toBe("");
+    expect(
+      screen.queryByLabelText(`Account code for skip-example-${suffix}`),
+    ).toBeNull();
+    expect(
+      screen.queryByLabelText(`Account name for skip-example-${suffix}`),
+    ).toBeNull();
+  }
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(
+    false,
+  );
+  expect(confirm.disabled).toBe(true);
+
+  // Re-selecting a cleared row must still require currency and new-account details.
+  fireEvent.change(screen.getByLabelText("Ledger account for skip-example-1"), {
+    target: { value: "new" },
+  });
+  expect(
+    (
+      screen.getByLabelText(
+        "Account code for skip-example-1",
+      ) as HTMLInputElement
+    ).value,
+  ).toBe("");
+  expect(
+    (
+      screen.getByLabelText(
+        "Account name for skip-example-1",
+      ) as HTMLInputElement
+    ).value,
+  ).toBe("");
+  fireEvent.click(screen.getByRole("checkbox"));
+  expect(confirm.disabled).toBe(true);
+  expect(submitted).toBeUndefined();
+  fireEvent.change(screen.getByLabelText("Ledger account for skip-example-1"), {
+    target: { value: "" },
+  });
+  fireEvent.click(screen.getByRole("checkbox"));
+  expect(confirm.disabled).toBe(false);
+  fireEvent.click(confirm);
+  await waitFor(() => expect(submitted).toBeDefined());
+  expect(submitted!.consent_grants).toBe(true);
+  expect(submitted!.bindings.map((binding) => binding.account_id)).toEqual([
+    "skip-example-0",
+  ]);
+  expect(submitted!.bindings[0].currency_version_id).toBe(id(4));
+});
+
 // Lost Begin has no rediscoverable ID in this profile, so a new key cannot be an implicit retry.
 it("TestConnectionsScopeAndRecovery blocks new enrollment after unknown Begin", async () => {
   const api = vi.fn(async (path: string) => {
@@ -1183,15 +1289,11 @@ it("expires Hosted navigation while preserving explicit completion recovery", as
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
     });
-    expect(
-      screen.getByRole("link", { name: "Open Plaid" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open Plaid" })).toBeTruthy();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_001);
     });
-    expect(
-      screen.queryByRole("link", { name: "Open Plaid" }),
-    ).toBeNull();
+    expect(screen.queryByRole("link", { name: "Open Plaid" })).toBeNull();
     expect(screen.getByText(/This Plaid link has expired/)).toBeTruthy();
     expect(
       (
@@ -1526,9 +1628,7 @@ it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
       }
     }
     await waitFor(() =>
-      expect(
-        screen.queryByRole("link", { name: "Open Plaid" }),
-      ).toBeNull(),
+      expect(screen.queryByRole("link", { name: "Open Plaid" })).toBeNull(),
     );
     expect(p.link.open).not.toHaveBeenCalled();
   },
