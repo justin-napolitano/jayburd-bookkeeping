@@ -44,6 +44,15 @@ paused (API pilot=null); no Production Item/import/provider call performed.
 
 ## Current evidence
 
+Latest matching images/schema: [395 rollout](picker-rollout.md) records reviewed403/
+11b9074, managed36–38/clean38, matching five services, unchanged effective1 limit
+and04Z expiry, preserved first-checking counts/identity/history predicates, restored
+original Scheduler/queue states and disabled builder. The receipt/revision list
+below is historical prior-release evidence, not the current image configuration.
+Refresh exact reviewed image inputs before any Terraform apply; old images cannot
+be assumed compatible with saved registration commands.404 owns existing-account
+historical availability repair. Fresh Sandbox append and90 reconciliation remain open.
+
 ### Matching release and accepted activation
 
 - Trusted Production build41381940537, source5ea9990308d72562e732714162f6271e75b6faa4,
