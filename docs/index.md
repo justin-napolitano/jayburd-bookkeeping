@@ -1,9 +1,9 @@
 # Project context
 
-[Sandbox webhook diagnosis](contracts/sandbox-webhook-probe.md) and
-[stages](runbooks/sandbox-webhook-probe.md):385 one-shot supported-event probe;
-reviewed386 merged/scanned; supported callback401 confirmed. Fixed rejection-stage
-[diagnostics](contracts/webhook-rejection-diagnostics.md) deployed388; authenticated additive-field rejection identified. [Projection fix](contracts/signed-sync-projection.md) under review; no signed-chain pass.
+[Sandbox signed webhook proof](contracts/signed-sync-projection.md) and
+[stages](runbooks/sandbox-webhook-probe.md):385/389 merged, scanned and deployed;
+actual signed204, durable receipt1 and automatic generation4/4,18 review rows
+unchanged. Production receiver still needs the matching release; live pilot paused.
 
 [Production USD history](contracts/production-book-bootstrap.md#historical-usd-coverage--380) and
 [stages](runbooks/production-usd-history.md):380/381 merged and reference-only apply verified; current USD unchanged and historical coverage exact.
@@ -23,8 +23,8 @@ Exact static-version integrity readback passed; live bank activation remains pen
 [Finite Production acquisition](contracts/finite-production-acquisition.md) and
 [rollout stages](runbooks/production-acquisition-rollout.md):375 workers/receiver
 deployed, Production scheduling paused; Sandbox35 applied and one fictional
-account imports automatically. Queue recovery passed; signed delivery and
-independent equality remain open. Actual bank activation remains gated.
+account imports automatically. Queue recovery and scoped signed delivery passed;
+independent equality remains open. Actual bank activation remains gated.
 
 [Bookkeeping delivery and qualification plan](plans/bookkeeping-readiness.md):
 bounded issues, dependencies, acceptance evidence and future agent leases;
