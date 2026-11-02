@@ -13,15 +13,13 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "Connections", exact: true }).click();
   const connect = page.getByRole("button", {
-    name: "Connect account",
+    name: "Register accounts",
     exact: true,
   });
   // Cancel after reload through the real API/SQL boundary, including a lost reply.
   await expect(connect).toBeEnabled();
   await connect.click();
-  await expect(
-    page.getByRole("link", { name: "Open Plaid" }),
-  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Plaid" })).toBeVisible();
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
@@ -48,18 +46,16 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     .getByRole("button", { name: "Check bank setup completion" })
     .click();
   await expect(
-    page.getByRole("group", { name: "Review verified account bindings" }),
+    page.getByRole("region", { name: "Choose accounts to register" }),
   ).toBeVisible();
-  await expect(page.getByRole("status")).toContainText(
-    "acknowledge the source mappings and access grant",
-  );
+  await expect(
+    page.getByRole("button", { name: "Review selected accounts" }),
+  ).toBeDisabled();
   await page
     .getByRole("button", { name: "Cancel setup and start over" })
     .click();
   await page.getByRole("button", { name: "Confirm cancellation" }).click();
-  await expect(
-    page.getByRole("link", { name: "Open Plaid" }),
-  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Plaid" })).toBeVisible();
   // Lose the exchange response after its commit: reload must discover recovery without a saved UUID.
   let exchangeDropped = false;
   await page.route("**/connection-attempts/*/complete", async (route) => {
@@ -74,9 +70,10 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     exchangeDropped = true;
     await route.abort("failed");
   });
-  await expect(
-    page.getByRole("link", { name: "Open Plaid" }),
-  ).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(page.getByRole("link", { name: "Open Plaid" })).toHaveAttribute(
+    "rel",
+    "noopener noreferrer",
+  );
   await page
     .getByRole("button", { name: "Check bank setup completion" })
     .click();
@@ -91,9 +88,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "Connections", exact: true }).click();
   await page
-    .getByRole("listitem")
-    .filter({ hasText: "new — link ready" })
-    .getByRole("button", { name: /^Review attempt / })
+    .getByRole("button", { name: "Check bank setup status", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Check bank setup completion" })
@@ -105,21 +100,67 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "Connections", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Connect account", exact: true }),
+    page.getByRole("button", { name: "Register accounts", exact: true }),
   ).toBeDisabled();
   await page
-    .getByRole("listitem")
-    .filter({ hasText: "new — binding review" })
-    .getByRole("button", { name: /^Review attempt / })
+    .getByRole("button", { name: "Resume account selection", exact: true })
     .click();
+  const choices = page.getByRole("region", {
+    name: "Choose accounts to register",
+  });
+  await expect(choices.getByRole("checkbox")).toHaveCount(3);
   await expect(
-    page.getByRole("group", { name: "Review verified account bindings" }),
-  ).toBeVisible();
-  await page.getByLabel("Binding date").fill("2026-10-13");
-  await expect(page.getByLabel(/^Ledger account for/)).toHaveCount(3);
-  await expect(page.getByLabel(/^Account code for/)).toHaveCount(3);
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Confirm selected bindings" }).click();
+    page.getByLabel(/^Account code for|^Currency version for|^Binding date$/),
+  ).toHaveCount(0);
+  // Register one, then append the other shared accounts without a new Item or exchange.
+  await choices.getByRole("checkbox").nth(0).check();
+  await page.getByRole("button", { name: "Review selected accounts" }).click();
+  await page
+    .getByRole("button", { name: "Register selected accounts" })
+    .click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  const optionsReply = () =>
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname.endsWith("/registration") &&
+        response.request().method() === "GET",
+    );
+  const beforeReply = optionsReply();
+  await page
+    .getByRole("button", { name: "Add shared accounts", exact: true })
+    .click();
+  const beforeAppend = await (await beforeReply).json();
+  const firstSource = beforeAppend.accounts.find(
+    (row: { registered: boolean }) => row.registered,
+  );
+  expect(firstSource.account_id).toBe("synthetic-flow-account");
+  await expect(choices.getByRole("checkbox")).toHaveCount(2);
+  for (const checkbox of await choices.getByRole("checkbox").all()) {
+    await expect(checkbox).not.toBeChecked();
+    await checkbox.check();
+  }
+  await page.getByRole("button", { name: "Review selected accounts" }).click();
+  await page
+    .getByRole("button", { name: "Register selected accounts" })
+    .click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  const afterReply = optionsReply();
+  await page
+    .getByRole("button", { name: "Add shared accounts", exact: true })
+    .click();
+  const afterAppend = await (await afterReply).json();
+  expect(
+    afterAppend.accounts.find(
+      (row: { account_id: string }) =>
+        row.account_id === firstSource.account_id,
+    ),
+  ).toMatchObject({
+    source_account_id: firstSource.source_account_id,
+    stream_id: firstSource.stream_id,
+    registered: true,
+  });
+  expect(afterAppend.current_sources).toBe("3");
+  await expect(choices.getByRole("checkbox")).toHaveCount(0);
   const review = page.getByRole("button", {
     name: "Review transactions for Bank account 1",
     exact: true,
