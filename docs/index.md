@@ -1,5 +1,9 @@
 # Project context
 
+Account presentation: [existing-field label contract](contracts/account-display-labels.md)
+and [delivery evidence](runbooks/account-display-labels.md) distinguish private
+current-view labels from future bank names/masks under290.
+
 [Select-and-register plan](plans/select-register-accounts.md), [source review](research/select-register-sources.md)
 and [stages](runbooks/select-register-accounts.md):391–395 propose a checkbox
 picker, server-owned mapping and atomic additional-account registration. Reuse290/

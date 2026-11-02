@@ -36,14 +36,18 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
     page.getByText(/Plaid has not reported completion yet/),
   ).toBeVisible();
   // Lose the reply after real completion committed. Reload must find the original attempt.
+  let completionDropped = false;
   await page.route("**/connection-attempts/*/complete", async (route) => {
     const response = await route.fetch();
     expect(response.ok()).toBe(true);
     await route.abort("failed");
+    completionDropped = true;
   });
   await page
     .getByRole("button", { name: "Check bank setup completion" })
     .click();
+  // Await the injected failure before unmount/unroute can cancel its active handler.
+  await expect.poll(() => completionDropped).toBe(true);
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await connections();
@@ -58,13 +62,13 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Confirm selected bindings" }).click();
   const review = page.getByRole("button", {
-    name: "Review transactions for synthetic-flow-account",
+    name: "Review transactions for Bank account 1",
     exact: true,
   });
   await expect(review).toBeVisible();
   await page
     .getByRole("button", {
-      name: "View sync status for synthetic-flow-account",
+      name: "View sync status for Bank account 1",
       exact: true,
     })
     .click();
@@ -157,7 +161,7 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
   await connections();
   await page
     .getByRole("button", {
-      name: "Disconnect synthetic-flow-account",
+      name: "Disconnect Bank account 1",
       exact: true,
     })
     .click();
@@ -166,7 +170,7 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
     .click();
   await expect(
     page.getByRole("button", {
-      name: "Disconnect synthetic-flow-account",
+      name: "Disconnect Bank account 1",
       exact: true,
     }),
   ).toBeDisabled();
