@@ -1,5 +1,10 @@
 # Project context
 
+[Registration options](contracts/registration-options.md) and
+[stages](runbooks/registration-options.md):393 adds SQL-owned advisory eligibility,
+registered identity and capacity for the future picker. Forward37 is source only;
+no managed migration, provider call or source-limit increase.
+
 Account presentation: [existing-field label contract](contracts/account-display-labels.md)
 and [delivery evidence](runbooks/account-display-labels.md) distinguish private
 current-view labels from future bank names/masks under290.

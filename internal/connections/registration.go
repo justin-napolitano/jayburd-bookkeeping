@@ -11,6 +11,29 @@ type RegistrationSelection struct {
 	AccountIDs []string `json:"account_ids"`
 }
 
+// RegistrationOptions reads SQL-owned eligibility without persisting a command or invoking a provider.
+func (s *Service) RegistrationOptions(ctx context.Context, scope Scope, id string) (json.RawMessage, error) {
+	if err := s.ready(scope); err != nil {
+		return nil, err
+	}
+	if !validID(id) {
+		return nil, failed("invalid_request")
+	}
+	if _, err := s.context(ctx, scope, id); err != nil {
+		var f *Failure
+		if errors.As(err, &f) && f.Code == "invalid_metadata" {
+			return nil, failed("temporarily_unavailable")
+		}
+		return nil, err
+	}
+	result, err := s.repo.call(ctx, "registration_options", scope.Actor, scope.Entity, scope.Book, id)
+	var f *Failure
+	if errors.As(err, &f) && f.Code == "credential_recovery_required" {
+		return nil, failed("registration_not_ready")
+	}
+	return result, err
+}
+
 // PrepareRegistration persists one reviewed plan without binding, provider calls or credential reads.
 func (s *Service) PrepareRegistration(ctx context.Context, scope Scope, id, key, request string, input RegistrationSelection) (json.RawMessage, error) {
 	if err := s.ready(scope); err != nil {

@@ -783,7 +783,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Inspect server-owned account registration choices
+         * @description Read-only current SQL eligibility, existing registrations and capacity; no provider call or saved plan. History target is not a completeness guarantee; the provider request uses defaults. Preparation and execution revalidate current authority. See docs/contracts/registration-options.md.
+         */
+        get: operations["getRegistrationOptions"];
         put?: never;
         /**
          * Prepare selected accounts for recoverable registration
@@ -1751,6 +1755,44 @@ export interface components {
                 binding_revision: components["schemas"]["Revision"];
                 overlap_review_required: boolean;
             }[];
+        };
+        RegistrationOption: {
+            account_id: string;
+            display_label: string;
+            /** @enum {string} */
+            type: "depository" | "credit" | "loan" | "investment" | "other" | "payroll";
+            subtype: string | null;
+            iso_currency_code: string | null;
+            registered: boolean;
+            stream_id: string | null;
+            source_account_id: string | null;
+            source_state: ("active" | "paused" | "disconnected") | null;
+            eligible: boolean;
+            reason: ("already_registered" | "source_disconnected" | "unsupported_account" | "currency_unavailable" | "currency_ambiguous" | "policy_unavailable" | "connection_not_ready" | "attempt_expired" | "consent_expired" | "capacity_exhausted" | "code_space_exhausted") | null;
+        };
+        RegistrationOptions: {
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            book_name: string;
+            /** Format: uuid */
+            attempt_id: string;
+            /** Format: uuid */
+            sync_item_id: string;
+            binding_date: string | null;
+            max_sources: string | null;
+            current_sources: string;
+            remaining_sources: string;
+            /** @constant */
+            history_target_days: "90";
+            /** @constant */
+            history_request_mode: "provider_default";
+            /** @constant */
+            history_guaranteed: false;
+            blocked_reason: ("policy_unavailable" | "connection_not_ready" | "attempt_expired" | "consent_expired" | "capacity_exhausted") | null;
+            can_register: boolean;
+            accounts: components["schemas"]["RegistrationOption"][];
         };
     };
     responses: {
@@ -3398,6 +3440,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectionAttempt"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getRegistrationOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authorized safe result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationOptions"];
                 };
             };
             /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
