@@ -121,13 +121,13 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Confirm selected bindings" }).click();
   const review = page.getByRole("button", {
-    name: "Review transactions for synthetic-flow-account",
+    name: "Review transactions for Bank account 1",
     exact: true,
   });
   await expect(review).toBeVisible();
   await page
     .getByRole("button", {
-      name: "View sync status for synthetic-flow-account",
+      name: "View sync status for Bank account 1",
       exact: true,
     })
     .click();
@@ -268,7 +268,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page.getByRole("button", { name: "Connections", exact: true }).click();
   await page
     .getByRole("button", {
-      name: "Review transactions for synthetic-flow-account",
+      name: "Review transactions for Bank account 1",
       exact: true,
     })
     .click();

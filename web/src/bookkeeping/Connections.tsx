@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { APIError, type API } from "./api";
+import { accountLabels } from "./accountLabels";
 import type { Book, Currency, Entity } from "./types";
 import type { components } from "../lib/api.generated";
 type Attempt = components["schemas"]["ConnectionAttempt"];
@@ -226,6 +227,13 @@ function ConnectionWorkspace({
       sync_item_id: string;
     };
   } | null>(null);
+  // Labels are display-only; every request and review handoff retains the immutable ID.
+  const accountLabel = accountLabels([
+    ...(list?.items.flatMap((item) =>
+      item.accounts.map((account) => account.account_id),
+    ) ?? []),
+    ...(attempt?.manifest?.accounts.map((account) => account.account_id) ?? []),
+  ]);
   // URL expiry disables navigation only; server recovery has its own authoritative deadline.
   useEffect(() => {
     setHostedURLExpired(false);
@@ -1153,31 +1161,42 @@ function ConnectionWorkspace({
       ) : list.items.length === 0 ? (
         <p>No connected Items in this book.</p>
       ) : (
-        list.items.map((item) => (
+        list.items.map((item, itemIndex) => (
           <article key={item.sync_item_id}>
-            <h3>Provider Item {item.item_id}</h3>
+            <h3>Bank connection {itemIndex + 1}</h3>
+            <details>
+              <summary>Technical connection details</summary>
+              <p>Provider Item: {item.item_id}</p>
+            </details>
             <p>Current connection status: {item.state.replaceAll("_", " ")}</p>
             <ul>
               {item.accounts.map((account) => (
                 <li key={account.stream_id}>
-                  Account {account.account_id} — {account.state}{" "}
+                  {accountLabel(account.account_id)} — {account.state}{" "}
+                  <details>
+                    <summary>
+                      Technical account details for{" "}
+                      {accountLabel(account.account_id)}
+                    </summary>
+                    <p>Provider account ID: {account.account_id}</p>
+                  </details>
                   <button
                     disabled={unavailable}
                     onClick={() => onReview(account.source_account_id)}
                   >
-                    Review transactions for {account.account_id}
+                    Review transactions for {accountLabel(account.account_id)}
                   </button>{" "}
                   <button
                     disabled={mutable}
                     onClick={() => void readStatus(account, item.sync_item_id)}
                   >
-                    View sync status for {account.account_id}
+                    View sync status for {accountLabel(account.account_id)}
                   </button>{" "}
                   <button
                     disabled={mutable || account.state === "disconnected"}
                     onClick={() => setDisconnect(account)}
                   >
-                    Disconnect {account.account_id}
+                    Disconnect {accountLabel(account.account_id)}
                   </button>
                 </li>
               ))}
@@ -1242,7 +1261,7 @@ function ConnectionWorkspace({
       </section>
       {status && (
         <section aria-label="Account sync status">
-          <h3>Sync status for {statusAccount}</h3>
+          <h3>Sync status for {accountLabel(statusAccount)}</h3>
           <p>
             Account acquisition: {status.state}. Provider Item:{" "}
             {status.item_state.replaceAll("_", " ")}.
@@ -1322,8 +1341,8 @@ function ConnectionWorkspace({
                   : operation === "pause"
                     ? "Pause acquisition"
                     : "Resume acquisition"}{" "}
-                for {statusAccount} only. Sibling accounts and posted journals
-                are unchanged.
+                for {accountLabel(statusAccount)} only. Sibling accounts and
+                posted journals are unchanged.
               </p>
               <p>
                 Current Item generation {status.item_generation}; binding
@@ -1366,9 +1385,9 @@ function ConnectionWorkspace({
         <fieldset disabled={mutable}>
           <legend>Confirm account disconnect</legend>
           <p>
-            Stop acquisition for {disconnect.account_id} only. Other accounts
-            and posted history are retained. This does not remove the provider
-            Item.
+            Stop acquisition for {accountLabel(disconnect.account_id)} only.
+            Other accounts and posted history are retained. This does not remove
+            the provider Item.
           </p>
           <button
             onClick={() =>
@@ -1532,18 +1551,31 @@ function ConnectionWorkspace({
                   >
                     Create distinct accounts for all supported bank accounts
                   </button>
+                  <p>
+                    Labels identify accounts in this view. Bank names and masked
+                    numbers are not available here; labels may change when the
+                    account set changes.
+                  </p>
                   {attempt.manifest.accounts.map((account) => (
                     <div key={account.account_id}>
                       <p>
-                        {account.account_id} — {account.type}
+                        {accountLabel(account.account_id)} — {account.type}
                         {account.subtype ? ` / ${account.subtype}` : ""},{" "}
                         {account.iso_currency_code ?? "currency unavailable"}
                       </p>
+                      <details>
+                        <summary>
+                          Technical account details for{" "}
+                          {accountLabel(account.account_id)}
+                        </summary>
+                        <p>Provider account ID: {account.account_id}</p>
+                      </details>
                       {automaticClassification(account.type, account.subtype) &&
                       account.iso_currency_code ? (
                         <>
                           <label>
-                            Ledger account for {account.account_id}
+                            Ledger account for{" "}
+                            {accountLabel(account.account_id)}
                             <select
                               value={
                                 selection[account.account_id]?.create
@@ -1616,7 +1648,8 @@ function ConnectionWorkspace({
                           {selection[account.account_id]?.create && (
                             <>
                               <label>
-                                Account code for {account.account_id}
+                                Account code for{" "}
+                                {accountLabel(account.account_id)}
                                 <input
                                   required
                                   maxLength={64}
@@ -1636,7 +1669,8 @@ function ConnectionWorkspace({
                                 />
                               </label>
                               <label>
-                                Account name for {account.account_id}
+                                Account name for{" "}
+                                {accountLabel(account.account_id)}
                                 <input
                                   required
                                   maxLength={200}
@@ -1658,7 +1692,8 @@ function ConnectionWorkspace({
                             </>
                           )}
                           <label>
-                            Currency version for {account.account_id}
+                            Currency version for{" "}
+                            {accountLabel(account.account_id)}
                             <select
                               value={
                                 selection[account.account_id]?.currency ?? ""
