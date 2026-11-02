@@ -88,6 +88,10 @@ func TestRegistrationAPIRecovery(t *testing.T) {
 		}
 		return object(t, w.Body.String())
 	}
+	options := callHTTP("GET", path, "", "", 200)
+	if options["can_register"] != true || optionAccount(t, options, "AccountA")["eligible"] != true || value(t, admin, "SELECT count(*)::text FROM ledger.interactive_command") != "0" {
+		t.Fatal("HTTP options persisted work or lost SQL eligibility")
+	}
 	first := callHTTP("POST", path, `{"account_ids":["AccountA"]}`, "checking", 201)
 	if first["operation"] != "register_accounts" || first["state"] != "prepared" || value(t, admin, "SELECT count(*)::text FROM integration.sync_stream") != "0" {
 		t.Fatal("prepare bound or lost typed command")
@@ -101,6 +105,10 @@ func TestRegistrationAPIRecovery(t *testing.T) {
 	pending := callHTTP("GET", "/v1/commands/pending", "", "", 200)["command"].(map[string]any)
 	if pending["state"] != "committed" || pending["command_id"] != first["command_id"] {
 		t.Fatal("committed HTTP loss was not recoverable")
+	}
+	options = callHTTP("GET", path, "", "", 200)
+	if optionAccount(t, options, "AccountA")["reason"] != "already_registered" || optionAccount(t, options, "AccountB")["reason"] != "capacity_exhausted" {
+		t.Fatal("active HTTP snapshot lost existing registration/current cap")
 	}
 	replay := callHTTP("POST", commandPath+"/execute", `{}`, "", 200)
 	if raw(replay) != raw(pending) || value(t, admin, "SELECT count(*)::text FROM integration.sync_stream") != "1" {

@@ -19,12 +19,40 @@ type registrationRepo struct {
 
 // call records new preparation while delegating private context to the existing fixture.
 func (r *registrationRepo) call(ctx context.Context, op string, args ...any) (json.RawMessage, error) {
-	if op != "prepare_registration" {
+	if op != "prepare_registration" && op != "registration_options" {
 		return r.memoryRepo.call(ctx, op, args...)
 	}
 	r.calls = append(r.calls, op)
 	r.args = append([]any(nil), args...)
 	return json.RawMessage(`{"command_id":"00000000-0000-4000-8000-000000000006","operation":"register_accounts","state":"prepared"}`), r.failure
+}
+
+// TestRegistrationOptionsTransport keeps the SQL snapshot scoped and never loads bank credentials.
+func TestRegistrationOptionsTransport(t *testing.T) {
+	s, r, p, store := fixture()
+	repo := &registrationRepo{memoryRepo: r}
+	s.repo = repo
+	_, err := s.RegistrationOptions(context.Background(), scope, attemptID)
+	if err != nil || !reflect.DeepEqual(repo.args, []any{actorID, entityID, bookID, attemptID}) || len(p.calls) != 0 || store.reads != 0 || store.writes != 0 {
+		t.Fatal("options escaped scoped SQL-only boundary")
+	}
+	repo.failure = failed("credential_recovery_required")
+	_, err = s.RegistrationOptions(context.Background(), scope, attemptID)
+	code(t, err, "registration_not_ready")
+	for _, expired := range []bool{false, true} {
+		s, r, p, store := fixture()
+		id := "invalid"
+		want := "invalid_request"
+		if expired {
+			s.providerApproved = func() bool { return false }
+			id, want = attemptID, "temporarily_unavailable"
+		}
+		_, err := s.RegistrationOptions(context.Background(), scope, id)
+		code(t, err, want)
+		if len(r.calls) != 0 || len(p.calls) != 0 || store.reads != 0 {
+			t.Fatal("invalid/expired options touched dependencies")
+		}
+	}
 }
 
 // TestRegistrationSelectionTransport pins trusted actor/scope/key/audit identity and never calls provider/crypto.
