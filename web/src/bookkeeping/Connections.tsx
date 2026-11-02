@@ -1552,6 +1552,16 @@ function ConnectionWorkspace({
                                     "")
                               }
                               onChange={(e) => {
+                                // Skipping a source removes its whole proposal, including hidden fields.
+                                if (!e.target.value) {
+                                  setSelection((current) => {
+                                    const next = { ...current };
+                                    delete next[account.account_id];
+                                    return next;
+                                  });
+                                  setConsent(false);
+                                  return;
+                                }
                                 const previous = selection[account.account_id];
                                 const create = e.target.value === "new";
                                 setSelection((s) => ({
