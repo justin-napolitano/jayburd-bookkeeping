@@ -106,16 +106,20 @@ func New(c Config, d Dependencies) (*Server, error) {
 	return s, nil
 }
 
-// writeProblem keeps admission and transport failures in the same safe RFC 9457
-// vocabulary as accounting routes; every ID is server generated.
-func writeProblem(w http.ResponseWriter, status int, code string) {
+// newRequestID supplies server-owned audit/correlation identity, never a caller-selected actor or receipt key.
+func newRequestID() string {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
 		panic("request identifier unavailable")
 	}
 	b[6] = (b[6] & 15) | 64
 	b[8] = (b[8] & 63) | 128
-	id := fmt.Sprintf("%x-%x-%x-%x-%x", b[:4], b[4:6], b[6:8], b[8:10], b[10:])
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
+
+// writeProblem exposes only a stable RFC9457 failure and server-generated correlation ID.
+func writeProblem(w http.ResponseWriter, status int, code string) {
+	id := newRequestID()
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.Header().Set("Cache-Control", "no-store")
 	if status == 503 {

@@ -776,6 +776,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/books/{book_id}/connection-attempts/{attempt_id}/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prepare selected accounts for recoverable registration
+         * @description Verified scoped selection only; strict16KiB JSON,1–25 unique account IDs. SQL persists exact mappings without binding.201 returns a saved register_accounts command. Execute/cancel/acknowledge through the existing command routes. No provider calls, new Item, automatic execution or browser persistence. Requires installed migration36 and finite runtime profile; see docs/contracts/registration-http.md.
+         */
+        post: operations["prepareAccountRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1183,15 +1203,15 @@ export interface components {
             /** Format: uuid */
             command_id: string;
             /** @enum {string} */
-            operation: "setup" | "post" | "import" | "source_post";
+            operation: "setup" | "post" | "import" | "source_post" | "register_accounts";
             /** Format: uuid */
             entity_id: string | null;
             /** Format: uuid */
             book_id: string | null;
             /** @enum {string} */
             state: "prepared" | "committed" | "cancelled";
-            body: components["schemas"]["SetupRequest"] | components["schemas"]["PostJournal"] | components["schemas"]["ImportCommandBody"] | components["schemas"]["SourcePostCommandBody"];
-            result: components["schemas"]["SetupResult"] | components["schemas"]["Journal"] | components["schemas"]["ImportCommandResult"] | null | components["schemas"]["SourcePostCommandResult"];
+            body: components["schemas"]["SetupRequest"] | components["schemas"]["PostJournal"] | components["schemas"]["ImportCommandBody"] | components["schemas"]["SourcePostCommandBody"] | components["schemas"]["RegistrationCommandBody"];
+            result: components["schemas"]["SetupResult"] | components["schemas"]["Journal"] | components["schemas"]["ImportCommandResult"] | null | components["schemas"]["SourcePostCommandResult"] | components["schemas"]["ConnectionBindingResult"] | components["schemas"]["AppendRegistrationResult"];
             /** Format: date-time */
             created_at: string;
             acknowledged: boolean;
@@ -1662,6 +1682,75 @@ export interface components {
             expected_item_generation: components["schemas"]["Revision"];
             expected_binding_revision: components["schemas"]["Revision"];
             expected_stream_revision: components["schemas"]["Revision"];
+        };
+        AccountRegistrationSelection: {
+            account_ids: string[];
+        };
+        RegistrationCommandBody: {
+            selection: string[];
+            /** Format: uuid */
+            attempt_id: string;
+            /** Format: uuid */
+            sync_item_id: string;
+            item_generation: components["schemas"]["Revision"];
+            worker_revision: components["schemas"]["Revision"];
+            scope_revision: components["schemas"]["Revision"];
+            limit_revision: components["schemas"]["Revision"];
+            manifest_digest: string;
+            book_revision: components["schemas"]["Revision"];
+            /** Format: uuid */
+            policy_id: string;
+            /** Format: date */
+            binding_date: string;
+            /** Format: date-time */
+            expires_at: string;
+            initial: boolean;
+            bindings: {
+                account_id: string;
+                /** Format: uuid */
+                ledger_account_id: string;
+                /** Format: uuid */
+                currency_version_id: string;
+                source_account_id: string | null;
+                expected_binding_revision: components["schemas"]["Revision"] | null;
+                /** Format: date */
+                binding_date: string;
+                /** Format: uuid */
+                binding_evidence_ref: string;
+                new_ledger_account?: {
+                    /** Format: uuid */
+                    account_id: string;
+                    code: string;
+                    name: string;
+                    /** @enum {string} */
+                    category: "asset" | "liability";
+                    /** @enum {string} */
+                    normal_side: "debit" | "credit";
+                    /** @constant */
+                    monetary: true;
+                    /** Format: date */
+                    active_from: string;
+                };
+            }[];
+            digest: string;
+        };
+        AppendRegistrationResult: {
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            /** Format: uuid */
+            sync_item_id: string;
+            streams: {
+                /** Format: uuid */
+                stream_id: string;
+                /** Format: uuid */
+                source_account_id: string;
+                /** Format: uuid */
+                namespace_id: string;
+                binding_revision: components["schemas"]["Revision"];
+                overlap_review_required: boolean;
+            }[];
         };
     };
     responses: {
@@ -3309,6 +3398,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectionAttempt"];
+                };
+            };
+            /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    prepareAccountRegistration: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                entity_id: string;
+                book_id: string;
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountRegistrationSelection"];
+            };
+        };
+        responses: {
+            /** @description Authorized safe result */
+            201: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DurableCommand"];
                 };
             };
             /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */

@@ -30,8 +30,8 @@ synthetic only.
 [PI13](plaid-ingestion-sources.md#pi13--source-first-accounthistory-refresh-2026-10-21): Item/account/history; ownership is project policy.
 
 [Plaid types](automatic-account-binding-sources.md), [loans](plaid-liability-sources.md),
-[selection](select-register-sources.md): Plaid selected2026-11-02; public only,
-391 proposal; unqualified.
+[selection](select-register-sources.md): Plaid selected2026-11-02; public text,
+391–393; hosted limits.
 [Shared sync](shared-acquisition-sources.md): Plaid cursor/webhooks.
 [Removal](binding-review-recovery-sources.md): Item removal and `ITEM_NOT_FOUND` #215.
 [Credentials](../contracts/bank-token-vault.md): Plaid/KMS/CRC32C (2026-10-15).
