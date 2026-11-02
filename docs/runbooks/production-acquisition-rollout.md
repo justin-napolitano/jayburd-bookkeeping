@@ -33,6 +33,7 @@ paused (API pilot=null); no Production Item/import/provider call performed.
 | Sandbox transport recovery | Source paused and UI confirmed paused/no lease, Sandbox queue paused, source resumed to requested3/completed2/queued/no lease. Existing automatic publisher retained one task. Queue resumed; independent SQL3 completions/18 observations/18 review items/0 journals, with no duplicate imported rows |
 | Historical USD | Approved381 merged3004d66; reference-only source7278a8afffa51646eff7a35292f3c8488529accf81e77b53b7c2f7183220ac7b applied to Production. Independent current_usd_unchanged/historical_usd_exact predicates true;380 completed. No shortened lookback or transaction date rewrite |
 | Genuine webhook | Link/Transactions receipt counts0 before repeat; no genuine signed-chain pass claimed. Owner signed into official Dashboard; Item Debugger returned No item found for exact fictional Item ID independently matched in SQL. No keys, tokens or raw payload panes inspected |
+| Signed Sandbox proof385 | Reviewed389/5ea9990, trusted build41376988868; existing receiver00003-zwq/worker6eb4704 Ready/current/100%. Supported callback204/0.365s, durable receipt1, normal consumer204 and generation4/4; observations/review/journals18/18/0 unchanged. See [exact stages](sandbox-webhook-probe.md). Production receiver still needs the matching release |
 
 ## Current evidence
 
@@ -51,8 +52,8 @@ not actual deployment approval. Existing Sandbox runtime mock contracts remain g
 
 ## Remaining work
 
-Actual signed Sandbox delivery and independent provider-to-review equality proof
-remain open; source/review row-count agreement and historical-ready status alone
+Actual scoped signed Sandbox delivery passed385. Independent provider-to-review
+equality proof remains open; source/review row-count agreement and historical-ready status alone
 are insufficient. Account pause/resume and queued-transport recovery passed above;
 other applicable recovery scenarios still require their named evidence.
 Production caller/current-scope/stop/restore evidence and applicable qualification

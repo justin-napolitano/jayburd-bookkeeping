@@ -7,7 +7,7 @@
 
 [Prod PP01–13](production-pilot-sources.md): selected375.
 
-[385 projection](../contracts/signed-sync-projection.md): Plaid versioning/verification/Sync selections2026-11-02; additive-field401.
+[385 projection](../contracts/signed-sync-projection.md): Plaid versioning/verification/Sync selections2026-11-02; signed chain PASS.
 
 ## Reading
 
