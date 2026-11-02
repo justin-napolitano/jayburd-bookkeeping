@@ -5,6 +5,11 @@ and [stages](runbooks/select-register-accounts.md):391–395 propose a checkbox
 picker, server-owned mapping and atomic additional-account registration. Reuse290/
 387; current Production source cap remains1. No migration or second account applied.
 
+[Registration SQL](contracts/registration-sql.md) and [delivery stages](runbooks/registration-sql.md):
+392 implements forward36 for saved automatic setup and atomic existing-Item
+additions, using the existing command recovery gate. Source only; human review,
+API/picker and hosted qualification remain before rollout.
+
 [Sandbox signed webhook proof](contracts/signed-sync-projection.md) and
 [stages](runbooks/sandbox-webhook-probe.md):385/389 merged, scanned and deployed;
 actual signed204, durable receipt1 and automatic generation4/4,18 review rows
