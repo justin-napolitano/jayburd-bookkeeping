@@ -141,30 +141,36 @@ func (v *Verifier) key(ctx context.Context, id string) (JWK, error) {
 
 // Verify authenticates original bytes and returns only the reviewed metadata projection.
 func (v *Verifier) Verify(ctx context.Context, token string, body []byte) (Verified, error) {
+	verified, err, _ := v.verify(ctx, token, body)
+	return verified, err
+}
+
+// verify preserves the public verifier's exact errors while adding a fixed internal rejection stage.
+func (v *Verifier) verify(ctx context.Context, token string, body []byte) (Verified, error, Rejection) {
 	if !v.profile.Valid() {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, ProfileRejected
 	}
 	if ctx.Err() != nil {
-		return Verified{}, errUnavailable
+		return Verified{}, errUnavailable, ContextRejected
 	}
 	if len(token) == 0 || len(token) > 8192 || len(body) == 0 || len(body) > bodyLimit {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, BoundsRejected
 	}
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, FramingRejected
 	}
 	header, e := segment(parts[0])
 	if e != nil {
-		return Verified{}, e
+		return Verified{}, e, FramingRejected
 	}
 	payload, e := segment(parts[1])
 	if e != nil {
-		return Verified{}, e
+		return Verified{}, e, FramingRejected
 	}
 	sig, e := segment(parts[2])
 	if e != nil || len(sig) != 64 {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, FramingRejected
 	}
 	var h struct {
 		Alg  string  `json:"alg"`
@@ -172,34 +178,38 @@ func (v *Verifier) Verify(ctx context.Context, token string, body []byte) (Verif
 		Type *string `json:"typ"`
 	}
 	if object(header, []string{"alg", "kid"}, []string{"typ"}, &h) != nil || h.Alg != "ES256" || !keyID.MatchString(h.Kid) || h.Type != nil && *h.Type != "JWT" {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, HeaderRejected
 	}
 	var claims struct {
 		Issued int64  `json:"iat"`
 		Hash   string `json:"request_body_sha256"`
 	}
 	if object(payload, []string{"iat", "request_body_sha256"}, nil, &claims) != nil || !digest.MatchString(claims.Hash) {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, claimsRejection(payload)
 	}
 	now := v.now()
 	if claims.Issued <= 0 || claims.Issued < now.Unix()-300 || claims.Issued > now.Unix()+60 {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, IssuedAtRejected
 	}
 	k, e := v.key(ctx, h.Kid)
 	if e != nil {
-		return Verified{}, e
+		stage := KeyLookupRejected
+		if e == errInvalid {
+			stage = KeyMetadataRejected
+		}
+		return Verified{}, e, stage
 	}
 	pub, e := publicKey(k, h.Kid, claims.Issued, v.now())
 	if e != nil {
-		return Verified{}, e
+		return Verified{}, e, KeyMetadataRejected
 	}
 	if jwt.SigningMethodES256.Verify(parts[0]+"."+parts[1], parts[2], pub) != nil {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, SignatureRejected
 	}
 	sum := sha256.Sum256(body)
 	expected, _ := hex.DecodeString(claims.Hash)
 	if subtle.ConstantTimeCompare(sum[:], expected) != 1 {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, BodyHashRejected
 	}
 	// Classification happens only after exact raw-byte authentication. Each branch
 	// then independently enforces its complete closed schema, including duplicates.
@@ -207,13 +217,13 @@ func (v *Verifier) Verify(ctx context.Context, token string, body []byte) (Verif
 		Type string `json:"webhook_type"`
 	}
 	if json.Unmarshal(body, &kind) != nil {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, BodyJSONRejected
 	}
 	verified := Verified{Environment: v.profile.Environment(), BodySHA256: claims.Hash, IssuedAt: claims.Issued}
 	if kind.Type == "LINK" {
 		verified.session, e = parseLinkSessionForProfile(body, v.profile)
 		if e != nil {
-			return Verified{}, e
+			return Verified{}, e, LinkSchemaRejected
 		}
 	} else {
 		var event struct {
@@ -225,20 +235,35 @@ func (v *Verifier) Verify(ctx context.Context, token string, body []byte) (Verif
 			Initial     *bool   `json:"initial_update_complete"`
 			Historical  *bool   `json:"historical_update_complete"`
 		}
-		if object(body, []string{"webhook_type", "webhook_code", "item_id", "environment", "initial_update_complete", "historical_update_complete"}, []string{"user_id"}, &event) != nil || event.Type != "TRANSACTIONS" || event.Code != "SYNC_UPDATES_AVAILABLE" || event.Environment != v.profile.Environment() || !opaque.MatchString(event.Item) || event.User != nil && !opaque.MatchString(*event.User) || event.Initial == nil || event.Historical == nil {
-			return Verified{}, errInvalid
+		if object(body, []string{"webhook_type", "webhook_code", "item_id", "environment", "initial_update_complete", "historical_update_complete"}, []string{"user_id"}, &event) != nil {
+			return Verified{}, errInvalid, syncRejection(body)
+		}
+		if event.Type != "TRANSACTIONS" || event.Code != "SYNC_UPDATES_AVAILABLE" {
+			return Verified{}, errInvalid, SyncSchemaRejected
+		}
+		if event.Environment != v.profile.Environment() {
+			return Verified{}, errInvalid, EnvironmentRejected
+		}
+		if !opaque.MatchString(event.Item) {
+			return Verified{}, errInvalid, ItemRejected
+		}
+		if event.User != nil && !opaque.MatchString(*event.User) {
+			return Verified{}, errInvalid, UserRejected
+		}
+		if event.Initial == nil || event.Historical == nil {
+			return Verified{}, errInvalid, ReadinessRejected
 		}
 		verified.ItemID = event.Item
 	}
 	if ctx.Err() != nil {
-		return Verified{}, errUnavailable
+		return Verified{}, errUnavailable, ContextRejected
 	}
 	if current := v.now().Unix(); claims.Issued < current-300 || claims.Issued > current+60 {
-		return Verified{}, errInvalid
+		return Verified{}, errInvalid, IssuedAtRejected
 	}
 	fingerprint := deliveryFingerprint(parts, sig)
 	verified.ReceiptKey = hex.EncodeToString(fingerprint[:])
-	return verified, nil
+	return verified, nil, Unclassified
 }
 
 // deliveryFingerprint normalizes ECDSA S-malleability only for replay identity after library verification.

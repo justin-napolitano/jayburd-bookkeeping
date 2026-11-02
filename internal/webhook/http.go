@@ -13,17 +13,23 @@ type Handler struct {
 	verifier *Verifier
 	receiver Receiver
 	slots    chan struct{}
+	observe  func(Rejection)
 }
 
 // NewHandler requires explicit verifier and durable receiver dependencies.
 func NewHandler(v *Verifier, r Receiver) (*Handler, error) {
+	return NewObservedHandler(v, r, nil)
+}
+
+// NewObservedHandler adds only an optional fixed-stage observer; HTTP responses and SQL authority are unchanged.
+func NewObservedHandler(v *Verifier, r Receiver, observe func(Rejection)) (*Handler, error) {
 	if v == nil || r == nil {
 		return nil, errUnavailable
 	}
 	if profiled, ok := r.(interface{ Environment() string }); ok && profiled.Environment() != v.profile.Environment() {
 		return nil, errUnavailable
 	}
-	return &Handler{v, r, make(chan struct{}, 16)}, nil
+	return &Handler{v, r, make(chan struct{}, 16), observe}, nil
 }
 
 // rejected emits only fixed classifications and never signature, body, key or SQL diagnostics.
@@ -43,6 +49,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	headers := r.Header.Values("Plaid-Verification")
 	if len(headers) != 1 || len(headers[0]) == 0 || len(headers[0]) > 8192 {
+		if h.observe != nil {
+			h.observe(VerificationHeaderRejected)
+		}
 		rejected(w, 401)
 		return
 	}
@@ -73,8 +82,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	verified, e := h.verifier.Verify(ctx, headers[0], body)
+	verified, e, stage := h.verifier.verify(ctx, headers[0], body)
 	if e != nil {
+		if h.observe != nil {
+			h.observe(stage)
+		}
 		if errors.Is(e, errUnavailable) {
 			rejected(w, 503)
 		} else {
