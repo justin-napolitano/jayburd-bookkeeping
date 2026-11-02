@@ -97,6 +97,7 @@ func failure(err error) *Failure {
 	var p *pgconn.PgError
 	if errors.As(err, &p) {
 		codes := map[string]Failure{
+			"P2700": {400, "invalid_request"}, "P2701": {404, "not_found"}, "P2702": {409, "connection_conflict"}, "P2703": {409, "stale_connection"}, "P2704": {409, "registration_not_ready"}, "P2705": {422, "connection_limit"},
 			"P2100": {400, "invalid_request"}, "P2101": {404, "not_found"}, "P2102": {403, "permission_denied"},
 			"P2103": {409, "revision_conflict"}, "P2104": {409, "idempotency_conflict"}, "P2105": {409, "period_closed"},
 			"P2106": {409, "already_reversed"}, "P2107": {422, "invalid_amount"}, "P2108": {422, "invalid_journal"},

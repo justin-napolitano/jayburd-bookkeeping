@@ -3,7 +3,77 @@ import { afterEach, describe, it, expect, vi } from "vitest";
 import { useCommands } from "./commands";
 import { APIError, type API } from "./api";
 import type { DurableCommand, RegisterCommand } from "./types";
+import { savedRegistration } from "../../tests/registration.fixture";
 afterEach(cleanup);
+
+it("does not return an acknowledged old account plan after the API session changes during discovery", async () => {
+  let resolveOld!: (value: {command:null}) => void;
+  let reads=0,waiting=false;
+  const oldAPI=vi.fn(async(path:string)=>{
+    if(path.endsWith("/pending")) {
+      if(++reads===1) return {command:null};
+      waiting=true;return new Promise<{command:null}>((resolve)=>{resolveOld=resolve;});
+    }
+    return {...savedRegistration,state:"committed",acknowledged:true};
+  }) as unknown as API;
+  const nextAPI=vi.fn(async()=>({command:null})) as unknown as API;
+  const hook=renderHook(({api})=>useCommands(api),{initialProps:{api:oldAPI}});
+  await waitFor(()=>expect(hook.result.current.ready).toBe(true));
+  let outcome:ReturnType<typeof hook.result.current.prepareRegistration>;
+  act(()=>{outcome=hook.result.current.prepareRegistration(savedRegistration.entity_id!,savedRegistration.book_id!,"00000000-0000-4000-8000-000000000004",["synthetic-checking"]);});
+  await waitFor(()=>expect(waiting).toBe(true));
+  hook.rerender({api:nextAPI});
+  await waitFor(()=>expect(hook.result.current.ready).toBe(true));
+  await act(async()=>{resolveOld({command:null});expect(await outcome!).toBeUndefined();});
+  expect(hook.result.current.command).toBeNull();
+});
+
+it("retains the exact account-selection path, key and body after an unknown preparation reply", async () => {
+  const requests: { path: string; body?: string; key?: string }[] = [];
+  let saved = false;
+  const api = vi.fn(async (path: string, body?: string, key?: string) => {
+    if (path.endsWith("/pending"))
+      return { command: saved ? savedRegistration : null };
+    requests.push({ path, body, key });
+    if (requests.length === 1) throw new APIError(0, true);
+    saved = true;
+    return savedRegistration;
+  }) as unknown as API;
+  let hook = renderHook(() => useCommands(api));
+  await waitFor(() => expect(hook.result.current.ready).toBe(true));
+  await act(async () => {
+    await hook.result.current.prepareRegistration(
+      savedRegistration.entity_id!,
+      savedRegistration.book_id!,
+      "00000000-0000-4000-8000-000000000004",
+      ["synthetic-checking"],
+    );
+  });
+  expect(hook.result.current.locked).toBe(true);
+  expect(hook.result.current.registration).not.toBeNull();
+  await act(async () => {
+    hook.result.current.retryRegistration();
+  });
+  await waitFor(() =>
+    expect(hook.result.current.command?.command_id).toBe(
+      savedRegistration.command_id,
+    ),
+  );
+  expect(requests).toHaveLength(2);
+  expect(requests[0]).toEqual(requests[1]);
+  expect(requests[0].path).toMatch(/\/connection-attempts\/.*\/registration$/);
+  expect(JSON.parse(requests[0].body!)).toEqual({
+    account_ids: ["synthetic-checking"],
+  });
+  hook.unmount();
+  hook = renderHook(() => useCommands(api));
+  await waitFor(() =>
+    expect(hook.result.current.command?.operation).toBe("register_accounts"),
+  );
+  expect(requests).toHaveLength(2);
+  expect(localStorage.length).toBe(0);
+  expect(sessionStorage.length).toBe(0);
+});
 const body = {
   entity_name: "Synthetic LLC",
   entity_kind: "legal",
