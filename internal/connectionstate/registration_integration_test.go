@@ -18,9 +18,16 @@ const registrationRequest = "00000000-0000-4000-8000-000000000080"
 
 // registrationFixture records a verified fictional multi-account manifest before any binding.
 func registrationFixture(t *testing.T) (*pgx.Conn, string, map[string]any) {
+	return registrationFixtureWithPolicy(t, true)
+}
+
+// registrationFixtureWithPolicy can omit setup policy without mutating immutable accepted history.
+func registrationFixtureWithPolicy(t *testing.T, withPolicy bool) (*pgx.Conn, string, map[string]any) {
 	t.Helper()
 	c, db := productionSetup(t)
-	exec(t, c, `INSERT INTO ledger.book_policy VALUES($1,$2,'00000000-0000-4000-8000-000000000090','2020-01-01',NULL,$3,'accrual','UTC',2,'half_even','synthetic',$4,clock_timestamp())`, entity, book, currency, actor)
+	if withPolicy {
+		exec(t, c, `INSERT INTO ledger.book_policy VALUES($1,$2,'00000000-0000-4000-8000-000000000090','2020-01-01',NULL,$3,'accrual','UTC',2,'half_even','synthetic',$4,clock_timestamp())`, entity, book, currency, actor)
+	}
 	a := productionBegin(t, db)
 	a = object(t, call(t, db, productionAPI, "SELECT integration.record_link_session($1,$2,$3,$4,$5,$6)::text", actor, entity, book, a["attempt_id"], a["nonce"], raw(map[string]any{"link_token_sha256": strings.Repeat("a", 64), "expires_at": "2099-01-01T00:00:00Z"})))
 	a = object(t, call(t, db, productionAPI, "SELECT integration.claim_connection($1,$2,$3,$4,$5,$6)::text", actor, entity, book, a["attempt_id"], a["nonce"], raw(map[string]any{"link_token_sha256": strings.Repeat("a", 64), "public_token_sha256": strings.Repeat("b", 64)})))

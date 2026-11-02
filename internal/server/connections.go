@@ -51,6 +51,7 @@ func mountConnections(mux *http.ServeMux, auth ledger.Authenticator, ops Connect
 		"POST " + base + "/connection-attempts/{attempt}/abandon":      "abandon",
 		"POST " + base + "/connection-attempts/{attempt}/bindings":     "bind",
 		"POST " + base + "/connection-attempts/{attempt}/registration": "prepare_registration",
+		"GET " + base + "/connection-attempts/{attempt}/registration":  "registration_options",
 		"GET " + base + "/connections":                                 "list",
 		"POST " + base + "/connections/streams/{stream}/disconnect":    "disconnect",
 	} {
@@ -123,6 +124,15 @@ func connectionEndpoint(auth ledger.Authenticator, ops ConnectionOperations, ope
 		}
 		var result any
 		switch operation {
+		case "registration_options":
+			options, ok := ops.(interface {
+				RegistrationOptions(context.Context, connections.Scope, string) (json.RawMessage, error)
+			})
+			if !ok {
+				fail(503, "temporarily_unavailable")
+				return
+			}
+			result, err = options.RegistrationOptions(r.Context(), scope, attempt)
 		case "prepare_registration":
 			var in connections.RegistrationSelection
 			if !decodeConnectionJSON(raw, &in) {

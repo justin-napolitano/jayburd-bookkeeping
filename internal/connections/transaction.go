@@ -126,6 +126,7 @@ func (r *sqlRepository) attempt(ctx context.Context, query string, args ...any) 
 
 // queries is a closed trusted-backend SQL surface; request strings never select SQL.
 var queries = map[string]string{
+	"registration_options":             "SELECT integration.registration_options($1,$2,$3,$4)::text",
 	"prepare_registration":             "SELECT integration.prepare_registration($1,$2,$3,$4,$5,$6,$7)::text",
 	"abandon_connection":               "SELECT integration.abandon_connection($1,$2,$3,$4)::text",
 	"begin_binding_abandon":            "SELECT integration.begin_binding_abandon($1,$2,$3,$4)::text",
