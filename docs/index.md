@@ -3,7 +3,10 @@
 [Sandbox signed webhook proof](contracts/signed-sync-projection.md) and
 [stages](runbooks/sandbox-webhook-probe.md):385/389 merged, scanned and deployed;
 actual signed204, durable receipt1 and automatic generation4/4,18 review rows
-unchanged. Production receiver still needs the matching release; live pilot paused.
+unchanged. Matching Production release is deployed; owner-approved one-account
+Ally checking pilot active through2026-11-03T04:00:00Z. Import/reconciliation
+evidence in [375 operations](runbooks/production-acquisition-rollout.md): first
+checking sync1/1,187 review rows,0 journals; private reconciliation remains open.
 
 [Production USD history](contracts/production-book-bootstrap.md#historical-usd-coverage--380) and
 [stages](runbooks/production-usd-history.md):380/381 merged and reference-only apply verified; current USD unchanged and historical coverage exact.
@@ -16,15 +19,16 @@ unchanged. Production receiver still needs the matching release; live pilot paus
 creator-owned scope setup under374 completed; owner Personal book created and acknowledged, scope verified.
 
 [Production runtime and readback](runbooks/production-runtime-rollout.md):
-paused Production API/frontend deployed; owner MFA workspace sign-in proven.
-Exact static-version integrity readback passed; live bank activation remains pending. See the
+Production API/frontend deployed; owner MFA workspace sign-in proven.
+Exact static-version integrity passed; finite one-account activation applied. See the
 [build time-budget repair](runbooks/production-build-time-budget.md).
 
 [Finite Production acquisition](contracts/finite-production-acquisition.md) and
 [rollout stages](runbooks/production-acquisition-rollout.md):375 workers/receiver
-deployed, Production scheduling paused; Sandbox35 applied and one fictional
+deployed, Production one-book scheduling explicitly enabled for the finite pilot; Sandbox35 applied and one fictional
 account imports automatically. Queue recovery and scoped signed delivery passed;
-independent equality remains open. Actual bank activation remains gated.
+independent equality remains open. First checking publication independently
+verified:187 review rows/0 journals; counts do not prove reconciliation.
 
 [Bookkeeping delivery and qualification plan](plans/bookkeeping-readiness.md):
 bounded issues, dependencies, acceptance evidence and future agent leases;

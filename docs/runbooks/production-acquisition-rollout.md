@@ -3,6 +3,13 @@
 
 ## Status and boundary
 
+Current2026-11-02: PROD375-WEBHOOK, ops/375-production-webhook-fix from
+reviewed389/5ea9990 and documentation390/f8ab1e4. Matching scanned Production
+app/workers/receiver deployed. Owner approved one Ally USD checking account in
+the existing Personal book through2026-11-03T04:00:00Z; activation and one-book
+scheduling applied. Owner reports checking registered; complete import/private
+reconciliation remain unproved. This supersedes the historical paused state below.
+
 PROD375-RUNTIME source merged377/1eec1f0; current operator branch
 ops/375-qualification from379/9d75886. Production app, Personal USD/Q4 book,
 reference/scope, workers and signed receiver now deployed. Bank access remains
@@ -37,6 +44,53 @@ paused (API pilot=null); no Production Item/import/provider call performed.
 
 ## Current evidence
 
+### Matching release and accepted activation
+
+- Trusted Production build41381940537, source5ea9990308d72562e732714162f6271e75b6faa4,
+  attempt1: validation and four image/runtime/scan jobs PASS; four receipts
+  independently recomputed; API SBOM go-jose4.1.6. Mainf8ab adds docs only.
+  Temporary builder pool/provider disabled again; no new grant.
+- API digestdb21dec86f16cb0db7f8a546c3326ca9b6a5102f4cdd19d803acd093232e4efd;
+  webf647b663d90d28ad94d73daebc66d5d76d11b4dcfc674191c8f80d56a2623cca;
+  worker7cf991b782d52113ecb10872bc9ac4fe377c2393ca0fa8735890d3c6f4509f12.
+  Migrator62d228741d7ba4ed6f1207e54ec3ad97cbd5b7aee02206361b4486eed4403d80
+  published only; no migration executed.
+- Credential-check fccs4 succeeded2026-11-02T03:43:02Z; exact fixed integrity
+  PASS. No values read; integrity alone does not authenticate Plaid.
+- [337 owner acceptance](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/337#issuecomment-6568578003):
+  reviewf44a11b8878a435c4067c1ad2a4520a89dc5403802771c8a494d8420c5dcd330;
+  appinputeb60f10327c451195010426438c96a31aedec36e914fa3fda821b9821af1c7db
+  and acquisitioninputb13abcd8dc53968cbaad33c320222647f8b771ba5640ad539cc789bde8a4b9b0
+  applied. One source, static1/1, binding-v1 and existing shared isolated SQL;
+  Production expiry2026-11-03T04:00:00Z. Sandbox consent not renewed.
+- API00004-tjp, web00003-xvh, publisher00003-4fh, sync00003-ldr,
+  receiver00003-qs8 Ready/current/100%, exact images and finite flags. Existing
+  one-book Scheduler ENABLED, queue RUNNING. Public web200/private API+workers403/
+  unsigned receiver401 observed at matching image promotion.
+- Production Link creation reached private Plaid flow; owner completed bank
+  authentication and reports checking registered. Automatic sync request204
+  observed04:09:06Z. Neither report nor204 proves publication/transaction equality.
+- Independent read-only scoped SQL: active attempt1/Item1/registered stream1,
+  requested/completed1/1, HISTORICAL_UPDATE_COMPLETE, live leases0, completed
+  sync sets1/publications1, observations187/review items187/journals0.
+  Receiver receipts0: genuine Production webhook chain remains unproved.
+  SQL source SHA256c283f47c79660e2009daf74bf70c808bc47aa4c2fe777be6d78896e360e24034,
+  exit0; official proxy2.26.0 stopped. No rows/amounts/payloads read. Counts and
+  provider readiness do not establish independent value equality or90-day coverage.
+- Owner accepted private versioned retention/no automatic erasure, approximate
+  25USD GCP-only target (Plaid separate), incident ownership and finite stop
+  controls. Seven-day soft-delete recovery is not a physical-erasure deadline.
+  Existing shared instance/separate Production database; no resize/new database.
+- Named limited-pilot dispositions accepted: actual Sandbox signed/queue/remount
+  recovery plus synthetic Production/SQL faults. Independent hosted value oracle,
+  provider retry/reorder and actual restore remain unproved, not marked passed.
+  No broader rollout/official-close approval.90 remains open for live follow-through.
+- Stop via source pause/Scheduler/queue and API pilot=null. Future acquisition
+  Terraform apply defaults Scheduler back to paused; never silently re-enable it.
+  Production expiry is finite; Sandbox consent ended2026-11-02T04:00:00Z.
+
+### Historical qualification record
+
 PP13 selected official operational docs and existing reviewed contracts; no secret,
 state/plan or real financial-record inspection. Null/inert/expired defaults remain;
 no source test reaches cloud/provider. Human review before real access changes.
@@ -52,6 +106,10 @@ not actual deployment approval. Existing Sandbox runtime mock contracts remain g
 
 ## Remaining work
 
+Current: genuine Production webhook, private reconciliation and named residual
+recovery evidence remain open. Historical pre-activation qualifications follow;
+the accepted bounded mandate above supersedes their pending-approval wording.
+
 Actual scoped signed Sandbox delivery passed385. Independent provider-to-review
 equality proof remains open; source/review row-count agreement and historical-ready status alone
 are insufficient. Account pause/resume and queued-transport recovery passed above;
@@ -65,9 +123,12 @@ backups/PITR logs and successful recent backups; actual restore is not yet prove
 
 ## PR handoff
 
-Qualification evidence update rebased onto merged381/3004d66. Required
-`make check test build` and staged runbook gate passed with the documented
-temporary Go toolchain adapter. Documentation only; no migration/image change.
+Current375 evidence updates the accepted mandate and matching release/first-import
+observations. `make check test build` PASS with the existing external Go1.26.5
+adapter; final doc-link/diff and staged runbook checks PASS. Documentation
+only; no migration/runtime source change in this commit. Production webhook,
+private independent reconciliation, other90 recovery and actual restore remain
+unproved. New selective registration work is391–395; current live cap remains1.
 
 Refs #375/#316/#337/#90. No migration, financial semantics or provider calls from
 default local/CI commands. Preserve separate resource/state ownership.
