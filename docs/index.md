@@ -1,5 +1,8 @@
 # Project context
 
+[Spending metric proposal](contracts/spending-metrics.md),
+[sources](research/spending-metrics-sources.md) and [stages](runbooks/spending-metrics.md),428/417.
+
 [Connected account presentation](contracts/connection-cards.md) and
 [stages](runbooks/connection-cards.md),290: primary actions and secondary management.
 
