@@ -556,6 +556,45 @@ section[aria-label="Connections"] li {
 section[aria-label="Connections"] button {
   margin-block: 0.25rem;
 }
+/* Keep registered accounts readable; management never competes with the primary review actions. */
+.connected-account-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+section[aria-label="Connections"] .connected-account {
+  border-top: 1px solid var(--line);
+  padding-block: 1rem;
+  margin: 0;
+}
+.connected-account-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+.connected-account-heading h4,
+.connected-account-heading p {
+  margin: 0 0 0.5rem;
+}
+.connected-account-heading p {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.connected-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.account-management > summary,
+.connection-technical > summary {
+  cursor: pointer;
+  color: var(--muted);
+  min-height: 44px;
+  padding-block: 0.65rem;
+  box-sizing: border-box;
+}
 section[aria-label="Connections"] input:not([type="checkbox"]),
 section[aria-label="Connections"] select {
   max-width: 100%;

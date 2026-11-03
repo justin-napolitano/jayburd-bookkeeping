@@ -1,5 +1,8 @@
 # Project context
 
+[Connected account presentation](contracts/connection-cards.md) and
+[stages](runbooks/connection-cards.md),290: primary actions and secondary management.
+
 [Source transaction search](contracts/transaction-search.md) and
 [stages](runbooks/transaction-search.md),408: private filters and observed coverage.
 

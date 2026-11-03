@@ -187,6 +187,9 @@ it("TestConnectionsScopeAndRecovery keeps unknown disconnect request exact", asy
   }) as unknown as API;
   render(<Connections {...props(api)} />);
   fireEvent.click(
+    await screen.findByText("Manage Bank account 1", { exact: true }),
+  );
+  fireEvent.click(
     await screen.findByRole("button", { name: "Disconnect Bank account 1" }),
   );
   fireEvent.click(screen.getByRole("button", { name: "Confirm disconnect" }));
@@ -799,6 +802,9 @@ it("TestConnectionsScopeAndRecovery clears confirmed disconnect rejection", asyn
     throw new APIError(409, false);
   }) as unknown as API;
   render(<Connections {...props(api)} />);
+  fireEvent.click(
+    await screen.findByText("Manage Bank account 1", { exact: true }),
+  );
   fireEvent.click(
     await screen.findByRole("button", { name: "Disconnect Bank account 1" }),
   );
