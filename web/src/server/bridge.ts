@@ -224,6 +224,14 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
         method: request.method, headers, body: body as BodyInit | undefined, redirect: 'manual', cache: 'no-store', signal,
       });
       if (!upstream.ok) {
+        // Preserve one reviewed category-read code while discarding every raw diagnostic field.
+        if (request.method === 'GET' && new RegExp(`^${bookPath}/review-items/${uuid}/categories$`).test(url.pathname) && upstream.status === 422 && /^application\/problem\+json(?:\s*;.*)?$/i.test(upstream.headers.get('Content-Type') ?? '')) {
+          try {
+            const bytes = await read(upstream.body, 2048, signal);
+            const value: unknown = JSON.parse(new TextDecoder('utf-8', {fatal:true}).decode(bytes));
+            if (value !== null && typeof value === 'object' && !Array.isArray(value) && 'code' in value && value.code === 'unsupported_policy') return new Response('{"code":"unsupported_policy"}', {status:422, headers:{'Content-Type':'application/problem+json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+          } catch { /* Invalid/oversized diagnostics retain only the original safe status. */ }
+        }
         void upstream.body?.cancel();
         return failure([400,401,403,404,409,413,415,422,429,503,504].includes(upstream.status) ? upstream.status : 502);
       }
