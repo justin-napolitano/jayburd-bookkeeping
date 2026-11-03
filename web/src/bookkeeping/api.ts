@@ -3,17 +3,22 @@ export class APIError extends Error {
   constructor(
     public status: number,
     public uncertain: boolean,
+    operation: "read" | "mutation" = "mutation",
   ) {
     super(
       status === 401
         ? "Your session needs a new sign-in."
         : status === 403 || status === 404
           ? "This scope is unavailable or access was denied."
-          : status === 409
-            ? "The request conflicts with current books. Refresh and review before starting a new request."
-            : uncertain
-              ? "The outcome is unknown. Retry this unchanged request to find its committed result."
-              : "The server rejected this request. Check the fields and accounting policy.",
+          : operation === "read"
+            ? uncertain
+              ? "Data is unavailable right now. Retry the read."
+              : "This data could not be read. Check the selection and retry."
+            : status === 409
+              ? "The request conflicts with current books. Refresh and review before starting a new request."
+              : uncertain
+                ? "The outcome is unknown. Retry this unchanged request to find its committed result."
+                : "The server rejected this request. Check the fields and accounting policy.",
     );
   }
 }
@@ -36,6 +41,8 @@ export function createAPI(
     body?: string,
     key?: string,
   ): Promise<Response> => {
+    // Wording follows the actual method; uncertainty remains authoritative for recovery gates.
+    const operation = body === undefined ? "read" : "mutation";
     let token: string;
     try {
       token = await getToken();
@@ -63,7 +70,7 @@ export function createAPI(
         body,
       });
     } catch {
-      throw new APIError(0, true);
+      throw new APIError(0, true, operation);
     }
     if (response.status === 401) rejectSession();
     if (!response.ok)
@@ -72,6 +79,7 @@ export function createAPI(
         response.status >= 500 ||
           response.status === 408 ||
           response.status === 429,
+        operation,
       );
     return response;
   };
@@ -84,7 +92,7 @@ export function createAPI(
     try {
       return (await response.json()) as T;
     } catch {
-      throw new APIError(0, true);
+      throw new APIError(0, true, body === undefined ? "read" : "mutation");
     }
   };
   // Buffer a bounded response before offering any bytes to the user as a download.
@@ -97,7 +105,7 @@ export function createAPI(
       !response.body
     ) {
       void response.body?.cancel();
-      throw new APIError(0, false);
+      throw new APIError(0, false, "read");
     }
     const reader = response.body.getReader();
     const chunks: Uint8Array<ArrayBuffer>[] = [];
@@ -114,7 +122,7 @@ export function createAPI(
         type: "text/csv; charset=utf-8; header=present",
       });
     } catch {
-      throw new APIError(0, false);
+      throw new APIError(0, false, "read");
     } finally {
       void reader.cancel().catch(() => {});
       reader.releaseLock();
