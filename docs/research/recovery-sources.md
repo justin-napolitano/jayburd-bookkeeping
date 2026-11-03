@@ -1,5 +1,8 @@
 # Recovery and integration sources
 
+408 [search transport/query review](../contracts/transaction-search.md),2026-11-03:
+RFC9110 URI disclosure and PG17 literal substring entries; coverage is not completeness.
+
 416 [category recovery evidence](../contracts/category-recovery.md),2026-11-03:
 migration11 policy/date and existing independent history proof; hosted cause unconfirmed.
 

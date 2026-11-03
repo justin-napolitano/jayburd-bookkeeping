@@ -800,10 +800,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/books/{book_id}/review-items/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Search one authorized source without private URL parameters
+         * @description No-store read only. Exact original units/dates, literal C-locale case-folded substring, inclusive date bounds. Reject query strings, idempotency keys, duplicate/unknown JSON fields and body over8192 bytes. Coverage is observed imports, never completeness or last successful sync. No financial mutation or provider call.
+         */
+        post: operations["queryReviewItems"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ReviewQuery: {
+            /** Format: uuid */
+            source_account_id: string;
+            /** @enum {string|null} */
+            state: "needs_review" | "overlap_hold" | "correction_hold" | "draft_ready" | "posted" | null;
+            limit: number;
+            cursor: string | null;
+            /** @enum {string} */
+            sort: "date" | "description" | "direction" | "amount" | "status";
+            /** @enum {string} */
+            order: "asc" | "desc";
+            search: string;
+            /** Format: date */
+            starts_on: string | null;
+            /** Format: date */
+            through_date: string | null;
+        };
+        ReviewQueryPage: {
+            /** @enum {string} */
+            sort: "date" | "description" | "direction" | "amount" | "status";
+            /** @enum {string} */
+            order: "asc" | "desc";
+            matching_count: string;
+            start_index: string;
+            /** @constant */
+            profile: "source-review-query-v1";
+            /** Format: uuid */
+            source_account_id: string;
+            source_revision: components["schemas"]["Revision"];
+            items: components["schemas"]["ReviewRow"][];
+            next_cursor: string | null;
+            /** Format: date */
+            available_from: string | null;
+            /** Format: date */
+            available_through: string | null;
+            source_count: string;
+        };
         FinancialReportSelector: {
             /** Format: uuid */
             entity_id: string;
@@ -3527,6 +3584,42 @@ export interface operations {
                 };
             };
             /** @description Fixed safe failure; uncertain credentials/commits remain unresolved. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    queryReviewItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewQuery"];
+            };
+        };
+        responses: {
+            /** @description Authorized complete matching snapshot page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueryPage"];
+                };
+            };
+            /** @description Safe failure */
             default: {
                 headers: {
                     [name: string]: unknown;

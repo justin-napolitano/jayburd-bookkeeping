@@ -16,10 +16,23 @@ const reviewColumns = [
 // Closed transport selectors request SQL ordering; the browser never compares money.
 type ReviewSort = (typeof reviewColumns)[number][0];
 type ReviewOrder = "asc" | "desc";
+// Applied filters are memory-only and distinct from text still being edited.
+type ReviewSearch = {
+  search: string;
+  starts_on: string | null;
+  through_date: string | null;
+};
 // Reviewed HTTP projections come only from the coordinator-owned schema generator.
 export type ReviewSource = components["schemas"]["ReviewSource"];
 export type ReviewRow = components["schemas"]["ReviewRow"];
-export type ReviewPage = components["schemas"]["ReviewPage"];
+export type ReviewPage = (
+  | components["schemas"]["ReviewPage"]
+  | components["schemas"]["ReviewQueryPage"]
+) & {
+  available_from?: string | null;
+  available_through?: string | null;
+  source_count?: string;
+};
 export type ReviewDraft = components["schemas"]["ReviewDraft"];
 export type ReviewDetail = components["schemas"]["ReviewItem"];
 export type ReviewCategories = components["schemas"]["ReviewCategories"];
@@ -71,6 +84,10 @@ function Inbox({
   const [filter, setFilter] = useState("needs_review");
   const [sort, setSort] = useState<ReviewSort>("date");
   const [order, setOrder] = useState<ReviewOrder>("desc");
+  const [searchText, setSearchText] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [throughDate, setThroughDate] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState<ReviewSearch | null>(null);
   const [page, setPage] = useState<ReviewPage | null>(null);
   const [detail, setDetail] = useState<ReviewDetail | null>(null);
   const [categories, setCategories] = useState<ReviewCategories | null>(null);
@@ -190,6 +207,7 @@ function Inbox({
     cursor?: string,
     sortKey: ReviewSort = sort,
     sortOrder: ReviewOrder = order,
+    criteria: ReviewSearch | null = appliedSearch,
   ) => {
     // An empty selection cannot supersede the initial source-discovery request.
     if (!sources && !selected) return;
@@ -211,7 +229,20 @@ function Inbox({
     if (state) query.set("state", state);
     if (cursor) query.set("cursor", cursor);
     try {
-      const value = await api<ReviewPage>(`${base}/review-items?${query}`);
+      const value = criteria
+        ? await api.query!<ReviewPage>(
+            `${base}/review-items/query`,
+            JSON.stringify({
+              source_account_id: selected,
+              state: state || null,
+              limit: 50,
+              cursor: cursor || null,
+              sort: sortKey,
+              order: sortOrder,
+              ...criteria,
+            }),
+          )
+        : await api<ReviewPage>(`${base}/review-items?${query}`);
       if (alive.current && version === epoch.current) {
         if (value.source_account_id !== selected)
           throw new Error("Mismatched source");
@@ -404,7 +435,11 @@ function Inbox({
               onChange={(e) => {
                 setSource(e.target.value);
                 onSourceChoice?.(e.target.value);
-                void load(e.target.value);
+                setAppliedSearch(null);
+                setSearchText("");
+                setFromDate("");
+                setThroughDate("");
+                void load(e.target.value, filter, undefined, sort, order, null);
               }}
             >
               <option value="">Select a source account</option>
@@ -441,6 +476,91 @@ function Inbox({
             Refresh transactions
           </button>
         </div>
+        <details>
+          <summary>Search and dates</summary>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const criteria = {
+                search: searchText,
+                starts_on: fromDate || null,
+                through_date: throughDate || null,
+              };
+              setAppliedSearch(criteria);
+              void load(source, filter, undefined, sort, order, criteria);
+            }}
+          >
+            <fieldset
+              disabled={!source || !available || busy || !!retry || !api.query}
+            >
+              <legend className="sr-only">Search and dates</legend>
+              <div className="review-search-fields">
+                <label>
+                  Description contains
+                  <input
+                    type="search"
+                    autoComplete="off"
+                    maxLength={100}
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                  />
+                </label>
+                <label>
+                  From date
+                  <input
+                    type="date"
+                    value={fromDate}
+                    max={throughDate || undefined}
+                    onChange={(e) => setFromDate(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Through date
+                  <input
+                    type="date"
+                    value={throughDate}
+                    min={fromDate || undefined}
+                    onChange={(e) => setThroughDate(e.target.value)}
+                  />
+                </label>
+              </div>
+              <button type="submit">Apply filters</button>{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchText("");
+                  setFromDate("");
+                  setThroughDate("");
+                  const criteria = {
+                    search: "",
+                    starts_on: null,
+                    through_date: null,
+                  };
+                  setAppliedSearch(criteria);
+                  void load(source, filter, undefined, sort, order, criteria);
+                }}
+              >
+                Clear filters
+              </button>
+            </fieldset>
+          </form>
+        </details>
+        {page?.source_count !== undefined && (
+          <p>
+            Imported history:{" "}
+            {page.available_from && page.available_through
+              ? `${page.available_from} through ${page.available_through}`
+              : "No dated transactions available"}{" "}
+            ({page.source_count} transactions).
+          </p>
+        )}
+        {appliedSearch && (
+          <p>
+            Description: {appliedSearch.search || "Any"}. Dates:{" "}
+            {appliedSearch.starts_on || "Any start"} through{" "}
+            {appliedSearch.through_date || "Any end"}.
+          </p>
+        )}
         {!sources && error && available && (
           <button
             type="button"
@@ -473,6 +593,12 @@ function Inbox({
             </p>
             <details className="review-list-note">
               <summary>About this list</summary>
+              {page?.source_count !== undefined && (
+                <p>
+                  The available imported range is not proof of complete bank
+                  history. Last successful sync is unavailable in this view.
+                </p>
+              )}
               <p>
                 Column headers sort all matching transactions. Amounts sort by
                 currency, then original amount. Imported history may be
@@ -556,7 +682,11 @@ function Inbox({
               </table>
             </div>
             {page?.items.length === 0 && (
-              <p>No transactions match this status.</p>
+              <p>
+                {appliedSearch
+                  ? "No transactions match these filters."
+                  : "No transactions match this status."}
+              </p>
             )}
             {page && (
               <div className="review-pagination">

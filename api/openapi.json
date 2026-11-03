@@ -3849,6 +3849,65 @@
           }
         }
       }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/review-items/query": {
+      "post": {
+        "operationId": "queryReviewItems",
+        "summary": "Search one authorized source without private URL parameters",
+        "description": "No-store read only. Exact original units/dates, literal C-locale case-folded substring, inclusive date bounds. Reject query strings, idempotency keys, duplicate/unknown JSON fields and body over8192 bytes. Coverage is observed imports, never completeness or last successful sync. No financial mutation or provider call.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorized complete matching snapshot page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueryPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe failure",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3860,6 +3919,176 @@
       }
     },
     "schemas": {
+      "ReviewQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "needs_review",
+              "overlap_hold",
+              "correction_hold",
+              "draft_ready",
+              "posted",
+              null
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "date",
+              "description",
+              "direction",
+              "amount",
+              "status"
+            ]
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "search": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "starts_on": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "through_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          }
+        },
+        "required": [
+          "source_account_id",
+          "state",
+          "limit",
+          "cursor",
+          "sort",
+          "order",
+          "search",
+          "starts_on",
+          "through_date"
+        ]
+      },
+      "ReviewQueryPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "date",
+              "description",
+              "direction",
+              "amount",
+              "status"
+            ]
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "matching_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "start_index": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "profile": {
+            "type": "string",
+            "const": "source-review-query-v1"
+          },
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewRow"
+            },
+            "maxItems": 100
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048
+          },
+          "available_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "available_through": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "source_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          }
+        },
+        "required": [
+          "sort",
+          "order",
+          "matching_count",
+          "start_index",
+          "profile",
+          "source_account_id",
+          "source_revision",
+          "items",
+          "next_cursor",
+          "available_from",
+          "available_through",
+          "source_count"
+        ]
+      },
       "FinancialReportSelector": {
         "type": "object",
         "additionalProperties": false,

@@ -14,6 +14,22 @@ function metadata() { return new Response('synthetic.service.signature', {header
 function transport(response=Response.json({amount:'12.30'})) { return vi.fn<typeof fetch>().mockResolvedValueOnce(metadata()).mockResolvedValueOnce(response); }
 afterEach(() => vi.useRealTimers());
 describe('private API bridge', () => {
+ it('forwards private query bytes without values or idempotency identity in the URL',async()=>{
+  const path='/v1/entities/00000000-0000-4000-8000-000000000001/books/00000000-0000-4000-8000-000000000002/review-items/query';
+  const body='{"search":"private synthetic merchant","starts_on":"2026-01-01"}';
+  const fetcher=transport();
+  expect((await createBridge(fetcher,()=>env)(request(path,{'Content-Type':'application/json'},body))).status).toBe(200);
+  const [url,init]=fetcher.mock.calls[1];expect(url).toBe(env.BOOKKEEPING_API_ORIGIN+path);
+  expect(new TextDecoder().decode(init?.body as Uint8Array)).toBe(body);
+  expect(new Headers(init?.headers).has('Idempotency-Key')).toBe(false);
+ });
+ it.each(['url','key','oversize','encoding'])('rejects ambiguous private query %s before upstream',async(mode)=>{
+  const path='/v1/entities/00000000-0000-4000-8000-000000000001/books/00000000-0000-4000-8000-000000000002/review-items/query';
+  const fetcher=vi.fn<typeof fetch>();const headers:Record<string,string>={'Content-Type':'application/json'};
+  if(mode==='key') headers['Idempotency-Key']='synthetic';if(mode==='encoding')headers['Content-Encoding']='gzip';
+  const response=await createBridge(fetcher,()=>env)(request(path+(mode==='url'?'?search=private':''),headers,mode==='oversize'?'x'.repeat(8193):'{}'));
+  expect(response.status).toBe(mode==='url'?404:mode==='oversize'?413:400);expect(fetcher).not.toHaveBeenCalled();
+ });
  it.each(['approved','unknown','oversized','malformed'])('projects only a bounded approved category-read code: %s',async(mode)=>{
   const body=mode==='approved' ? '{"code":"unsupported_policy","detail":"private diagnostic"}' : mode==='unknown' ? '{"code":"private_unknown","detail":"private diagnostic"}' : mode==='oversized' ? 'x'.repeat(2049) : '{broken';
   const fetcher=transport(new Response(body,{status:422,headers:{'Content-Type':'application/problem+json'}}));

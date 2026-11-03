@@ -160,7 +160,7 @@ func (s *Service) execute(parent context.Context, c Command, operation string) (
 	ctx, cancel := context.WithTimeout(parent, 4*time.Second)
 	defer cancel()
 	iso := pgx.Serializable
-	if operation == "journal" || operation == "balance" || operation == "workspace" || operation == "review_sources" || operation == "review_list" || operation == "review_detail" || operation == "review_categories" {
+	if operation == "journal" || operation == "balance" || operation == "workspace" || operation == "review_sources" || operation == "review_list" || operation == "review_query" || operation == "review_detail" || operation == "review_categories" {
 		iso = pgx.RepeatableRead
 	}
 	for attempt := 0; attempt < 3; attempt++ {
@@ -228,6 +228,9 @@ func (s *Service) attempt(ctx context.Context, c Command, op string, iso pgx.TxI
 	case "review_list":
 		r.Status = 200
 		err = tx.QueryRow(ctx, "select banking.list_review_items($1::uuid,$2::uuid,$3::uuid,$4::text)", c.Actor, c.Entity, c.Book, c.Body).Scan(&r.Body)
+	case "review_query":
+		r.Status = 200
+		err = tx.QueryRow(ctx, "select banking.search_review_items($1::uuid,$2::uuid,$3::uuid,$4::text)", c.Actor, c.Entity, c.Book, c.Body).Scan(&r.Body)
 	case "review_detail":
 		r.Status = 200
 		err = tx.QueryRow(ctx, "select banking.get_review_item($1::uuid,$2::uuid,$3::uuid,$4::uuid)", c.Actor, c.Entity, c.Book, c.ReviewID).Scan(&r.Body)

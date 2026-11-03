@@ -78,6 +78,39 @@ test("expired enrollment preserves real setup and journal recovery without provi
   const [entity, book] = (
     await page.getByLabel("Entity and book").inputValue()
   ).split("/");
+  // Private query POST reaches real SQL validation/authorization through the production Next bridge.
+  const queryURL = new URL(
+    `/v1/entities/${entity}/books/${book}/review-items/query`,
+    page.url(),
+  ).href;
+  const queryHeaders = {
+    Authorization: "Bearer synthetic.browser.proof",
+    Origin: new URL(page.url()).origin,
+  };
+  const query = {
+    source_account_id: "00000000-0000-4000-8000-000000000999",
+    state: null,
+    limit: 50,
+    cursor: null,
+    sort: "date",
+    order: "desc",
+    search: "Fictional private query",
+    starts_on: null,
+    through_date: null,
+  };
+  expect(
+    (
+      await page.request.post(queryURL, {
+        headers: queryHeaders,
+        data: { ...query, search: 5 },
+      })
+    ).status(),
+  ).toBe(400);
+  expect(
+    (
+      await page.request.post(queryURL, { headers: queryHeaders, data: query })
+    ).status(),
+  ).toBe(404);
   const deniedEnrollment = await page.request.post(
     new URL(
       `/v1/entities/${entity}/books/${book}/connection-attempts`,
