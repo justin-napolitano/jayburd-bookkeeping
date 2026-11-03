@@ -115,8 +115,12 @@ test("every transaction column sorts across pages with keyboard access and a cle
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
-    page.getByText("Scroll horizontally to see every column."),
+    page.getByRole("button", { name: "Date", exact: true }),
   ).toBeVisible();
+  const actionBox = await rowButton.boundingBox();
+  expect(actionBox).not.toBeNull();
+  expect(actionBox!.x).toBeGreaterThanOrEqual(0);
+  expect(actionBox!.x + actionBox!.width).toBeLessThanOrEqual(390);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
