@@ -2509,6 +2509,35 @@
         "description": "Currently authorized source-scoped review. Exact monetary strings; no implicit posting. Unknown/duplicate query fields and GET bodies rejected. Drafts are limited to same-currency two-line category entries; FX requires a separate reviewed valuation workflow.",
         "parameters": [
           {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "Supply sort and order together. Omitted pair preserves legacy ordering; cursor is bound to the chosen order.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "date",
+                "description",
+                "direction",
+                "amount",
+                "status"
+              ]
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "description": "Supply sort and order together. Omitted pair preserves legacy ordering; cursor is bound to the chosen order.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
             "name": "entity_id",
             "in": "path",
             "required": true,
@@ -5795,6 +5824,31 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "sort": {
+            "type": "string",
+            "enum": [
+              "date",
+              "description",
+              "direction",
+              "amount",
+              "status"
+            ]
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "matching_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "start_index": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
           "profile": {
             "type": "string",
             "const": "source-review-page-v1"

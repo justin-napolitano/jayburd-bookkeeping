@@ -51,6 +51,18 @@ func sourceReviewRequest(r *http.Request) (string, error) {
 				return "", errors.New("invalid limit")
 			}
 			v[key] = n
+		case "sort":
+			switch value {
+			case "date", "description", "direction", "amount", "status":
+				v[key] = value
+			default:
+				return "", errors.New("invalid sort")
+			}
+		case "order":
+			if value != "asc" && value != "desc" {
+				return "", errors.New("invalid order")
+			}
+			v[key] = value
 		case "cursor":
 			if len(value) > 2048 {
 				return "", errors.New("invalid cursor")
@@ -59,6 +71,9 @@ func sourceReviewRequest(r *http.Request) (string, error) {
 		default:
 			return "", errors.New("invalid query")
 		}
+	}
+	if (v["sort"] == nil) != (v["order"] == nil) {
+		return "", errors.New("incomplete sort")
 	}
 	if v["source_account_id"] == "" {
 		return "", errors.New("missing source")

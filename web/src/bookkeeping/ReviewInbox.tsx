@@ -5,6 +5,17 @@ import { formatAmount } from "./amount";
 import type { Book, Entity, Currency, Journal } from "./types";
 import type { components } from "../lib/api.generated";
 
+// Each header requests a global SQL order; amounts retain their original currency.
+const reviewColumns = [
+  ["date", "Date"],
+  ["description", "Description"],
+  ["direction", "Direction"],
+  ["amount", "Amount"],
+  ["status", "Status"],
+] as const;
+// Closed transport selectors request SQL ordering; the browser never compares money.
+type ReviewSort = (typeof reviewColumns)[number][0];
+type ReviewOrder = "asc" | "desc";
 // Reviewed HTTP projections come only from the coordinator-owned schema generator.
 export type ReviewSource = components["schemas"]["ReviewSource"];
 export type ReviewRow = components["schemas"]["ReviewRow"];
@@ -54,6 +65,8 @@ function Inbox({
   const [source, setSource] = useState("");
   const [sourceAttempt, setSourceAttempt] = useState(0);
   const [filter, setFilter] = useState("needs_review");
+  const [sort, setSort] = useState<ReviewSort>("date");
+  const [order, setOrder] = useState<ReviewOrder>("desc");
   const [page, setPage] = useState<ReviewPage | null>(null);
   const [detail, setDetail] = useState<ReviewDetail | null>(null);
   const [categories, setCategories] = useState<ReviewCategories | null>(null);
@@ -145,7 +158,13 @@ function Inbox({
     setCategory("");
   };
   // Opaque cursor continuation keeps SQL's source snapshot; refresh starts a new snapshot.
-  const load = async (selected = source, state = filter, cursor?: string) => {
+  const load = async (
+    selected = source,
+    state = filter,
+    cursor?: string,
+    sortKey: ReviewSort = sort,
+    sortOrder: ReviewOrder = order,
+  ) => {
     // An empty selection cannot supersede the initial source-discovery request.
     if (!sources && !selected) return;
     const version = ++epoch.current;
@@ -160,6 +179,8 @@ function Inbox({
     const query = new URLSearchParams({
       source_account_id: selected,
       limit: "50",
+      sort: sortKey,
+      order: sortOrder,
     });
     if (state) query.set("state", state);
     if (cursor) query.set("cursor", cursor);
@@ -326,7 +347,11 @@ function Inbox({
     `${formatAmount(row.amount, currencies.find((c) => c.currency_version_id === row.currency_version_id)?.minor_unit)} ${row.currency}`;
   if (!active) return null;
   return (
-    <section aria-labelledby="review-inbox-title">
+    <section
+      className="transaction-review"
+      aria-labelledby="review-inbox-title"
+      aria-busy={busy}
+    >
       <h2 id="review-inbox-title">Review transactions</h2>
       <p>
         Imported transactions are unposted until you review a draft and
@@ -395,29 +420,83 @@ function Inbox({
       )}
       {error && <p role="alert">{error}</p>}
       {busy && <p role="status">Loading review data…</p>}
-      {page && (
+      {source && sources && (
         <>
-          <p className="report-stamp">
-            Source revision {page.source_revision}. This is a review list, not a
-            posted-balance report.
+          <p className="review-list-summary" role="status">
+            {page?.start_index && page.matching_count
+              ? page.items.length > 0
+                ? "Transactions " +
+                  page.start_index +
+                  "–" +
+                  String(
+                    BigInt(page.start_index) + BigInt(page.items.length) - 1n,
+                  ) +
+                  " of " +
+                  page.matching_count
+                : "0 transactions of " + page.matching_count
+              : "Source transactions"}
+            {" · "}
+            {reviewColumns.find(([key]) => key === sort)?.[1]}{" "}
+            {order === "desc" ? "descending" : "ascending"}
           </p>
-          <div className="table-scroll">
-            <table>
+          <p className="review-list-note">
+            Column headers sort all matching transactions. Amounts sort by
+            currency, then original amount. Imported history may be incomplete.
+          </p>
+          <p className="table-scroll-note">
+            Scroll horizontally to see every column.
+          </p>
+          <div
+            className="table-scroll"
+            role="region"
+            aria-label="Transaction table"
+            tabIndex={0}
+          >
+            <table className="review-table">
               <caption>
-                Source transactions · {filter || "all statuses"}
+                Imported transactions ·{" "}
+                {filter ? filter.replaceAll("_", " ") : "all statuses"}
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">Date</th>
-                  <th scope="col">Description</th>
-                  <th scope="col">Direction</th>
-                  <th scope="col">Amount</th>
-                  <th scope="col">Status</th>
+                  {reviewColumns.map(([key, label]) => (
+                    <th
+                      key={key}
+                      scope="col"
+                      aria-sort={
+                        sort === key
+                          ? order === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : undefined
+                      }
+                    >
+                      <button
+                        type="button"
+                        className="table-sort"
+                        disabled={!available || !!retry}
+                        onClick={() => {
+                          const next: ReviewOrder =
+                            sort === key && order === "asc" ? "desc" : "asc";
+                          setSort(key);
+                          setOrder(next);
+                          void load(source, filter, undefined, key, next);
+                        }}
+                      >
+                        {label}
+                        {sort === key && (
+                          <span className="sort-direction" aria-hidden="true">
+                            {order === "asc" ? "↑" : "↓"}
+                          </span>
+                        )}
+                      </button>
+                    </th>
+                  ))}
                   <th scope="col">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {page.items.map((row) => (
+                {page?.items.map((row) => (
                   <tr key={row.review_id}>
                     <td>{row.booked_date}</td>
                     <td>{row.description}</td>
@@ -427,10 +506,12 @@ function Inbox({
                     <td>
                       <button
                         type="button"
+                        className="review-row-action"
+                        aria-label={"Review " + row.description}
                         disabled={busy || !!retry || !available}
                         onClick={() => void select(row.review_id)}
                       >
-                        Review {row.description}
+                        Review
                       </button>
                     </td>
                   </tr>
@@ -438,16 +519,42 @@ function Inbox({
               </tbody>
             </table>
           </div>
-          {page.items.length === 0 && <p>No transactions match this status.</p>}
-          <button
-            type="button"
-            disabled={!page.next_cursor || busy || !available || !!retry}
-            onClick={() =>
-              void load(source, filter, page.next_cursor ?? undefined)
-            }
-          >
-            Next transactions
-          </button>
+          {page?.items.length === 0 && (
+            <p>No transactions match this status.</p>
+          )}
+          {page && (
+            <div className="review-pagination">
+              <button
+                type="button"
+                disabled={
+                  busy ||
+                  !available ||
+                  !!retry ||
+                  !page.start_index ||
+                  page.start_index === "0" ||
+                  page.start_index === "1"
+                }
+                onClick={() => void load()}
+              >
+                First transactions
+              </button>
+              <button
+                type="button"
+                disabled={!page.next_cursor || busy || !available || !!retry}
+                onClick={() =>
+                  void load(source, filter, page.next_cursor ?? undefined)
+                }
+              >
+                Next transactions
+              </button>
+              {!page.next_cursor && (
+                <p>
+                  End of matching transactions. Change the filter or sort to
+                  explore the list.
+                </p>
+              )}
+            </div>
+          )}
         </>
       )}
       {detail && (

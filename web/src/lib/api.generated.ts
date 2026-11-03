@@ -1335,6 +1335,12 @@ export interface components {
             journal_id: string | null;
         };
         ReviewPage: {
+            /** @enum {string} */
+            sort?: "date" | "description" | "direction" | "amount" | "status";
+            /** @enum {string} */
+            order?: "asc" | "desc";
+            matching_count?: string;
+            start_index?: string;
             /** @constant */
             profile: "source-review-page-v1";
             /** Format: uuid */
@@ -2863,6 +2869,10 @@ export interface operations {
     listReviewItems: {
         parameters: {
             query: {
+                /** @description Supply sort and order together. Omitted pair preserves legacy ordering; cursor is bound to the chosen order. */
+                sort?: "date" | "description" | "direction" | "amount" | "status";
+                /** @description Supply sort and order together. Omitted pair preserves legacy ordering; cursor is bound to the chosen order. */
+                order?: "asc" | "desc";
                 source_account_id: string;
                 state?: "needs_review" | "overlap_hold" | "correction_hold" | "draft_ready" | "posted";
                 limit?: number;
