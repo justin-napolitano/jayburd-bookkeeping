@@ -553,6 +553,27 @@ section[aria-label="Connections"] select {
   color: var(--accent);
   font-weight: 600;
 }
+.position-import-handoff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.position-import-handoff p {
+  margin: 0;
+  max-width: 65ch;
+  color: var(--muted);
+}
+.position-import-handoff button {
+  margin: 0;
+  color: var(--accent);
+  background: transparent;
+}
 .finance-scope {
   margin: 0 0 0 auto;
   min-width: 0;
@@ -902,7 +923,8 @@ section[aria-label="Connections"] select {
   .finance-nav {
     order: 3;
     width: 100%;
-    gap: 1.5rem;
+    gap: 0.5rem;
+    justify-content: space-between;
   }
   .finance-nav button {
     padding: 0.75rem 0.2rem;

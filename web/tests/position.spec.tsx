@@ -234,6 +234,15 @@ test("a recovered command locks Position reads, scope and navigation", async ({
   ).toHaveCount(5);
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
   await expect(
+    page.getByRole("button", { name: "Transactions", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", {
+      name: "View imported transactions",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await expect(
     page.getByRole("button", { name: "Ledger", exact: true }),
   ).toBeDisabled();
   expect(requests).toHaveLength(0);

@@ -165,18 +165,27 @@ export function Bookkeeping({
       <div className="finance-bar">
         <span className="finance-brand">Jayburd</span>
         <nav aria-label="Finance tools" className="finance-nav">
-          {(["Position", "Account activity", "Reports"] as const).map(
-            (name) => (
-              <button
-                key={name}
-                disabled={locked}
-                aria-current={tool === name ? "page" : undefined}
-                onClick={() => navigate(name)}
-              >
-                {name === "Account activity" ? "Ledger" : name}
-              </button>
-            ),
-          )}
+          {(
+            [
+              "Review transactions",
+              "Position",
+              "Account activity",
+              "Reports",
+            ] as const
+          ).map((name) => (
+            <button
+              key={name}
+              disabled={locked}
+              aria-current={tool === name ? "page" : undefined}
+              onClick={() => navigate(name)}
+            >
+              {name === "Review transactions"
+                ? "Transactions"
+                : name === "Account activity"
+                  ? "Ledger"
+                  : name}
+            </button>
+          ))}
         </nav>
         {workspace && !recovery.accessDenied && (
           <label className="finance-scope">
@@ -211,28 +220,23 @@ export function Bookkeeping({
         <details className="finance-tools">
           <summary>Tools</summary>
           <div>
-            {(
-              [
-                "Accounts",
-                "New journal",
-                "Review transactions",
-                "Connections",
-              ] as const
-            ).map((name) => (
-              <button
-                key={name}
-                disabled={locked}
-                aria-current={tool === name ? "page" : undefined}
-                onClick={(event) => {
-                  navigate(name);
-                  event.currentTarget
-                    .closest("details")
-                    ?.removeAttribute("open");
-                }}
-              >
-                {name}
-              </button>
-            ))}
+            {(["Accounts", "New journal", "Connections"] as const).map(
+              (name) => (
+                <button
+                  key={name}
+                  disabled={locked}
+                  aria-current={tool === name ? "page" : undefined}
+                  onClick={(event) => {
+                    navigate(name);
+                    event.currentTarget
+                      .closest("details")
+                      ?.removeAttribute("open");
+                  }}
+                >
+                  {name}
+                </button>
+              ),
+            )}
             <button disabled={loading || locked} onClick={() => void load()}>
               Refresh workspace
             </button>
@@ -272,6 +276,18 @@ export function Bookkeeping({
                   : entities[0]?.name}{" "}
               · As of {through || "a selected date"}
             </p>
+            <div className="position-import-handoff">
+              <p>
+                These are posted ledger balances. Imported bank transactions are
+                reviewed separately.
+              </p>
+              <button
+                disabled={locked}
+                onClick={() => navigate("Review transactions")}
+              >
+                View imported transactions
+              </button>
+            </div>
             <Position
               entities={entities}
               currencies={workspace.currencies}
