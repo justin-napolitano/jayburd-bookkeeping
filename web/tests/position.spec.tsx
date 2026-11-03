@@ -175,10 +175,11 @@ test("ordinary Ledger navigation does not reuse an already refreshed Position ha
   await page
     .getByLabel("Report account")
     .selectOption("account-studio-reserve");
-  await page.getByRole("button", { name: "Refresh report" }).click();
+  await page.getByRole("button", { name: "Run report" }).click();
   await expect(page.getByRole("alert")).toContainText("book changed");
   expect(queries[0].get("snapshot_revision")).toBe("12");
-  await page.getByRole("button", { name: "Refresh report" }).click();
+  await page.getByRole("button", { name: "Run report" }).click();
+  await page.getByText("Report details", { exact: true }).click();
   await expect(page.getByText(/Snapshot 13/)).toBeVisible();
   expect(queries[1].has("snapshot_revision")).toBe(false);
   await page.getByRole("button", { name: "Position", exact: true }).click();
@@ -189,7 +190,8 @@ test("ordinary Ledger navigation does not reuse an already refreshed Position ha
   await page
     .getByLabel("Report account")
     .selectOption("account-studio-reserve");
-  await page.getByRole("button", { name: "Refresh report" }).click();
+  await page.getByRole("button", { name: "Run report" }).click();
+  await page.getByText("Report details", { exact: true }).click();
   await expect(page.getByText(/Snapshot 13/)).toBeVisible();
   expect(queries[2].has("snapshot_revision")).toBe(false);
 });

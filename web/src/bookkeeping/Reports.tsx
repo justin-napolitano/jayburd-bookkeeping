@@ -228,10 +228,10 @@ function ReportContent({
         onAccessDenied?.();
       setError(
         e instanceof APIError && e.status === 409
-          ? "The book changed. Refresh report to start a new snapshot."
+          ? "The book changed. Run report to start a new snapshot."
           : e instanceof APIError && [401, 403, 404].includes(e.status)
             ? "Report access is unavailable. Refresh your session or choose an authorized book."
-            : "Report unavailable. Check the date range and policy, then refresh report.",
+            : "Report unavailable. Check the date range and policy, then run report.",
       );
     } finally {
       if (n === epoch.current) setBusy(false);
@@ -295,12 +295,12 @@ function ReportContent({
       if ([401, 403, 404].includes(failure.status)) onAccessDenied?.();
       setError(
         failure.status === 409
-          ? "The book changed. Refresh report to start a new snapshot."
+          ? "The book changed. Run report to start a new snapshot."
           : "Report access is unavailable. Refresh your session or choose an authorized book.",
       );
     } else
       setActionError(
-        "This review action is unavailable. Try again or refresh report.",
+        "This review action is unavailable. Try again or run report.",
       );
   };
   // Fetch the same authorized revision and actual GL selection, never the standalone journal route.
@@ -491,7 +491,7 @@ function ReportContent({
           </div>
           {kind !== "general-ledger" && (
             <>
-              <label>
+              <label className="check-option">
                 <input
                   type="checkbox"
                   checked={compare}
@@ -546,13 +546,19 @@ function ReportContent({
                 ))}
             </>
           )}
-          <button disabled={busy}>Refresh report</button>
+          <button disabled={busy}>Run report</button>
         </fieldset>
       </form>
       {busy && <p role="status">Reading financial report snapshot…</p>}
       {error && <p role="alert">{error}</p>}
       {actionBusy && <p role="status">Preparing report review…</p>}
       {actionError && <p role="alert">{actionError}</p>}
+      {!report && !busy && !error && (
+        <p className="report-initial-state">
+          Choose a report and dates, then select Run report to read this book’s
+          posted entries.
+        </p>
+      )}
       {report && (
         <>
           {api.download && (
@@ -663,10 +669,13 @@ function ReportContent({
               </button>
             </section>
           )}
-          <p>
-            Snapshot {report.snapshot_revision} · Generated{" "}
-            {report.generated_at} · {report.basis} · {report.timezone}
-          </p>
+          <details className="report-stamp">
+            <summary>Report details</summary>
+            <p>
+              Snapshot {report.snapshot_revision} · Generated{" "}
+              {report.generated_at} · {report.basis} · {report.timezone}
+            </p>
+          </details>
           <p>
             Functional currency: {report.functional_currency}.{" "}
             {range

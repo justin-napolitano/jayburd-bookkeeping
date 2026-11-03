@@ -12,6 +12,10 @@ actual evidence. Other children and cross-book dependencies remain separate.
 responsive same-row table, focused detail/back and current-source defaults;
 [stages](runbooks/compact-transaction-review.md) record its dependent delivery.
 
+[Daily diagnostics/report polish](contracts/workspace-polish.md),420:
+inline report controls, explicit reading and idle-only Settings;
+[stages](runbooks/workspace-polish.md) preserve attention/recovery evidence.
+
 [Transaction sorting](contracts/transaction-review-sort.md) and
 [frontend audit](reviews/transaction-review-406.md):406 adds global data-column
 sorting, readable rows and explicit pagination; source-only forward39. Human

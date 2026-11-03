@@ -237,8 +237,8 @@ test("split review retains registration identity and discovers lost execution an
   expect(server.executions).toBe(1);
   await page.getByRole("button", { name: "Acknowledge result" }).click();
   await expect(
-    page.getByText("No unacknowledged command.", { exact: false }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Transactions", exact: true }),
+  ).toBeEnabled();
   await expect(page.getByLabel("Entity and book")).toBeEnabled();
   expect(server.executions).toBe(1);
 });
@@ -301,8 +301,8 @@ test("setup registers review then executes and explicitly acknowledges", async (
   ).toBeVisible();
   await page.getByRole("button", { name: "Acknowledge result" }).click();
   await expect(
-    page.getByText("No unacknowledged command.", { exact: false }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Transactions", exact: true }),
+  ).toBeEnabled();
 });
 test("Sandbox starter prepares the bounded reviewed setup without manual fields", async ({
   mount,
@@ -440,8 +440,8 @@ test("explicitly clears inaccessible saved work before first-book setup", async 
     page.getByRole("button", { name: "Review Sandbox starter book" }),
   ).toBeVisible();
   await expect(
-    page.getByText("No unacknowledged command. New work is available."),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Transactions", exact: true }),
+  ).toBeEnabled();
 });
 
 test("successful acknowledgement followed by failed discovery keeps new work locked", async ({
@@ -680,7 +680,7 @@ test("recovers an import safely until statement preview UI is available", async 
   await expect(page.getByText(/Cancellation confirmed/)).toBeVisible();
   await page.getByRole("button", { name: "Acknowledge result" }).click();
   await expect(
-    page.getByText("No unacknowledged command. New work is available."),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Transactions", exact: true }),
+  ).toBeEnabled();
   expect(state.executions).toBe(0);
 });

@@ -92,7 +92,7 @@ test("four report views show exact totals, original units and revision-bound pag
   });
   await mount(<ReportsHarness />);
   await page.getByLabel("Report through date (inclusive)").fill("2026-01-31");
-  await page.getByRole("button", { name: "Refresh report" }).click();
+  await page.getByRole("button", { name: "Run report" }).click();
   await expect(
     page.getByRole("cell", { name: "1300.00", exact: true }),
   ).toHaveCount(2);
@@ -105,7 +105,8 @@ test("four report views show exact totals, original units and revision-bound pag
     }
     if (kind === "general-ledger")
       await page.getByLabel("Report account").selectOption("cash");
-    await page.getByRole("button", { name: "Refresh report" }).click();
+    await page.getByRole("button", { name: "Run report" }).click();
+    await page.getByText("Report details", { exact: true }).click();
     await expect(page.getByText(/Snapshot 1/)).toBeVisible();
     const totalRow = page
       .locator("table")
@@ -135,7 +136,7 @@ test("four report views show exact totals, original units and revision-bound pag
   await page.getByRole("button", { name: "Next report page" }).click();
   await expect(page.getByRole("alert")).toContainText("book changed");
   await expect(page.getByRole("cell", { name: /10 EUR/ })).toHaveCount(0);
-  await page.getByRole("button", { name: "Refresh report" }).click();
+  await page.getByRole("button", { name: "Run report" }).click();
   await expect(page.getByRole("cell", { name: /10 EUR/ })).toBeVisible();
 });
 test("late requests cannot repopulate after a scope change or sign out", async ({
@@ -163,7 +164,7 @@ test("late requests cannot repopulate after a scope change or sign out", async (
   });
   await mount(<ReportsHarness />);
   await page.getByLabel("Report through date (inclusive)").fill("2026-01-31");
-  await page.getByRole("button", { name: "Refresh report" }).click();
+  await page.getByRole("button", { name: "Run report" }).click();
   await start;
   await page.getByLabel("Test scope").selectOption("two");
   release();
@@ -172,7 +173,7 @@ test("late requests cannot repopulate after a scope change or sign out", async (
     started = r;
   });
   await page.getByLabel("Report through date (inclusive)").fill("2026-01-31");
-  await page.getByRole("button", { name: "Refresh report" }).click();
+  await page.getByRole("button", { name: "Run report" }).click();
   await start;
   await page.getByRole("button", { name: "Sign out test session" }).click();
   release();
@@ -329,7 +330,7 @@ test("comparison, account drill, pinned journal and download remain scoped", asy
   await page
     .getByLabel("Comparison through date (inclusive)")
     .fill("2026-01-01");
-  await page.getByRole("button", { name: "Refresh report" }).click();
+  await page.getByRole("button", { name: "Run report" }).click();
   await expect(
     page.getByRole("cell", { name: "-0.01", exact: true }),
   ).toHaveCount(4);
