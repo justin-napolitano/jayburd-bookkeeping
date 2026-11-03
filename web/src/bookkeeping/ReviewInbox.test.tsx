@@ -452,9 +452,10 @@ it("uses the opaque page cursor and removes stale rows on snapshot failure", asy
   api.mockRejectedValueOnce(new APIError(409, false));
   fireEvent.click(next);
   await screen.findByRole("alert");
-  expect(screen.queryByRole("table")).toBeNull();
+  expect(screen.queryByRole("button", {name:"Review Synthetic supplies"})).toBeNull();
+  expect(screen.queryByText("12.51 USD")).toBeNull();
   expect(api.mock.calls.at(-1)?.[0]).toBe(
-    `${base}/review-items?source_account_id=s&limit=50&state=needs_review&cursor=opaque%2Fpage%2B2`,
+    `${base}/review-items?source_account_id=s&limit=50&sort=date&order=desc&state=needs_review&cursor=opaque%2Fpage%2B2`,
   );
 });
 it("clears denied data and never displays raw infrastructure errors", async () => {
