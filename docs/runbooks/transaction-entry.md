@@ -19,6 +19,7 @@ classification or new aggregation. Other412 children remain independent.
 | Implementation | Primary nav and posted/imported handoff; current scope/date/command gates preserved; focused navigation/empty/unavailable/denied/no-mutation/mobile tests drafted |
 | Validation | make check/test/build PASS. Locked API types/TypeScript367units/production build and34browser PASS. Actual browser/Next/Go/disposable SQL journey PASS with test-only listener overlay39181–39183; tracked harness/product untouched and existing demo preserved |
 | Visual review | Loaded desktop Position handoff and390px primary navigation screenshots inspected; focus/scope/empty/unavailable/denied/lock/no-mutation cases PASS. Loaded-state capture assertion rerun4/4PASS. Duplicate review headings/mobile feed compaction remain415/420, not claimed fixed |
+| Handoff | Source75f3ae9, [PR421](https://github.com/justin-napolitano/jayburd-bookkeeping/pull/421). Local gates passed; exact-head CI and human review remain required. No child or407closed from this source handoff |
 
 ## Current evidence
 
@@ -33,7 +34,7 @@ requires a readable book, not a fabricated cross-book source endpoint.
 
 ## Remaining work
 
-Open bounded PR and record exact-head CI/review.412 children remain separately
+Review PR421 and record exact-head CI/review.412 children remain separately
 scheduled. No deploy or full cross-book/category/merchant/savings implementation.
 
 Synthetic captures: [desktop Position handoff](../reviews/transaction-entry-407/position-import-handoff.png)
