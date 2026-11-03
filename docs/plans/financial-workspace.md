@@ -1,5 +1,10 @@
 # Financial workspace design
 
+The newer [daily money plan](daily-money-workspace.md),412, refines daily task
+entry.407 promotes Transactions and adds a Position imported-activity handoff;
+formal posted Position/Ledger semantics below remain. See its
+[delivery stages](../runbooks/transaction-entry.md) for actual evidence.
+
 ## Decision
 
 Issue #80 implements a book-first workspace under #52/#50 using the existing

@@ -1,5 +1,13 @@
 # Project context
 
+[Daily money workspace](plans/daily-money-workspace.md), #412:
+Plaid category suggestions, explainable private rules, transaction usability,
+freshness, category/merchant spending and traceable opportunities. Read the
+[Sandbox audit](reviews/sandbox-money-workspace.md) and
+[rule source review](research/categorization-rules-sources.md).
+407 primary entry is in delivery; [stages](runbooks/transaction-entry.md) record
+actual evidence. Other children and cross-book dependencies remain separate.
+
 [Transaction sorting](contracts/transaction-review-sort.md) and
 [frontend audit](reviews/transaction-review-406.md):406 adds global data-column
 sorting, readable rows and explicit pagination; source-only forward39. Human
