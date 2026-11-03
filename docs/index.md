@@ -1,5 +1,8 @@
 # Project context
 
+[Source activity API proposal](contracts/source-activity-api.md) and
+[stages](runbooks/source-activity-api.md),429: exact private totals and drills; runtime pending.
+
 [Spending metric proposal](contracts/spending-metrics.md),
 [sources](research/spending-metrics-sources.md) and [stages](runbooks/spending-metrics.md),428/417.
 
