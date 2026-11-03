@@ -36,6 +36,8 @@ export type ReviewInboxProps = {
   locked: boolean;
   active?: boolean;
   initialSource?: string;
+  showHeading?: boolean;
+  onSourceChoice?: (source: string) => void;
   prepare: (command: SourcePostCommand) => void;
   denied: () => void;
 };
@@ -57,6 +59,8 @@ function Inbox({
   locked,
   active = true,
   initialSource = "",
+  showHeading = true,
+  onSourceChoice,
   prepare,
   denied,
 }: ReviewInboxProps) {
@@ -85,6 +89,12 @@ function Inbox({
   const alive = useRef(true);
   const flight = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  const selectedRow = useRef<HTMLButtonElement | null>(null);
+  const sourceControl = useRef<HTMLSelectElement>(null);
+  // A newly opened detail receives focus independently of optional category timing.
+  useEffect(() => {
+    if (detail) heading.current?.focus();
+  }, [detail?.review_id]);
   const available = active && !locked;
   // Errors never surface raw API/provider diagnostics or substitute zero balances.
   const failure = (e: unknown) => {
@@ -126,12 +136,16 @@ function Inbox({
         if (alive.current && version === epoch.current) {
           setSources(value.items);
           // Navigation supplies a preference only; current source authority must confirm it.
-          if (
-            initialSource &&
-            value.items.some((item) => item.source_account_id === initialSource)
-          ) {
-            setSource(initialSource);
-            void load(initialSource);
+          const preference = initialSource
+            ? value.items.find(
+                (item) => item.source_account_id === initialSource,
+              )
+            : value.items.length === 1 && value.items[0].state === "active"
+              ? value.items[0]
+              : undefined;
+          if (preference) {
+            setSource(preference.source_account_id);
+            void load(preference.source_account_id);
           }
         }
       })
@@ -156,6 +170,16 @@ function Inbox({
     setDraft(null);
     setRetry(null);
     setCategory("");
+  };
+  // Back never discards an uncertain draft; successful draft changes require a fresh list.
+  const backToList = () => {
+    if (busy || retry) return;
+    if (page) resetDetail();
+    else void load();
+    requestAnimationFrame(() => {
+      if (page && selectedRow.current?.isConnected) selectedRow.current.focus();
+      else sourceControl.current?.focus();
+    });
   };
   // Opaque cursor continuation keeps SQL's source snapshot; refresh starts a new snapshot.
   const load = async (
@@ -349,216 +373,233 @@ function Inbox({
   return (
     <section
       className="transaction-review"
-      aria-labelledby="review-inbox-title"
+      aria-label="Review transactions"
       aria-busy={busy}
     >
-      <h2 id="review-inbox-title">Review transactions</h2>
-      <p>
-        Imported transactions are unposted until you review a draft and
-        explicitly confirm its command. Posted balances exclude unposted items.
+      {showHeading && <h2 id="review-inbox-title">Review transactions</h2>}
+      <p className="review-introduction">
+        Imported activity. Journals are posted only after explicit review.
       </p>
       {locked && (
         <p role="status">
           Resolve the pending command before reviewing more transactions.
         </p>
       )}
-      <div className="workspace-actions">
-        <label>
-          Source account
-          <select
-            value={source}
-            disabled={!available || !sources || busy || !!retry}
-            onChange={(e) => {
-              setSource(e.target.value);
-              void load(e.target.value);
-            }}
-          >
-            <option value="">Select a source account</option>
-            {sources?.map((s) => (
-              <option key={s.source_account_id} value={s.source_account_id}>
-                {s.display_name} · {s.currency} · {s.state}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Review status
-          <select
-            value={filter}
-            disabled={!available || !sources || busy || !!retry}
-            onChange={(e) => {
-              setFilter(e.target.value);
-              void load(source, e.target.value);
-            }}
-          >
-            <option value="needs_review">Needs review</option>
-            <option value="draft_ready">Draft ready</option>
-            <option value="posted">Posted</option>
-            <option value="overlap_hold">Overlap hold</option>
-            <option value="correction_hold">Source correction hold</option>
-            <option value="">All statuses</option>
-          </select>
-        </label>
-        <button
-          type="button"
-          disabled={!source || !available || busy || !!retry}
-          onClick={() => void load()}
-        >
-          Refresh transactions
-        </button>
-      </div>
-      {!sources && error && available && (
-        <button
-          type="button"
-          onClick={() => setSourceAttempt((attempt) => attempt + 1)}
-        >
-          Retry source accounts
-        </button>
-      )}
-      {sources?.length === 0 && (
-        <p>No source accounts are available in this book.</p>
-      )}
       {error && <p role="alert">{error}</p>}
       {busy && <p role="status">Loading review data…</p>}
-      {source && sources && (
-        <>
-          <p className="review-list-summary" role="status">
-            {page?.start_index && page.matching_count
-              ? page.items.length > 0
-                ? "Transactions " +
-                  page.start_index +
-                  "–" +
-                  String(
-                    BigInt(page.start_index) + BigInt(page.items.length) - 1n,
-                  ) +
-                  " of " +
-                  page.matching_count
-                : "0 transactions of " + page.matching_count
-              : "Source transactions"}
-            {" · "}
-            {reviewColumns.find(([key]) => key === sort)?.[1]}{" "}
-            {order === "desc" ? "descending" : "ascending"}
-          </p>
-          <p className="review-list-note">
-            Column headers sort all matching transactions. Amounts sort by
-            currency, then original amount. Imported history may be incomplete.
-          </p>
-          <p className="table-scroll-note">
-            Scroll horizontally to see every column.
-          </p>
-          <div
-            className="table-scroll"
-            role="region"
-            aria-label="Transaction table"
-            tabIndex={0}
+      <div hidden={!!detail}>
+        <div className="workspace-actions review-controls">
+          <label>
+            Source account
+            <select
+              ref={sourceControl}
+              value={source}
+              disabled={!available || !sources || busy || !!retry}
+              onChange={(e) => {
+                setSource(e.target.value);
+                onSourceChoice?.(e.target.value);
+                void load(e.target.value);
+              }}
+            >
+              <option value="">Select a source account</option>
+              {sources?.map((s) => (
+                <option key={s.source_account_id} value={s.source_account_id}>
+                  {s.display_name} · {s.currency} · {s.state}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Review status
+            <select
+              value={filter}
+              disabled={!available || !sources || busy || !!retry}
+              onChange={(e) => {
+                setFilter(e.target.value);
+                void load(source, e.target.value);
+              }}
+            >
+              <option value="needs_review">Needs review</option>
+              <option value="draft_ready">Draft ready</option>
+              <option value="posted">Posted</option>
+              <option value="overlap_hold">Overlap hold</option>
+              <option value="correction_hold">Source correction hold</option>
+              <option value="">All statuses</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={!source || !available || busy || !!retry}
+            onClick={() => void load()}
           >
-            <table className="review-table">
-              <caption>
-                Imported transactions ·{" "}
-                {filter ? filter.replaceAll("_", " ") : "all statuses"}
-              </caption>
-              <thead>
-                <tr>
-                  {reviewColumns.map(([key, label]) => (
-                    <th
-                      key={key}
-                      scope="col"
-                      aria-sort={
-                        sort === key
-                          ? order === "asc"
-                            ? "ascending"
-                            : "descending"
-                          : undefined
-                      }
-                    >
-                      <button
-                        type="button"
-                        className="table-sort"
-                        disabled={!available || !!retry}
-                        onClick={() => {
-                          const next: ReviewOrder =
-                            sort === key && order === "asc" ? "desc" : "asc";
-                          setSort(key);
-                          setOrder(next);
-                          void load(source, filter, undefined, key, next);
-                        }}
+            Refresh transactions
+          </button>
+        </div>
+        {!sources && error && available && (
+          <button
+            type="button"
+            onClick={() => setSourceAttempt((attempt) => attempt + 1)}
+          >
+            Retry source accounts
+          </button>
+        )}
+        {sources?.length === 0 && (
+          <p>No source accounts are available in this book.</p>
+        )}
+        {source && sources && (
+          <>
+            <p className="review-list-summary" role="status">
+              {page?.start_index && page.matching_count
+                ? page.items.length > 0
+                  ? "Transactions " +
+                    page.start_index +
+                    "–" +
+                    String(
+                      BigInt(page.start_index) + BigInt(page.items.length) - 1n,
+                    ) +
+                    " of " +
+                    page.matching_count
+                  : "0 transactions of " + page.matching_count
+                : "Source transactions"}
+              {" · "}
+              {reviewColumns.find(([key]) => key === sort)?.[1]}{" "}
+              {order === "desc" ? "descending" : "ascending"}
+            </p>
+            <details className="review-list-note">
+              <summary>About this list</summary>
+              <p>
+                Column headers sort all matching transactions. Amounts sort by
+                currency, then original amount. Imported history may be
+                incomplete.
+              </p>
+            </details>
+            <div
+              className="table-scroll"
+              role="region"
+              aria-label="Transaction table"
+              tabIndex={0}
+            >
+              <table className="review-table" role="table">
+                <caption>
+                  Imported transactions ·{" "}
+                  {filter ? filter.replaceAll("_", " ") : "all statuses"}
+                </caption>
+                <thead>
+                  <tr>
+                    {reviewColumns.map(([key, label]) => (
+                      <th
+                        key={key}
+                        scope="col"
+                        aria-sort={
+                          sort === key
+                            ? order === "asc"
+                              ? "ascending"
+                              : "descending"
+                            : undefined
+                        }
                       >
-                        {label}
-                        {sort === key && (
-                          <span className="sort-direction" aria-hidden="true">
-                            {order === "asc" ? "↑" : "↓"}
-                          </span>
-                        )}
-                      </button>
-                    </th>
-                  ))}
-                  <th scope="col">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {page?.items.map((row) => (
-                  <tr key={row.review_id}>
-                    <td>{row.booked_date}</td>
-                    <td>{row.description}</td>
-                    <td>{row.direction}</td>
-                    <td>{amount(row)}</td>
-                    <td>{row.state.replaceAll("_", " ")}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="review-row-action"
-                        aria-label={"Review " + row.description}
-                        disabled={busy || !!retry || !available}
-                        onClick={() => void select(row.review_id)}
-                      >
-                        Review
-                      </button>
-                    </td>
+                        <button
+                          type="button"
+                          className="table-sort"
+                          disabled={!available || !!retry}
+                          onClick={() => {
+                            const next: ReviewOrder =
+                              sort === key && order === "asc" ? "desc" : "asc";
+                            setSort(key);
+                            setOrder(next);
+                            void load(source, filter, undefined, key, next);
+                          }}
+                        >
+                          {label}
+                          {sort === key && (
+                            <span className="sort-direction" aria-hidden="true">
+                              {order === "asc" ? "↑" : "↓"}
+                            </span>
+                          )}
+                        </button>
+                      </th>
+                    ))}
+                    <th scope="col">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {page?.items.length === 0 && (
-            <p>No transactions match this status.</p>
-          )}
-          {page && (
-            <div className="review-pagination">
-              <button
-                type="button"
-                disabled={
-                  busy ||
-                  !available ||
-                  !!retry ||
-                  !page.start_index ||
-                  page.start_index === "0" ||
-                  page.start_index === "1"
-                }
-                onClick={() => void load()}
-              >
-                First transactions
-              </button>
-              <button
-                type="button"
-                disabled={!page.next_cursor || busy || !available || !!retry}
-                onClick={() =>
-                  void load(source, filter, page.next_cursor ?? undefined)
-                }
-              >
-                Next transactions
-              </button>
-              {!page.next_cursor && (
-                <p>
-                  End of matching transactions. Change the filter or sort to
-                  explore the list.
-                </p>
-              )}
+                </thead>
+                <tbody>
+                  {page?.items.map((row) => (
+                    <tr key={row.review_id} role="row">
+                      <td>{row.booked_date}</td>
+                      <td>{row.description}</td>
+                      <td>{row.direction}</td>
+                      <td>{amount(row)}</td>
+                      <td>{row.state.replaceAll("_", " ")}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="review-row-action"
+                          aria-label={"Review " + row.description}
+                          disabled={busy || !!retry || !available}
+                          onClick={(event) => {
+                            selectedRow.current = event.currentTarget;
+                            void select(row.review_id);
+                          }}
+                        >
+                          Review
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </>
-      )}
+            {page?.items.length === 0 && (
+              <p>No transactions match this status.</p>
+            )}
+            {page && (
+              <div className="review-pagination">
+                <button
+                  type="button"
+                  disabled={
+                    busy ||
+                    !available ||
+                    !!retry ||
+                    !page.start_index ||
+                    page.start_index === "0" ||
+                    page.start_index === "1"
+                  }
+                  onClick={() => void load()}
+                >
+                  First transactions
+                </button>
+                <button
+                  type="button"
+                  disabled={!page.next_cursor || busy || !available || !!retry}
+                  onClick={() =>
+                    void load(source, filter, page.next_cursor ?? undefined)
+                  }
+                >
+                  Next transactions
+                </button>
+                {!page.next_cursor && (
+                  <p>
+                    End of matching transactions. Change the filter or sort to
+                    explore the list.
+                  </p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
       {detail && (
-        <section aria-labelledby="review-detail-title">
+        <section
+          className="review-detail"
+          aria-labelledby="review-detail-title"
+        >
+          <button
+            type="button"
+            disabled={busy || !!retry || !available}
+            onClick={backToList}
+          >
+            Back to transactions
+          </button>
           <h3 id="review-detail-title" ref={heading} tabIndex={-1}>
             {detail.description}
           </h3>

@@ -8,6 +8,10 @@ freshness, category/merchant spending and traceable opportunities. Read the
 407 primary entry is in delivery; [stages](runbooks/transaction-entry.md) record
 actual evidence. Other children and cross-book dependencies remain separate.
 
+[Compact transaction reading](contracts/compact-transaction-review.md),415:
+responsive same-row table, focused detail/back and current-source defaults;
+[stages](runbooks/compact-transaction-review.md) record its dependent delivery.
+
 [Transaction sorting](contracts/transaction-review-sort.md) and
 [frontend audit](reviews/transaction-review-406.md):406 adds global data-column
 sorting, readable rows and explicit pagination; source-only forward39. Human

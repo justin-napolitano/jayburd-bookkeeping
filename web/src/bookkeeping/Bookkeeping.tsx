@@ -82,8 +82,16 @@ export function Bookkeeping({
   const [sourceRevision, setSourceRevision] = useState<string>();
   const [navigationKey, setNavigationKey] = useState(0);
   const toolHeading = useRef<HTMLHeadingElement>(null);
+  const reviewPreference = useRef<{ scope: string; source: string } | null>(
+    null,
+  );
   const recovery = useCommands(api);
   const locked = recovery.locked;
+  // Remember only a manual source choice in the current scope, never a financial snapshot.
+  useEffect(() => {
+    if (locked || reviewPreference.current?.scope !== scope)
+      reviewPreference.current = null;
+  }, [scope, locked]);
   const epoch = useRef(0);
   const deniedRecovery = useRef(false);
   const load = useCallback(async () => {
@@ -351,6 +359,14 @@ export function Bookkeeping({
         )}
       {selected && !loading && tool !== "Position" && (
         <BookWorkspace
+          rememberedSource={
+            reviewPreference.current?.scope === scope
+              ? reviewPreference.current.source
+              : ""
+          }
+          rememberSource={(source) => {
+            reviewPreference.current = { scope, source };
+          }}
           key={`${scope}/${recovery.command?.command_id ?? "none"}/${recovery.command?.state ?? "none"}`}
           {...selected}
           currencies={workspace?.currencies ?? []}

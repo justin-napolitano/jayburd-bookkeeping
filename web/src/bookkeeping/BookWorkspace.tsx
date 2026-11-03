@@ -76,6 +76,8 @@ export function BookWorkspace({
   onThroughChange,
   sourceRevision,
   navigationKey,
+  rememberedSource = "",
+  rememberSource,
 }: {
   entity: Entity;
   book: Book;
@@ -93,14 +95,18 @@ export function BookWorkspace({
   onThroughChange?: (date: string) => void;
   sourceRevision?: string;
   navigationKey?: number;
+  rememberedSource?: string;
+  rememberSource?: (source: string) => void;
 }) {
-  const [reviewSource, setReviewSource] = useState("");
+  const [reviewSource, setReviewSource] = useState(rememberedSource);
+  const manualReviewSource = useRef(rememberedSource);
   const lastNavigation = useRef(navigationKey);
   // Generic tool navigation resets a prior connection filter; explicit connection handoffs keep it.
   useEffect(() => {
     if (lastNavigation.current !== navigationKey) {
       lastNavigation.current = navigationKey;
-      if (activeView === "Review transactions") setReviewSource("");
+      if (activeView === "Review transactions")
+        setReviewSource(manualReviewSource.current);
     }
   }, [navigationKey, activeView]);
   const [localView, setLocalView] = useState<BookView>("Overview");
@@ -202,7 +208,8 @@ export function BookWorkspace({
   }, [readBalances, view]);
   // Native buttons plus focused section headings make view changes keyboard-visible.
   const navigate = (next: BookView) => {
-    if (next === "Review transactions") setReviewSource("");
+    if (next === "Review transactions")
+      setReviewSource(manualReviewSource.current);
     setView(next);
     if (next === "Account activity")
       setSelection((s) => ({ key: s.key + 1, kind: "general-ledger" }));
@@ -238,7 +245,14 @@ export function BookWorkspace({
   };
   return (
     <div className="book-workspace">
-      <div className="book-context" aria-label="Current book context">
+      <div
+        className={
+          view === "Review transactions"
+            ? "book-context book-context-compact"
+            : "book-context"
+        }
+        aria-label="Current book context"
+      >
         <div>
           <p className="eyebrow">{entity.name}</p>
           <h2>{book.name}</h2>
@@ -250,7 +264,9 @@ export function BookWorkspace({
         </div>
         {!(
           activeView &&
-          (view === "Reports" || view === "Account activity")
+          (view === "Reports" ||
+            view === "Account activity" ||
+            view === "Review transactions")
         ) && (
           <div className="context-dates">
             <label>
@@ -304,9 +320,9 @@ export function BookWorkspace({
           ))}
         </nav>
       )}
-      <h2 ref={heading} tabIndex={-1} className="view-title">
+      <h1 ref={heading} tabIndex={-1} className="view-title">
         {view === "Account activity" ? "Ledger" : view}
-      </h2>
+      </h1>
       {(view === "Overview" || view === "Accounts") && (
         <section className="balances" aria-labelledby="balances-title">
           <div className="heading">
@@ -432,6 +448,11 @@ export function BookWorkspace({
       )}
       {view === "Review transactions" && prepare && (
         <ReviewInbox
+          showHeading={false}
+          onSourceChoice={(source) => {
+            manualReviewSource.current = source;
+            rememberSource?.(source);
+          }}
           initialSource={reviewSource}
           api={api}
           entity={entity}
