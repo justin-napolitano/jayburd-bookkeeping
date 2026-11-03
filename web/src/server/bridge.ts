@@ -110,11 +110,15 @@ function allowed(url: URL, method: string): boolean {
       } else if (key === "limit") {
         if (!/^[1-9][0-9]{0,2}$/.test(value) || Number(value) > 100)
           return false;
+      } else if (key === "sort") {
+        if (!["date", "description", "direction", "amount", "status"].includes(value)) return false;
+      } else if (key === "order") {
+        if (!["asc", "desc"].includes(value)) return false;
       } else if (key === "cursor") {
         if (value.length > 2048) return false;
       } else return false;
     }
-    return true;
+    return url.searchParams.has("sort") === url.searchParams.has("order");
   }
   if (
     !url.search &&

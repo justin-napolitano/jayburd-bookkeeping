@@ -734,8 +734,10 @@ function ReportContent({
           </div>
           {report.rows.length === 0 ? (
             <p>
-              No rows in this selection. Opening balances and totals above
-              remain authoritative.
+              No posted entries match this selection. Opening balances remain
+              included in the totals above. These are bookkeeping balances, not
+              bank-reported balances. Review imports under Tools → Review
+              transactions; posting them updates these reports.
             </p>
           ) : (
             <div className="table-scroll">

@@ -204,6 +204,7 @@ describe("source review bridge", () => {
   it.each([
     `${base}/sources`,
     `${base}/review-items?source_account_id=${id}&limit=100`,
+    `${base}/review-items?source_account_id=${id}&sort=amount&order=desc`,
     `${base}/review-items?source_account_id=${id}&state=correction_hold`,
     `${base}/review-items/${id}`,
     `${base}/review-items/${id}/categories`,
@@ -216,6 +217,10 @@ describe("source review bridge", () => {
   it.each([
     `${base}/review-items?source_account_id=${id}&source_account_id=${id}`,
     `${base}/review-items?source_account_id=${id}&limit=101`,
+    `${base}/review-items?source_account_id=${id}&sort=date`,
+    `${base}/review-items?source_account_id=${id}&order=asc`,
+    `${base}/review-items?source_account_id=${id}&sort=date&order=sideways`,
+    `${base}/review-items?source_account_id=${id}&sort=unknown&order=asc`,
     `${base}/review-items?source_account_id=${id}&actor=other`,
     `${base}/review-items`,
     "/v1/demo/acquisition",

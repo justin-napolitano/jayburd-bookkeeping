@@ -127,6 +127,15 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
     journal_count: "0",
   });
   await review.click();
+  await expect(page.getByRole("columnheader", { name: "Date" })).toHaveAttribute("aria-sort", "descending");
+  const sortedReply = page.waitForResponse(response => {
+    const url = new URL(response.url());
+    return url.pathname.endsWith("/review-items") && url.searchParams.get("sort") === "amount";
+  });
+  await page.getByRole("button", { name: "Amount", exact: true }).click();
+  const sortedPage = await (await sortedReply).json();
+  expect(sortedPage).toMatchObject({sort:"amount", order:"asc", start_index:"1"});
+  expect(BigInt(sortedPage.matching_count)).toBeGreaterThan(0n);
   await page
     .getByRole("button", { name: "Review Fictional purchase A", exact: true })
     .click();

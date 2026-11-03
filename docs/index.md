@@ -1,5 +1,10 @@
 # Project context
 
+[Transaction sorting](contracts/transaction-review-sort.md) and
+[frontend audit](reviews/transaction-review-406.md):406 adds global data-column
+sorting, readable rows and explicit pagination; source-only forward39. Human
+review/managed rollout pending.407 navigation and408 search/coverage remain plans.
+
 [Current Production picker rollout](runbooks/picker-rollout.md): reviewed403/
 11b9074 scanned images deployed after managed36–38 up and independent clean38
 status. Original checking identities/history/counts preserved;187 review items,

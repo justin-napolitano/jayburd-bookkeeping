@@ -1004,3 +1004,93 @@ section[aria-label="Connections"] select {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Source review is a reading table; numeric report alignment must stay scoped to reports. */
+.review-table {
+  min-width: 700px;
+}
+.review-table th,
+.review-table td {
+  text-align: left;
+  vertical-align: top;
+}
+.review-table th {
+  vertical-align: middle;
+}
+.review-table td:nth-child(1),
+.review-table td:nth-child(4) {
+  white-space: nowrap;
+}
+.review-table td:nth-child(2) {
+  min-width: 15ch;
+  max-width: 48ch;
+  overflow-wrap: anywhere;
+}
+.review-table th:nth-child(4),
+.review-table td:nth-child(4) {
+  text-align: right;
+}
+.review-table .table-sort {
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0.45rem 0.2rem;
+  min-height: 44px;
+  font: inherit;
+  font-weight: 650;
+  text-align: inherit;
+  white-space: nowrap;
+}
+.review-table .table-sort:hover {
+  background: #eef4f0;
+}
+.sort-direction {
+  margin-left: 0.4rem;
+}
+.review-table .review-row-action {
+  padding: 0.4rem 0.65rem;
+  min-height: 44px;
+  white-space: nowrap;
+}
+.review-list-summary {
+  margin-bottom: 0.25rem;
+  font-weight: 650;
+}
+.review-list-note {
+  color: var(--muted);
+  font-size: 0.85rem;
+  max-width: 80ch;
+  margin-top: 0;
+}
+.review-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+.review-pagination p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+}
+.table-scroll-note {
+  display: none;
+}
+@media (max-width: 650px) {
+  .transaction-review .workspace-actions {
+    align-items: stretch;
+  }
+  .transaction-review .workspace-actions label,
+  .transaction-review select {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .table-scroll-note {
+    display: block;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+}
