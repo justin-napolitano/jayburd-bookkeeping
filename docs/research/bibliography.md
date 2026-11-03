@@ -1,5 +1,7 @@
 # Research index
 
+[Metrics](spending-metrics-sources.md): SM01–06;2026-11-03 proposal.
+
 [Categories/rules](categorization-rules-sources.md): CR01–06 selected2026-11-03;
 Actual/hledger patterns, Plaid versioned PFC, abstract-only hybrid/weak supervision.
 412/413/414 planning;407 navigation has no new financial message or model.

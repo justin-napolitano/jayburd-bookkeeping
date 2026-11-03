@@ -1,0 +1,90 @@
+# Independent spending/activity oracle —428
+
+Original fictional inputs and hand-fixed results for the proposed
+[metric contract](../../../docs/contracts/spending-metrics.md). Source review:
+[SM01–06](../../../docs/research/spending-metrics-sources.md). No bank data,
+downloaded corpus, posting generator or runtime classifier produced these values.
+
+| File | Role |
+| --- | --- |
+| observations.json | Current/historical source quantities, scopes, synthetic currency versions and a separate3000-row recipe |
+| annotations.json | Illustrative explicit reviewed classification/allocation inputs for future Phase B; not provider evidence or installed taxonomy |
+| expected.json | Fixed independent totals, unit groups, merchant groups, contributions, comparison and denial targets |
+| transitions.json | Fixed pending/modified/removed/replay, source-versus-journal and future alias-version counterexamples |
+
+This is a **different fixture profile** from golden-month/fx-lifecycle and is not
+input to the current cmd/corpus posting checker. No SQL/API/browser metric test
+is implemented or passed by parsing these files. Friendly identifiers require a
+future explicit synthetic adapter to runtime UUIDs/verified test identity; they
+never substitute for principal authorization. Currency metadata validity intervals
+are illustrative test versions, not claims about SIX amendment dates/provenance.
+
+## Manual quantity review
+
+The checking source has21 current observations,20 in November. There are15
+eligible activities, one pending, one removed, two excluded quality holds and
+one zero; these partition20. The posted-correction attention count1 overlaps
+eligible activities. The October prior purchase is outside the selected period.
+There are30 logical observations in all scopes and33 retained revisions; never
+combine those scopes into a private checking metric.
+
+For checking/usd-before, eligible outgoing quantities are independently listed:
+
+`12.50 + 87.50 + 300 + 100 + 220 + 5 + 40 + 80 + 30 + 15 + 50 = 940`.
+
+Incoming quantities are `2000 + 7.50 + 10 = 2017.50`.
+Thus net source inflow is `2017.50 - 940 = 1077.50`,14 rows:3 incoming and11
+outgoing. The separately referenced usd-after version adds one2-unit outgoing
+row; it is not folded into the first version or any EUR/JPY/KWD group.
+
+Valid source correction15 is included immediately; its old posted100 is retained
+unchanged. Only source-quality ambiguity/precision holds are excluded. Neither
+old100 nor old unposted40 is added alongside its current revision. The high-
+precision USD1.001 remains exact evidence; no rounding into the totals.
+
+With the illustrative Phase B annotations, known gross spending is
+`12.50 + 87.50 + 20 interest + 5 fee + 50 = 175`.
+Refunds are `7.50 + 10 = 17.50`; net known spending is157.50, with incomplete
+allocation coverage. Excluded transfer/card-payment/principal outgoing is
+`300 + 100 + 200 = 600`. Unknown outgoing is `40 + 80 + 30 + 15 = 165`.
+The partition `175 + 600 + 165 = 940` must hold without treating unknowns as
+expenses or zeros. Reviewed income2000 differs from incoming2017.50.
+
+The seven spending drill contributions add to157.50. Using signed whole source
+amounts would instead produce357.50, overcounting200 principal. The220 original
+must remain visible beside its20 interest contribution. A prior-period purchase
+refund contributes-10 on the refund date; it does not rewrite October.
+
+Card activity has100 incoming,85 outgoing and net15. Reviewed purchase spending
+is85; repayment spending/income0. The savings transfer300 is source inflow but
+not income. No source net is a bank balance or functional-currency valuation.
+
+Exact merchant labels remain distinct. Checking/usd-before `Fictional Cafe`
+has12.50 outgoing and7.50 incoming, net outgoing5; uppercase `FICTIONAL CAFE`
+has50 outgoing separately. The not-provided-label bucket has775 outgoing and
+2000 incoming over8 rows. The valid corrected source adds its separate15 label.
+A legacy CSV record has unavailable merchant metadata, not a successful empty
+merchant result. The same label in EUR or another reference version never merges.
+
+The independent volume target is1000 cycles of `0.01+0.02+0.03=0.06`, hence60
+units over3000 rows. The first50 rows are16 cycles plus0.01+0.02, hence0.99;
+that visible page is not the total. At100 rows/page there must be30 unique pages.
+Future generators consume the recipe but may not derive/overwrite the expected
+60/3000 constants. No current3000-row metric benchmark is claimed.
+
+Percentage fixtures include exact tie cases:1/32×100=3.125→3.12 and
+3/32×100=9.375→9.38 under half-even2-place display. Non-positive baselines
+return a null percentage/reason. This does not define currency rounding or FX.
+
+## Required implementation evidence
+
+TestSpendingRefundsTransfersCards, TestSpendingCurrenciesSeparate,
+TestWholeResultNotPage, TestMerchantNormalizationVersion,
+TestAggregateDrillEquality, TestFreshnessUnknownStale,
+TestAggregatePrincipalDeny, TestSourceRevisionSnapshot and TestReadNeverPosts
+remain future SQL/API/browser acceptance, not existing guarantees.
+Include deliberate mutations: wrong principal/book, mixed currency/version,
+stale source/label/allocation snapshot, duplicate/current+old revision, amount
+float/rounding, unknown-as-zero, whole-row interest drill, repayment-as-purchase,
+substring merchant match and page-only sum. Actual authorization/recovery/provider
+and zero-journal/outbox effects need integration evidence against runtime code.
