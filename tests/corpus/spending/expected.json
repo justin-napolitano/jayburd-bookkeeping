@@ -1,0 +1,75 @@
+{
+  "profile": "jayburd-spending-oracle-expected/1",
+  "status": "Hand-fixed independent targets; no runtime metrics acceptance is claimed.",
+  "phase_a": {
+    "checking": {
+      "scope": "owner/personal/household/checking",
+      "source_revision": "21",
+      "current_observations_all_dates": "21",
+      "current_observations_in_period": "20",
+      "eligible_activity_count": "15",
+      "pending_count": "1", "removed_count": "1", "excluded_quality_hold_count": "2", "posting_correction_attention_count": "1", "zero_count": "1",
+      "available_from": "2026-10-31", "available_through": "2026-11-12",
+      "coverage": "partial_quality_holds",
+      "units": [
+        {"currency_version": "usd-before", "currency": "USD", "minor_unit": 2, "count": "14", "inflow_count": "3", "outflow_count": "11", "inflow": "2017.5", "outflow": "940", "net_inflow": "1077.5"},
+        {"currency_version": "usd-after", "currency": "USD", "minor_unit": 2, "count": "1", "inflow_count": "0", "outflow_count": "1", "inflow": "0", "outflow": "2", "net_inflow": "-2"}
+      ],
+      "bank_balance": null, "functional_total": null, "categorized_spending": null, "uncategorized_count": null,
+      "last_successful_import": null, "provider_updated_at": null, "completeness": "unproven",
+      "merchant_profile": "provider-merchant-exact-v1",
+      "merchant_groups_usd_before": [
+        {"label": "Fictional Cafe", "status": "provided", "count": "2", "inflow": "7.5", "outflow": "12.5", "net_outflow": "5"},
+        {"label": "Fictional Market", "status": "provided", "count": "1", "inflow": "0", "outflow": "87.5", "net_outflow": "87.5"},
+        {"label": "FICTIONAL CAFE", "status": "provided", "count": "1", "inflow": "0", "outflow": "50", "net_outflow": "50"},
+        {"label": "Fictional Old Shop", "status": "provided", "count": "1", "inflow": "10", "outflow": "0", "net_outflow": "-10"},
+        {"label": "Fictional Corrected", "status": "provided", "count": "1", "inflow": "0", "outflow": "15", "net_outflow": "15"},
+        {"label": null, "status": "not_provided", "count": "8", "inflow": "2000", "outflow": "775", "net_outflow": "-1225"}
+      ]
+    },
+    "card": {"count": "2", "currency_version": "usd-before", "inflow": "100", "outflow": "85", "net_inflow": "15", "cash_balance_inference": null},
+    "savings": {"count": "1", "currency_version": "usd-before", "inflow": "300", "outflow": "0", "net_inflow": "300", "income_inference": null},
+    "original_units": [
+      {"scope": "eur-account", "currency_version": "eur", "outflow": "20", "functional_amount": null},
+      {"scope": "yen-account", "currency_version": "jpy", "outflow": "1250", "functional_amount": null},
+      {"scope": "kwd-account", "currency_version": "kwd", "outflow": "1.005", "functional_amount": null}
+    ],
+    "legacy_merchant": {"scope": "legacy", "outflow": "60", "merchant_status": "unavailable", "merchant_groups": null},
+    "immutable_posted_history": {"observation": "posted-correction", "journal_original_quantity": "100", "journal_source_revision": "1", "source_current_quantity": "15", "source_current_revision": "2", "attention": "correction", "journal_mutations_from_read": "0"}
+  },
+  "phase_b_only_with_annotations": {
+    "checking_usd_before": {"reviewed_income": "2000", "gross_spending": "175", "refunds": "17.5", "net_spending": "157.5", "excluded_transfer_card_principal_outflow": "600", "unknown_outflow": "165", "unknown_outflow_count": "4", "spending_coverage": "partial_unknown_allocations_and_quality_holds"},
+    "checking_usd_after": {"gross_spending": "2", "refunds": "0", "net_spending": "2"},
+    "card_usd_before": {"gross_spending": "85", "refunds": "0", "net_spending": "85", "repayment_spending": "0"},
+    "savings_usd_before": {"gross_spending": "0", "net_spending": "0", "transfer_income": "0"},
+    "checking_spending_drill_usd_before": [
+      {"observation": "coffee", "original_amount": "12.50", "source_revision": "1", "contribution": "12.5"},
+      {"observation": "groceries", "original_amount": "87.50", "source_revision": "1", "contribution": "87.5"},
+      {"observation": "loan-split", "original_amount": "220.00", "source_revision": "1", "allocation_id": "loan-interest", "allocation_revision": "1", "contribution": "20"},
+      {"observation": "bank-fee", "original_amount": "5.00", "source_revision": "1", "contribution": "5"},
+      {"observation": "unposted-correction", "original_amount": "50.00", "source_revision": "2", "contribution": "50"},
+      {"observation": "coffee-refund", "original_amount": "7.50", "source_revision": "1", "contribution": "-7.5"},
+      {"observation": "prior-refund", "original_amount": "10.00", "source_revision": "1", "contribution": "-10"}
+    ],
+    "prior_period_refund": {"purchase_date": "2026-10-31", "refund_date": "2026-11-11", "current_period_contribution": "-10", "rewrite_prior_period": false}
+  },
+  "comparison_cases": [
+    {"current": "30", "prior": "20", "delta": "10", "percentage": "50.00"},
+    {"current": "5", "prior": "0", "delta": "5", "percentage": null, "reason": "no_positive_baseline"},
+    {"current": "-10", "prior": "-20", "delta": "10", "percentage": null, "reason": "no_positive_baseline"},
+    {"current": "0", "prior": "10", "delta": "-10", "percentage": "-100.00"},
+    {"current": "33", "prior": "32", "delta": "1", "percentage": "3.12"},
+    {"current": "35", "prior": "32", "delta": "3", "percentage": "9.38"}
+  ],
+  "volume_case": {"count": "3000", "outflow": "60", "visible_first_50_outflow": "0.99", "merchant_group_count": "1", "pages_at_100": "30", "duplicate_or_skipped_ids": "0"},
+  "authority_and_recovery": [
+    {"case": "other principal requests checking", "expected": "denied_without_financial_fields"},
+    {"case": "household scope with other-book source", "expected": "denied_without_financial_fields"},
+    {"case": "checking headline plus different-book75 or foreign999", "expected": "never_combine"},
+    {"case": "source revision changes after summary", "expected": "stale_refresh_required_not_newer_drill"},
+    {"case": "taxonomy/rule/allocation revision changes for spending drill", "expected": "stale_refresh_required"},
+    {"case": "read error or denied source", "expected": "unavailable_or_denied_not_zero"},
+    {"case": "all rows validly filtered out", "expected": "successful_empty_eligible_set_with_explicit_coverage"},
+    {"case": "summary or drill retry", "journals_created": "0", "outbox_created": "0", "provider_calls": "0", "commands_acknowledged": "0"}
+  ]
+}

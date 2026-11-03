@@ -1,0 +1,29 @@
+{
+  "profile": "jayburd-spending-oracle-annotations/1",
+  "synthetic": true,
+  "status": "Illustrative reviewed-input oracle, not an implemented taxonomy, inferred provider truth or approved accounting policy.",
+  "annotation_revision": "1",
+  "labels": [
+    {"observation": "payroll", "source_revision": "1", "kind": "income"},
+    {"observation": "coffee", "source_revision": "1", "kind": "purchase", "topic": "Food"},
+    {"observation": "groceries", "source_revision": "1", "kind": "purchase", "topic": "Food"},
+    {"observation": "transfer-out", "source_revision": "1", "kind": "internal_transfer", "reviewed_counterleg": "savings-transfer"},
+    {"observation": "savings-transfer", "source_revision": "1", "kind": "internal_transfer", "reviewed_counterleg": "transfer-out"},
+    {"observation": "card-payment", "source_revision": "1", "kind": "card_repayment", "reviewed_counterleg": "card-payment-received"},
+    {"observation": "card-payment-received", "source_revision": "1", "kind": "card_repayment", "reviewed_counterleg": "card-payment"},
+    {"observation": "loan-split", "source_revision": "1", "kind": "loan_split", "allocation_revision": "1", "allocations": [{"id": "loan-principal", "kind": "principal", "amount": "200.00", "spending_contribution": "0"}, {"id": "loan-interest", "kind": "interest", "topic": "Interest", "amount": "20.00", "spending_contribution": "20.00"}]},
+    {"observation": "coffee-refund", "source_revision": "1", "kind": "linked_refund", "reviewed_purchase": "coffee", "topic": "Food"},
+    {"observation": "bank-fee", "source_revision": "1", "kind": "fee", "topic": "Fees"},
+    {"observation": "cash-withdrawal", "source_revision": "1", "kind": "unknown_allocation"},
+    {"observation": "loan-unsplit", "source_revision": "1", "kind": "unknown_allocation"},
+    {"observation": "unknown-debit", "source_revision": "1", "kind": "unknown_allocation"},
+    {"observation": "unposted-correction", "source_revision": "2", "kind": "purchase", "topic": "Other purchases"},
+    {"observation": "prior-purchase", "source_revision": "1", "kind": "purchase", "topic": "Other purchases"},
+    {"observation": "prior-refund", "source_revision": "1", "kind": "linked_refund", "reviewed_purchase": "prior-purchase", "topic": "Other purchases"},
+    {"observation": "metadata-boundary", "source_revision": "1", "kind": "purchase", "topic": "Food"},
+    {"observation": "card-purchase", "source_revision": "1", "kind": "purchase", "topic": "Other purchases"},
+    {"observation": "eur-coffee", "source_revision": "1", "kind": "purchase", "topic": "Food"},
+    {"observation": "yen-purchase", "source_revision": "1", "kind": "purchase", "topic": "Other purchases"},
+    {"observation": "kwd-purchase", "source_revision": "1", "kind": "purchase", "topic": "Other purchases"}
+  ]
+}
