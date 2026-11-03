@@ -20,6 +20,9 @@ malformed, oversized, interrupted or unknown-code errors fall back to fixed copy
 401/403/404 and all POST error bodies remain unread. No raw title/detail/request ID
 is exposed, persisted or logged. This revises291's blanket unread-body rule only
 for this bounded projection. Status and uncertainty retain their current meaning.
+The production Next bridge independently restricts this projection to the exact
+GET category path and422 problem media type, with the same2048-byte cap. It emits
+only fixed code JSON; no upstream detail or request identity crosses the bridge.
 
 Policy rejection explains the book policy cannot support a draft on the original
 transaction date; review policy coverage with the book owner. It never asserts a
