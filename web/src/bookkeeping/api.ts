@@ -4,6 +4,7 @@ export class APIError extends Error {
     public status: number,
     public uncertain: boolean,
     operation: "read" | "mutation" = "mutation",
+    public code?: "unsupported_policy",
   ) {
     super(
       status === 401
@@ -20,6 +21,53 @@ export class APIError extends Error {
                 ? "The outcome is unknown. Retry this unchanged request to find its committed result."
                 : "The server rejected this request. Check the fields and accounting policy.",
     );
+  }
+}
+
+// Retain one reviewed problem code only; never expose raw diagnostics or buffer an unbounded error.
+async function readProblemCode(
+  response: Response,
+): Promise<"unsupported_policy" | undefined> {
+  if (
+    response.status !== 422 ||
+    response.headers.get("Content-Type")?.split(";")[0].trim().toLowerCase() !==
+      "application/problem+json" ||
+    !response.body
+  )
+    return;
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 2048) return;
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    const value: unknown = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+    );
+    if (
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      "code" in value &&
+      value.code === "unsupported_policy"
+    )
+      return "unsupported_policy";
+  } catch {
+    // A malformed/interrupted problem never replaces the original status or authority decision.
+  } finally {
+    void reader.cancel().catch(() => {});
+    reader.releaseLock();
   }
 }
 // Download is optional for injected test clients; production clients own fresh authentication.
@@ -80,6 +128,7 @@ export function createAPI(
           response.status === 408 ||
           response.status === 429,
         operation,
+        operation === "read" ? await readProblemCode(response) : undefined,
       );
     return response;
   };

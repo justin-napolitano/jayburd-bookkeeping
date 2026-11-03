@@ -1,5 +1,8 @@
 # Project context
 
+[Accounting category recovery](contracts/category-recovery.md) and
+[stages](runbooks/category-recovery.md),416: draft readiness and readable detail.
+
 [Read availability copy](contracts/read-error-copy.md) and
 [stages](runbooks/read-error-copy.md) preserve pending-command uncertainty,291.
 
