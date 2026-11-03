@@ -2,10 +2,12 @@
 
 [Transaction sorting](contracts/transaction-review-sort.md) and
 [frontend audit](reviews/transaction-review-406.md):406 adds global data-column
-sorting, readable rows and explicit pagination; source-only forward39. Human
-review/managed rollout pending.407 navigation and408 search/coverage remain plans.
+sorting, readable rows and explicit pagination. Reviewed409/30ddfc1 and forward39
+are deployed: [current Production rollout](runbooks/transaction-sort-rollout.md)
+records clean39, five matching Ready services, smoke and preservation checks.
+407 navigation and408 search/coverage remain plans.
 
-[Current Production picker rollout](runbooks/picker-rollout.md): reviewed403/
+[Predecessor Production picker rollout](runbooks/picker-rollout.md): reviewed403/
 11b9074 scanned images deployed after managed36–38 up and independent clean38
 status. Original checking identities/history/counts preserved;187 review items,
 0journals, default one-account limit and existing04Z expiry unchanged.404 tracks
