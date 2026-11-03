@@ -88,10 +88,10 @@ Sections/inferences/limits recorded; no normative ISO, cloud config or credentia
   Durable local evidence and current SQL authority are project decisions with
   synthetic fault tests, not provider or cloud guarantees.
 
-The [sync boundary](../contracts/provider-runtime-boundaries.md)
-records Plaid pagination/account-filter and PostgreSQL17
-isolation/function-privilege sections. It distinguishes vendor mechanisms from
-our bounded publication and role decisions. No live-provider or measured scalability proof.
+[Sync boundary](../contracts/provider-runtime-boundaries.md): Plaid pagination/account
+filter and PG17 isolation/privileges; vendor mechanisms versus our bounded
+publication/roles. No live/scalability proof.
+[Review sort](../contracts/transaction-review-sort.md): PG17/APG selected406; synthetic.
 
 - [Plaid decoder contract](../contracts/plaid-decoder.md): selected official
   transaction/version fields, exact numeric interpretation, inert metadata allowlist
