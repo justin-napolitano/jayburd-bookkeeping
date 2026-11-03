@@ -1300,3 +1300,14 @@ section[aria-label="Connections"] select {
     font-size: 0.85rem;
   }
 }
+
+/* Search stays one compact row on wide screens and stacks without horizontal overflow. */
+.review-search-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.review-search-fields label { min-width: 0; }
+@media (max-width: 700px) {
+  .review-search-fields { grid-template-columns: minmax(0, 1fr); }
+}

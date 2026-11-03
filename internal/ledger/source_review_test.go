@@ -76,3 +76,44 @@ func TestSourceReviewTransport(t *testing.T) {
 		t.Fatal("identity boundary")
 	}
 }
+
+// TestSourceReviewQueryTransport preserves private JSON bytes and denies URL/key/body ambiguities before dispatch.
+func TestSourceReviewQueryTransport(t *testing.T) {
+	path := "/v1/entities/e/books/b/review-items/query"
+	body := `{"source_account_id":"synthetic","search":"private synthetic merchant","starts_on":null}`
+	for _, tc := range []struct {
+		name, path, body, content, key string
+		status                         int
+	}{
+		{"read", path, body, "application/json", "", 200},
+		{"query", path + "?search=private", body, "application/json", "", 400},
+		{"key", path, body, "application/json", "synthetic", 400},
+		{"content", path, body, "text/plain", "", 400},
+		{"oversize", path, strings.Repeat("x", 8193), "application/json", "", 413},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := &reviewTransportStub{operationsStub: operationsStub{result: Result{Status: 200, Body: []byte(`{}`)}}}
+			r := httptest.NewRequest("POST", tc.path, strings.NewReader(tc.body))
+			r.Header.Set("Authorization", "Bearer synthetic")
+			r.Header.Set("Content-Type", tc.content)
+			if tc.key != "" {
+				r.Header.Set("Idempotency-Key", tc.key)
+			}
+			w := httptest.NewRecorder()
+			Handler(authStub{}, s).ServeHTTP(w, r)
+			if w.Code != tc.status {
+				t.Fatal("query status", w.Code)
+			}
+			if tc.status == 200 {
+				if s.action != "query" || s.command.Body != body || s.command.Actor == "" || s.command.Key != "" {
+					t.Fatal("query identity/body changed")
+				}
+			} else if s.calls != 0 {
+				t.Fatal("rejected query dispatched")
+			}
+			if strings.Contains(w.Body.String(), "private") {
+				t.Fatal("query leaked diagnostic")
+			}
+		})
+	}
+}
