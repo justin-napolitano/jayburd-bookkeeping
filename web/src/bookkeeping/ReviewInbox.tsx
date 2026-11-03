@@ -470,81 +470,84 @@ function Inbox({
           </label>
           <button
             type="button"
+            aria-label="Refresh transactions"
             disabled={!source || !available || busy || !!retry}
             onClick={() => void load()}
           >
-            Refresh transactions
+            Refresh
           </button>
-        </div>
-        <details>
-          <summary>Search and dates</summary>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const criteria = {
-                search: searchText,
-                starts_on: fromDate || null,
-                through_date: throughDate || null,
-              };
-              setAppliedSearch(criteria);
-              void load(source, filter, undefined, sort, order, criteria);
-            }}
-          >
-            <fieldset
-              disabled={!source || !available || busy || !!retry || !api.query}
+          <details className="review-search-options">
+            <summary>Search and dates</summary>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const criteria = {
+                  search: searchText,
+                  starts_on: fromDate || null,
+                  through_date: throughDate || null,
+                };
+                setAppliedSearch(criteria);
+                void load(source, filter, undefined, sort, order, criteria);
+              }}
             >
-              <legend className="sr-only">Search and dates</legend>
-              <div className="review-search-fields">
-                <label>
-                  Description contains
-                  <input
-                    type="search"
-                    autoComplete="off"
-                    maxLength={100}
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                  />
-                </label>
-                <label>
-                  From date
-                  <input
-                    type="date"
-                    value={fromDate}
-                    max={throughDate || undefined}
-                    onChange={(e) => setFromDate(e.target.value)}
-                  />
-                </label>
-                <label>
-                  Through date
-                  <input
-                    type="date"
-                    value={throughDate}
-                    min={fromDate || undefined}
-                    onChange={(e) => setThroughDate(e.target.value)}
-                  />
-                </label>
-              </div>
-              <button type="submit">Apply filters</button>{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchText("");
-                  setFromDate("");
-                  setThroughDate("");
-                  const criteria = {
-                    search: "",
-                    starts_on: null,
-                    through_date: null,
-                  };
-                  setAppliedSearch(criteria);
-                  void load(source, filter, undefined, sort, order, criteria);
-                }}
+              <fieldset
+                disabled={
+                  !source || !available || busy || !!retry || !api.query
+                }
               >
-                Clear filters
-              </button>
-            </fieldset>
-          </form>
-        </details>
+                <legend className="sr-only">Search and dates</legend>
+                <div className="review-search-fields">
+                  <label>
+                    Description contains
+                    <input
+                      type="search"
+                      autoComplete="off"
+                      maxLength={100}
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    From date
+                    <input
+                      type="date"
+                      value={fromDate}
+                      max={throughDate || undefined}
+                      onChange={(e) => setFromDate(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Through date
+                    <input
+                      type="date"
+                      value={throughDate}
+                      min={fromDate || undefined}
+                      onChange={(e) => setThroughDate(e.target.value)}
+                    />
+                  </label>
+                </div>
+                <button type="submit">Apply filters</button>{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchText("");
+                    setFromDate("");
+                    setThroughDate("");
+                    const criteria = {
+                      search: "",
+                      starts_on: null,
+                      through_date: null,
+                    };
+                    setAppliedSearch(criteria);
+                    void load(source, filter, undefined, sort, order, criteria);
+                  }}
+                >
+                  Clear filters
+                </button>
+              </fieldset>
+            </form>
+          </details>
+        </div>
         {page?.source_count !== undefined && (
           <p>
             Imported history:{" "}

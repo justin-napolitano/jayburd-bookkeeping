@@ -11,6 +11,9 @@ explicitly applying (including empty filters) switches that source context to th
 private query/coverage projection; sort/status/pages/refresh retain applied filters.
 Editing fields does not apply them. Clear resets search/dates and page one; scope/
 source changes discard them. Collapsed controls preserve the compact default feed.
+The collapsed disclosure shares the Refresh action row at narrow widths, with
+44px targets; expansion spans the toolbar. Default first-row/action viewport
+acceptance remains844px at390px width across platforms, not just local macOS.
 
 `POST /v1/entities/{entity}/books/{book}/review-items/query` is a no-store read.
 No query string, caller actor, idempotency key, browser storage, request-body log
