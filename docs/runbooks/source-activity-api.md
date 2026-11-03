@@ -18,6 +18,7 @@ bank consent, deployment, financial mutation or account registration authority.
 | Prerequisite |430 checks: foundation/frontend/GitGuardian/application integration PASS; validate still running; no predecessor marked complete |
 | Runtime | Blocked by428/430 review/merge; no DDL/API implementation or claimed runtime tests |
 | Design validation | make packet ID=JB-001 and core check/test/build PASS with documented temporary local Go1.26.5 adapter; tracked toolchain/dependencies unchanged; no runtime metrics tested |
+| SQL source review | SM07 records selected PostgreSQL17 aggregate/math entries and full RepeatableRead subsection, facts versus proposed application and pending runtime evidence |
 
 ## Current evidence
 

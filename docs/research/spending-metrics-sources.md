@@ -13,6 +13,19 @@ implemented financial API, jurisdictional policy or conformance statement.
 | SM05 Repository normalized/current-fact review | internal/ingestion/plaid/types.go Transaction; migration12 publish_sync_row/review detail and last_completed_at; migrations39/40 read boundaries; relevant source sections read | Normalized merchant_name is stored in provider_fields while display description uses name; no dedicated normalized PFC. Pending may lack review rows. Infer a separate approved minimal projection, current-revision inventory and exact merchant drill; do not assume40 already implements metrics |
 | SM06 [ISO8601-1:2019](https://www.iso.org/standard/70907.html), [Amd1:2022](https://www.iso.org/standard/81801.html), [RFC3339](https://www.rfc-editor.org/rfc/rfc3339.html#section-5.6) | ISO edition/public metadata only, full normative text unread; RFC July2002 §5.6 grammar and notes read2026-11-03 | Distinguish a full calendar day from an offset-bearing timestamp. Reuse YYYY-MM-DD and existing RFC3339 UTC output; no expanded/week/ordinal date adoption or claim that the RFC certifies the 2019 ISO edition |
 
+SM07, reviewed2026-11-03 for429: PostgreSQL17
+[§9.21](https://www.postgresql.org/docs/17/functions-aggregate.html), count/sum,
+empty-set and ordered aggregation entries;
+[§9.3](https://www.postgresql.org/docs/17/functions-math.html), trim_scale/trunc entries;
+[§13.2.2](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ),
+full subsection. Facts: numeric aggregates retain numeric arithmetic, empty sums
+need explicit treatment, trailing scale differs from value, and RepeatableRead
+requires careful locking/retry for consistency. Project inference: exact complete
+unit-group sums, no precision rounding into eligibility, fresh authorization locks
+and pinned drill snapshots. These mechanisms do not prove our future joins,
+privilege boundaries, snapshot invalidation or latency; actual runtime tests remain
+required. No full-dataset/payload access or dependency added by this review.
+
 Contract choices, alternatives, threats and acceptance are in
 [spending metrics](../contracts/spending-metrics.md). Original worked examples
 and hand-fixed expected quantities live in the [oracle](../../tests/corpus/spending/README.md).
