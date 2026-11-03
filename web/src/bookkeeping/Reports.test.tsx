@@ -75,7 +75,7 @@ function request() {
   fireEvent.change(screen.getByLabelText("Report through date (inclusive)"), {
     target: { value: "2026-01-31" },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+  fireEvent.click(screen.getByRole("button", { name: "Run report" }));
 }
 describe("financial report review", () => {
   it("pins the first Ledger read from Position and permits explicit refresh after a changed book", async () => {
@@ -115,11 +115,11 @@ describe("financial report review", () => {
     fireEvent.change(screen.getByLabelText("Report account"), {
       target: { value: "a" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run report" }));
     await screen.findByRole("alert");
     expect(api.mock.calls[0][0]).toContain("snapshot_revision=1");
     expect(screen.queryByText(/Snapshot 2/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run report" }));
     await screen.findByText(/Snapshot 2/);
     expect(api.mock.calls[1][0]).not.toContain("snapshot_revision");
   });
@@ -151,7 +151,7 @@ describe("financial report review", () => {
     );
     expect(screen.queryByText(/Snapshot 1/)).toBeNull();
     expect(screen.queryAllByText("9007199254740993.01")).toHaveLength(0);
-    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run report" }));
     await screen.findByText(/Snapshot 2/);
     expect(api.mock.calls[2][0]).not.toContain("cursor");
     expect(api.mock.calls[2][0]).not.toContain("snapshot_revision");
@@ -206,7 +206,7 @@ describe("financial report review", () => {
     });
     resolve(fixture);
     await waitFor(() => expect(screen.queryByText(/Snapshot 1/)).toBeNull());
-    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run report" }));
     view.unmount();
     resolve(fixture);
     render(
@@ -231,7 +231,7 @@ describe("financial report review", () => {
       );
       request();
       await screen.findByText(/Snapshot 1/);
-      fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+      fireEvent.click(screen.getByRole("button", { name: "Run report" }));
       await screen.findByRole("alert");
       expect(screen.queryByText(/Snapshot 1/)).toBeNull();
       expect(screen.queryAllByText("9007199254740993.01")).toHaveLength(0);
@@ -386,7 +386,7 @@ describe("comparison review", () => {
     fireEvent.change(screen.getByLabelText("Comparison ends before"), {
       target: { value: "2026-02-01" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run report" }));
     await screen.findByText(/Snapshot 1/);
     expect(api.mock.calls[0][0]).toContain(
       "compare_starts_on=2026-01-01&compare_ends_before=2026-02-01",
@@ -398,7 +398,7 @@ describe("comparison review", () => {
     fireEvent.change(screen.getByLabelText("Report account"), {
       target: { value: "a" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Refresh report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run report" }));
     await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
     expect(api.mock.calls[1][0]).not.toContain("compare_");
   });
