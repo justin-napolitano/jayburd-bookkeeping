@@ -15,6 +15,7 @@ No cloud/provider/private data/consent or cross-book authority.
 | Design | Source/standards/threat/transport/cursor contract written before implementation |
 | Implementation | New40 restricted read, exact POST body/no URL filters, strict Go/Next transport, generated wire, explicit search/date Apply/Clear, honest source range and snapshot-bound counts/pages |
 | Validation | Core/migration/ledger/runtime-readiness/source-registry PASS;405unit/type/build and50browser PASS; actual Next/Go/SQL query validation/authorization and recovery PASS; complete generated demo4/4 and final3000/1000/exact-post SQL oracles PASS |
+| Hosted CI correction | Linux Chromium found390px first-row bottom878px against844px acceptance. Search disclosure now shares the Refresh action row when collapsed; full-width expansion and native keyboard disclosure retained. Viewport assertion unchanged; core,405unit/type/build,50browser and actual Next/Go/SQL app PASS. Updated captures include the fully visible [default mobile entry](../reviews/transaction-search-408/entry-mobile.png); exact corrected-head hosted check pending |
 
 ## Current evidence
 
