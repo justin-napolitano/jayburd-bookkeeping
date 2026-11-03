@@ -74,7 +74,9 @@ function Inbox({
   const [page, setPage] = useState<ReviewPage | null>(null);
   const [detail, setDetail] = useState<ReviewDetail | null>(null);
   const [categories, setCategories] = useState<ReviewCategories | null>(null);
-  const [categoryUnavailable, setCategoryUnavailable] = useState(false);
+  const [categoryUnavailable, setCategoryUnavailable] = useState<
+    false | "read" | "policy"
+  >(false);
   const [journal, setJournal] = useState<Journal | null>(null);
   const [draft, setDraft] = useState<ReviewDraft | null>(null);
   const [category, setCategory] = useState("");
@@ -262,7 +264,11 @@ function Inbox({
           setCategory("");
           setDraft(null);
           setRetry(null);
-          setCategoryUnavailable(true);
+          setCategoryUnavailable(
+            e instanceof APIError && e.code === "unsupported_policy"
+              ? "policy"
+              : "read",
+          );
         }
       }
       heading.current?.focus();
@@ -610,8 +616,9 @@ function Inbox({
           {categoryUnavailable && (
             <>
               <p role="alert">
-                Categorization is unavailable. You can still review this
-                transaction. Creating a draft is disabled.
+                {categoryUnavailable === "policy"
+                  ? "The book’s accounting policy cannot support a draft on this transaction’s original date. Review policy coverage with the book owner. The imported date and amount are preserved."
+                  : "Accounting categories could not be loaded. Retry the read to check availability. You can still review this transaction. Creating a draft is disabled."}
               </p>
               <button
                 type="button"
@@ -714,50 +721,75 @@ function Inbox({
               this transaction; its original currency and amount are preserved.
             </p>
           )}
-          {categories && !categories.fx_required && (
-            <form onSubmit={(e) => void create(e)}>
-              <fieldset disabled={busy || !available || !!retry}>
-                <legend>Review the category and accounting details</legend>
-                <label>
-                  Category account
-                  <select
-                    required
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                  >
-                    <option value="">Select a category account</option>
-                    {categories.accounts.map((a) => (
-                      <option key={a.account_id} value={a.account_id}>
-                        {a.code} · {a.name} · {a.category}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Accounting date
-                  <input required type="date" readOnly value={date} />
-                </label>
-                <label>
-                  Journal description
-                  <input
-                    required
-                    maxLength={500}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </label>
-                <p>
-                  Policy {categories.policy_id} · Functional currency{" "}
-                  {categories.functional_currency} · Book revision{" "}
-                  {categories.book_revision}
+          {categories &&
+            !categories.fx_required &&
+            categories.accounts.length === 0 && (
+              <>
+                <p role="alert">
+                  No eligible category accounts are active on this transaction’s
+                  original date. Ask the book owner to review the chart of
+                  accounts and effective dates, then retry categorization. You
+                  can still review the transaction. Creating a new draft is
+                  disabled.
                 </p>
-              </fieldset>
-              <button type="submit" disabled={busy || !available || !category}>
-                {retry ? "Retry same draft request" : "Create reviewed draft"}
-              </button>
-              <p>Creating this draft does not post a journal.</p>
-            </form>
-          )}
+                <button
+                  type="button"
+                  disabled={busy || !available}
+                  onClick={() => void select(detail.review_id)}
+                >
+                  Retry categorization
+                </button>
+              </>
+            )}
+          {categories &&
+            !categories.fx_required &&
+            categories.accounts.length > 0 && (
+              <form onSubmit={(e) => void create(e)}>
+                <fieldset disabled={busy || !available || !!retry}>
+                  <legend>Review the category and accounting details</legend>
+                  <label>
+                    Category account
+                    <select
+                      required
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                    >
+                      <option value="">Select a category account</option>
+                      {categories.accounts.map((a) => (
+                        <option key={a.account_id} value={a.account_id}>
+                          {a.code} · {a.name} · {a.category}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Accounting date
+                    <input required type="date" readOnly value={date} />
+                  </label>
+                  <label>
+                    Journal description
+                    <input
+                      required
+                      maxLength={500}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                  </label>
+                  <p>
+                    Policy {categories.policy_id} · Functional currency{" "}
+                    {categories.functional_currency} · Book revision{" "}
+                    {categories.book_revision}
+                  </p>
+                </fieldset>
+                <button
+                  type="submit"
+                  disabled={busy || !available || !category}
+                >
+                  {retry ? "Retry same draft request" : "Create reviewed draft"}
+                </button>
+                <p>Creating this draft does not post a journal.</p>
+              </form>
+            )}
           {draft && (
             <>
               <h4>
