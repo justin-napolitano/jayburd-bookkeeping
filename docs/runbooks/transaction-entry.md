@@ -20,6 +20,7 @@ classification or new aggregation. Other412 children remain independent.
 | Validation | make check/test/build PASS. Locked API types/TypeScript367units/production build and34browser PASS. Actual browser/Next/Go/disposable SQL journey PASS with test-only listener overlay39181–39183; tracked harness/product untouched and existing demo preserved |
 | Visual review | Loaded desktop Position handoff and390px primary navigation screenshots inspected; focus/scope/empty/unavailable/denied/lock/no-mutation cases PASS. Loaded-state capture assertion rerun4/4PASS. Duplicate review headings/mobile feed compaction remain415/420, not claimed fixed |
 | Handoff | Source75f3ae9, [PR421](https://github.com/justin-napolitano/jayburd-bookkeeping/pull/421). Local gates passed; exact-head CI and human review remain required. No child or407closed from this source handoff |
+| CI follow-up | Hosted frontend/foundation/security passed; integration's app/connection/fictional Production journeys passed, but generated acquisition demo still clicked the removed Tools action. Corrected its two locators to primary Transactions; all3000-row/exact-post/recovery assertions preserved. Complete local demo4/4 plus final SQL count assertions PASS on isolated39181–39183listeners; new-head CI pending |
 
 ## Current evidence
 
