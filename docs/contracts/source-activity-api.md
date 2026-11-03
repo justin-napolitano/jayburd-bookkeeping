@@ -136,7 +136,7 @@ Reuse fixed source-read error family:400 invalid_review,404 review_denied,
 label, cursor or provider content appears in errors/logs. Next preserves only
 bounded approved errors and no-store; read failure never becomes uncertain posting.
 
-ISO and source applicability reuse SM01–06 in
+ISO and source applicability reuse SM01–07 in
 [the reviewed source register](../research/spending-metrics-sources.md), plus the
 existing source-search transport/PostgreSQL sections. ISO4217 original code/version,
 ISO calendar-day profile and RFC3339 timestamp mapping remain distinct. Internal
