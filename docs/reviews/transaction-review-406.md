@@ -85,3 +85,6 @@ combinations, complete contrast and full WCAG conformance were not assessed.
 No live sign-in/MFA/OAuth/provider recovery, Sandbox consent renewal, actual restore
 or Production account increase occurred. Source39 needs human review and a
 separate migration-first rollout; the deployed site still runs38.
+GitHub CI for8362417 could not start because of account billing/spending-limit
+annotations. No CI workflow steps ran; local evidence is not a substitute for
+required exact-head CI. Owner action in Billing & plans is needed before rerun.

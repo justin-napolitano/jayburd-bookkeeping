@@ -17,6 +17,7 @@ provider/cloud/managed apply, existing-account date repair or consent/cap change
 | Implementation | Private sorted SQL helper+legacy dispatch, closed paired selectors/cursor, exact amount/currency order, current-fact guard, scoped lookup index and readiness denial; Go/bridge/OpenAPI/types; stable keyboard headers, counts/end/first-page, compact actions/alignment/mobile scroller and clarified empty reports |
 | Volume correction | Five-row fixed oracles passed;3000-row cold stats exposed5s timeout. EXPLAIN showed scope-prefix nested scans. Full-key bounded lateral lookups/index passed the same3000-row/30-page oracle in3.51s total, with unchanged5s request bound and no ANALYZE requirement |
 | Validation | make check/test/build; source-registry-test; migration-test/ledger-test; locked web-check/web-test/web-build/web-browser (367units/30browser); app-integration, connection-browser-test and production-journey-test all PASS |
+| Hosted CI blocker | Exact8362417 Seed41558968818/Infrastructure41558968756: all four jobs refused to start because GitHub reports account payments/spending limit; Seed jobs have no steps. GitGuardian PASS. No source assertion failure or check bypass; owner Billing & plans action required before rerun |
 
 ## Current evidence
 
@@ -36,7 +37,10 @@ STRIDE live in the contract. Core checks confirm1–38/checksums unchanged.
 
 ## Remaining work
 
-Exact-head CI and human review of concrete SQL/API39 before merge/apply. No
+Exact-head CI is blocked at GitHub runner startup by billing/spending-limit
+annotations, not cleared by local tests. Owner must resolve account billing;
+do not change payment/limits or bypass required checks. Then rerun CI and obtain
+human review of concrete SQL/API39 before merge/apply. No
 managed39 migration or deployment authorized by this source lease. API readiness
 requires the new private helper: apply39 before matching runtime promotion; do
 not roll frontend alone. Product audit explicitly limits Connections/provider/
