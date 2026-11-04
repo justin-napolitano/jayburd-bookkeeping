@@ -1,5 +1,20 @@
 # GCP delivery source register
 
+## Operator image-only review —2026-11-04
+
+Google Cloud SDK [services update](https://docs.cloud.google.com/sdk/gcloud/reference/run/services/update),
+[jobs update](https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/update)
+and [jobs execute](https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/execute):
+selected image/container flags, separate environment/secret update flags, execution
+argument overrides and wait semantics read for436; mutable official reference,
+not entire manuals. Job configuration is separate from a completed execution;
+an argument override can apply to only that execution. These facts support the
+proposed existing-image/operator procedure while preserving expired consent,
+not a claim of SQL correctness, consent renewal or automatic safe rollback.
+Exact candidate runtime/scan receipts, current metadata and independent post-up
+status/operational comparison remain separate acceptance evidence. No credential,
+private environment, Terraform state/plan or financial data inspected.
+
 ## Decision and review boundary
 
 Owner accepted managed Cloud Run, Cloud SQL and Cloud Tasks for the synthetic
