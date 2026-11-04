@@ -273,6 +273,8 @@ These support identity/setup; live deployment evidence remains separate.
 
 ## Cloud delivery resources
 
+[Scan](scan.md):SHA.
+
 The [GCP source register](gcp-sources.md) describes managed request billing,
 Cloud Tasks pricing and duplicate delivery, Cloud SQL connectivity and IAM
 authentication, Terraform mock tests, state bootstrap, GitHub federation, the pinned Cloud SQL connector and restricted
