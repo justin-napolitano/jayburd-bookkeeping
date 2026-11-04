@@ -23,7 +23,11 @@ async function serveCompact(page: Page, multiple = false) {
   await page.clock.install({ time: new Date("2026-10-21T15:00:00Z") });
   await page.route("**/v1/**", async (route) => {
     const url = new URL(route.request().url());
-    if (route.request().method() !== "GET") writes.push(url.pathname);
+    if (
+      route.request().method() !== "GET" &&
+      !url.pathname.endsWith("/source-activity/query")
+    )
+      writes.push(url.pathname);
     if (url.pathname === "/v1/workspace")
       return route.fulfill({ json: positionWorkspace });
     if (url.pathname === "/v1/commands/pending")

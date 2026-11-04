@@ -76,7 +76,7 @@ export function Bookkeeping({
     [scope, setScope] = useState(""),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false);
-  const [tool, setTool] = useState<FinanceTool>("Position");
+  const [tool, setTool] = useState<FinanceTool>("Money overview");
   const [through, setThrough] = useState(today);
   const [compareThrough, setCompareThrough] = useState(previousMonthEnd);
   const [sourceRevision, setSourceRevision] = useState<string>();
@@ -182,6 +182,7 @@ export function Bookkeeping({
         <nav aria-label="Finance tools" className="finance-nav">
           {(
             [
+              "Money overview",
               "Review transactions",
               "Position",
               "Account activity",
@@ -194,11 +195,13 @@ export function Bookkeeping({
               aria-current={tool === name ? "page" : undefined}
               onClick={() => navigate(name)}
             >
-              {name === "Review transactions"
-                ? "Transactions"
-                : name === "Account activity"
-                  ? "Ledger"
-                  : name}
+              {name === "Money overview"
+                ? "Overview"
+                : name === "Review transactions"
+                  ? "Transactions"
+                  : name === "Account activity"
+                    ? "Ledger"
+                    : name}
             </button>
           ))}
         </nav>
@@ -336,12 +339,20 @@ export function Bookkeeping({
         !selected && (
           <section className="tool-book-picker">
             <h1 ref={toolHeading} tabIndex={-1}>
-              {tool === "Account activity" ? "Ledger" : tool}
+              {tool === "Account activity"
+                ? "Ledger"
+                : tool === "Money overview"
+                  ? "Overview"
+                  : tool}
             </h1>
             <p>
               Choose a book to open its{" "}
-              {tool === "Account activity" ? "ledger" : tool.toLowerCase()}.
-              Book currencies and records stay distinct.
+              {tool === "Account activity"
+                ? "ledger"
+                : tool === "Money overview"
+                  ? "imported account activity"
+                  : tool.toLowerCase()}
+              . Book currencies and records stay distinct.
             </p>
             {entities.map((entity) => (
               <div key={entity.entity_id}>
@@ -390,7 +401,8 @@ export function Bookkeeping({
           locked={locked}
           denied={() => {
             setScope("");
-            setTool("Position");
+            setTool("Money overview");
+            requestAnimationFrame(() => toolHeading.current?.focus());
             void load();
           }}
         >
