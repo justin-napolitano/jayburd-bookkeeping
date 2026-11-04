@@ -256,24 +256,95 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   });
   await review.click();
   // The production Next bridge reaches the real authorized source summary and exact unit drill.
-  const [metricEntity,metricBook]=scope.split('/');
-  const metricURL=new URL(`/v1/entities/${metricEntity}/books/${metricBook}/source-activity/query`,page.url()).href;
-  const metricHeaders={Authorization:'Bearer synthetic.browser.proof',Origin:new URL(page.url()).origin};
-  const metricQuery={profile:'source-activity-v1',source_account_id:firstSource.source_account_id,starts_on:'2026-01-01',through_date:'2026-12-31',search:'',kind:'summary',currency_version_id:null,merchant:null,snapshot:null,cursor:null,limit:20};
-  const metricReply=await page.request.post(metricURL,{headers:metricHeaders,data:metricQuery});
-  expect(metricReply.status()).toBe(200);expect(metricReply.headers()['cache-control']).toBe('no-store');
-  const metric=await metricReply.json();
-  expect(metric.units).toHaveLength(1);expect(metric.units[0].outflow).toBe('0.3');expect(metric.bank_balance).toBeNull();expect(metric.last_successful_sync).toBeNull();
-  const drillReply=await page.request.post(metricURL,{headers:metricHeaders,data:{...metricQuery,kind:'observations',currency_version_id:metric.units[0].currency_version_id,snapshot:metric.snapshot}});
-  expect(drillReply.status()).toBe(200);const drill=await drillReply.json();expect(drill.totals.outflow).toBe('0.3');expect(drill.items).toHaveLength(2);expect(drill.items.map((row:{amount:string})=>row.amount).sort()).toEqual(['0.1','0.2']);
-  await expect(page.getByRole("columnheader", { name: "Date" })).toHaveAttribute("aria-sort", "descending");
-  const sortedReply = page.waitForResponse(response => {
+  const [metricEntity, metricBook] = scope.split("/");
+  const metricURL = new URL(
+    `/v1/entities/${metricEntity}/books/${metricBook}/source-activity/query`,
+    page.url(),
+  ).href;
+  const metricHeaders = {
+    Authorization: "Bearer synthetic.browser.proof",
+    Origin: new URL(page.url()).origin,
+  };
+  const metricQuery = {
+    profile: "source-activity-v1",
+    source_account_id: firstSource.source_account_id,
+    starts_on: "2026-01-01",
+    through_date: "2026-12-31",
+    search: "",
+    kind: "summary",
+    currency_version_id: null,
+    merchant: null,
+    snapshot: null,
+    cursor: null,
+    limit: 20,
+  };
+  const metricReply = await page.request.post(metricURL, {
+    headers: metricHeaders,
+    data: metricQuery,
+  });
+  expect(metricReply.status()).toBe(200);
+  expect(metricReply.headers()["cache-control"]).toBe("no-store");
+  const metric = await metricReply.json();
+  expect(metric.units).toHaveLength(1);
+  expect(metric.units[0].outflow).toBe("0.3");
+  expect(metric.bank_balance).toBeNull();
+  expect(metric.last_successful_sync).toBeNull();
+  const drillReply = await page.request.post(metricURL, {
+    headers: metricHeaders,
+    data: {
+      ...metricQuery,
+      kind: "observations",
+      currency_version_id: metric.units[0].currency_version_id,
+      snapshot: metric.snapshot,
+    },
+  });
+  expect(drillReply.status()).toBe(200);
+  const drill = await drillReply.json();
+  expect(drill.totals.outflow).toBe("0.3");
+  expect(drill.items).toHaveLength(2);
+  expect(
+    drill.items.map((row: { amount: string }) => row.amount).sort(),
+  ).toEqual(["0.1", "0.2"]);
+  // The daily Overview renders that same real Next→Go→SQL projection without posting.
+  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: "Bank account", exact: true })
+    .selectOption(firstSource.source_account_id);
+  await expect(page.locator(".activity-money dd")).toHaveText([
+    "0.00",
+    "0.30",
+    "−0.30",
+  ]);
+  await page.getByRole("button", { name: /View USD .* transactions/ }).click();
+  await expect(page.locator(".activity-detail tbody tr")).toHaveCount(2);
+  // Equal dates use generated UUID ties; compare exact quantities rather than random IDs.
+  expect(
+    (
+      await page
+        .locator(".activity-detail .activity-exact-amount")
+        .allTextContents()
+    ).sort(),
+  ).toEqual(["0.10 USD", "0.20 USD"]);
+  await page
+    .getByRole("button", { name: "Review account transactions", exact: true })
+    .click();
+  await expect(
+    page.getByRole("columnheader", { name: "Date" }),
+  ).toHaveAttribute("aria-sort", "descending");
+  const sortedReply = page.waitForResponse((response) => {
     const url = new URL(response.url());
-    return url.pathname.endsWith("/review-items") && url.searchParams.get("sort") === "amount";
+    return (
+      url.pathname.endsWith("/review-items") &&
+      url.searchParams.get("sort") === "amount"
+    );
   });
   await page.getByRole("button", { name: "Amount", exact: true }).click();
   const sortedPage = await (await sortedReply).json();
-  expect(sortedPage).toMatchObject({sort:"amount", order:"asc", start_index:"1"});
+  expect(sortedPage).toMatchObject({
+    sort: "amount",
+    order: "asc",
+    start_index: "1",
+  });
   expect(BigInt(sortedPage.matching_count)).toBeGreaterThan(0n);
   await page
     .getByRole("button", { name: "Review Fictional purchase A", exact: true })

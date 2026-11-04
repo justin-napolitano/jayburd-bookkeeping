@@ -13,6 +13,7 @@ import {
   type ConnectionsProps,
 } from "./Connections";
 import { ReviewInbox } from "./ReviewInbox";
+import { ActivityOverview } from "./ActivityOverview";
 import { currencyAt, formatAmount } from "./amount";
 import { Reports, type ReportContext, type ReportSelection } from "./Reports";
 import type {
@@ -25,6 +26,7 @@ import type {
 
 // Navigation exposes owned book operations; connection state never substitutes for balances.
 export type BookView =
+  | "Money overview"
   | "Overview"
   | "Accounts"
   | "Account activity"
@@ -247,7 +249,7 @@ export function BookWorkspace({
     <div className="book-workspace">
       <div
         className={
-          view === "Review transactions"
+          view === "Review transactions" || view === "Money overview"
             ? "book-context book-context-compact"
             : "book-context"
         }
@@ -270,7 +272,8 @@ export function BookWorkspace({
           activeView &&
           (view === "Reports" ||
             view === "Account activity" ||
-            view === "Review transactions")
+            view === "Review transactions" ||
+            view === "Money overview")
         ) && (
           <div className="context-dates">
             <label>
@@ -325,8 +328,34 @@ export function BookWorkspace({
         </nav>
       )}
       <h1 ref={heading} tabIndex={-1} className="view-title">
-        {view === "Account activity" ? "Ledger" : view}
+        {view === "Account activity"
+          ? "Ledger"
+          : view === "Money overview"
+            ? "Overview"
+            : view}
       </h1>
+      {view === "Money overview" && (
+        <ActivityOverview
+          api={api}
+          entity={entity}
+          book={book}
+          currencies={currencies}
+          locked={locked}
+          initialSource={reviewSource}
+          denied={denied}
+          onSourceChoice={(source) => {
+            setReviewSource(source);
+            manualReviewSource.current = source;
+            rememberSource?.(source);
+          }}
+          onAccounts={() => setView("Connections")}
+          onReview={(source) => {
+            setReviewSource(source);
+            setView("Review transactions");
+            requestAnimationFrame(() => heading.current?.focus());
+          }}
+        />
+      )}
       {(view === "Overview" || view === "Accounts") && (
         <section className="balances" aria-labelledby="balances-title">
           <div className="heading">
