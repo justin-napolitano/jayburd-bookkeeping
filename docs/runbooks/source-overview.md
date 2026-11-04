@@ -17,6 +17,7 @@ change. No private/provider/cloud/deployment/consent or financial-write authorit
 | Implementation | Daily default Overview; explicit book/source/all-imported/custom date context; original-unit totals, exact snapshot-bound merchant/observation continuation; no mutations or persistence |
 | Critique | Inspected390/1440 fictional screenshots; replaced cramped four-column mobile detail with date/description/direction-and-amount; secondary actions outlined; contained primary navigation;200percent text reflow and focused drill/back |
 | Validation | Core make check/test/build, generated API/types,417 unit tests,55 component browser checks, production Next build and actual Next→Go→disposable SQL connection/Overview/review/post/lost-response-recovery PASS |
+| Hosted follow-up | Frontend/foundation PASS; ordinary app journey initially expected the former default Position's empty copy. Test now checks actual Overview empty state and explicitly opens Position for posted balances; core gates and actual ordinary Next/Go/SQL setup/journal/lost-response-recovery proof PASS. Corrected hosted rerun pending |
 
 ## Current evidence
 
