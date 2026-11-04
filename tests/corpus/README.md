@@ -17,7 +17,7 @@ subset with external engines. Sources and pin/rights information live in the
 | Generator rejection | `TestGeneratorAudit`, `corpus audit-generator` | Exact EUR balance only; not full import validation |
 | Independent balances | `scripts/test-corpus-references.sh` | Functional projections; does not test original-unit FX semantics |
 | ISO XML | `scripts/test-corpus-iso.sh` | Provisional mirror; no bank profile or semantic conformance |
-| [Spending/activity oracle](spending/README.md) | Hand-fixed source/annotation/contribution examples under428 | Proposed metrics targets only; no runtime SQL/API/authorization proof |
+| [Spending/activity oracle](spending/README.md) | Hand-fixed source/annotation/contribution examples under428 |429 exercises Phase A restricted SQL/API; Phase B remains proposed; synthetic identity only |
 
 For book A the fixed ending checking balance is 1,045 USD, savings 100,
 net income 70 and capital credits 1,100. Book B has a separate 70 USD opening.

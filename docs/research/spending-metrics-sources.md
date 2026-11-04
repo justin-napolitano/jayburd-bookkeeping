@@ -25,6 +25,13 @@ unit-group sums, no precision rounding into eligibility, fresh authorization loc
 and pinned drill snapshots. These mechanisms do not prove our future joins,
 privilege boundaries, snapshot invalidation or latency; actual runtime tests remain
 required. No full-dataset/payload access or dependency added by this review.
+Also selected PostgreSQL17
+[§4.1.2.2](https://www.postgresql.org/docs/17/sql-syntax-lexical.html#SQL-SYNTAX-STRINGS-ESCAPE)
+escape table/notes and
+[§23.2.2.1](https://www.postgresql.org/docs/17/collation.html#COLLATION-MANAGING-STANDARD)
+C/default entries: octal denotes a byte while an unlisted escape preserves its
+letter; C ordering is byte-based for an encoding. Infer explicit ASCII blank
+handling and C group/equality behavior, with a one-letter-label regression case.
 
 Contract choices, alternatives, threats and acceptance are in
 [spending metrics](../contracts/spending-metrics.md). Original worked examples
