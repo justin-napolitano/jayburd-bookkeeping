@@ -32,6 +32,12 @@ escape table/notes and
 C/default entries: octal denotes a byte while an unlisted escape preserves its
 letter; C ordering is byte-based for an encoding. Infer explicit ASCII blank
 handling and C group/equality behavior, with a one-letter-label regression case.
+For the Linux cold-plan correction, PostgreSQL17
+[§11.2.1–2](https://www.postgresql.org/docs/17/indexes-types.html), B-tree/Hash
+entries read2026-11-04: Hash supports equality, not ordering. Infer a UUID equality
+probe with mandatory entity/book recheck, preserving39's review index; do not infer
+global UUID uniqueness. Synthetic nested plans, a two-book UUID collision and
+unchanged legacy3000-row paging are the acceptance evidence, not this reference.
 
 Contract choices, alternatives, threats and acceptance are in
 [spending metrics](../contracts/spending-metrics.md). Original worked examples

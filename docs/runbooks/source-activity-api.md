@@ -7,7 +7,7 @@ MET429, dedicated issue/429-source-metrics based on merged5b68ca5/PR430 in the
 parent development branch.430/47813ea passed all five exact-head checks and merged
 after owner go-ahead; bounded contract issue428 completed, parent stack integration
 pending. Wire/source stages committed before DDL.41 adds restricted read functions
-and an assignment-cardinality index, only applied to disposable synthetic databases.
+and an observation lookup index, only applied to disposable synthetic databases.
 40 and all older SQL unchanged. No private/provider/cloud,
 bank consent, deployment, financial mutation or account registration authority.
 
@@ -24,6 +24,13 @@ bank consent, deployment, financial mutation or account registration authority.
 | Design validation | make packet ID=JB-001 and core check/test/build PASS with documented temporary local Go1.26.5 adapter; tracked toolchain/dependencies unchanged; no runtime metrics tested |
 | SQL source review | SM07 records selected PostgreSQL17 aggregate/math entries and full RepeatableRead subsection, facts versus proposed application and pending runtime evidence |
 | Final validation | PASS core check/test/build, migration-test/ledger-test/readiness, source-registry-test/sync-state-test, generated API/type checks,410 frontend units,52 browser tests and actual Next→Go→SQL connection/metrics/posting-recovery journey. Local Go1.26.5 modfile adapter/locked Node24.18.0; tracked dependencies unchanged; temporary integration overlays removed |
+| Linux CI correction |431/65e4bb3 hosted3000-row initial summary exceeded the unchanged statement deadline. Synthetic nested plans exposed three prefix-only scans averaging1500 rows per observation and4498500 join-filter removals apiece.41 remains unmerged; bounded lateral primary-key probes now preserve full lookup keys under cold statistics. No timeout, auth, fixture target or result assertion relaxed; corrected-source validation pending |
+| Index plan refinement |39's scoped review index remains intact.41 adds an equality-only observation UUID hash probe: avoids another competing entity/book-prefix index or covering scan that slows legacy reads. Entity/book predicates remain mandatory and UUID global uniqueness is not assumed. Diagnostic plans are synthetic only |
+| Assignment scope | Assignment lookup probes observation equality first and applies a null-safe entity/book row match inside the bounded subquery before LIMIT. Authorized entity/book IDs are nonnull, so scope equality is unchanged while generic estimates cannot turn the scope prefix into the lookup key |
+| Scope pins | Headline digest also binds entity/book. Equal source UUIDs and counters in two independently authorized scopes cannot reuse a headline pin. This is a consistency fence, never an access grant |
+| Corrected-source gates | PASS core, full source-registry suite including real Go budget/two-book UUID/two-entity headline collisions/shared-review ambiguity, migration/ledger/readiness and actual Next→Go→SQL connection/metrics/posting-recovery journey. New3000-row proof3.64s including fixture setup, legacy30 pages3.97s on this synthetic run. Hosted correction CI remains pending; no deadline/assertion raised |
+| Cardinality plan | Shared-review ambiguity is checked once with a scoped grouped guard before rendering current facts. Repeating its aggregate per observation let cold estimates choose the opposite prefix index again. The same ambiguity rejection is retained and directly tested |
+| Plan evidence | Synthetic nested-plan summary about40ms versus original3525ms; fact scans about14ms, full observation/review lookup keys and one-row probes. Acceptance now runs the cold initial3000-row summary through the actual Go service's unchanged four-second budget. Diagnostic overlays/logging are private test tooling only |
 
 ## Current evidence
 

@@ -6,7 +6,7 @@ Source implementation2026-11-03; refines [spending metrics](spending-metrics.md)
 Phase A only.430 cleared all five checks and merged into its parent development
 branch at5b68ca5 after owner go-ahead; bounded contract issue428 completed. This
 wire was committed before DDL. Migration41 implements the restricted read and
-assignment-cardinality index;40 belongs426 and remains unchanged. Runtime PR
+observation lookup index;40 belongs426 and remains unchanged. Runtime PR
 still requires human security/source review and integration; no deployment or
 live use is approved by synthetic evidence.
 
@@ -47,7 +47,7 @@ Source and binding revisions catch source updates and registry/binding changes.
 Existing draft/post implementations already advance source_revision. The review
 sum protects future reviewed transitions, not a confirmed current snapshot bug.
 Immutable observation and reference metadata need no independent mutable pin.
-filter_digest is the lowercase32-hex MD5 of canonical profile/source/date/search
+filter_digest is the lowercase32-hex MD5 of canonical profile/entity/book/source/date/search
 JSON. It binds a drill to its headline's period/search, without being an access
 grant or authentication checksum. Changing period/search requires a fresh summary.
 Drill units must occur in that summary's eligible unit set; an absent/unknown unit

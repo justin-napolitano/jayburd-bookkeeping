@@ -399,7 +399,14 @@ func TestWholeResultNotPage(t *testing.T) {
 	}
 	q := activityInput(sid)
 	q["starts_on"], q["through_date"] = "2026-01-01", "2026-01-31"
-	p := activityRead(t, db, q)
+	// The cold initial summary must also fit the real service's unchanged four-second budget.
+	runtime := connect(t, db, "synthetic_runtime")
+	defer runtime.Close(context.Background())
+	result, err := (&ledger.Service{DB: runtime}).SourceReview(context.Background(), ledger.Command{Actor: reader, Entity: entity, Book: book, Body: raw(q)}, "activity")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := importObject(t, string(result.Body))
 	if p["units"].([]any)[0].(map[string]any)["outflow"] != "60" {
 		t.Fatal("page sum used as total")
 	}
@@ -504,5 +511,52 @@ func TestFreshnessUnknownStale(t *testing.T) {
 	q["snapshot"] = p["snapshot"]
 	exec(t, c, `UPDATE banking.source_account SET binding_revision=binding_revision+1 WHERE source_account_id=$1`, sid)
 	_, err := invoke(t, db, "synthetic_runtime", "SELECT banking.query_source_activity($1,$2,$3,$4)::text", reader, entity, book, raw(q))
+	requireCode(t, err, "P2503")
+}
+
+// TestActivityAssignmentBookCollision proves an observation UUID never replaces its book scope.
+func TestActivityAssignmentBookCollision(t *testing.T) {
+	c, db, sources, _ := activityOracle(t)
+	otherBook, duplicate, original := activityUUID(11000), activityUUID(8001), activityUUID(8029)
+	rid, did := activityUUID(123456), activityUUID(123457)
+	exec(t, c, "BEGIN")
+	exec(t, c, `INSERT INTO banking.source_observation SELECT entity_id,book_id,$1,source_account_id,namespace_id,'same-uuid-other-book',current_revision,created_at FROM banking.source_observation WHERE book_id=$2 AND observation_id=$3`, duplicate, otherBook, original)
+	exec(t, c, `INSERT INTO banking.observation_revision(entity_id,book_id,observation_id,revision,source_state,booked_date,currency_version_id,direction,amount_lexeme,amount,description,canonical_fields,previous_revision,adapter_profile,provider_amount_lexeme,provider_fields) SELECT entity_id,book_id,$1,revision,source_state,booked_date,currency_version_id,direction,amount_lexeme,amount,description,canonical_fields,previous_revision,adapter_profile,provider_amount_lexeme,provider_fields FROM banking.observation_revision WHERE book_id=$2 AND observation_id=$3`, duplicate, otherBook, original)
+	exec(t, c, `INSERT INTO banking.review_item(entity_id,book_id,review_id,source_account_id,state) VALUES($1,$2,$3,$4,'needs_review')`, entity, otherBook, rid, sources["other-book"])
+	exec(t, c, `INSERT INTO banking.review_decision(entity_id,book_id,decision_id,review_id,expected_review_revision,kind,actor_id,reason,body) VALUES($1,$2,$3,$4,0,'initialize',$5,'synthetic_import','{}')`, entity, otherBook, did, rid, actor)
+	exec(t, c, `INSERT INTO banking.review_evidence VALUES($1,$2,$3,$4,$5,1)`, entity, otherBook, did, duplicate, rid)
+	exec(t, c, `INSERT INTO banking.review_assignment VALUES($1,$2,$3,$4,$5)`, entity, otherBook, duplicate, rid, did)
+	exec(t, c, "COMMIT")
+	main := activityRead(t, db, activityInput(sources["checking"]))
+	for _, v := range main["units"].([]any) {
+		u := v.(map[string]any)
+		if u["count"] == "14" && u["outflow"] != "940" {
+			t.Fatal("foreign book contaminated checking")
+		}
+	}
+	otherResult := importObject(t, call(t, db, "synthetic_runtime", "SELECT banking.query_source_activity($1,$2,$3,$4)::text", reader, entity, otherBook, raw(activityInput(sources["other-book"]))))
+	u := otherResult["units"].([]any)[0].(map[string]any)
+	if u["count"] != "2" || u["outflow"] != "150" {
+		t.Fatal("UUID lookup escaped the explicit book")
+	}
+}
+
+// TestActivitySnapshotScopeCollision isolates two authorized scopes with equal source IDs/counters.
+func TestActivitySnapshotScopeCollision(t *testing.T) {
+	c, db, sources, units := activityOracle(t)
+	q := activityInput(sources["checking"])
+	headline := activityRead(t, db, q)
+	e2, b2, a2, r2 := activityUUID(223450), activityUUID(223451), activityUUID(223452), activityUUID(223453)
+	exec(t, c, `INSERT INTO ledger.entity(entity_id,name,kind) VALUES($1,'Fictional second entity','legal')`, e2)
+	exec(t, c, `INSERT INTO ledger.membership VALUES($1,$2,'read',NULL)`, e2, reader)
+	exec(t, c, `INSERT INTO ledger.book(entity_id,book_id,name) VALUES($1,$2,'Fictional equal-counter scope')`, e2, b2)
+	exec(t, c, `INSERT INTO ledger.account VALUES($1,$2,$3,'1000','Fictional scoped cash','asset','debit',true,'2026-01-01',NULL)`, e2, b2, a2)
+	exec(t, c, `INSERT INTO banking.source_account(entity_id,book_id,source_account_id,ledger_account_id,currency_version_id,binding_date,binding_evidence_ref,created_by) VALUES($1,$2,$3,$4,$5,'2026-01-01',$6,$7)`, e2, b2, sources["checking"], a2, units["usd-before"], activityUUID(223454), actor)
+	exec(t, c, `INSERT INTO banking.source_permission VALUES($1,$2,$3,$4,'read',NULL)`, e2, b2, sources["checking"], reader)
+	// A synthetic revision-counter fixture isolates digest scope; it is not posting or history proof.
+	counter := headline["snapshot"].(map[string]any)["review_revision_sum"]
+	exec(t, c, `INSERT INTO banking.review_item(entity_id,book_id,review_id,source_account_id,review_revision,state) VALUES($1,$2,$3,$4,$5::bigint,'needs_review')`, e2, b2, r2, sources["checking"], counter)
+	q["snapshot"] = headline["snapshot"]
+	_, err := invoke(t, db, "synthetic_runtime", "SELECT banking.query_source_activity($1,$2,$3,$4)::text", reader, e2, b2, raw(q))
 	requireCode(t, err, "P2503")
 }

@@ -1,9 +1,9 @@
 -- #429; docs/contracts/source-activity-api.md. Exact private reads, no financial mutation.
 BEGIN;
 SET LOCAL ROLE bookkeeping_owner;
--- Bounded current-assignment cardinality checks must not scan the whole assignment set per row.
-CREATE INDEX review_assignment_activity_review ON banking.review_assignment(entity_id,book_id,review_id);
--- Owner-only minimal current-fact projection; normalized merchant field alone crosses this boundary.
+-- An equality-only UUID probe avoids competing scope-prefix plans; scoped predicates remain mandatory.
+CREATE INDEX review_assignment_activity_observation ON banking.review_assignment USING hash(observation_id);
+-- Owner-only minimal projection. Bounded lateral lookups retain key probes under cold statistics.
 CREATE FUNCTION banking.activity_facts(e uuid,b uuid,sid uuid)
 RETURNS TABLE(observation_id uuid,observation_revision bigint,booked_date date,description text,source_state text,
  currency_version_id uuid,currency text,numeric_code text,minor_unit integer,amount numeric,direction text,
@@ -19,13 +19,12 @@ LANGUAGE sql STABLE SET search_path=pg_catalog AS $$
  OR EXISTS(SELECT FROM banking.provider_review_exception x WHERE x.entity_id=e AND x.book_id=b AND x.observation_id=o.observation_id AND x.current_revision=o.current_revision),
  (q.observation_id IS NULL OR c.currency_version_id IS NULL OR n.namespace_id IS NULL OR r.review_id IS NOT NULL AND r.source_account_id<>sid
  OR q.source_state='booked' AND q.amount>0 AND r.review_id IS NULL
- OR r.review_id IS NOT NULL AND (SELECT count(*) FROM banking.review_assignment aa WHERE aa.entity_id=e AND aa.book_id=b AND aa.review_id=r.review_id)<>1
  OR q.adapter_profile='jayburd-plaid-transactions/1' AND (NOT(q.provider_fields ? 'merchant_name') OR jsonb_typeof(q.provider_fields->'merchant_name') NOT IN ('string','null') OR length(q.provider_fields->>'merchant_name')>500))
  FROM banking.source_observation o
- LEFT JOIN banking.observation_revision q ON q.entity_id=e AND q.book_id=b AND q.observation_id=o.observation_id AND q.revision=o.current_revision
- LEFT JOIN banking.source_namespace n ON n.entity_id=e AND n.book_id=b AND n.source_account_id=sid AND n.namespace_id=o.namespace_id
- LEFT JOIN banking.review_assignment a ON a.entity_id=e AND a.book_id=b AND a.observation_id=o.observation_id
- LEFT JOIN banking.review_item r ON r.entity_id=e AND r.book_id=b AND r.review_id=a.review_id
+ LEFT JOIN LATERAL (SELECT qq.* FROM banking.observation_revision qq WHERE qq.entity_id=e AND qq.book_id=b AND qq.observation_id=o.observation_id AND qq.revision=o.current_revision LIMIT 1) q ON true
+ LEFT JOIN LATERAL (SELECT nn.namespace_id,nn.overlap_review_required FROM banking.source_namespace nn WHERE nn.entity_id=e AND nn.book_id=b AND nn.source_account_id=sid AND nn.namespace_id=o.namespace_id LIMIT 1) n ON true
+ LEFT JOIN LATERAL (SELECT aa.review_id FROM banking.review_assignment aa WHERE aa.observation_id=o.observation_id AND ROW(aa.entity_id,aa.book_id) IS NOT DISTINCT FROM ROW(e,b) LIMIT 1) a ON true
+ LEFT JOIN LATERAL (SELECT rr.review_id,rr.source_account_id,rr.state FROM banking.review_item rr WHERE rr.entity_id=e AND rr.book_id=b AND rr.review_id=a.review_id LIMIT 1) r ON true
  LEFT JOIN reference.currency c ON c.currency_version_id=q.currency_version_id
  WHERE o.entity_id=e AND o.book_id=b AND o.source_account_id=sid
 $$;
@@ -63,8 +62,13 @@ BEGIN
  END IF;
  -- Current principal/entity/source grants precede all snapshots, labels, counts and cursor diagnostics.
  s:=banking.import_authorize(actor,e,b,sid,false);
+ -- Check shared-review ambiguity once, rather than repeating an aggregate for every observation.
+ IF EXISTS(
+  WITH counts AS MATERIALIZED (SELECT review_id FROM banking.review_assignment WHERE entity_id=e AND book_id=b GROUP BY review_id HAVING count(*)>1)
+  SELECT FROM counts x WHERE EXISTS(SELECT FROM banking.review_item r WHERE r.entity_id=e AND r.book_id=b AND r.review_id=x.review_id AND r.source_account_id=sid)
+ ) THEN PERFORM banking.review_error('P2502');END IF;
  IF EXISTS(SELECT FROM banking.activity_facts(e,b,sid) WHERE ambiguous) THEN PERFORM banking.review_error('P2502');END IF;
- SELECT jsonb_build_object('source_revision',s.source_revision::text,'binding_revision',s.binding_revision::text,'review_revision_sum',coalesce(sum(r.review_revision::numeric),0)::text,'filter_digest',md5(jsonb_build_object('profile','source-activity-v1','source_account_id',sid,'starts_on',v->'starts_on','through_date',v->'through_date','search',v->'search')::text))
+ SELECT jsonb_build_object('source_revision',s.source_revision::text,'binding_revision',s.binding_revision::text,'review_revision_sum',coalesce(sum(r.review_revision::numeric),0)::text,'filter_digest',md5(jsonb_build_object('profile','source-activity-v1','entity_id',e,'book_id',b,'source_account_id',sid,'starts_on',v->'starts_on','through_date',v->'through_date','search',v->'search')::text))
  INTO snap FROM banking.review_item r WHERE r.entity_id=e AND r.book_id=b AND r.source_account_id=sid;
  IF v->'snapshot'<>'null'::jsonb THEN
   PERFORM ledger.keys(v->'snapshot',ARRAY['source_revision','binding_revision','review_revision_sum','filter_digest']);
