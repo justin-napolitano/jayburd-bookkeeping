@@ -924,6 +924,7 @@ section[aria-label="Connections"] select {
     order: 3;
     width: 100%;
     gap: 0.5rem;
+    flex-wrap: wrap;
     justify-content: space-between;
   }
   .finance-nav button {
@@ -1053,6 +1054,7 @@ section[aria-label="Connections"] select {
   text-align: right;
 }
 .review-table .table-sort {
+  margin: 0;
   color: var(--ink);
   background: transparent;
   border: 0;
@@ -1085,6 +1087,47 @@ section[aria-label="Connections"] select {
   max-width: 80ch;
   margin-top: 0;
 }
+.review-list-note summary {
+  cursor: pointer;
+}
+.review-list-note p {
+  margin: 0.3rem 0;
+}
+.review-introduction {
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+}
+.review-controls {
+  gap: 0.5rem 1rem;
+}
+.review-controls label {
+  margin: 0;
+}
+.review-detail > button:first-child {
+  margin: 0 0 0.75rem;
+}
+.review-detail h3 {
+  margin-top: 0;
+}
+.finance-workspace
+  > .book-workspace:has(.transaction-review)
+  .book-context-compact {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+.book-context-compact .eyebrow {
+  display: none;
+}
+.book-context-compact h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+.finance-workspace > .book-workspace:has(.transaction-review) .view-title {
+  margin: 0.75rem 0 0;
+}
+.finance-workspace > .book-workspace .transaction-review {
+  padding-top: 0.5rem;
+}
 .review-pagination {
   display: flex;
   flex-wrap: wrap;
@@ -1101,14 +1144,103 @@ section[aria-label="Connections"] select {
   display: none;
 }
 @media (max-width: 650px) {
-  .transaction-review .workspace-actions {
-    align-items: stretch;
+  .transaction-review .review-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.5rem;
   }
   .transaction-review .workspace-actions label,
   .transaction-review select {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+  }
+  .review-controls > button {
+    grid-column: 1 / -1;
+    margin: 0;
+    justify-self: start;
+  }
+  .review-table {
+    min-width: 0;
+    width: 100%;
+  }
+  .review-table caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .review-table thead,
+  .review-table tbody {
+    display: block;
+  }
+  .review-table thead tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.25rem;
+  }
+  .review-table thead th {
+    padding: 0;
+    border: 0;
+  }
+  .review-table thead th:last-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .review-table .table-sort {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.25rem;
+  }
+  .review-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(6rem, 40%);
+    gap: 0.25rem 0.75rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--line);
+  }
+  .review-table tbody td {
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .review-table td:nth-child(1) {
+    grid-area: 2 / 1;
+    font-size: 0.85rem;
+  }
+  .review-table td:nth-child(2) {
+    grid-area: 1 / 1;
+    font-weight: 600;
+    min-width: 0;
+    max-width: none;
+  }
+  .review-table td:nth-child(3) {
+    grid-area: 3 / 1;
+    font-size: 0.85rem;
+    color: var(--muted);
+    align-self: center;
+  }
+  .review-table td:nth-child(4) {
+    grid-area: 1 / 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+  .review-table td:nth-child(5) {
+    grid-area: 2 / 2;
+    text-align: right;
+    font-size: 0.85rem;
+  }
+  .review-table td:nth-child(6) {
+    grid-area: 3 / 2;
+    text-align: right;
+  }
+  .review-table .review-row-action {
+    margin: 0;
   }
   .table-scroll-note {
     display: block;
