@@ -187,9 +187,10 @@ test("expired enrollment preserves real setup and journal recovery without provi
     const response = page.waitForResponse((r) =>
       r.url().includes(`/reports/${kind}?`),
     );
-    await reports.getByRole("button", { name: "Refresh report" }).click();
+    await reports.getByRole("button", { name: "Run report" }).click();
     expect((await response).status()).toBe(200);
     // Controlled setup advances revision before the one posted journal; revisions are not journal counts.
+    await reports.getByText("Report details", { exact: true }).click();
     await expect(reports.getByText(/Snapshot 5 ·/)).toBeVisible();
     const totals = reports.locator("table").first();
     await expect(
@@ -230,7 +231,7 @@ test("expired enrollment preserves real setup and journal recovery without provi
   await reports
     .getByLabel("Comparison through date (inclusive)")
     .fill("2026-01-01");
-  await reports.getByRole("button", { name: "Refresh report" }).click();
+  await reports.getByRole("button", { name: "Run report" }).click();
   await expect(
     reports
       .locator("table")

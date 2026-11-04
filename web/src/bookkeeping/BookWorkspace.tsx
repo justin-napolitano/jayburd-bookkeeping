@@ -259,8 +259,12 @@ export function BookWorkspace({
           <p>
             {policy?.functional_currency ??
               "Currency unavailable for this date"}{" "}
-            functional · Workspace revision {book.book_revision}
+            functional
           </p>
+          <details className="book-provenance">
+            <summary>Book details</summary>
+            <p>Workspace revision {book.book_revision}</p>
+          </details>
         </div>
         {!(
           activeView &&
