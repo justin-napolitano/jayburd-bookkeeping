@@ -1015,10 +1015,12 @@ section[aria-label="Connections"] select {
     order: 3;
     width: 100%;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
     justify-content: space-between;
   }
   .finance-nav button {
+    flex-shrink: 0;
     padding: 0.75rem 0.2rem;
     font-size: 1rem;
   }
@@ -1364,4 +1366,48 @@ section[aria-label="Connections"] select {
 }
 @media (max-width: 700px) {
   .review-search-fields { grid-template-columns: minmax(0, 1fr); }
+}
+.activity-overview { min-width: 0; padding: 0; border: 0; }
+.activity-overview button.secondary { background: #fff; color: #286044; border: 1px solid #286044; }
+.activity-mobile-direction { display: none; }
+.activity-detail table { table-layout: fixed; }
+.activity-detail th, .activity-detail td { text-align: left; }
+.activity-detail .activity-date { width: 7rem; white-space: nowrap; }
+.activity-detail .activity-amount { text-align: right; width: 11rem; }
+.activity-detail .activity-direction { width: 7rem; }
+.activity-toolbar, .activity-period, .activity-heading, .activity-unit-actions {
+  display: flex; gap: .75rem; align-items: end; flex-wrap: wrap;
+}
+.activity-toolbar > label { flex: 1; min-width: 14rem; }
+.activity-period { margin-top: 1.25rem; }
+.activity-heading { align-items: center; justify-content: space-between; }
+.activity-heading h2 { margin: 0; }
+.activity-applied, .activity-unknown, .activity-unit-name p { color: #555b63; }
+.activity-units, .activity-merchants { list-style: none; padding: 0; margin: 1rem 0; }
+.activity-units > li { border-block-start: 1px solid #dce0e3; padding: 1rem 0; }
+.activity-unit-name h3, .activity-unit-name p { margin: 0 0 .4rem; }
+.activity-money, .activity-status { display: flex; flex-wrap: wrap; gap: 1.25rem 3rem; }
+.activity-money > div { flex: 1; min-width: 9rem; }
+.activity-money dt, .activity-status dt { color: #555b63; }
+.activity-money dd { font-size: 1.65rem; font-weight: 600; margin: .3rem 0; overflow-wrap: anywhere; }
+.activity-money dd, .activity-status dd, .activity-drill-totals { font-variant-numeric: tabular-nums; }
+.activity-status dd { margin: .3rem 0; }
+.activity-attention { border-left: 3px solid #9b3e38; padding-left: .75rem; }
+.activity-detail { border-top: 2px solid #286044; margin-top: 1.5rem; padding-top: 1.25rem; }
+.activity-merchants > li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #dce0e3; padding: 1rem 0; }
+.activity-merchants strong, .activity-detail td { overflow-wrap: anywhere; }
+.activity-merchants button { flex-shrink: 0; }
+@media (max-width: 600px) {
+  .activity-detail { padding-inline: 0; border-inline: 0; }
+  .activity-detail th, .activity-detail td { padding: .6rem .2rem; font-size: .875rem; }
+  .activity-detail .activity-date { width: 5.5rem; }
+  .activity-detail .activity-amount { width: 6.5rem; }
+  .activity-detail .activity-direction { display: none; }
+  .activity-mobile-direction { display: block; color: #555b63; font-size: .8rem; }
+  .activity-toolbar > label { min-width: 0; width: 100%; flex-basis: 100%; }
+  .activity-heading, .activity-merchants > li { align-items: start; flex-direction: column; }
+  .activity-period > label { flex: 1; min-width: 8rem; }
+  .activity-money { gap: 1rem; }
+  .activity-money > div { min-width: 7.5rem; }
+  .activity-money dd { font-size: 1.4rem; }
 }
