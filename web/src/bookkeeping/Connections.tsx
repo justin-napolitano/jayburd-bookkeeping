@@ -1165,12 +1165,8 @@ function ConnectionWorkspace({
         <p>No connected Items in this book.</p>
       ) : (
         list.items.map((item, itemIndex) => (
-          <article key={item.sync_item_id}>
+          <article key={item.sync_item_id} className="connection-card">
             <h3>Bank connection {itemIndex + 1}</h3>
-            <details>
-              <summary>Technical connection details</summary>
-              <p>Provider Item: {item.item_id}</p>
-            </details>
             <p>Current connection status: {item.state.replaceAll("_", " ")}</p>
             {prepareRegistration &&
               attempts?.items.some(
@@ -1195,10 +1191,23 @@ function ConnectionWorkspace({
                   Add shared accounts
                 </button>
               )}
-            <ul>
+            {item.accounts.length === 0 && (
+              <p>
+                No registered accounts are available in this book for this
+                connection.
+              </p>
+            )}
+            <ul className="connected-account-list">
               {item.accounts.map((account) => (
-                <li key={account.stream_id}>
-                  {accountLabel(account.account_id)} — {account.state}{" "}
+                <li
+                  key={account.stream_id}
+                  className="connected-account"
+                  aria-label={`Connected ${accountLabel(account.account_id)}`}
+                >
+                  <div className="connected-account-heading">
+                    <h4>{accountLabel(account.account_id)}</h4>
+                    <p>Connection: {account.state.replaceAll("_", " ")}</p>
+                  </div>
                   {prepareRegistration && autoStatus.has(account.stream_id) && (
                     <AccountImportStatus
                       api={api}
@@ -1210,34 +1219,47 @@ function ConnectionWorkspace({
                       denied={denied}
                     />
                   )}
-                  <details>
-                    <summary>
-                      Technical account details for{" "}
-                      {accountLabel(account.account_id)}
-                    </summary>
-                    <p>Provider account ID: {account.account_id}</p>
+                  <div className="connected-account-actions">
+                    <button
+                      aria-label={`Review transactions for ${accountLabel(account.account_id)}`}
+                      disabled={unavailable}
+                      onClick={() => onReview(account.source_account_id)}
+                    >
+                      Transactions
+                    </button>
+                    <button
+                      aria-label={`View sync status for ${accountLabel(account.account_id)}`}
+                      disabled={mutable}
+                      onClick={() =>
+                        void readStatus(account, item.sync_item_id)
+                      }
+                    >
+                      Sync status
+                    </button>
+                  </div>
+                  <details className="account-management">
+                    <summary>Manage {accountLabel(account.account_id)}</summary>
+                    <button
+                      disabled={mutable || account.state === "disconnected"}
+                      onClick={() => setDisconnect(account)}
+                    >
+                      Disconnect {accountLabel(account.account_id)}
+                    </button>
+                    <details>
+                      <summary>
+                        Technical account details for{" "}
+                        {accountLabel(account.account_id)}
+                      </summary>
+                      <p>Provider account ID: {account.account_id}</p>
+                    </details>
                   </details>
-                  <button
-                    disabled={unavailable}
-                    onClick={() => onReview(account.source_account_id)}
-                  >
-                    Review transactions for {accountLabel(account.account_id)}
-                  </button>{" "}
-                  <button
-                    disabled={mutable}
-                    onClick={() => void readStatus(account, item.sync_item_id)}
-                  >
-                    View sync status for {accountLabel(account.account_id)}
-                  </button>{" "}
-                  <button
-                    disabled={mutable || account.state === "disconnected"}
-                    onClick={() => setDisconnect(account)}
-                  >
-                    Disconnect {accountLabel(account.account_id)}
-                  </button>
                 </li>
               ))}
             </ul>
+            <details className="connection-technical">
+              <summary>Technical connection details</summary>
+              <p>Provider Item: {item.item_id}</p>
+            </details>
           </article>
         ))
       )}

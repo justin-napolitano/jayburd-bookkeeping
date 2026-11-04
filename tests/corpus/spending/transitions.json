@@ -1,0 +1,52 @@
+{
+  "profile": "jayburd-spending-oracle-transitions/1",
+  "synthetic": true,
+  "status": "Independent before/after acceptance targets, not executed provider or ledger events.",
+  "cases": [
+    {
+      "id": "pending-to-booked",
+      "before": [{"observation": "pending-parent", "state": "pending", "amount": "12.50", "direction": "outflow"}],
+      "after": [{"observation": "pending-parent", "state": "removed", "amount": "12.50", "direction": "outflow"}, {"observation": "booked-child", "state": "booked", "amount": "12.50", "direction": "outflow", "pending_parent": "pending-parent"}],
+      "expected_before": {"activity_count": "0", "outflow": "0", "pending_count": "1"},
+      "expected_after": {"activity_count": "1", "outflow": "12.5", "pending_count": "0", "removed_count": "1", "journals_from_read": "0"}
+    },
+    {
+      "id": "pending-parent-still-present",
+      "after": [{"observation": "pending-parent", "state": "pending", "amount": "12.50", "direction": "outflow"}, {"observation": "booked-child", "state": "booked", "amount": "12.50", "direction": "outflow", "pending_parent": "pending-parent"}],
+      "expected_after": {"activity_count": "1", "outflow": "12.5", "raw_pending_count": "1", "note": "Raw pending record count is not another booked amount or a confirmed pending cash exposure."}
+    },
+    {
+      "id": "date-changing-modification",
+      "period": {"starts_on": "2026-11-01", "through_date": "2026-11-30"},
+      "before": {"source_revision": "20", "observation_revision": "1", "date": "2026-10-31", "amount": "40.00"},
+      "after": {"source_revision": "21", "observation_revision": "2", "date": "2026-11-11", "amount": "50.00"},
+      "expected_before": {"in_period_count": "0", "outflow": "0"},
+      "expected_after": {"in_period_count": "1", "outflow": "50", "old_snapshot_drill": "stale_refresh_required", "old_revision_retained": true}
+    },
+    {
+      "id": "valid-source-correction-after-posting",
+      "posted_history": {"source_revision": "1", "amount": "100.00"},
+      "current_source": {"revision": "2", "state": "booked", "amount": "15.00", "direction": "outflow", "precision_valid": true, "identity_unambiguous": true},
+      "expected": {"source_activity_outflow": "15", "journal_quantity": "100", "posting_correction_attention_count": "1", "activity_excluded_for_accounting_review": false, "journal_mutations_from_read": "0"}
+    },
+    {
+      "id": "removal-is-not-a-refund",
+      "before": {"revision": "1", "state": "booked", "amount": "25.00", "direction": "outflow"},
+      "after": {"revision": "2", "state": "removed", "amount": "25.00", "direction": "outflow"},
+      "expected_after": {"activity_count": "0", "outflow": "0", "refunds_created": "0", "removed_count": "1", "journal_mutations_from_read": "0"}
+    },
+    {
+      "id": "merchant-mapping-revision",
+      "before_profile": "provider-merchant-exact-v1",
+      "before_groups": [{"label": "Fictional Cafe", "net_outflow": "5"}, {"label": "FICTIONAL CAFE", "net_outflow": "50"}],
+      "reviewed_future_mapping": {"revision": "2", "alias": "FICTIONAL CAFE", "target": "Fictional Cafe", "scope": "checking/usd-before", "note": "Illustrative explicit alias approval, not an automatic normalization rule."},
+      "expected_after_approval": {"net_outflow": "55", "original_labels_retained": true, "old_profile_drill": "stale_refresh_required", "journal_mutations": "0"}
+    },
+    {
+      "id": "identical-source-replay",
+      "before": {"source_revision": "21", "current_observation_revision": "2", "quantity": "50.00"},
+      "same_normalized_revision_replayed": true,
+      "expected": {"source_revision": "21", "current_observation_revision": "2", "contribution_count": "1", "quantity": "50", "duplicate_effects": "0"}
+    }
+  ]
+}
