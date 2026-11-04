@@ -77,6 +77,8 @@ export type API = (<T>(
   key?: string,
 ) => Promise<T>) & {
   download?: (path: string) => Promise<Blob>;
+  // Explicit reviewed POST read; ordinary POST calls retain commit uncertainty.
+  query?: <T>(path: string, body: string) => Promise<T>;
 };
 // A bounded same-origin request carries a fresh memory-only token and no cookies.
 export function createAPI(
@@ -88,9 +90,10 @@ export function createAPI(
     path: string,
     body?: string,
     key?: string,
+    readOnly = false,
   ): Promise<Response> => {
     // Wording follows the actual method; uncertainty remains authoritative for recovery gates.
-    const operation = body === undefined ? "read" : "mutation";
+    const operation = body === undefined || readOnly ? "read" : "mutation";
     let token: string;
     try {
       token = await getToken();
@@ -142,6 +145,21 @@ export function createAPI(
       return (await response.json()) as T;
     } catch {
       throw new APIError(0, true, body === undefined ? "read" : "mutation");
+    }
+  };
+  // Query transports private filters without placing their values in a URL.
+  client.query = async <T>(path: string, body: string): Promise<T> => {
+    if (
+      !/^\/v1\/entities\/[^/?#]+\/books\/[^/?#]+\/review-items\/query$/.test(
+        path,
+      )
+    )
+      throw new APIError(400, false, "read");
+    const response = await request(path, body, undefined, true);
+    try {
+      return (await response.json()) as T;
+    } catch {
+      throw new APIError(0, true, "read");
     }
   };
   // Buffer a bounded response before offering any bytes to the user as a download.

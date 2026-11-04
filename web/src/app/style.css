@@ -1130,6 +1130,7 @@ section[aria-label="Connections"] select {
   white-space: nowrap;
 }
 .review-list-summary {
+  margin-top: 0.5rem;
   margin-bottom: 0.25rem;
   font-weight: 650;
 }
@@ -1208,7 +1209,7 @@ section[aria-label="Connections"] select {
     min-width: 0;
   }
   .review-controls > button {
-    grid-column: 1 / -1;
+    grid-column: auto;
     margin: 0;
     justify-self: start;
   }
@@ -1299,4 +1300,29 @@ section[aria-label="Connections"] select {
     color: var(--muted);
     font-size: 0.85rem;
   }
+}
+
+/* Search stays one compact row on wide screens and stacks without horizontal overflow. */
+.review-search-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.review-search-fields label { min-width: 0; }
+.review-search-options {
+  align-self: end;
+}
+.review-search-options summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0.6rem 0;
+  box-sizing: border-box;
+  font-size: 0.9rem;
+}
+.review-search-options[open] {
+  grid-column: 1 / -1;
+  flex-basis: 100%;
+}
+@media (max-width: 700px) {
+  .review-search-fields { grid-template-columns: minmax(0, 1fr); }
 }

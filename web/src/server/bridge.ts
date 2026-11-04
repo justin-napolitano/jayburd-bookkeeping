@@ -12,6 +12,8 @@ const connectionRead = new RegExp(`^${bookPath}/(?:connections|connection-attemp
 const connectionWrite = new RegExp(`^${bookPath}/(?:connection-attempts|connection-attempts/${uuid}/(?:execute|complete|reconcile|abandon|bindings|registration)|connections/streams/${uuid}/(?:disconnect|operations))$`);
 // Selection preparation has a smaller closed JSON boundary than provider handoffs.
 const registrationPreparation = new RegExp(`^${bookPath}/connection-attempts/${uuid}/registration$`);
+// Private search values travel only in a bounded no-store POST read body.
+const reviewQuery = new RegExp(`^${bookPath}/review-items/query$`);
 const connectionAction = new RegExp(`^${bookPath}/connection-attempts/${uuid}/(?:execute|complete|reconcile|abandon)$`);
 const reportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)$`, 'i');
 
@@ -138,6 +140,7 @@ function allowed(url: URL, method: string): boolean {
   )
     return true;
   if (url.search) return false;
+  if (method === 'POST' && reviewQuery.test(url.pathname)) return true;
   return method === 'GET' && (url.pathname === '/v1/workspace' || url.pathname === '/v1/commands/pending' || new RegExp(`^${bookPath}/journals/${uuid}$`, 'i').test(url.pathname)) ||
     method === 'POST' && (url.pathname === '/v1/setup' || url.pathname === '/v1/commands' || url.pathname === inaccessibleCommandAction || commandAction.test(url.pathname) || new RegExp(`^${bookPath}/journals(?:/${uuid}/reversals)?$`, 'i').test(url.pathname));
 }
@@ -214,10 +217,11 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
         if (registrationPreparation.test(url.pathname) && ((request.headers.get('Content-Type') ?? '').toLowerCase() !== 'application/json' || request.headers.has('Content-Encoding'))) return failure(400);
         // Durable command and connection transitions carry their own persisted operation identity.
         const key = request.headers.get('Idempotency-Key');
-        if ((key !== null || !(url.pathname === inaccessibleCommandAction || commandAction.test(url.pathname) || connectionAction.test(url.pathname))) && !/^[A-Za-z0-9._:-]{1,128}$/.test(key ?? '')) return failure(400);
+        if (reviewQuery.test(url.pathname) && (key !== null || request.headers.has('Content-Encoding') || request.headers.get('Content-Type') !== 'application/json')) return failure(400);
+        if (!reviewQuery.test(url.pathname) && (key !== null || !(url.pathname === inaccessibleCommandAction || commandAction.test(url.pathname) || connectionAction.test(url.pathname))) && !/^[A-Za-z0-9._:-]{1,128}$/.test(key ?? '')) return failure(400);
         headers.set('Content-Type', 'application/json');
         if (key !== null) headers.set('Idempotency-Key', key);
-        try { body = await read(request.body, registrationPreparation.test(url.pathname) ? 16 << 10 : connectionWrite.test(url.pathname) ? 32 << 10 : limit, signal); } catch (error) { return failure(error instanceof RangeError ? 413 : 504); }
+        try { body = await read(request.body, reviewQuery.test(url.pathname) ? 8192 : registrationPreparation.test(url.pathname) ? 16 << 10 : connectionWrite.test(url.pathname) ? 32 << 10 : limit, signal); } catch (error) { return failure(error instanceof RangeError ? 413 : 504); }
       } else if (request.body !== null) return failure(400);
       if (config.cloud) headers.set('X-Serverless-Authorization', `Bearer ${await serviceToken(config.api, transport, signal)}`);
       const upstream = await transport(config.api + url.pathname + url.search, {
