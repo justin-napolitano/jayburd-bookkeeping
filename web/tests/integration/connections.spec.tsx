@@ -255,6 +255,17 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     stream_count: "3",
   });
   await review.click();
+  // The production Next bridge reaches the real authorized source summary and exact unit drill.
+  const [metricEntity,metricBook]=scope.split('/');
+  const metricURL=new URL(`/v1/entities/${metricEntity}/books/${metricBook}/source-activity/query`,page.url()).href;
+  const metricHeaders={Authorization:'Bearer synthetic.browser.proof',Origin:new URL(page.url()).origin};
+  const metricQuery={profile:'source-activity-v1',source_account_id:firstSource.source_account_id,starts_on:'2026-01-01',through_date:'2026-12-31',search:'',kind:'summary',currency_version_id:null,merchant:null,snapshot:null,cursor:null,limit:20};
+  const metricReply=await page.request.post(metricURL,{headers:metricHeaders,data:metricQuery});
+  expect(metricReply.status()).toBe(200);expect(metricReply.headers()['cache-control']).toBe('no-store');
+  const metric=await metricReply.json();
+  expect(metric.units).toHaveLength(1);expect(metric.units[0].outflow).toBe('0.3');expect(metric.bank_balance).toBeNull();expect(metric.last_successful_sync).toBeNull();
+  const drillReply=await page.request.post(metricURL,{headers:metricHeaders,data:{...metricQuery,kind:'observations',currency_version_id:metric.units[0].currency_version_id,snapshot:metric.snapshot}});
+  expect(drillReply.status()).toBe(200);const drill=await drillReply.json();expect(drill.totals.outflow).toBe('0.3');expect(drill.items).toHaveLength(2);expect(drill.items.map((row:{amount:string})=>row.amount).sort()).toEqual(['0.1','0.2']);
   await expect(page.getByRole("columnheader", { name: "Date" })).toHaveAttribute("aria-sort", "descending");
   const sortedReply = page.waitForResponse(response => {
     const url = new URL(response.url());

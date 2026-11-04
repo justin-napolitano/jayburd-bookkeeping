@@ -117,3 +117,40 @@ func TestSourceReviewQueryTransport(t *testing.T) {
 		})
 	}
 }
+
+// TestSourceActivityTransport denies private URL/key/body ambiguities before SQL dispatch.
+func TestSourceActivityTransport(t *testing.T) {
+	path := "/v1/entities/e/books/b/source-activity/query"
+	for _, tc := range []struct {
+		name, suffix, content, body, key string
+		status                           int
+	}{
+		{"read", "", "application/json", `{ "profile":"source-activity-v1" }`, "", 200},
+		{"url", "?merchant=fictional", "application/json", `{}`, "", 400},
+		{"key", "", "application/json", `{}`, "synthetic", 400},
+		{"content", "", "text/plain", `{}`, "", 400},
+		{"oversize", "", "application/json", strings.Repeat("x", 8193), "", 413},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := &reviewTransportStub{operationsStub: operationsStub{result: Result{Status: 200, Body: []byte(`{}`)}}}
+			r := httptest.NewRequest("POST", path+tc.suffix, strings.NewReader(tc.body))
+			r.Header.Set("Authorization", "Bearer synthetic")
+			r.Header.Set("Content-Type", tc.content)
+			if tc.key != "" {
+				r.Header.Set("Idempotency-Key", tc.key)
+			}
+			w := httptest.NewRecorder()
+			Handler(authStub{}, s).ServeHTTP(w, r)
+			if w.Code != tc.status || w.Header().Get("Cache-Control") != "no-store" {
+				t.Fatal("activity transport", w.Code)
+			}
+			if tc.status == 200 {
+				if s.action != "activity" || s.command.Body != tc.body || s.command.Key != "" || s.command.Actor == "" {
+					t.Fatal("activity scope/body changed")
+				}
+			} else if s.calls != 0 {
+				t.Fatal("rejected activity dispatched")
+			}
+		})
+	}
+}

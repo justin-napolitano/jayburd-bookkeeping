@@ -3908,6 +3908,73 @@
           }
         }
       }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/source-activity/query": {
+      "post": {
+        "operationId": "querySourceActivity",
+        "summary": "Read exact original-unit activity and pinned merchant drills for one authorized source",
+        "description": "No-store read only; current entity/source grants before snapshots or disclosure. Complete current-observation inventory, exact decimal strings, distinct currency versions and unavailable balances/freshness. Private selectors/cursors only in bounded body, no idempotency key or financial/provider effects. See docs/contracts/source-activity-api.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivityQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authorized complete matching snapshot page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityPage"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe failure",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8054,6 +8121,752 @@
           "can_register",
           "accounts"
         ]
+      },
+      "ActivitySnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_revision",
+          "binding_revision",
+          "review_revision_sum",
+          "filter_digest"
+        ],
+        "properties": {
+          "source_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "binding_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "review_revision_sum": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "filter_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          }
+        }
+      },
+      "ActivityMerchantSelector": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "label"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "attributed",
+              "not_provided",
+              "unavailable"
+            ]
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "ActivitySelector": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "source_account_id",
+          "starts_on",
+          "through_date",
+          "search",
+          "kind",
+          "currency_version_id",
+          "merchant"
+        ],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "const": "source-activity-v1"
+          },
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "starts_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "through_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "search": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "observations",
+              "merchants"
+            ]
+          },
+          "currency_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "merchant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActivityMerchantSelector"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "ActivityQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "source_account_id",
+          "starts_on",
+          "through_date",
+          "search",
+          "kind",
+          "currency_version_id",
+          "merchant",
+          "snapshot",
+          "cursor",
+          "limit"
+        ],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "const": "source-activity-v1"
+          },
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "starts_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "through_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "search": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "observations",
+              "merchants"
+            ]
+          },
+          "currency_version_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "merchant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActivityMerchantSelector"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActivitySnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048,
+                "pattern": "^([0-9a-f]{2})+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "description": "Closed source-activity-v1 private read, <=8192 UTF8 bytes. Summary requires null unit/merchant/cursor and limit20; observations require exact unit and snapshot, limit<=100; merchants require exact unit and snapshot, null merchant, limit<=20. Attributed merchant has nonblank label; other statuses require null. Inclusive real ordered calendar dates. SQL validates conditional constraints and duplicate keys."
+      },
+      "ActivityUnit": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "currency_version_id",
+          "currency",
+          "numeric_code",
+          "minor_unit",
+          "count",
+          "inflow",
+          "outflow",
+          "net_inflow"
+        ],
+        "properties": {
+          "currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "numeric_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]{3}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minor_unit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9
+          },
+          "count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "inflow": {
+            "type": "string",
+            "pattern": "^-?[0-9]{1,48}(\\.[0-9]{1,9})?$"
+          },
+          "outflow": {
+            "type": "string",
+            "pattern": "^-?[0-9]{1,48}(\\.[0-9]{1,9})?$"
+          },
+          "net_inflow": {
+            "type": "string",
+            "pattern": "^-?[0-9]{1,48}(\\.[0-9]{1,9})?$"
+          }
+        }
+      },
+      "ActivityTotals": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count",
+          "inflow",
+          "outflow",
+          "net_inflow"
+        ],
+        "properties": {
+          "count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "inflow": {
+            "type": "string",
+            "pattern": "^-?[0-9]{1,48}(\\.[0-9]{1,9})?$"
+          },
+          "outflow": {
+            "type": "string",
+            "pattern": "^-?[0-9]{1,48}(\\.[0-9]{1,9})?$"
+          },
+          "net_inflow": {
+            "type": "string",
+            "pattern": "^-?[0-9]{1,48}(\\.[0-9]{1,9})?$"
+          }
+        }
+      },
+      "ActivityMerchant": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "label",
+          "profile"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "attributed",
+              "not_provided",
+              "unavailable"
+            ]
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile": {
+            "type": "string",
+            "const": "provider-merchant-exact-v1"
+          }
+        }
+      },
+      "ActivityMerchantGroup": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "label",
+          "profile",
+          "count",
+          "inflow",
+          "outflow",
+          "net_outflow"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "attributed",
+              "not_provided",
+              "unavailable"
+            ]
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile": {
+            "type": "string",
+            "const": "provider-merchant-exact-v1"
+          },
+          "count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "inflow": {
+            "type": "string",
+            "pattern": "^-?[0-9]{1,48}(\\.[0-9]{1,9})?$"
+          },
+          "outflow": {
+            "type": "string",
+            "pattern": "^-?[0-9]{1,48}(\\.[0-9]{1,9})?$"
+          },
+          "net_outflow": {
+            "type": "string",
+            "pattern": "^-?[0-9]{1,48}(\\.[0-9]{1,9})?$"
+          }
+        }
+      },
+      "ActivityObservation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "currency_version_id",
+          "currency",
+          "numeric_code",
+          "minor_unit",
+          "observation_id",
+          "observation_revision",
+          "booked_date",
+          "description",
+          "source_state",
+          "direction",
+          "amount",
+          "review_id",
+          "review_state",
+          "merchant"
+        ],
+        "properties": {
+          "currency_version_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "numeric_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]{3}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minor_unit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9
+          },
+          "observation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "observation_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "booked_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string"
+          },
+          "source_state": {
+            "type": "string",
+            "const": "booked"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "inflow",
+              "outflow"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^-?[0-9]{1,48}(\\.[0-9]{1,9})?$"
+          },
+          "review_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "needs_review",
+                  "overlap_hold",
+                  "correction_hold",
+                  "draft_ready",
+                  "posted"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "merchant": {
+            "$ref": "#/components/schemas/ActivityMerchant"
+          }
+        }
+      },
+      "ActivityInventory": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_count",
+          "matching_count",
+          "eligible_count",
+          "pending_count",
+          "removed_count",
+          "zero_count",
+          "quality_hold_count",
+          "correction_attention_count",
+          "partial"
+        ],
+        "properties": {
+          "source_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "matching_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "eligible_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "pending_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "removed_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "zero_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "quality_hold_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "correction_attention_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,38})$"
+          },
+          "partial": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ActivityPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "entity_id",
+          "book_id",
+          "source_account_id",
+          "source_state",
+          "snapshot",
+          "selector",
+          "generated_at",
+          "bank_balance",
+          "functional_total",
+          "categorized_spending",
+          "last_successful_sync",
+          "unavailable_reasons",
+          "history_completeness",
+          "available_from",
+          "available_through",
+          "inventory",
+          "units",
+          "totals",
+          "items",
+          "merchant_groups",
+          "group_count",
+          "remaining_group_count",
+          "next_cursor"
+        ],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "const": "source-activity-v1"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused",
+              "retired"
+            ]
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/ActivitySnapshot"
+          },
+          "selector": {
+            "$ref": "#/components/schemas/ActivitySelector"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bank_balance": {
+            "type": "null"
+          },
+          "functional_total": {
+            "type": "null"
+          },
+          "categorized_spending": {
+            "type": "null"
+          },
+          "last_successful_sync": {
+            "type": "null"
+          },
+          "unavailable_reasons": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "bank_balance",
+              "functional_total",
+              "categorized_spending",
+              "last_successful_sync"
+            ],
+            "properties": {
+              "bank_balance": {
+                "type": "string",
+                "const": "not_projected"
+              },
+              "functional_total": {
+                "type": "string",
+                "const": "no_valuation"
+              },
+              "categorized_spending": {
+                "type": "string",
+                "const": "not_implemented"
+              },
+              "last_successful_sync": {
+                "type": "string",
+                "const": "not_projected"
+              }
+            }
+          },
+          "history_completeness": {
+            "type": "string",
+            "const": "unknown"
+          },
+          "available_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "available_through": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "inventory": {
+            "$ref": "#/components/schemas/ActivityInventory"
+          },
+          "units": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityUnit"
+            },
+            "maxItems": 100
+          },
+          "totals": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActivityTotals"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityObservation"
+            },
+            "maxItems": 100
+          },
+          "merchant_groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityMerchantGroup"
+            },
+            "maxItems": 20
+          },
+          "group_count": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,38})$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "remaining_group_count": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,38})$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
       }
     },
     "responses": {

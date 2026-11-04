@@ -43,6 +43,7 @@ func Handler(auth Authenticator, ops Operations) http.Handler {
 	mux.HandleFunc("GET "+base+"/sources", endpoint(auth, ops, "review_sources"))
 	mux.HandleFunc("GET "+base+"/review-items", endpoint(auth, ops, "review_list"))
 	mux.HandleFunc("POST "+base+"/review-items/query", endpoint(auth, ops, "review_query"))
+	mux.HandleFunc("POST "+base+"/source-activity/query", endpoint(auth, ops, "review_activity"))
 	mux.HandleFunc("GET "+base+"/review-items/{review}", endpoint(auth, ops, "review_detail"))
 	mux.HandleFunc("GET "+base+"/review-items/{review}/categories", endpoint(auth, ops, "review_categories"))
 	mux.HandleFunc("POST "+base+"/review-items/{review}/drafts", endpoint(auth, ops, "review_draft"))
@@ -110,12 +111,18 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			fail(400, "invalid_request")
 			return
 		}
-		if op == "post" || op == "reverse" || op == "setup" || op == "review_draft" || op == "review_query" || (isRecovery && op != "command_pending") {
-			if op == "review_query" && (len(r.Header.Values("Idempotency-Key")) != 0 || len(r.Header.Values("Content-Type")) != 1 || r.Header.Get("Content-Type") != "application/json" || len(r.Header.Values("Content-Encoding")) != 0) {
+		// Private POST reads share bounded transport, without a financial command key.
+		privateRead := op == "review_query" || op == "review_activity"
+		if privateRead && r.URL.ForceQuery {
+			fail(400, "invalid_request")
+			return
+		}
+		if op == "post" || op == "reverse" || op == "setup" || op == "review_draft" || privateRead || (isRecovery && op != "command_pending") {
+			if privateRead && (len(r.Header.Values("Idempotency-Key")) != 0 || len(r.Header.Values("Content-Type")) != 1 || r.Header.Get("Content-Type") != "application/json" || len(r.Header.Values("Content-Encoding")) != 0) {
 				fail(400, "invalid_request")
 				return
 			}
-			if op != "review_query" && (!isRecovery || op == "command_register") {
+			if !privateRead && (!isRecovery || op == "command_register") {
 				keys := r.Header.Values("Idempotency-Key")
 				if len(keys) != 1 || keys[0] == "" {
 					fail(400, "invalid_request")
@@ -124,7 +131,7 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 				c.Key = keys[0]
 			}
 			maximum := int64(1 << 20)
-			if op == "review_query" {
+			if privateRead {
 				maximum = 8192
 			}
 			if op == "review_draft" {
@@ -193,8 +200,8 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			}
 		}
 		switch op {
-		case "review_sources", "review_list", "review_query", "review_detail", "review_categories", "review_draft":
-			if op != "review_draft" && op != "review_query" && (r.ContentLength > 0 || len(r.TransferEncoding) > 0) {
+		case "review_sources", "review_list", "review_query", "review_activity", "review_detail", "review_categories", "review_draft":
+			if op != "review_draft" && !privateRead && (r.ContentLength > 0 || len(r.TransferEncoding) > 0) {
 				fail(400, "invalid_request")
 				return
 			}

@@ -13,7 +13,7 @@ import (
 // SourceReview permits only scoped reads and draft creation; posting uses durable command recovery.
 func (s *Service) SourceReview(ctx context.Context, c Command, action string) (Result, error) {
 	switch action {
-	case "sources", "list", "query", "detail", "categories", "draft":
+	case "sources", "list", "query", "activity", "detail", "categories", "draft":
 	default:
 		return Result{}, &Failure{400, "invalid_request"}
 	}
