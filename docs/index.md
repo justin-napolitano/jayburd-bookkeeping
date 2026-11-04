@@ -1,5 +1,8 @@
 # Project context
 
+[Source Overview](contracts/source-overview.md) and [stages](runbooks/source-overview.md),432:
+all-imported activity with exact unit and merchant drills; dependent source preparation.
+
 [Source activity API](contracts/source-activity-api.md) and
 [stages](runbooks/source-activity-api.md),429: original-unit totals and pinned drills; source review pending.
 

@@ -27,30 +27,33 @@ describe("API client boundary", () => {
     expect(fetch).not.toHaveBeenCalled();
     expect(getToken).not.toHaveBeenCalled();
   });
-  it("sends private POST reads with read availability semantics and no retry key", async () => {
-    const { fetch, api } = fixture();
-    fetch.mockResolvedValue(new Response("private error", { status: 503 }));
-    await expect(
-      api.query!(
-        "/v1/entities/e/books/b/review-items/query",
-        '{"search":"fictional"}',
-      ),
-    ).rejects.toMatchObject({
-      uncertain: true,
-      message: "Data is unavailable right now. Retry the read.",
-    });
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls[0][0]).toBe(
-      "/v1/entities/e/books/b/review-items/query",
-    );
-    expect(fetch.mock.calls[0][1]).toMatchObject({
-      method: "POST",
-      body: '{"search":"fictional"}',
-    });
-    expect(fetch.mock.calls[0][1]?.headers).not.toHaveProperty(
-      "Idempotency-Key",
-    );
-  });
+  it.each(["review-items", "source-activity"])(
+    "sends private %s POST reads with read availability semantics and no retry key",
+    async (resource) => {
+      const { fetch, api } = fixture();
+      fetch.mockResolvedValue(new Response("private error", { status: 503 }));
+      await expect(
+        api.query!(
+          `/v1/entities/e/books/b/${resource}/query`,
+          '{"search":"fictional"}',
+        ),
+      ).rejects.toMatchObject({
+        uncertain: true,
+        message: "Data is unavailable right now. Retry the read.",
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fetch.mock.calls[0][0]).toBe(
+        `/v1/entities/e/books/b/${resource}/query`,
+      );
+      expect(fetch.mock.calls[0][1]).toMatchObject({
+        method: "POST",
+        body: '{"search":"fictional"}',
+      });
+      expect(fetch.mock.calls[0][1]?.headers).not.toHaveProperty(
+        "Idempotency-Key",
+      );
+    },
+  );
   it("projects only the approved problem code from a bounded read error", async () => {
     const { fetch, api } = fixture();
     fetch.mockResolvedValue(

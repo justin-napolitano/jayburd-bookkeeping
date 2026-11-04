@@ -68,6 +68,7 @@ test("all books renders exact separate position rows and scoped tools", async ({
   await page.setViewportSize({ width: 1440, height: 900 });
   const requests = await prepare(page);
   await mount(<Harness />);
+  await page.getByRole("button", { name: "Position", exact: true }).click();
   const table = page.locator(".position-table");
   await expect(table.locator(".position-book-row")).toHaveCount(5);
   await expect(page.getByLabel("Entity and book")).toHaveValue("");
@@ -130,6 +131,7 @@ test("date edits clear old values and one denied book leaves the rest readable",
   await servePosition(page, "holdings-europe");
   await mount(<Harness />);
   const table = page.locator(".position-table");
+  await page.getByRole("button", { name: "Position", exact: true }).click();
   await expect(table.getByRole("cell", { name: "22,900.00" })).toBeVisible();
   await expect(table.getByText("Access unavailable")).toBeVisible();
   await page.getByLabel("As of date").fill("2026-10-20");
@@ -168,6 +170,7 @@ test("ordinary Ledger navigation does not reuse an already refreshed Position ha
     });
   });
   await mount(<Harness />);
+  await page.getByRole("button", { name: "Position", exact: true }).click();
   await expect(
     page.locator(".position-equity").filter({ hasText: "8,000.00" }),
   ).toBeVisible();
@@ -203,6 +206,7 @@ test("mobile Position keeps every amount visible without sideways scrolling", as
   await page.setViewportSize({ width: 390, height: 844 });
   await prepare(page);
   await mount(<Harness />);
+  await page.getByRole("button", { name: "Position", exact: true }).click();
   await expect(page.locator(".position-book-row")).toHaveCount(5);
   await page.screenshot({
     path: testInfo.outputPath("position-mobile.png"),
@@ -220,7 +224,7 @@ test("mobile Position keeps every amount visible without sideways scrolling", as
   ).toBe(false);
 });
 
-test("a recovered command locks Position reads, scope and navigation", async ({
+test("a recovered command locks the default Overview, scope and Position navigation", async ({
   mount,
   page,
 }) => {
@@ -230,17 +234,19 @@ test("a recovered command locks Position reads, scope and navigation", async ({
   await expect(
     page.getByText("Saved for review.", { exact: false }),
   ).toBeVisible();
-  await expect(page.locator(".position-book-row")).toHaveCount(5);
   await expect(
-    page.getByText("Locked while a command needs acknowledgement"),
-  ).toHaveCount(5);
+    page.getByRole("heading", { name: "Overview", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".tool-book-picker button")).toHaveCount(5);
+  for (const button of await page.locator(".tool-book-picker button").all())
+    await expect(button).toBeDisabled();
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
   await expect(
     page.getByRole("button", { name: "Transactions", exact: true }),
   ).toBeDisabled();
   await expect(
     page.getByRole("button", {
-      name: "View imported transactions",
+      name: "Position",
       exact: true,
     }),
   ).toBeDisabled();

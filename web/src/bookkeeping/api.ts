@@ -150,7 +150,7 @@ export function createAPI(
   // Query transports private filters without placing their values in a URL.
   client.query = async <T>(path: string, body: string): Promise<T> => {
     if (
-      !/^\/v1\/entities\/[^/?#]+\/books\/[^/?#]+\/review-items\/query$/.test(
+      !/^\/v1\/entities\/[^/?#]+\/books\/[^/?#]+\/(?:review-items|source-activity)\/query$/.test(
         path,
       )
     )
