@@ -1,5 +1,8 @@
 # Project context
 
+[Source transaction search](contracts/transaction-search.md) and
+[stages](runbooks/transaction-search.md),408: private filters and observed coverage.
+
 [Accounting category recovery](contracts/category-recovery.md) and
 [stages](runbooks/category-recovery.md),416: draft readiness and readable detail.
 

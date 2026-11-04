@@ -34,6 +34,19 @@ test("loads 3000 transactions and explicitly posts one source-linked journal", a
   });
   await expect(source.locator("option")).toHaveCount(2);
   await source.selectOption({ index: 1 });
+  // Exercise the real private-query bridge/Go/SQL path before any explicit source posting.
+  await page.getByText("Search and dates", { exact: true }).first().click();
+  await page.getByLabel("Description contains").fill("Fictional");
+  await page.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page.getByText(/Imported history:/)).toContainText(
+    "1000 transactions",
+  );
+  await page.getByText("About this list", { exact: true }).click();
+  await expect(
+    page.getByText(/The available imported range is not proof/),
+  ).toBeVisible();
+  await page.getByText("About this list", { exact: true }).click();
+  await page.getByText("Search and dates", { exact: true }).first().click();
   // UUID ordering is deliberately opaque; the selected row supplies only its direction, never expected arithmetic.
   await expect(
     page.getByRole("button", { name: /^Review Fictional / }).first(),

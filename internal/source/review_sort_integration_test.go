@@ -295,10 +295,17 @@ func TestSourceReviewSortOriginalCurrencies(t *testing.T) {
 			importFinish(t, db, "sort-currency", importPublish(t, db, batch, importPublication(rows...)))
 			result := call(t, db, "synthetic_runtime", "SELECT banking.list_review_items($1,$2,$3,$4)::text", reader, entity, book, raw(map[string]any{"source_account_id": sid, "state": nil, "limit": 2, "cursor": nil, "sort": "amount", "order": "asc"}))
 			items := importObject(t, result)["items"].([]any)
+			query := searchInput(sid)
+			query["sort"] = "amount"
+			searched := importObject(t, call(t, db, "synthetic_runtime", "SELECT banking.search_review_items($1,$2,$3,$4)::text", reader, entity, book, raw(query)))["items"].([]any)
 			for i, want := range []string{tc.small, tc.large} {
 				r := items[i].(map[string]any)
 				if r["currency"] != tc.code || r["amount"] != want {
 					t.Fatal("original currency/precision lost", r)
+				}
+				original := searched[i].(map[string]any)
+				if original["currency"] != tc.code || original["amount"] != want {
+					t.Fatal("search converted original units")
 				}
 			}
 			if value(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != "0" {
