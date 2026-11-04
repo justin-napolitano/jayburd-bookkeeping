@@ -1,5 +1,8 @@
 # Recovery and integration sources
 
+416 [category recovery evidence](../contracts/category-recovery.md),2026-11-03:
+migration11 policy/date and existing independent history proof; hosted cause unconfirmed.
+
 291 adds [RFC9110 §9.2.1–2/9.3.1 review and inference](../contracts/read-error-copy.md),
 2026-11-03: read availability copy preserves the saved-command authority gate.
 

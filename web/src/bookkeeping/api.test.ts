@@ -19,6 +19,113 @@ function fixture() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("API client boundary", () => {
+  it("projects only the approved problem code from a bounded read error", async () => {
+    const { fetch, api } = fixture();
+    fetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: "unsupported_policy",
+          detail: "private diagnostic",
+        }),
+        {
+          status: 422,
+          headers: {
+            "Content-Type": "application/problem+json; charset=utf-8",
+          },
+        },
+      ),
+    );
+    const failure = await api("/v1/categories").catch(
+      (error: unknown) => error,
+    );
+    expect(failure).toMatchObject({
+      status: 422,
+      uncertain: false,
+      code: "unsupported_policy",
+    });
+    expect(JSON.stringify(failure)).not.toContain("private diagnostic");
+    expect((failure as Error).message).not.toContain("private diagnostic");
+  });
+
+  it.each([
+    "unknown",
+    "invalid",
+    "oversized",
+    "wrong type",
+    "array",
+    "interrupted",
+  ])("ignores %s read problem bodies", async (reason) => {
+    const { fetch, api } = fixture();
+    let cancelled = false;
+    const body =
+      reason === "oversized"
+        ? new ReadableStream({
+            start(controller) {
+              controller.enqueue(new Uint8Array(2049));
+            },
+            cancel() {
+              cancelled = true;
+            },
+          })
+        : reason === "interrupted"
+          ? new ReadableStream({
+              start(controller) {
+                controller.error(new Error("private"));
+              },
+            })
+          : reason === "invalid"
+            ? "invalid JSON"
+            : reason === "array"
+              ? '[{"code":"unsupported_policy"}]'
+              : JSON.stringify({
+                  code:
+                    reason === "unknown"
+                      ? "private_unknown"
+                      : "unsupported_policy",
+                });
+    fetch.mockResolvedValue(
+      new Response(body, {
+        status: 422,
+        headers: {
+          "Content-Type":
+            reason === "wrong type" ? "text/html" : "application/problem+json",
+        },
+      }),
+    );
+    await expect(api("/v1/categories")).rejects.toMatchObject({
+      status: 422,
+      uncertain: false,
+      code: undefined,
+    });
+    if (reason === "oversized") expect(cancelled).toBe(true);
+  });
+
+  it.each([401, 403, 404, 503])(
+    "never consumes authority/availability error bodies for %i",
+    async (status) => {
+      const { fetch, api } = fixture();
+      const response = new Response('{"code":"unsupported_policy"}', {
+        status,
+        headers: { "Content-Type": "application/problem+json" },
+      });
+      fetch.mockResolvedValue(response);
+      await expect(api("/v1/categories")).rejects.toBeInstanceOf(APIError);
+      expect(response.bodyUsed).toBe(false);
+    },
+  );
+
+  it("never consumes mutation problem bodies", async () => {
+    const { fetch, api } = fixture();
+    const response = new Response('{"code":"unsupported_policy"}', {
+      status: 422,
+      headers: { "Content-Type": "application/problem+json" },
+    });
+    fetch.mockResolvedValue(response);
+    await expect(api("/v1/draft", "{}", "synthetic-key")).rejects.toMatchObject(
+      { code: undefined },
+    );
+    expect(response.bodyUsed).toBe(false);
+  });
   it.each([408, 429, 500, 503])(
     "describes GET status %i as unavailable while preserving recovery uncertainty",
     async (status) => {

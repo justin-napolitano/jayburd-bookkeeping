@@ -14,6 +14,17 @@ function metadata() { return new Response('synthetic.service.signature', {header
 function transport(response=Response.json({amount:'12.30'})) { return vi.fn<typeof fetch>().mockResolvedValueOnce(metadata()).mockResolvedValueOnce(response); }
 afterEach(() => vi.useRealTimers());
 describe('private API bridge', () => {
+ it.each(['approved','unknown','oversized','malformed'])('projects only a bounded approved category-read code: %s',async(mode)=>{
+  const body=mode==='approved' ? '{"code":"unsupported_policy","detail":"private diagnostic"}' : mode==='unknown' ? '{"code":"private_unknown","detail":"private diagnostic"}' : mode==='oversized' ? 'x'.repeat(2049) : '{broken';
+  const fetcher=transport(new Response(body,{status:422,headers:{'Content-Type':'application/problem+json'}}));
+  const path='/v1/entities/00000000-0000-4000-8000-000000000001/books/00000000-0000-4000-8000-000000000002/review-items/00000000-0000-4000-8000-000000000003/categories';
+  const response=await createBridge(fetcher,()=>env)(request(path));
+  expect(response.status).toBe(422);
+  const text=await response.text();
+  expect(text).not.toContain('private');
+  if(mode==='approved') {expect(text).toBe('{"code":"unsupported_policy"}');expect(response.headers.get('Content-Type')).toBe('application/problem+json');}
+  else expect(text).not.toContain('unsupported_policy');
+ });
  it('keeps user/service identities separate and forwards only exact replay bytes and allowed headers', async () => {
   const fetcher=transport(); const handler=createBridge(fetcher,()=>env);
   const body='{"amount":"12.30","request":"unchanged"}';
