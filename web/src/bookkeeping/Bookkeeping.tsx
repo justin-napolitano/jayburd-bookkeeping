@@ -87,6 +87,13 @@ export function Bookkeeping({
   );
   const recovery = useCommands(api);
   const locked = recovery.locked;
+  // Collapse presentation only after authoritative recovery confirms there is no work needing attention.
+  const idleRecovery =
+    !locked &&
+    recovery.ready &&
+    !recovery.command &&
+    !recovery.registration &&
+    !recovery.error;
   // Remember only a manual source choice in the current scope, never a financial snapshot.
   useEffect(() => {
     if (locked || reviewPreference.current?.scope !== scope)
@@ -394,18 +401,31 @@ export function Bookkeeping({
           />
         </BookWorkspace>
       )}
-      {!locked && <CommandPanel recovery={recovery} workspace={workspace} />}
-      {workspace && !recovery.accessDenied && (
+      {!locked && !idleRecovery && (
+        <CommandPanel recovery={recovery} workspace={workspace} />
+      )}
+      {(idleRecovery || (workspace && !recovery.accessDenied)) && (
         <details
-          className="setup-shelf"
-          open={workspace.entities.length === 0 ? true : undefined}
+          className="workspace-settings"
+          open={workspace?.entities.length === 0 ? true : undefined}
         >
-          <summary>Book setup</summary>
-          <Setup
-            workspace={workspace}
-            locked={locked}
-            prepare={recovery.prepare}
-          />
+          <summary>Settings</summary>
+          {idleRecovery && (
+            <CommandPanel recovery={recovery} workspace={workspace} />
+          )}
+          {workspace && !recovery.accessDenied && (
+            <details
+              className="setup-shelf"
+              open={workspace.entities.length === 0 ? true : undefined}
+            >
+              <summary>Book setup</summary>
+              <Setup
+                workspace={workspace}
+                locked={locked}
+                prepare={recovery.prepare}
+              />
+            </details>
+          )}
         </details>
       )}
     </div>

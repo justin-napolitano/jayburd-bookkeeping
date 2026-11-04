@@ -358,6 +358,58 @@ footer {
   color: var(--muted);
   font-size: 0.85rem;
 }
+.report-stamp summary,
+.book-provenance summary {
+  cursor: pointer;
+}
+.book-provenance {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.book-provenance p {
+  margin: 0.25rem 0;
+}
+.check-option {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  width: fit-content;
+}
+.check-option input[type="checkbox"] {
+  width: 1.15rem;
+  height: 1.15rem;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  flex: none;
+  accent-color: var(--accent);
+}
+.report-initial-state {
+  color: var(--muted);
+  max-width: 65ch;
+}
+.workspace-settings {
+  margin: 1rem 4rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+}
+.workspace-settings > summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.workspace-settings > .command-idle {
+  margin: 0.75rem 0;
+}
+.workspace-settings .setup-shelf {
+  margin: 0.75rem 0;
+}
+@media (max-width: 800px) {
+  .workspace-settings {
+    margin: 1rem 1.2rem;
+  }
+}
 .account-link {
   display: flex;
   align-items: center;
