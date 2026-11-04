@@ -145,7 +145,11 @@ test("source precision hold preserves all digits and blocks drafting", async ({
     await expect(page.getByRole("alert")).toContainText(
       "All digits are preserved",
     );
-    await expect(page.getByText(/1\.001000001/).first()).toBeVisible();
+    await expect(
+      page
+        .getByRole("region", { name: "Synthetic supplies", exact: true })
+        .getByText(/1\.001000001/),
+    ).toBeVisible();
     await expect(page.getByLabel("Category account")).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Review posting command" }),

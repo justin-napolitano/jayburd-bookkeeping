@@ -146,6 +146,85 @@ async function choose() {
   await screen.findByLabelText("Category account");
 }
 
+it("selects exactly one currently active source without a separate owner gesture", async () => {
+  const { api, props } = fixture();
+  render(<ReviewInbox {...props} />);
+  await screen.findByRole("button", { name: "Review Synthetic supplies" });
+  expect(
+    (screen.getByLabelText("Source account") as HTMLSelectElement).value,
+  ).toBe("s");
+  expect(
+    api.mock.calls.filter(([path]) => path.includes("/review-items?")),
+  ).toHaveLength(1);
+});
+
+it("never substitutes the sole account for an invalid explicit connection handoff", async () => {
+  const { api, props } = fixture();
+  render(<ReviewInbox {...props} initialSource="foreign-or-removed" />);
+  await screen.findByRole("option", { name: /Checking/ });
+  await waitFor(() =>
+    expect(
+      (screen.getByLabelText("Source account") as HTMLSelectElement).disabled,
+    ).toBe(false),
+  );
+  expect(
+    (screen.getByLabelText("Source account") as HTMLSelectElement).value,
+  ).toBe("");
+  expect(
+    api.mock.calls.filter(([path]) => path.includes("/review-items?")),
+  ).toHaveLength(0);
+});
+
+for (const sourceCase of ["multiple", "paused"]) {
+  it(`keeps ${sourceCase} source selection explicit`, async () => {
+    const { api, props } = fixture();
+    const original = api.getMockImplementation()!;
+    api.mockImplementation(async (path) =>
+      path.endsWith("/sources")
+        ? {
+            items:
+              sourceCase === "paused"
+                ? [
+                    {
+                      source_account_id: "s",
+                      display_name: "Checking",
+                      currency: "USD",
+                      state: "paused",
+                    },
+                  ]
+                : [
+                    {
+                      source_account_id: "s",
+                      display_name: "Checking",
+                      currency: "USD",
+                      state: "active",
+                    },
+                    {
+                      source_account_id: "s2",
+                      display_name: "Savings",
+                      currency: "USD",
+                      state: "active",
+                    },
+                  ],
+          }
+        : original(path),
+    );
+    render(<ReviewInbox {...props} />);
+    await screen.findByRole("option", { name: /Checking/ });
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText("Source account") as HTMLSelectElement).disabled,
+      ).toBe(false),
+    );
+    expect(
+      (screen.getByLabelText("Source account") as HTMLSelectElement).value,
+    ).toBe("");
+    expect(
+      api.mock.calls.filter(([path]) => path.includes("/review-items?")),
+    ).toHaveLength(0);
+  });
+}
+
 // A category read is optional presentation authority; readable detail must survive its temporary failure.
 it("keeps exact detail while categories are delayed, then disables drafts on failure and permits explicit retry", async () => {
   const { api, props } = fixture();
@@ -433,9 +512,18 @@ it("retries unknown draft outcome with identical body/key and freezes edited inp
   fireEvent.click(
     screen.getByRole("button", { name: "Create reviewed draft" }),
   );
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Retry same draft request" }),
+  const retryDraft = await screen.findByRole("button", {
+    name: "Retry same draft request",
+  });
+  const back = screen.getByRole("button", {
+    name: "Back to transactions",
+  }) as HTMLButtonElement;
+  expect(back.disabled).toBe(true);
+  fireEvent.click(back);
+  expect(screen.getByRole("button", { name: "Retry same draft request" })).toBe(
+    retryDraft,
   );
+  fireEvent.click(retryDraft);
   await screen.findByRole("button", { name: "Review posting command" });
   const calls = api.mock.calls.filter((c) => c[0].endsWith("/drafts"));
   expect(calls).toHaveLength(2);
@@ -452,7 +540,9 @@ it("uses the opaque page cursor and removes stale rows on snapshot failure", asy
   api.mockRejectedValueOnce(new APIError(409, false));
   fireEvent.click(next);
   await screen.findByRole("alert");
-  expect(screen.queryByRole("button", {name:"Review Synthetic supplies"})).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Review Synthetic supplies" }),
+  ).toBeNull();
   expect(screen.queryByText("12.51 USD")).toBeNull();
   expect(api.mock.calls.at(-1)?.[0]).toBe(
     `${base}/review-items?source_account_id=s&limit=50&sort=date&order=desc&state=needs_review&cursor=opaque%2Fpage%2B2`,
@@ -525,7 +615,13 @@ it("retries source discovery without inventing an empty successful source list",
   expect(screen.queryByText(/No source accounts/)).toBeNull();
   fireEvent.click(retry);
   await screen.findByRole("option", { name: /Checking/ });
-  expect(api).toHaveBeenCalledTimes(2);
+  await screen.findByRole("button", { name: "Review Synthetic supplies" });
+  expect(
+    api.mock.calls.filter(([path]) => path.endsWith("/sources")),
+  ).toHaveLength(2);
+  expect(
+    api.mock.calls.filter(([path]) => path.includes("/review-items?")),
+  ).toHaveLength(1);
 });
 it("posted historical draft has no action that can prepare another posting", async () => {
   const { api, props } = fixture();
