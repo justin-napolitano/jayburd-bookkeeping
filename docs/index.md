@@ -1,5 +1,9 @@
 # Project context
 
+[Private categorization proposal](contracts/private-categorization.md), [fixed cases](reviews/classification-433.md)
+and [remaining delivery gates](plans/classification-delivery.md),433: source review;
+238/239/242/304 remain genuine prerequisites. [Stages](runbooks/private-categorization.md).
+
 [Source Overview](contracts/source-overview.md) and [stages](runbooks/source-overview.md),432:
 all-imported activity with exact unit and merchant drills; dependent source preparation.
 
