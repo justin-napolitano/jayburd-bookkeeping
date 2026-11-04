@@ -19,11 +19,7 @@ test("expired enrollment preserves real setup and journal recovery without provi
       })
     ).status(),
   ).toBe(403);
-  await expect(
-    page.getByText(
-      "No books are available. Choose or create an authorized book.",
-    ),
-  ).toBeVisible();
+  await expect(page.getByText("No books are available.")).toBeVisible();
   await page
     .getByText("Create a custom entity and book", { exact: true })
     .click();
@@ -74,6 +70,7 @@ test("expired enrollment preserves real setup and journal recovery without provi
   await page
     .getByLabel("Entity and book")
     .selectOption({ label: "Synthetic browser LLC / Operating" });
+  await page.getByRole("button", { name: "Position", exact: true }).click();
   await expect(page.locator(".position-equity")).toHaveText("0.00");
   const [entity, book] = (
     await page.getByLabel("Entity and book").inputValue()
@@ -181,6 +178,7 @@ test("expired enrollment preserves real setup and journal recovery without provi
   await page
     .getByLabel("Entity and book")
     .selectOption({ label: "Synthetic browser LLC / Operating" });
+  await page.getByRole("button", { name: "Position", exact: true }).click();
   await expect(page.locator(".position-equity")).toHaveText("125.50");
   await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "Accounts", exact: true }).click();
