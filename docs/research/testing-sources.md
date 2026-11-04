@@ -1,5 +1,11 @@
 # Synthetic accounting test resources
 
+The original [spending/activity oracle](../../tests/corpus/spending/README.md),428,
+adds independent source/annotation/expected examples for417. Reviewed2026-11-03
+against [SM01–05](spending-metrics-sources.md); hand-authored fictional quantities,
+no upstream code/data copied. JSON/arithmetic review is not runtime metric,
+authorization, classification, accounting-framework or ISO conformance evidence.
+
 ## Decision
 
 Use all four resources below in different roles. None is a universal accounting
