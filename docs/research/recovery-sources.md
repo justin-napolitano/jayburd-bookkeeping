@@ -1,5 +1,8 @@
 # Recovery and integration sources
 
+291 adds [RFC9110 §9.2.1–2/9.3.1 review and inference](../contracts/read-error-copy.md),
+2026-11-03: read availability copy preserves the saved-command authority gate.
+
 Reviewed 2026-10-11 before implementation. Relevant sections only; these are
 engineering constraints, not accounting-policy or ISO conformance evidence.
 

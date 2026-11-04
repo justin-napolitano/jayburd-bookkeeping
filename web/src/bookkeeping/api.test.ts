@@ -19,6 +19,65 @@ function fixture() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("API client boundary", () => {
+  it.each([408, 429, 500, 503])(
+    "describes GET status %i as unavailable while preserving recovery uncertainty",
+    async (status) => {
+      const { fetch, api } = fixture();
+      fetch.mockResolvedValue(new Response("private detail", { status }));
+      await expect(api("/v1/workspace")).rejects.toMatchObject({
+        status,
+        uncertain: true,
+        message: "Data is unavailable right now. Retry the read.",
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(["network", "timeout", "invalid JSON"])(
+    "keeps GET %s failure read-specific without assuming pending work is absent",
+    async (reason) => {
+      const { fetch, api } = fixture();
+      if (reason === "invalid JSON")
+        fetch.mockResolvedValue(new Response("private invalid JSON"));
+      else
+        fetch.mockRejectedValue(
+          new DOMException(
+            "private transport detail",
+            reason === "timeout" ? "TimeoutError" : "NetworkError",
+          ),
+        );
+      await expect(api("/v1/commands/pending")).rejects.toMatchObject({
+        status: 0,
+        uncertain: true,
+        message: "Data is unavailable right now. Retry the read.",
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([403, 404])("keeps GET authority fencing for %i", async (status) => {
+    const { fetch, api, rejectSession } = fixture();
+    fetch.mockResolvedValue(new Response("private detail", { status }));
+    await expect(api("/v1/workspace")).rejects.toMatchObject({
+      status,
+      uncertain: false,
+      message: "This scope is unavailable or access was denied.",
+    });
+    expect(rejectSession).not.toHaveBeenCalled();
+  });
+
+  it.each([409, 422])(
+    "keeps rejected GET %i free of mutation guidance",
+    async (status) => {
+      const { fetch, api } = fixture();
+      fetch.mockResolvedValue(new Response("private detail", { status }));
+      await expect(api("/v1/workspace")).rejects.toMatchObject({
+        status,
+        uncertain: false,
+        message: "This data could not be read. Check the selection and retry.",
+      });
+    },
+  );
   it("uses fresh bearer authorization, omits cookies and forbids redirects", async () => {
     const { fetch, getToken, api } = fixture();
     fetch.mockImplementation(
@@ -124,7 +183,12 @@ describe("API client boundary", () => {
       );
       await expect(
         api("/v1/setup", "{}", "synthetic-key"),
-      ).rejects.toMatchObject({ status, uncertain: true });
+      ).rejects.toMatchObject({
+        status,
+        uncertain: true,
+        message:
+          "The outcome is unknown. Retry this unchanged request to find its committed result.",
+      });
       expect(fetch).toHaveBeenCalledTimes(1); // Retry needs explicit caller review, never automatic transport replay.
     },
   );
@@ -135,7 +199,12 @@ describe("API client boundary", () => {
       new Response("invalid synthetic JSON", { status: 201 }),
     );
     await expect(api("/v1/setup", "{}", "synthetic-key")).rejects.toMatchObject(
-      { status: 0, uncertain: true },
+      {
+        status: 0,
+        uncertain: true,
+        message:
+          "The outcome is unknown. Retry this unchanged request to find its committed result.",
+      },
     );
   });
 
@@ -147,7 +216,12 @@ describe("API client boundary", () => {
       const failure = await api("/v1/setup", "{}", "synthetic-key").catch(
         (error: unknown) => error,
       );
-      expect(failure).toMatchObject({ status: 0, uncertain: true });
+      expect(failure).toMatchObject({
+        status: 0,
+        uncertain: true,
+        message:
+          "The outcome is unknown. Retry this unchanged request to find its committed result.",
+      });
       expect((failure as Error).message).not.toContain("private synthetic");
       expect(fetch.mock.calls[0][1]?.redirect).toBe("error");
       expect(rejectSession).not.toHaveBeenCalled();
@@ -198,9 +272,10 @@ describe("review CSV client", () => {
       fetch.mockResolvedValue(
         new Response("private", { headers: { "Content-Type": content } }),
       );
-      await expect(api.download!("/v1/export.csv")).rejects.toBeInstanceOf(
-        APIError,
-      );
+      await expect(api.download!("/v1/export.csv")).rejects.toMatchObject({
+        uncertain: false,
+        message: "This data could not be read. Check the selection and retry.",
+      });
     },
   );
   it("cancels at the streaming byte cap rather than returning a partial file", async () => {
