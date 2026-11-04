@@ -60,11 +60,16 @@ jobs:
             worker) bash scripts/test-worker-container.sh --image "$IMAGE_ID" ;;
             *) exit 1 ;;
           esac
+      - name: Prove scanner installation integrity guards
+        run: bash scripts/test-image-scanner-install.sh
+      - name: Install exact checksum-pinned scanner
+        run: bash scripts/install-image-scanner.sh
       - name: Block high and critical image vulnerabilities
         id: image_scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: v0.75.0
+          skip-setup-trivy: true
           image-ref: ${{ env.IMAGE_ID }}
           scan-type: image
           scanners: vuln
@@ -86,6 +91,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: v0.75.0
+          skip-setup-trivy: true
           image-ref: ${{ env.IMAGE_ID }}
           scan-type: image
           format: cyclonedx
