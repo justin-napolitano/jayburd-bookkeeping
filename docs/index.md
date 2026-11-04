@@ -1,5 +1,8 @@
 # Project context
 
+[Read availability copy](contracts/read-error-copy.md) and
+[stages](runbooks/read-error-copy.md) preserve pending-command uncertainty,291.
+
 [Daily money workspace](plans/daily-money-workspace.md), #412:
 Plaid category suggestions, explainable private rules, transaction usability,
 freshness, category/merchant spending and traceable opportunities. Read the
