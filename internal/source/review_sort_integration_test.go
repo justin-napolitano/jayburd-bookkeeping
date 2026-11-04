@@ -189,6 +189,8 @@ func TestSourceReviewSortAmbiguousFact(t *testing.T) {
 	exec(t, c, "COMMIT")
 	_, err := invoke(t, db, "synthetic_runtime", "SELECT banking.list_review_items($1,$2,$3,$4)::text", reader, entity, book, raw(map[string]any{"source_account_id": sid, "state": nil, "limit": 2, "cursor": nil, "sort": "date", "order": "desc"}))
 	requireCode(t, err, "P2502")
+	_, err = invoke(t, db, "synthetic_runtime", "SELECT banking.query_source_activity($1,$2,$3,$4)::text", reader, entity, book, raw(activityInput(sid)))
+	requireCode(t, err, "P2502")
 	if value(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != "0" {
 		t.Fatal("ambiguous read posted")
 	}
