@@ -27,10 +27,7 @@ test("loads 3000 transactions and explicitly posts one source-linked journal", a
   await page.getByText("Tools", { exact: true }).click();
   await page.getByRole("button", { name: "Accounts", exact: true }).click();
   await expect(page.locator("tfoot td")).toHaveText(["0.00", "0.00"]);
-  await page.getByText("Tools", { exact: true }).click();
-  await page
-    .getByRole("button", { name: "Review transactions", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Transactions", exact: true }).click();
   const source = page.getByRole("combobox", {
     name: "Source account",
     exact: true,
@@ -101,10 +98,7 @@ test("loads 3000 transactions and explicitly posts one source-linked journal", a
   await expect(page.locator("tfoot td")).toHaveText(
     isInflow ? ["100.01", "100.01"] : ["25.02", "25.02"],
   );
-  await page.getByText("Tools", { exact: true }).click();
-  await page
-    .getByRole("button", { name: "Review transactions", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Transactions", exact: true }).click();
   await page
     .getByRole("combobox", { name: "Source account", exact: true })
     .selectOption({ index: 1 });

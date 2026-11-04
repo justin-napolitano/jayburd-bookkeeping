@@ -1,5 +1,9 @@
 # Research index
 
+[Categories/rules](categorization-rules-sources.md): CR01–06 selected2026-11-03;
+Actual/hledger patterns, Plaid versioned PFC, abstract-only hybrid/weak supervision.
+412/413/414 planning;407 navigation has no new financial message or model.
+
 [Position](position-sources.md): P01–05, fixed USD/EUR.
 [Available-to-use](available-to-use-sources.md): ATU01–07, proposed.
 
@@ -447,18 +451,14 @@ PI11 in the [Plaid source register](plaid-ingestion-sources.md) reviews OpenAPI 
 
 ### Sandbox Hosted Link completion
 
-[Creator connection onboarding](../contracts/self-service-connections.md), reviewed
-2026-10-15, applies PostgreSQL 17 S12 function-security and serializable-retry
-sections to restricted creator provisioning. It documents the project-specific
-authorization policy, alternatives and named regression tests; the manuals do
-not themselves approve self-service grants.
+[Creator onboarding](../contracts/self-service-connections.md),2026-10-15:
+PG17 S12 function security/serializable retries for restricted provisioning;
+project authorization, alternatives/tests recorded, not manual-approved grants.
 
-[Enrollment decision and source review](../contracts/hosted-link-enrollment.md)
-records reviewed official Link API and Hosted Link creation/completion sections,
-SDK tradeoffs and the distinction between synthetic proof and hosted qualification.
+[Enrollment review](../contracts/hosted-link-enrollment.md): official Link/Hosted
+Link creation/completion, SDK tradeoffs; synthetic versus hosted evidence.
 
-[Limited Sandbox release](../contracts/sandbox-release.md), reviewed2026-10-15:
-selected official Cloud Run job-execution and Plaid Sandbox-limitation sections.
-Explains why execution, clean schema, integrated fictional journeys and production
-readiness require different evidence. Separate operation/issue gates are project
-policy, proposed for owner review; the sources do not approve that policy.
+[Limited Sandbox release](../contracts/sandbox-release.md),2026-10-15: selected
+Cloud Run execution/Plaid Sandbox limits; execution, clean schema, fictional
+journeys and production readiness need separate evidence. Operation gates are
+proposed project policy, not source-approved policy.
