@@ -16,6 +16,33 @@ classification, independent accuracy or approved financial recognition.
 | CR05 [Plotnikova et al.,2018](https://publications.kse.ua/publications/building-payment-classification-models-rules-1421) | Author-affiliated publication summary/abstract only; full chapter unread | Describes rule bootstrap followed by customer labels and ML; identifies maintenance/ambiguity limitations. Reported case-study outcomes are not Jayburd thresholds or independently reproduced evidence. |
 | CR06 [Toran et al.,2023](https://arxiv.org/abs/2305.18430) | v2,10June2023; abstract only, full paper/code unreviewed | Heuristics/domain knowledge for weakly supervised classification. Preprint, not automatic peer-review or an available licensed production rule corpus. Deferred model research only. |
 
+## 433 source update —2026-11-04
+
+| ID / source | Reviewed sections/version | Establishes and limits |
+| --- | --- | --- |
+| CR07 [Plaid Transactions API](https://plaid.com/docs/api/products/transactions/) / [PFC migration](https://plaid.com/docs/transactions/pfc-migration/) | Sync request personal_finance_category_version; added/modified response PFC primary/detailed/confidence/version; v1→v2 defaults and historical backfill. Selected sections fully read, not entire API | Response taxonomy version is distinct from API2020-09-14. Enablement date affects defaults; historical retrieval is separate from local projection and does not retroactively improve original confidence. No customer setting inspected; taxonomy CSV/mapping corpus not yet imported/reviewed.413 must pin that corpus before implementation. |
+| CR08 [Go regexp1.26.5](https://pkg.go.dev/regexp@go1.26.5) / [syntax1.26.5](https://pkg.go.dev/regexp/syntax@go1.26.5) | Overview, supported grammar/repetition bounds, Prog/Compile/Inst API; local documentation corroborated; no implementation source copied | Input-linear matching and explicit supported grammar/program representation. Not a whole-workload resource guarantee:433 proposes separate pattern/program/rule/input/batch limits and adversarial tests. Pinned review1.26.5 is not proof for tracked1.26.10. |
+
+CR01 stages, specificity, original-payee fields and explicit preview/apply sections
+revisited2026-11-04; no code reuse/dependency added.433 deliberately chooses conflict
+abstention, case-sensitive literal matching and inert topic-only actions rather
+than importing Actual's full action/learning policy. CR02/03/05/06 retain their
+earlier review depth/date; full sources were not reread.
+
+Tracked49ca8c4 inspection: acquisition/plaid_http.go options do not pin PFC;
+ingestion/plaid/decoder.go recognizes the outer key but Transaction omits it;
+runner.go marshals normalized pageWire with Raw excluded; merged25/29 SQL accepts
+a closed normalized shape and persists it in provider_fields; unmerged41 selects
+merchant_name only. These facts support the **inference** that PFC needs coordinated
+versioned decoder/wire/SQL compatibility, not a UI accessor. No private payload or
+historical row was inspected.
+
+[Proposed contract](../contracts/private-categorization.md), independent fixed
+[review cases](../reviews/classification-433.md) and [delivery gates](../plans/classification-delivery.md)
+distinguish reviewed facts from choices.238/239/242/304 remain real implementation
+gates. No ISO category standard, prediction accuracy, retention duration or
+cross-entity accounting policy inferred.
+
 ## Interpretation, alternatives and acceptance
 
 Our proposed inference: attributed Plaid fallback plus private approved rules

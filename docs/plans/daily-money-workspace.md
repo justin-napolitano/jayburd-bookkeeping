@@ -7,6 +7,13 @@ categorization approach. GitHub owns task state; this is the design/dependency
 map. Estimates are relative; no delivery dates or closed predecessors inferred.
 Existing source-scoped improvements ship before private cross-book capabilities.
 
+433's [classification proposal](../contracts/private-categorization.md),
+[fixed review cases](../reviews/classification-433.md) and
+[delivery gate map](classification-delivery.md) make remaining review steps concrete.
+432/PR434 supplies only Phase A source Overview; full418,413/414/417 Phase B/419
+and private authority/taxonomy remain open. Plans do not implement capabilities
+or accept238's authority proposal.
+
 | Issue | Bounded outcome | Dependencies |
 | --- | --- | --- |
 | #407 | Primary Transactions entry and posted/imported handoff | merged406/409; current scoped reads only |
