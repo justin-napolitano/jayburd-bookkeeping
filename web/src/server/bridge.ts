@@ -13,7 +13,7 @@ const connectionWrite = new RegExp(`^${bookPath}/(?:connection-attempts|connecti
 // Selection preparation has a smaller closed JSON boundary than provider handoffs.
 const registrationPreparation = new RegExp(`^${bookPath}/connection-attempts/${uuid}/registration$`);
 // Private search values travel only in a bounded no-store POST read body.
-const reviewQuery = new RegExp(`^${bookPath}/review-items/query$`);
+const reviewQuery = new RegExp(`^${bookPath}/(?:review-items|source-activity)/query$`);
 const connectionAction = new RegExp(`^${bookPath}/connection-attempts/${uuid}/(?:execute|complete|reconcile|abandon)$`);
 const reportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)$`, 'i');
 
@@ -140,7 +140,7 @@ function allowed(url: URL, method: string): boolean {
   )
     return true;
   if (url.search) return false;
-  if (method === 'POST' && reviewQuery.test(url.pathname)) return true;
+  if (method === 'POST' && reviewQuery.test(url.pathname)) return !url.href.includes('?') && !url.hash;
   return method === 'GET' && (url.pathname === '/v1/workspace' || url.pathname === '/v1/commands/pending' || new RegExp(`^${bookPath}/journals/${uuid}$`, 'i').test(url.pathname)) ||
     method === 'POST' && (url.pathname === '/v1/setup' || url.pathname === '/v1/commands' || url.pathname === inaccessibleCommandAction || commandAction.test(url.pathname) || new RegExp(`^${bookPath}/journals(?:/${uuid}/reversals)?$`, 'i').test(url.pathname));
 }

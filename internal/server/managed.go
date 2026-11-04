@@ -47,6 +47,10 @@ const runtimeSafety = `SELECT
  AND NOT has_function_privilege(current_user,'banking.sorted_review_page(uuid,uuid,uuid,text)','EXECUTE')
  AND to_regprocedure('banking.search_review_items(uuid,uuid,uuid,text)') IS NOT NULL
  AND has_function_privilege(current_user,'banking.search_review_items(uuid,uuid,uuid,text)','EXECUTE')
+ AND to_regprocedure('banking.query_source_activity(uuid,uuid,uuid,text)') IS NOT NULL
+ AND has_function_privilege(current_user,'banking.query_source_activity(uuid,uuid,uuid,text)','EXECUTE')
+ AND to_regprocedure('banking.activity_facts(uuid,uuid,uuid)') IS NOT NULL
+ AND NOT has_function_privilege(current_user,'banking.activity_facts(uuid,uuid,uuid)','EXECUTE')
  AND to_regprocedure('banking.list_review_items(uuid,uuid,uuid,text)') IS NOT NULL
  AND has_function_privilege(current_user,'banking.list_review_items(uuid,uuid,uuid,text)','EXECUTE')
  AND to_regprocedure('banking.get_review_item(uuid,uuid,uuid,uuid)') IS NOT NULL

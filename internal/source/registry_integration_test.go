@@ -69,6 +69,11 @@ func requireCode(t testing.TB, e error, want string) {
 
 // fixture installs only fictional ownership and independently chosen currency metadata.
 func fixture(t *testing.T) (*pgx.Conn, string) {
+	return registryFixture(t, true)
+}
+
+// registryFixture optionally leaves reference metadata empty for independent dated-unit oracles.
+func registryFixture(t *testing.T, seedCurrency bool) (*pgx.Conn, string) {
 	t.Helper()
 	db := "source_" + strings.ReplaceAll(strings.ToLower(t.Name()), "/", "_")
 	root := connect(t, "postgres", "postgres")
@@ -80,7 +85,9 @@ func fixture(t *testing.T) (*pgx.Conn, string) {
 	exec(t, c, `INSERT INTO ledger.entity(entity_id,name,kind) VALUES($1,'Fictional LLC','legal')`, entity)
 	exec(t, c, `INSERT INTO ledger.membership VALUES($1,$2,'read',NULL),($1,$3,'read',NULL),($1,$4,'read',NULL)`, entity, actor, reader, other)
 	exec(t, c, `INSERT INTO ledger.book(entity_id,book_id,name) VALUES($1,$2,'Synthetic book')`, entity, book)
-	exec(t, c, `INSERT INTO reference.currency VALUES($1,'USD','840',2,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000006','JPY','392',0,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000007','KWD','414',3,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000008','XXX','999',NULL,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000009','EUR','978',2,'2020-01-01','2025-01-01','synthetic')`, currency)
+	if seedCurrency {
+		exec(t, c, `INSERT INTO reference.currency VALUES($1,'USD','840',2,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000006','JPY','392',0,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000007','KWD','414',3,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000008','XXX','999',NULL,'2000-01-01',NULL,'synthetic'),('00000000-0000-4000-8000-000000000009','EUR','978',2,'2020-01-01','2025-01-01','synthetic')`, currency)
+	}
 	exec(t, c, `INSERT INTO ledger.account VALUES($1,$2,$3,'1000','Fictional cash','asset','debit',true,'2026-01-01',NULL),($1,$2,'00000000-0000-4000-8000-000000000012','2000','Fictional liability','liability','credit',true,'2026-01-01',NULL),($1,$2,'00000000-0000-4000-8000-000000000013','1001','Fictional nonmonetary','asset','debit',false,'2026-01-01',NULL),($1,$2,'00000000-0000-4000-8000-000000000014','1002','Fictional contra','asset','credit',true,'2026-01-01',NULL),($1,$2,'00000000-0000-4000-8000-000000000015','1003','Fictional second deposit','asset','debit',true,'2026-01-01',NULL)`, entity, book, account)
 	return c, db
 }
@@ -385,7 +392,7 @@ func TestSourceRegistryPrivileges(t *testing.T) {
 	for _, role := range []string{"bookkeeping_api", "bookkeeping_observer", "bookkeeping_publisher"} {
 		allowed := []string{}
 		if role == "bookkeeping_api" {
-			allowed = []string{"get_source", "register_import_batch", "import_context", "publish_import_preview", "get_import_batch", "get_review_item", "list_sources", "list_review_items", "search_review_items", "review_categories", "create_review_draft"}
+			allowed = []string{"get_source", "register_import_batch", "import_context", "publish_import_preview", "get_import_batch", "get_review_item", "list_sources", "list_review_items", "search_review_items", "query_source_activity", "review_categories", "create_review_draft"}
 		}
 		if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='banking' AND has_function_privilege($1,p.oid,'EXECUTE')<>(p.proname=ANY($2::text[]))`, role, allowed) != "0" {
 			t.Fatal("function privileges")

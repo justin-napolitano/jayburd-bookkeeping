@@ -2,11 +2,13 @@
 
 ## Decision and gate
 
-Proposed2026-11-03; refines [spending metrics](spending-metrics.md) Phase A only.
-The owner requested implementation after the430 handoff.428/430 remains a real
-review/merge prerequisite, not a completed predecessor. This profile can be
-reviewed before DDL; it does not itself install an endpoint or expose metadata.
-The implementation will use migration41, reserved under65;40 belongs426.
+Source implementation2026-11-03; refines [spending metrics](spending-metrics.md)
+Phase A only.430 cleared all five checks and merged into its parent development
+branch at5b68ca5 after owner go-ahead; bounded contract issue428 completed. This
+wire was committed before DDL. Migration41 implements the restricted read and
+assignment-cardinality index;40 belongs426 and remains unchanged. Runtime PR
+still requires human security/source review and integration; no deployment or
+live use is approved by synthetic evidence.
 
 ## Closed transport
 
@@ -34,8 +36,9 @@ exact case-sensitive label of at most500codepoints; the other statuses require
 null label. Merchant filters apply only to observations; summary/merchants require
 null. Merchant keys never derive from description and never appear in URLs.
 
-Snapshot has exactly source_revision, binding_revision and review_revision_sum;
-all canonical nonnegative decimal strings, binding positive. The last is the exact
+Snapshot has exactly source_revision, binding_revision, review_revision_sum and
+filter_digest. The revisions are canonical nonnegative decimal strings, binding
+positive. The review sum is the exact
 sum of source review-item revisions, including rows outside selected dates. It is
 a consistency counter, never authorization. Current reviewed-row revisions are
 monotonic; changes to overlap/accounting attention invalidate old metrics even
@@ -44,9 +47,17 @@ Source and binding revisions catch source updates and registry/binding changes.
 Existing draft/post implementations already advance source_revision. The review
 sum protects future reviewed transitions, not a confirmed current snapshot bug.
 Immutable observation and reference metadata need no independent mutable pin.
+filter_digest is the lowercase32-hex MD5 of canonical profile/source/date/search
+JSON. It binds a drill to its headline's period/search, without being an access
+grant or authentication checksum. Changing period/search requires a fresh summary.
+Drill units must occur in that summary's eligible unit set; an absent/unknown unit
+rejects rather than returning an invented zero. An exact merchant filter with no
+matches within a valid unit may return a successful empty drill.
 
 Every cursor pins entity/book/source, the snapshot, canonical selector digest,
-kind, unit and last group/observation anchor. The digest binds profile, dates,
+kind, unit and last group/observation anchor. A merchant anchor is its unique
+ordinal in the exact pinned ranking; an observation anchor is its UUID. Both
+must exist in that selector's current pinned set. The digest binds profile, dates,
 search and exact merchant selector; it has no authentication/privacy claim.
 Reject foreign/mismatched/missing anchors; current grants are checked first.
 Do not use an offset as authority or accept a client-modified anchor as a grant.
@@ -114,7 +125,9 @@ The complete signed drill quantities must equal the selected summary/unit/group.
 Merchants use only the stored normalized merchant_name from the supported
 jayburd-plaid-transactions/1 profile. Extract that named value inside SQL; do not
 return provider_fields, raw object, account IDs, URLs, logos or other enrichment.
-Supported null/blank is not_provided; absent/unsupported profile is unavailable.
+Supported null/ASCII-whitespace-only is not_provided; absent/unsupported profile is
+unavailable. ASCII whitespace is space, tab, LF, CR, form feed and vertical tab;
+other Unicode labels are preserved exactly, without an inferred alias/blank rule.
 Malformed supported values fail closed. No raw refetch or description fallback.
 Exact labels use C collation; case variants stay separate, whitespace is not
 silently normalized except whitespace-only absence. Profile is
@@ -151,19 +164,23 @@ DoS/medium→input/page/group limits, inherited deadlines,3000-row acceptance;
 repudiation/high→original revision provenance, no command/financial writes.
 Human security/source review before runtime merge/apply remains required.
 
-Runtime tests are **not yet implemented**. Required evidence remains429's fixed
-oracle, TestWholeResultNotPage, TestSpendingCurrenciesSeparate,
+Runtime acceptance is implemented in429's disposable synthetic proofs:
+TestWholeResultNotPage, TestSpendingCurrenciesSeparate,
 TestMerchantNormalizationVersion, TestAggregateDrillEquality,
 TestFreshnessUnknownStale, TestAggregatePrincipalDeny, TestSourceRevisionSnapshot
-and TestReadNeverPosts against actual restricted SQL/API/bridge. Required mutations
-cover foreign/revoked scope before pin checks, changed date/search/unit/merchant,
+and TestReadNeverPosts against restricted SQL/API, with the real Next connection
+journey and TestSyncPostedEvidenceRemainsOriginal covering actual posted100 versus
+current15/16 and removal. Mutations cover foreign/revoked scope before pin checks,
+changed date/search/unit/merchant,
 stale source/binding/review revisions, duplicate keys, pending/removal/replay,
 valid posted correction, null-vs-zero, full3000-row totals/30pages and zero financial
-journals/outbox/provider/command acknowledgements. A contract or JSON parse is not
-runtime evidence. Existing financial test corpus stays independent and unchanged.
+journals/outbox/provider/command acknowledgements. The
+[stage ledger](../runbooks/source-activity-api.md) records exact results and
+synthetic identity limits. No hosted/provider qualification, Phase B classification
+or ISO conformance is proved. The original financial oracle remains independent.
 
 Rejected: aggregating review pages (misses inventory); client sums (partial/float
 risk); substring merchant drills (unequal sets); source_revision alone (misses
-review hold changes); granting runtime full provider_fields reads (excess data);
+future review-only transitions); granting runtime full provider_fields reads (excess data);
 hash as authority (untrusted); new mutable cache/table/service (unneeded second
 authority). Revisit only with reviewed counterexamples and named acceptance.

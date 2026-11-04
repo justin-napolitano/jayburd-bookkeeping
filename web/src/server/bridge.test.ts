@@ -14,6 +14,18 @@ function metadata() { return new Response('synthetic.service.signature', {header
 function transport(response=Response.json({amount:'12.30'})) { return vi.fn<typeof fetch>().mockResolvedValueOnce(metadata()).mockResolvedValueOnce(response); }
 afterEach(() => vi.useRealTimers());
 describe('private API bridge', () => {
+ it.each(['read','url','key','oversize','encoding'])('bounds the private source-activity read: %s',async(mode)=>{
+  const path='/v1/entities/00000000-0000-4000-8000-000000000001/books/00000000-0000-4000-8000-000000000002/source-activity/query';
+  const fetcher=mode==='read'?transport():vi.fn<typeof fetch>();
+  const headers:Record<string,string>={'Content-Type':'application/json'};
+  if(mode==='key')headers['Idempotency-Key']='synthetic';if(mode==='encoding')headers['Content-Encoding']='gzip';
+  const body=mode==='oversize'?'x'.repeat(8193):'{"merchant":{"status":"attributed","label":"Fictional Cafe"}}';
+  const response=await createBridge(fetcher,()=>env)(request(path+(mode==='url'?'?merchant=fictional':''),headers,body));
+  expect(response.status).toBe(mode==='read'?200:mode==='url'?404:mode==='oversize'?413:400);
+  expect(response.headers.get('Cache-Control')).toBe('no-store');
+  if(mode==='read'){const [url,init]=fetcher.mock.calls[1];expect(url).toBe(env.BOOKKEEPING_API_ORIGIN+path);expect(new TextDecoder().decode(init?.body as Uint8Array)).toBe(body);expect(new Headers(init?.headers).has('Idempotency-Key')).toBe(false);}
+  else expect(fetcher).not.toHaveBeenCalled();
+ });
  it('forwards private query bytes without values or idempotency identity in the URL',async()=>{
   const path='/v1/entities/00000000-0000-4000-8000-000000000001/books/00000000-0000-4000-8000-000000000002/review-items/query';
   const body='{"search":"private synthetic merchant","starts_on":"2026-01-01"}';
