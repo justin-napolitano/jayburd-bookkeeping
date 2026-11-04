@@ -1,5 +1,8 @@
 # Project context
 
+[Source activity API](contracts/source-activity-api.md) and
+[stages](runbooks/source-activity-api.md),429: original-unit totals and pinned drills; source review pending.
+
 [Spending metric proposal](contracts/spending-metrics.md),
 [sources](research/spending-metrics-sources.md) and [stages](runbooks/spending-metrics.md),428/417.
 

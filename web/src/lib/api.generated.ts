@@ -820,6 +820,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/books/{book_id}/source-activity/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read exact original-unit activity and pinned merchant drills for one authorized source
+         * @description No-store read only; current entity/source grants before snapshots or disclosure. Complete current-observation inventory, exact decimal strings, distinct currency versions and unavailable balances/freshness. Private selectors/cursors only in bounded body, no idempotency key or financial/provider effects. See docs/contracts/source-activity-api.md.
+         */
+        post: operations["querySourceActivity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1856,6 +1876,160 @@ export interface components {
             blocked_reason: ("policy_unavailable" | "connection_not_ready" | "attempt_expired" | "consent_expired" | "capacity_exhausted") | null;
             can_register: boolean;
             accounts: components["schemas"]["RegistrationOption"][];
+        };
+        ActivitySnapshot: {
+            source_revision: string;
+            binding_revision: string;
+            review_revision_sum: string;
+            filter_digest: string;
+        };
+        ActivityMerchantSelector: {
+            /** @enum {string} */
+            status: "attributed" | "not_provided" | "unavailable";
+            label: string | null;
+        };
+        ActivitySelector: {
+            /** @constant */
+            profile: "source-activity-v1";
+            /** Format: uuid */
+            source_account_id: string;
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            through_date: string;
+            search: string;
+            /** @enum {string} */
+            kind: "summary" | "observations" | "merchants";
+            currency_version_id: string | null;
+            merchant: components["schemas"]["ActivityMerchantSelector"] | null;
+        };
+        /** @description Closed source-activity-v1 private read, <=8192 UTF8 bytes. Summary requires null unit/merchant/cursor and limit20; observations require exact unit and snapshot, limit<=100; merchants require exact unit and snapshot, null merchant, limit<=20. Attributed merchant has nonblank label; other statuses require null. Inclusive real ordered calendar dates. SQL validates conditional constraints and duplicate keys. */
+        ActivityQuery: {
+            /** @constant */
+            profile: "source-activity-v1";
+            /** Format: uuid */
+            source_account_id: string;
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            through_date: string;
+            search: string;
+            /** @enum {string} */
+            kind: "summary" | "observations" | "merchants";
+            currency_version_id: string | null;
+            merchant: components["schemas"]["ActivityMerchantSelector"] | null;
+            snapshot: components["schemas"]["ActivitySnapshot"] | null;
+            cursor: string | null;
+            limit: number;
+        };
+        ActivityUnit: {
+            /** Format: uuid */
+            currency_version_id: string;
+            currency: string;
+            numeric_code: string | null;
+            minor_unit: number;
+            count: string;
+            inflow: string;
+            outflow: string;
+            net_inflow: string;
+        };
+        ActivityTotals: {
+            count: string;
+            inflow: string;
+            outflow: string;
+            net_inflow: string;
+        };
+        ActivityMerchant: {
+            /** @enum {string} */
+            status: "attributed" | "not_provided" | "unavailable";
+            label: string | null;
+            /** @constant */
+            profile: "provider-merchant-exact-v1";
+        };
+        ActivityMerchantGroup: {
+            /** @enum {string} */
+            status: "attributed" | "not_provided" | "unavailable";
+            label: string | null;
+            /** @constant */
+            profile: "provider-merchant-exact-v1";
+            count: string;
+            inflow: string;
+            outflow: string;
+            net_outflow: string;
+        };
+        ActivityObservation: {
+            /** Format: uuid */
+            currency_version_id: string;
+            currency: string;
+            numeric_code: string | null;
+            minor_unit: number;
+            /** Format: uuid */
+            observation_id: string;
+            observation_revision: string;
+            /** Format: date */
+            booked_date: string;
+            description: string;
+            /** @constant */
+            source_state: "booked";
+            /** @enum {string} */
+            direction: "inflow" | "outflow";
+            amount: string;
+            review_id: string | null;
+            review_state: ("needs_review" | "overlap_hold" | "correction_hold" | "draft_ready" | "posted") | null;
+            merchant: components["schemas"]["ActivityMerchant"];
+        };
+        ActivityInventory: {
+            source_count: string;
+            matching_count: string;
+            eligible_count: string;
+            pending_count: string;
+            removed_count: string;
+            zero_count: string;
+            quality_hold_count: string;
+            correction_attention_count: string;
+            partial: boolean;
+        };
+        ActivityPage: {
+            /** @constant */
+            profile: "source-activity-v1";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            /** Format: uuid */
+            source_account_id: string;
+            /** @enum {string} */
+            source_state: "active" | "paused" | "retired";
+            snapshot: components["schemas"]["ActivitySnapshot"];
+            selector: components["schemas"]["ActivitySelector"];
+            /** Format: date-time */
+            generated_at: string;
+            bank_balance: null;
+            functional_total: null;
+            categorized_spending: null;
+            last_successful_sync: null;
+            unavailable_reasons: {
+                /** @constant */
+                bank_balance: "not_projected";
+                /** @constant */
+                functional_total: "no_valuation";
+                /** @constant */
+                categorized_spending: "not_implemented";
+                /** @constant */
+                last_successful_sync: "not_projected";
+            };
+            /** @constant */
+            history_completeness: "unknown";
+            available_from: string | null;
+            available_through: string | null;
+            inventory: components["schemas"]["ActivityInventory"];
+            units: components["schemas"]["ActivityUnit"][];
+            totals: components["schemas"]["ActivityTotals"] | null;
+            items: components["schemas"]["ActivityObservation"][];
+            merchant_groups: components["schemas"]["ActivityMerchantGroup"][];
+            group_count: string | null;
+            remaining_group_count: string | null;
+            next_cursor: string | null;
         };
     };
     responses: {
@@ -3617,6 +3791,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewQueryPage"];
+                };
+            };
+            /** @description Safe failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    querySourceActivity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivityQuery"];
+            };
+        };
+        responses: {
+            /** @description Authorized complete matching snapshot page */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityPage"];
                 };
             };
             /** @description Safe failure */

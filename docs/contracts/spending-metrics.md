@@ -130,7 +130,7 @@ field, never the whole provider_fields object.
 
 First merchant grouping profile: `provider-merchant-exact-v1`. Preserve original
 label and profile/version; exact case-sensitive labels remain separate. A supported
-profile's null/empty/whitespace-only label is `not_provided`; unsupported or absent
+profile's null/empty/ASCII-whitespace-only label is `not_provided`; unsupported or absent
 metadata profile is `unavailable`, not an empty successful merchant list. Never
 infer a merchant from description/name, load its URL/image or treat its label as
 merchant entity identity, legal owner or category. Alias normalization requires
@@ -198,7 +198,10 @@ normative ISO text or regulated accounting/tax treatment is approved by fixtures
 
 ## Named acceptance and alternatives
 
-Runtime acceptance remains **unimplemented** until actual SQL/API/browser evidence:
+Phase A SQL/API/browser evidence is recorded in
+[429's stage ledger](../runbooks/source-activity-api.md). The original examples
+remain independent; Phase B recognition/allocation is still unimplemented.
+Acceptance profiles include:
 TestSpendingRefundsTransfersCards, TestSpendingCurrenciesSeparate,
 TestWholeResultNotPage, TestMerchantNormalizationVersion,
 TestAggregateDrillEquality, TestFreshnessUnknownStale,

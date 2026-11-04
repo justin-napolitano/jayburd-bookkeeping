@@ -429,7 +429,7 @@ func TestSyncPostedEvidenceRemainsOriginal(t *testing.T) {
 	exec(t, c, `INSERT INTO ledger.period(entity_id,book_id,period_id,starts_on,ends_before) VALUES($1,$2,'00000000-0000-4000-8000-000000000061','2026-01-01','2026-02-01')`, entity, book)
 	exec(t, c, `INSERT INTO ledger.account VALUES($1,$2,$3,'6000','Synthetic expense','expense','debit',false,'2026-01-01',NULL)`, entity, book, expense)
 	x := claim(t, db, s, claimID)
-	stageOK(t, db, s, x, page(0, nil, "cursor1", false, []any{row("posted", "12.5")}, nil, nil))
+	stageOK(t, db, s, x, page(0, nil, "cursor1", false, []any{row("posted", "100")}, nil, nil))
 	completeOK(t, db, s, x)
 	rid := value(t, c, "SELECT review_id::text FROM banking.review_item")
 	detail := object(t, call(t, db, "synthetic_runtime", "SELECT banking.get_review_item($1,$2,$3,$4)::text", reader, entity, book, rid))
@@ -453,11 +453,24 @@ func TestSyncPostedEvidenceRemainsOriginal(t *testing.T) {
 		stageOK(t, db, s, y, page(0, fmt.Sprintf("cursor%d", n+1), fmt.Sprintf("cursor%d", n+2), false, nil, modified, removed))
 		completeOK(t, db, s, y)
 		next := object(t, call(t, db, "synthetic_runtime", "SELECT banking.get_review_item($1,$2,$3,$4)::text", reader, entity, book, rid))
-		if next["state"] != "posted" || next["amount"] != "12.5" || next["journal_id"] != journal || raw(next["evidence"]) != originalEvidence {
+		if next["state"] != "posted" || next["amount"] != "100" || next["journal_id"] != journal || raw(next["evidence"]) != originalEvidence {
 			t.Fatal("original posted source changed")
 		}
 		if next["provider_exceptions"].(map[string]any)["total_count"] != fmt.Sprint(n+1) {
 			t.Fatal("missing exception")
+		}
+		// Current activity follows valid source revisions; the original posted100 remains immutable.
+		query := map[string]any{"profile": "source-activity-v1", "source_account_id": sourceID, "starts_on": "2026-01-01", "through_date": "2026-01-31", "search": "", "kind": "summary", "currency_version_id": nil, "merchant": nil, "snapshot": nil, "cursor": nil, "limit": 20}
+		activity := object(t, call(t, db, "synthetic_runtime", "SELECT banking.query_source_activity($1,$2,$3,$4)::text", reader, entity, book, raw(query)))
+		if n < 2 {
+			if activity["units"].([]any)[0].(map[string]any)["outflow"] != fmt.Sprint(15+n) {
+				t.Fatal("posted source correction excluded from activity")
+			}
+		} else if len(activity["units"].([]any)) != 0 || activity["inventory"].(map[string]any)["removed_count"] != "1" {
+			t.Fatal("removal became a refund")
+		}
+		if value(t, c, "SELECT bool_and(transaction_amount=100)::text FROM ledger.journal_line") != "true" {
+			t.Fatal("read rewrote posted100")
 		}
 	}
 	if value(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != "1" || value(t, c, "SELECT count(*)::text FROM integration.outbox_message") != "1" {
