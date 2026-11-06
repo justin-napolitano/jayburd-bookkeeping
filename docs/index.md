@@ -1,5 +1,10 @@
 # Project context
 
+[Bounded rule evaluator](contracts/rule-evaluator.md) and
+[stages](runbooks/rule-evaluator.md),414: unintegrated pure Go matcher with
+synthetic precedence/conflict/regex proofs; private source/taxonomy/store/API
+and preview/apply dependencies remain open.
+
 [Private categorization proposal](contracts/private-categorization.md), [fixed cases](reviews/classification-433.md)
 and [remaining delivery gates](plans/classification-delivery.md),433: source review;
 238/239/242/304 remain genuine prerequisites. [Stages](runbooks/private-categorization.md).
