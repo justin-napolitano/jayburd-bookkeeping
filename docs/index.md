@@ -9,9 +9,9 @@ default off; SQL authority and full analytic review remain separate gates.
 synthetic precedence/conflict/regex proofs; private source/taxonomy/store/API
 and preview/apply dependencies remain open.
 
-[Private categorization proposal](contracts/private-categorization.md), [fixed cases](reviews/classification-433.md)
-and [remaining delivery gates](plans/classification-delivery.md),433: source review;
-238/239/242/304 remain genuine prerequisites. [Stages](runbooks/private-categorization.md).
+[Private categorization design](contracts/private-categorization.md), [fixed cases](reviews/classification-433.md)
+and [delivery gates](plans/classification-delivery.md),433: owner design accepted in
+GitHub238/242;239/304 implementation remains open. [Stages](runbooks/private-categorization.md).
 
 [Source Overview](contracts/source-overview.md) and [stages](runbooks/source-overview.md),432:
 all-imported activity with exact unit and merchant drills; dependent source preparation.
@@ -193,7 +193,7 @@ background work. The two predecessor repos are reference material only.
 | What must pass before live sync, and how will scaling be measured? | [Sync quality gates](plans/sync-quality.md) and [validation evidence](runbooks/sync-quality.md) |
 | What works now, and how do I review it? | [Project status and frontend guide](project-status.md) |
 | What are we building? | [Product scope](product.md) |
-| What is the proposed connect-first and global transaction boundary? | [Source-first decision](decisions/0006-source-first-workspace.md) and [authority matrix](contracts/source-first-workspace.md); proposal under #238, not implemented |
+| What is the connect-first and global transaction boundary? | [Source-first decision](decisions/0006-source-first-workspace.md) and [authority matrix](contracts/source-first-workspace.md); design accepted238, implementation239/304 pending |
 | Why this stack and boundaries? | [Architecture](decisions/0001-architecture.md) |
 | What research supports the database direction? | [Research review](research/database-foundations.md) |
 | Which source sections were reviewed? | [Source register](research/database-sources.md) |

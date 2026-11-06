@@ -17,6 +17,8 @@ taxonomy, journal, provisioning or default browser activation.
 | Focused verification | Race-enabled TestCollection groups PASS in collectionread/server; fake transactions do not prove SQL grants |
 | Core/web | make check/build and generated API check PASS; web-check/test/build PASS,417 frontend tests |
 | Integration attempts | Full make test attempted: existing acquisition/webhookhost/workerhost/workerruntime socket bind denied. web-browser built fixtures but55tests could not start (EPERM ::1:3100). app-integration stopped at synthetic listener probe; none bypassed |
+| Browser follow-up | Direct unchanged npm run test:browser from web PASS55/55; earlier make-wrapper listener failure retained above. Go/app listener restrictions persist |
+| Approval reconciliation | ADR0006, source-first and private-categorization status now link accepted GitHub238/242 design; implementation/source/security gates retained |
 
 ## Current evidence
 
