@@ -6,6 +6,10 @@ source slices and combined synthetic proof; GitHub issues own delivery state.
 [PFC sidecar](contracts/pfc-normalization.md) and [stages](runbooks/pfc-normalization.md),
 413: explicit current-response attribution; legacy ingestion remains unchanged.
 
+[Private review component](contracts/collection-review-ui.md) and
+[stages](runbooks/collection-review-ui.md),305: guarded injected service port;
+persisted taxonomy/commands and application activation remain304 dependencies.
+
 [Private source read API](contracts/collection-read-api.md) and
 [stages](runbooks/collection-read-api.md),239/304: optional managed transport,
 default off; SQL authority and full analytic review remain separate gates.
