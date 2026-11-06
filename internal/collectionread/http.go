@@ -42,6 +42,7 @@ func endpoint(auth ledger.Authenticator, reader Reader, operation string) http.H
 			return
 		}
 		if r.Method == http.MethodHead {
+			w.Header().Set("Allow", http.MethodGet)
 			fail(405, "method_not_allowed")
 			return
 		}

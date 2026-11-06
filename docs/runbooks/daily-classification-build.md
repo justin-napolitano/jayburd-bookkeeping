@@ -14,6 +14,7 @@ integration only; no live/provider/cloud, browser activation or journal effect.
 | Rule/API baseline | PR440 pure rule evaluator and443 default-off source transport; their individual stages preserve local/canonical evidence |
 | PFC source review | PR441 explicit decoder sidecar/map reviewed; legacy wire remains unchanged; exact account+transaction+change and current-page digest bind metadata; bounded closed decoding and abstention |
 | Focus repair review | PR444 replaces precommit frame focus with postcommit effects; independent immediate-frame regression reviewed; original implementation fails it. No financial/request behavior changed |
+| Read protocol review | HEAD denial now carries Allow:GET; focused collection/rule/PFC/server race tests PASS after combined imports |
 
 ## Current evidence
 
