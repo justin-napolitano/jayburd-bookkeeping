@@ -19,11 +19,11 @@ worker execution/scheduling, IAM or new resources. SQL1–41 immutable;42+unclai
 | Target/predecessor | SDK metadata confirms separate dev/prod services. Existing Sandbox API00021-r59/web00021-dnb; old migrator23397c80…; read-only predecessor execution2hrtl succeeded. No private rows read |
 | Recovery metadata | Existing shared PostgreSQL17/db-g1-small RUNNABLE; backup/PITR enabled with7day logs; automated backup1793685600000 SUCCESSFUL2026-11-03T08:32:39Z. No dump or restore claim |
 | Initial build |41765752855 attempts1/2 passed source validation and candidate runtime but scanner installer failed DNS before scanning/auth/publication; no runtime/schema change.437/PR438 repairs same-version install from independently checksum-verified official release; five-green source merged |
-| Build | Trusted owner/main41771886164 from2315cc4 running; product/SQL/web/Docker inputs equal46e67ea, only installer/ops source changed. Exact receipt/runtime/scan qualification pending |
-| Migration | Pending exact matching build, restricted forward up through41 and independent read-only status |
-| Rollout | Pending exact API/web digest-only update and Ready/traffic/settings comparison |
-| Smoke | Pending anonymous web/auth-config and denied private API; owner visual review after deployment |
-| Validation | Source stack core/SQL/API/web/full-stack proofs passed; ops core make check/test/build/release-test PASS with installed Go/external modfile adapter. Final receipt/link/diff checks pending |
+| Build | Trusted owner/main41771886164 attempt1/source2315cc4 SUCCESS all7 jobs. All four candidate receipts independently recomputed against build metadata, tested image IDs and repository digests; exact image scans contain zero HIGH/CRITICAL findings |
+| Migration |2026-11-06: predecessor status9jc4r PASS; restricted exact-digest up7bcs5 PASS at18:11:54Z; separate default statusb2xgk PASS at18:13:31Z, proving clean41 and complete embedded artifact checksums. Exact identity/task/timeout/retry/args/completion accepted by migrationReceipt |
+| Rollout | API00022-2sq and web00022-mzn Ready/latest-created/100percent. Named non-secret service identity/args/command/resources/ports/probes/timeout/concurrency projections exactly equal predecessor after substituting image. No worker or Production rollout |
+| Smoke | Anonymous GET: API/v1/workspace403, web/v1/workspace401, web/api/auth-config200, web root200. No token, authenticated DOM, provider call or financial record retrieval. Owner visual review remains |
+| Validation | Exact build hosted application/frontend/SQL validation and all4 candidate runtime/scan/publication jobs PASS. Current local make check/build/release-test PASS using installed Go1.26.5/external modfile/cache; full make test attempted but socket-binding tests blocked by local sandbox. No test skip or tracked toolchain change |
 | Commit checkpoint | Owner requested commit/push after interruption. At2026-11-04T04:21Z, repaired build41771886164 has frontend PASS and remaining validation in progress. No forward migration or API/web rollout executed; predecessor status-only proof is the only managed job execution in this stage |
 
 ## Operator procedure and evidence boundary
@@ -66,6 +66,32 @@ atomic; schema proof precedes either service change.
 
 ## Current evidence
 
+### Resumed operator rollout —2026-11-06
+
+Successful [trusted build41771886164](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/41771886164)
+was independently fetched, with numeric owner/repository, main/manual source,
+attempt1 and all candidate receipt identities verified. Product inputs remain
+the reviewed merged daily workspace. No new source or SQL was deployed.
+
+| Component | Exact reviewed/published image digest | Runtime evidence |
+| --- | --- | --- |
+| migrate |`sha256:e5060c3a62fcf2c6b7f04d838560ec226a48cb7a4470ce1b6211650a88cde691`|up7bcs5 and independent statusb2xgk complete,1success/0failed/cancelled/running/retried |
+| api |`sha256:e15d8c01bd7ff8a891adf01a183cccd163afa83dde3e42193605ddd4ff9e90e6`|jayburd-dev-api-00022-2sq |
+| web |`sha256:b525fe62714d62fe94d8f7083bc44fa0d747e78ddc146008ae40247e4e80dd8a`|jayburd-dev-web-00022-mzn |
+
+Repository prefix for all rows:
+`us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/<component>@`.
+Predecessor API524d6f9b6df804926082220fd8de45f8b895e3483885263ee68d10a68a595e19,
+web revision00021-dnb and migrator23397c806b985840ca2d5c54924ec7f4040439148c87699ba830c507c0cfe0ea
+were retained in projected local operator evidence. No SQL rollback is authorized.
+Next operator Terraform inputs must use these new pins; this SDK operation did
+not reconcile Terraform inputs or inspect state/plans.
+
+Cloud SQL is RUNNABLE PostgreSQL17 with backup/PITR enabled and7day logs;
+automated backup1793944800000 SUCCESSFUL ended2026-11-06T06:48:01.670Z.
+This is metadata evidence, not an executed restore. Previous rows below are the
+historical checkpoint, not a claim that rollout remains pending.
+
 Predecessor projected operational metadata retained outside source; no full
 service environment/state/plan or financial records inspected. Current build
 source46e67ea and both latest PR tips were verified before initial dispatch;
@@ -74,8 +100,8 @@ build/deploy pools ACTIVE; no federation or permissions changed by this operatio
 
 ## Remaining work
 
-Finish trusted build/receipts, required forward migration/status, API/web rollout,
-anonymous transport and exact operational readback, evidence PR and owner review.
+Operator migration/status, image rollout and anonymous transport are complete.
+Publish evidence PR and obtain owner visual review of the Sandbox workspace.
 Categorization/rules/recognized Spending/savings remain proposed/gated under433/
 413/414/417/418/419; deployment does not implement them. Production pilot consent
 and owner-private reconciliation remain separate and unchanged.
