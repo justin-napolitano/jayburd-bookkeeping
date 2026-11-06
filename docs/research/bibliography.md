@@ -2,9 +2,9 @@
 
 [Metrics](spending-metrics-sources.md): SM01–07;2026-11-03 proposal.
 
-[Categories/rules](categorization-rules-sources.md): CR01–08,2026-11-03/06.
-Actual/hledger/Plaid; abstract-only ML. [Evaluator](../contracts/rule-evaluator.md):
-CR08 public API; local1.26.5 evidence, tracked1.26.10 CI required.
+[Rules](categorization-rules-sources.md): CR01–08,2026-11-03/06; selected, ML abstract.
+[Reads](../contracts/collection-read-api.md): Go HTTP, PG17 isolation, RFC9457;
+selected sections reviewed2026-11-06.
 
 [Position](position-sources.md): P01–05, fixed USD/EUR.
 [Available-to-use](available-to-use-sources.md): ATU01–07, proposed.

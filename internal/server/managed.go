@@ -9,6 +9,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/clouddb"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/identity"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
 	"golang.org/x/oauth2/google"
@@ -108,6 +109,9 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 	if runtimeReady(start, pool) != nil {
 		return fail()
 	}
+	if c.CollectionEnabled && collectionReady(start, pool) != nil {
+		return fail()
+	}
 	svc := &ledger.Service{DB: pool}
 	app, err := firebase.NewApp(start, &firebase.Config{ProjectID: c.Project}, option.WithTokenSource(google.ComputeTokenSource("default", "https://www.googleapis.com/auth/cloud-platform")))
 	if err != nil {
@@ -121,5 +125,35 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 	if err != nil {
 		return fail()
 	}
-	return Dependencies{Auth: auth, Operations: svc, Ready: func(ctx context.Context) error { return runtimeReady(ctx, pool) }, Close: closeAll}, nil
+	d := Dependencies{Auth: auth, Operations: svc, Ready: func(ctx context.Context) error {
+		if err := runtimeReady(ctx, pool); err != nil {
+			return err
+		}
+		if c.CollectionEnabled {
+			return collectionReady(ctx, pool)
+		}
+		return nil
+	}, Close: closeAll}
+	if c.CollectionEnabled {
+		d.Collection = &collectionread.Service{DB: pool}
+	}
+	return d, nil
+}
+
+// collectionReady requires the reviewed read functions only on explicit feature activation.
+// The base runtime safety query separately denies table, operator and schema authority.
+func collectionReady(ctx context.Context, pool *pgxpool.Pool) error {
+	var safe bool
+	err := pool.QueryRow(ctx, `SELECT
+	 to_regprocedure('banking.get_collection_workspace(uuid)') IS NOT NULL
+	 AND to_regprocedure('banking.list_collection_sources(uuid,uuid,text)') IS NOT NULL
+	 AND to_regprocedure('banking.query_collection_observations(uuid,uuid,text)') IS NOT NULL
+	 AND has_function_privilege(current_user,'banking.get_collection_workspace(uuid)','EXECUTE')
+	 AND has_function_privilege(current_user,'banking.list_collection_sources(uuid,uuid,text)','EXECUTE')
+	 AND has_function_privilege(current_user,'banking.query_collection_observations(uuid,uuid,text)','EXECUTE')
+	 AND NOT has_function_privilege(current_user,'banking.provision_collection_owner(uuid,text,text)','EXECUTE')`).Scan(&safe)
+	if err != nil || !safe {
+		return errors.New("dependencies unavailable")
+	}
+	return nil
 }

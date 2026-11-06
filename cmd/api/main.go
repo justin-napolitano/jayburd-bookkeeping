@@ -44,6 +44,7 @@ func main() {
 	project := flag.String("project", "", "explicit Identity Platform project")
 	databaseMode := flag.String("database-mode", "url", "url or cloudsql IAM connector")
 	instance := flag.String("cloud-sql-instance", "", "explicit project:region:instance identifier")
+	collectionEnabled := flag.Bool("collection-read-enabled", false, "explicit reviewed private source reads after matching migration and grant provisioning")
 	flag.Parse()
 	if enrollment.Enabled {
 		enrollment.ProjectID = *project
@@ -53,6 +54,7 @@ func main() {
 		os.Exit(1)
 	}
 	c := server.Config{Mode: *mode, Listen: *listen, Origin: *origin, Project: *project, DatabaseMode: *databaseMode, CloudSQLInstance: *instance, ProviderEnvironment: enrollment.Environment}
+	c.CollectionEnabled = *collectionEnabled
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	var d server.Dependencies

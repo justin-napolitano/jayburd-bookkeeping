@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
 )
 
@@ -20,6 +21,7 @@ type Dependencies struct {
 	Auth        ledger.Authenticator
 	Operations  ledger.Operations
 	Connections ConnectionOperations
+	Collection  collectionread.Reader
 	Ready       func(context.Context) error
 	Close       func()
 }
@@ -66,6 +68,14 @@ func New(c Config, d Dependencies) (*Server, error) {
 		}
 		application := http.NewServeMux()
 		application.Handle("/v1/", ledger.Handler(d.Auth, d.Operations))
+		if c.CollectionEnabled {
+			if d.Collection == nil {
+				return nil, errConfiguration
+			}
+			collection := collectionread.Handler(d.Auth, d.Collection)
+			application.Handle("/v1/collection", collection)
+			application.Handle("/v1/collections/", collection)
+		}
 		if d.Connections != nil {
 			mountConnections(application, d.Auth, d.Connections)
 		}
