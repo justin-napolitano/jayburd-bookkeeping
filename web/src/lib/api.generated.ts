@@ -2139,7 +2139,7 @@ export interface components {
             /** Format: uuid */
             version_id: string;
             code: string;
-            numeric_code: string;
+            numeric_code: string | null;
             minor_unit: number;
             /** Format: date */
             valid_from: string;
