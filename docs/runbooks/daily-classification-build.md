@@ -23,6 +23,7 @@ integration only; no live/provider/cloud, browser activation or journal effect.
 | Fresh combined SQL/HTTP | Exact combined binary on a new pinned PostgreSQL17.11/arm64 internal Docker fixture: all15 groups PASS (14 SQL plus real HTTP adapter); primed legacy/native RR, both identity races, original scope/posted anchors, money holds, replay and denial verified.3000rows/30pages completed33.95s under simultaneous host Go checks/build; source lane warmed2.34s is not an SLA |
 | Rollback safety | Fresh exact42→41→42 empty roundtrip PASS; retained-workspace downgrade rejected with fixed diagnostic and retained count1. Dirty failed-down fixture discarded, no force/reset |
 | Core handoff | Combined make check/build PASS with external local Go adapter; full make test attempted and existing acquisition/webhookhost/workerhost/workerruntime networking tests denied local socket bind. No test/pin weakened; canonical exact-head CI required |
+| Linux mobile correction | Initial combined CI caught first-row y885 at390×844 despite local success. Imported de40c8d: moved explanatory prose below rows and reduced spacing without shrinking type/native44px controls. Original844px assertion retained; independent larger-font/no-overflow/control-size test added. Source lane60 browsers PASS, default y604.91/larger-font y705.55; combined exact-head verification follows |
 
 ## Current evidence
 
