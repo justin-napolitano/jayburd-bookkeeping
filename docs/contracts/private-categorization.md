@@ -1,11 +1,14 @@
-# Private categorization proposal —433
+# Private categorization design —433
 
 ## Decision status and purpose
 
-Proposed2026-11-04, child414; owner/identity/database/security review pending.
-This is a source-only contract for413/414/242, not an accepted authority change,
-runtime endpoint, migration, provider request or accounting policy. Existing
-238→239→304→305 gates remain. One-book delivery is desirable, but a frontend
+Owner design accepted2026-11-06 in
+[GitHub238](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/238)
+and [242](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/242).
+GitHub owns the approval and task state. Concrete source/security review and
+implementation evidence remain required. This is a design contract for413/414/242,
+not a runtime endpoint, migration, provider request or accounting policy. Existing
+239→304→305 implementation gates remain. One-book delivery is desirable, but a frontend
 filter or book membership cannot substitute for the proposed private authority.
 
 Purpose: make imported activity understandable using attributed provider topics,
