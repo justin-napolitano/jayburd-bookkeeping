@@ -123,6 +123,9 @@ func TestCollectionTransportDenies(t *testing.T) {
 			if w.Code != tc.status || s.calls != 0 {
 				t.Fatalf("status%d calls%d", w.Code, s.calls)
 			}
+			if tc.method == "HEAD" && w.Header().Get("Allow") != "GET" {
+				t.Fatal("HEAD denial lost allowed method")
+			}
 		})
 	}
 	a := &testAuth{denied: true}
