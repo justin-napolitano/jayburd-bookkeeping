@@ -840,6 +840,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/collection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read current authorized private source projection
+         * @description Optional managed feature; defaults off. Verified principal and current SQL grants required. No-store, read-only effects; no taxonomy/book/journal/provider projection. Exact private selectors in bounded JSON body, no query or idempotency key. 1 MiB response maximum. See docs/contracts/collection-read-api.md and private-registry.md.
+         */
+        get: operations["getCollectionWorkspace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collections/{workspace}/sources/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read current authorized private source projection
+         * @description Optional managed feature; defaults off. Verified principal and current SQL grants required. No-store, read-only effects; no taxonomy/book/journal/provider projection. Exact private selectors in bounded JSON body, no query or idempotency key. 1 MiB response maximum. See docs/contracts/collection-read-api.md and private-registry.md.
+         */
+        post: operations["queryCollectionSources"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collections/{workspace}/observations/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read current authorized private source projection
+         * @description Optional managed feature; defaults off. Verified principal and current SQL grants required. No-store, read-only effects; no taxonomy/book/journal/provider projection. Exact private selectors in bounded JSON body, no query or idempotency key. 1 MiB response maximum. See docs/contracts/collection-read-api.md and private-registry.md.
+         */
+        post: operations["queryCollectionObservations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2029,6 +2089,99 @@ export interface components {
             merchant_groups: components["schemas"]["ActivityMerchantGroup"][];
             group_count: string | null;
             remaining_group_count: string | null;
+            next_cursor: string | null;
+        };
+        CollectionSnapshot: {
+            workspace_revision: string;
+            source_snapshot: string;
+        };
+        CollectionWorkspace: {
+            /** @constant */
+            profile: "private-source-workspace-v1";
+            /** Format: uuid */
+            workspace_id: string;
+            workspace_revision: string;
+            capabilities: ("read" | "acquire" | "classify")[];
+        };
+        CollectionSourcesQuery: {
+            limit: number;
+            cursor: string | null;
+            snapshot: components["schemas"]["CollectionSnapshot"] | null;
+        };
+        CollectionObservationSelector: {
+            source_account_id: string | null;
+            starts_on: string | null;
+            through_date: string | null;
+            state: ("booked" | "pending" | "removed" | "held") | null;
+            search: string;
+        };
+        CollectionObservationsQuery: {
+            source_account_id: string | null;
+            starts_on: string | null;
+            through_date: string | null;
+            state: ("booked" | "pending" | "removed" | "held") | null;
+            search: string;
+            limit: number;
+            cursor: string | null;
+            snapshot: components["schemas"]["CollectionSnapshot"] | null;
+        };
+        CollectionSource: {
+            /** Format: uuid */
+            source_account_id: string;
+            display_name: string;
+            /** @enum {string} */
+            state: "active" | "revoked";
+            source_revision: string;
+            /** @enum {string} */
+            origin: "native" | "legacy";
+        };
+        CollectionCurrency: {
+            /** Format: uuid */
+            version_id: string;
+            code: string;
+            numeric_code: string;
+            minor_unit: number;
+            /** Format: date */
+            valid_from: string;
+            valid_to: string | null;
+        };
+        CollectionObservation: {
+            /** Format: uuid */
+            source_account_id: string;
+            /** Format: uuid */
+            observation_id: string;
+            observation_revision: string;
+            /** @enum {string} */
+            source_state: "booked" | "pending" | "removed" | "held";
+            /** Format: date */
+            booked_date: string;
+            description: string;
+            merchant_name: string | null;
+            amount: string | null;
+            direction: ("inflow" | "outflow" | "zero") | null;
+            currency: components["schemas"]["CollectionCurrency"] | null;
+            hold_reason: ("unsupported_currency" | "invalid_precision") | null;
+        };
+        CollectionSourcesPage: {
+            /** @constant */
+            profile: "private-source-page-v1";
+            /** Format: uuid */
+            workspace_id: string;
+            workspace_revision: string;
+            snapshot: components["schemas"]["CollectionSnapshot"];
+            items: components["schemas"]["CollectionSource"][];
+            next_cursor: string | null;
+        };
+        CollectionObservationsPage: {
+            /** @constant */
+            profile: "private-source-query-v1";
+            /** Format: uuid */
+            workspace_id: string;
+            workspace_revision: string;
+            snapshot: components["schemas"]["CollectionSnapshot"];
+            selector: components["schemas"]["CollectionObservationSelector"];
+            matching_count: string;
+            items: components["schemas"]["CollectionObservation"][];
             next_cursor: string | null;
         };
     };
@@ -3831,6 +3984,110 @@ export interface operations {
                 };
             };
             /** @description Safe failure */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getCollectionWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current authorized private source snapshot */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionWorkspace"];
+                };
+            };
+            /** @description Fixed safe RFC9457 error; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    queryCollectionSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        /** @description Maximum8192 bytes; duplicate/unknown keys rejected by SQL. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionSourcesQuery"];
+            };
+        };
+        responses: {
+            /** @description Current authorized private source snapshot */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionSourcesPage"];
+                };
+            };
+            /** @description Fixed safe RFC9457 error; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    queryCollectionObservations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        /** @description Maximum8192 bytes; duplicate/unknown keys rejected by SQL. */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionObservationsQuery"];
+            };
+        };
+        responses: {
+            /** @description Current authorized private source snapshot */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionObservationsPage"];
+                };
+            };
+            /** @description Fixed safe RFC9457 error; no private diagnostics */
             default: {
                 headers: {
                     [name: string]: unknown;

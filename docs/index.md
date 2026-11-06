@@ -1,5 +1,9 @@
 # Project context
 
+[Private source read API](contracts/collection-read-api.md) and
+[stages](runbooks/collection-read-api.md),239/304: optional managed transport,
+default off; SQL authority and full analytic review remain separate gates.
+
 [Bounded rule evaluator](contracts/rule-evaluator.md) and
 [stages](runbooks/rule-evaluator.md),414: unintegrated pure Go matcher with
 synthetic precedence/conflict/regex proofs; private source/taxonomy/store/API
