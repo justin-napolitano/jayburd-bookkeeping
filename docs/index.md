@@ -10,6 +10,10 @@ source slices and combined synthetic proof; GitHub issues own delivery state.
 [stages](runbooks/collection-review-ui.md),305: guarded injected service port;
 persisted taxonomy/commands and application activation remain304 dependencies.
 
+[Private source registry](contracts/private-registry.md) and
+[stages](runbooks/private-registry.md),239: forward42, current row locks,
+audited adoption, original-unit evidence and restricted synthetic proofs.
+
 [Private source read API](contracts/collection-read-api.md) and
 [stages](runbooks/collection-read-api.md),239/304: optional managed transport,
 default off; SQL authority and full analytic review remain separate gates.
