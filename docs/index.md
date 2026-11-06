@@ -1,5 +1,8 @@
 # Project context
 
+[Daily workspace Sandbox rollout](runbooks/daily-workspace-sandbox-rollout.md),436:
+owner-authorized merged-source build and bounded existing-site review deployment.
+
 [Private categorization proposal](contracts/private-categorization.md), [fixed cases](reviews/classification-433.md)
 and [remaining delivery gates](plans/classification-delivery.md),433: source review;
 238/239/242/304 remain genuine prerequisites. [Stages](runbooks/private-categorization.md).
