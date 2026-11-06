@@ -16,6 +16,8 @@ integration only; no live/provider/cloud, browser activation or journal effect.
 | Focus repair review | PR444 replaces precommit frame focus with postcommit effects; independent immediate-frame regression reviewed; original implementation fails it. No financial/request behavior changed |
 | Read protocol review | HEAD denial now carries Allow:GET; focused collection/rule/PFC/server race tests PASS after combined imports |
 | Resume consistency | Delivery map and historical preparation/evaluator status reconciled with accepted238/242 and completed436 Sandbox rollout; remaining SQL/runtime gates stay explicit |
+| UI review/import | PR445 reviewed in two passes: held/removed money, nullable currency numeric code, selected-account row pin, exact command identity/intent, known terminal recovery, commit/cancel race handling and postcommit focus. Injected port has no default app import, fetch, auth bypass or durable fake store |
+| Combined frontend | web-check/test/build PASS449 unit tests; unchanged direct npm browser command PASS59 journeys after combined focus/component imports |
 
 ## Current evidence
 
