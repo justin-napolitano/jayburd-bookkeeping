@@ -194,3 +194,40 @@ it("rejects a financial response for a different source instead of presenting it
   await screen.findByRole("alert");
   expect(screen.queryByText("9,007,199,254,740,993.01")).toBeNull();
 });
+
+it("focuses committed drill headings even when a frame runs before React commits", async () => {
+  // A frame may beat an asynchronous state commit; it cannot be the focus prerequisite.
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    callback(0);
+    return 1;
+  });
+  try {
+    const { props } = setup();
+    render(<ActivityOverview {...props} />);
+    await screen.findByText("9,007,199,254,740,993.01");
+    fireEvent.click(
+      screen.getByRole("button", { name: /View USD .* merchants/ }),
+    );
+    const merchants = await screen.findByRole("heading", {
+      name: "USD merchant activity",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(merchants));
+    fireEvent.click(screen.getByRole("button", { name: "View transactions" }));
+    const transactions = await screen.findByRole("heading", {
+      name: "Fictional merchant & cafe",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(transactions));
+    fireEvent.click(screen.getByRole("button", { name: "Back to merchants" }));
+    const returned = await screen.findByRole("heading", {
+      name: "USD merchant activity",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(returned));
+    fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+    const summary = await screen.findByRole("heading", {
+      name: "Money in and out",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(summary));
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
