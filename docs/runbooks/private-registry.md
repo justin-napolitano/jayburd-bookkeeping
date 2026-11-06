@@ -16,6 +16,7 @@ private records/secret/environment/state/plan access or runtime deployment.
 | Contract |[Physical/operation contract](../contracts/private-registry.md); root reviewed provision/read/query/snapshot/error wire beforeDDL; actual-login/role and canonical legacy/native identity boundaries explicit |
 | Implementation |Forward42 and closed owner/API operations; global legacy/native reservation and legacy acquisition fencing; immutable native revisions/holds, original alias reads and exact SHA256 source snapshots. No taxonomy or automatic posting |
 | Validation |Actual pinned PostgreSQL17.11 up1–42 PASS.14 restricted-session groups (two deterministic primed-RR subcases) PASS, including both blocked identity-race winner schedules, current revocation/replay, Item generation, actual posted legacy journal/source/cursor preservation, currency/precision holds and3000rows/30pages. Core make check/build and base migration immutability check PASS |
+| CI446 compatibility | Existing source privilege inventory updated for the seven reviewed collection APIs; exact collection signatures checked across seven service roles, with real runtime helper/provision/table denials. Fresh pinned PostgreSQL1–42 full internal/source integration suite PASS; make check/build PASS; no migration/grant change |
 | Down safety |Fresh up1–42→empty down41→up42 PASS withoutCASCADE. Retained private workspace rejects42down with private_registry_retained_records and the original row remains. Mandatory latest-empty migration roundtrip gate retained unchanged |
 
 ## Current evidence
@@ -89,3 +90,25 @@ or live acceptance inferred from the storage foundation.
 Refs239/238/242/412. New forward42 only; no old SQL edits. Sensitive source review,
 exact-head CI and named restricted-role proofs required before merge. No cloud
 apply/provider consent, accounting policy or live bookkeeping approval.
+
+## CI446 follow-up
+
+The existing TestSourceRegistryPrivileges compared all banking EXECUTE grants
+against a pre42 function-name inventory. It omitted all seven reviewed collection
+API entrypoints, causing validate run42289977806/job128140543807 to fail despite
+the intended migration42 grants. The inventory now includes exactly those names;
+a separate signature-level assertion rejects collection overload/helper/provision
+grants across API, observer, publisher, sync, webhook, verifier and identity
+operator roles. Actual API login attempts still deny source tables and owner
+operations, and now also deny private workspace/Item tables, owner provisioning
+and the private read-lock helper. No migration SQL, checksum, privilege or CI
+gate changed.
+
+Executed the focused TestSourceRegistryPrivileges and then the full internal/source
+integration suite using its real synthetic logins, a fresh pinned PostgreSQL17.11
+1–42 database and runner-equivalent isolated Docker steps. Both PASS, including
+existing source authority/revocation races, durable import, posting, search/sort,
+dated JPY/KWD and3000-row pagination proofs. make check/build PASS using the same
+external local Go adapter documented above. Host socket restrictions remain as
+already recorded; no new host or provider access was introduced. Only the owned
+jayburd-source446-proof container/volume/internal network were used for this run.
