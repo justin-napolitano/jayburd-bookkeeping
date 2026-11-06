@@ -483,10 +483,6 @@ function Review({
           Refresh
         </button>
       </div>
-      <p className={styles.note}>
-        Original imported activity. Topics help organize transactions; journal
-        state is shown separately.
-      </p>
       {!command && (
         <form className={styles.filters} onSubmit={applyFilters}>
           <fieldset disabled={blocked || reading || !!preview}>
@@ -675,7 +671,7 @@ function Review({
       )}
       {page && !command && (
         <>
-          <div className={styles.heading}>
+          <div className={styles.resultSummary}>
             <p className={styles.count}>
               {page.items.length
                 ? `${page.start_index}–${(BigInt(page.start_index) + BigInt(page.items.length) - 1n).toString()}`
@@ -685,9 +681,8 @@ function Review({
             <p>{selected.length} selected on this page</p>
           </div>
           {page.partial && (
-            <p role="status">
-              Some source history is unavailable. These rows do not prove
-              complete account history.
+            <p role="status" className={styles.partial}>
+              Some source history is unavailable. Account history is incomplete.
             </p>
           )}
           {!page.items.length ? (
@@ -748,6 +743,10 @@ function Review({
               ))}
             </ul>
           )}
+          <p className={styles.note}>
+            Original imported activity. Topics help organize transactions; journal
+            state is shown separately.
+          </p>
           <div className={styles.actions}>
             <label>
               Label selected transactions
