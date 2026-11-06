@@ -24,6 +24,8 @@ integration only; no live/provider/cloud, browser activation or journal effect.
 | Rollback safety | Fresh exact42→41→42 empty roundtrip PASS; retained-workspace downgrade rejected with fixed diagnostic and retained count1. Dirty failed-down fixture discarded, no force/reset |
 | Core handoff | Combined make check/build PASS with external local Go adapter; full make test attempted and existing acquisition/webhookhost/workerhost/workerruntime networking tests denied local socket bind. No test/pin weakened; canonical exact-head CI required |
 | Linux mobile correction | Initial combined CI caught first-row y885 at390×844 despite local success. Imported de40c8d: moved explanatory prose below rows and reduced spacing without shrinking type/native44px controls. Original844px assertion retained; independent larger-font/no-overflow/control-size test added. Source lane60 browsers PASS, default y604.91/larger-font y705.55; combined exact-head verification follows |
+| Combined mobile verification | Merged449 units,60 real browser journeys, production build and sequential typecheck PASS. Initial concurrently run typecheck/build collided on generated Next types; serialized rerun PASS, no product/config change |
+| Existing privilege proof compatibility | Imported0ad787c after initial CI rejected the legacy pre42 allowlist. No SQL/grant change: includes the seven reviewed collection entrypoints and strengthens exact-signature equality across seven service roles plus real runtime table/provision/helper denial. Fresh full source SQL suite PASS in registry lane; exact combined CI follows |
 
 ## Current evidence
 

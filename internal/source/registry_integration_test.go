@@ -385,22 +385,33 @@ func TestSourceRegistryPermission(t *testing.T) {
 	}
 }
 
-// TestSourceRegistryPrivileges bounds runtime EXECUTE to the reviewed registry/import entrypoints.
+// TestSourceRegistryPrivileges bounds runtime EXECUTE to reviewed source/import and private collection entrypoints.
 func TestSourceRegistryPrivileges(t *testing.T) {
 	c, db := fixture(t)
 	id, _ := enroll(t, db)
 	for _, role := range []string{"bookkeeping_api", "bookkeeping_observer", "bookkeeping_publisher"} {
 		allowed := []string{}
 		if role == "bookkeeping_api" {
-			allowed = []string{"get_source", "register_import_batch", "import_context", "publish_import_preview", "get_import_batch", "get_review_item", "list_sources", "list_review_items", "search_review_items", "query_source_activity", "review_categories", "create_review_draft"}
+			allowed = []string{"get_source", "register_import_batch", "import_context", "publish_import_preview", "get_import_batch", "get_review_item", "list_sources", "list_review_items", "search_review_items", "query_source_activity", "review_categories", "create_review_draft", "get_collection_workspace", "list_collection_sources", "query_collection_observations", "register_collection_item", "publish_collection_batch", "set_collection_state", "adopt_collection_item"}
 		}
 		if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='banking' AND has_function_privilege($1,p.oid,'EXECUTE')<>(p.proname=ANY($2::text[]))`, role, allowed) != "0" {
 			t.Fatal("function privileges")
 		}
 	}
+	// Signature equality also rejects accidental overload grants; collection helpers and
+	// owner provisioning remain denied even though the seven public APIs are allowed.
+	for _, role := range []string{"bookkeeping_api", "bookkeeping_observer", "bookkeeping_publisher", "bookkeeping_sync", "bookkeeping_webhook", "bookkeeping_verifier", "bookkeeping_identity_operator"} {
+		allowed := []string{}
+		if role == "bookkeeping_api" {
+			allowed = []string{"get_collection_workspace(uuid)", "list_collection_sources(uuid, uuid, text)", "query_collection_observations(uuid, uuid, text)", "register_collection_item(uuid, uuid, text, text)", "publish_collection_batch(uuid, uuid, uuid, text, text)", "set_collection_state(uuid, uuid, text, text)", "adopt_collection_item(uuid, uuid, uuid, uuid, uuid, text, text)"}
+		}
+		if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='banking' AND p.proname LIKE '%collection%' AND has_function_privilege($1,p.oid,'EXECUTE')<>((p.proname||'('||oidvectortypes(p.proargtypes)||')')=ANY($2::text[]))`, role, allowed) != "0" {
+			t.Fatalf("collection function privileges for %s", role)
+		}
+	}
 	r := connect(t, db, "synthetic_runtime")
 	defer r.Close(context.Background())
-	for _, q := range []string{"SET ROLE bookkeeping_owner", "SELECT * FROM banking.source_account", "SELECT * FROM banking.source_namespace", "SELECT * FROM banking.source_permission", "SELECT * FROM integration.source_registry_receipt", "CREATE TABLE banking.invalid(id integer)", "SELECT banking.source_error('P2300')", "SELECT banking.register_source(NULL,NULL,NULL,'x','{}')"} {
+	for _, q := range []string{"SET ROLE bookkeeping_owner", "SELECT * FROM banking.source_account", "SELECT * FROM banking.source_namespace", "SELECT * FROM banking.source_permission", "SELECT * FROM integration.source_registry_receipt", "CREATE TABLE banking.invalid(id integer)", "SELECT banking.source_error('P2300')", "SELECT * FROM banking.collection_workspace", "SELECT * FROM integration.collection_item", "SELECT banking.provision_collection_owner(NULL,'x','{}')", "SELECT banking.collection_read_locks(NULL)", "SELECT banking.register_source(NULL,NULL,NULL,'x','{}')"} {
 		_, e := r.Exec(context.Background(), q)
 		requireCode(t, e, "42501")
 	}
