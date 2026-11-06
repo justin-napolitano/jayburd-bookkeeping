@@ -22,8 +22,8 @@
 }
 .filters {
   border-block: 1px solid var(--line, #dce0e3);
-  margin-block: 1rem;
-  padding-block: 0.6rem;
+  margin-block: 0.6rem;
+  padding-block: 0.35rem;
 }
 .primaryFilters,
 .advancedFilters {
@@ -136,6 +136,18 @@
 .count {
   font-weight: 600;
 }
+.resultSummary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.2rem 1rem;
+}
+.resultSummary p {
+  margin: 0;
+}
+.partial {
+  margin-block: 0.6rem;
+}
 .review {
   border-left: 3px solid var(--accent, #286044);
   padding: 1rem;
@@ -203,10 +215,13 @@
 .filters fieldset {
   display: block;
 }
+.filters label {
+  margin-block: 0.35rem;
+}
 .moreFilters > summary {
   font-size: 0.9rem;
   min-height: 44px;
-  padding-top: 0.7rem;
+  padding-top: 0.4rem;
 }
 .reviewRows li > span:last-child {
   display: flex;

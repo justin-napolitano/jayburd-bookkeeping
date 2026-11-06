@@ -36,6 +36,10 @@ test("390px keyboard review has no horizontal clipping and keeps held money unav
     fullPage: true,
   });
   expect((await firstRow.boundingBox())!.y).toBeLessThan(844);
+  await info.attach("default-font-first-row-y", {
+    body: String((await firstRow.boundingBox())!.y),
+    contentType: "text/plain",
+  });
   const held = page
     .getByRole("listitem")
     .filter({ hasText: "Fictional unsupported_currency hold" });
@@ -69,6 +73,46 @@ test("390px keyboard review has no horizontal clipping and keeps held money unav
   ).toEqual([0, 0]);
   await page.screenshot({
     path: info.outputPath("fictional-collection-mobile.png"),
+    fullPage: true,
+  });
+});
+
+test("390px larger font metrics retain the first row and usable controls", async ({
+  mount,
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mount(<CollectionReviewHarness held />);
+  // Stress wrapping and line boxes beyond the default local system font.
+  // The original default-font fold/keyboard test remains independent above.
+  await page.addStyleTag({
+    content:
+      "html { font-size: 17px; } body { font-family: Arial, sans-serif; line-height: 1.7; }",
+  });
+  const firstRow = page.getByText("Fictional purchase 1", { exact: true });
+  await expect(firstRow).toBeVisible();
+  const firstRowY = (await firstRow.boundingBox())!.y;
+  expect(firstRowY).toBeLessThan(844);
+  for (const control of [
+    page.getByRole("button", { name: "Refresh transactions" }),
+    page.getByRole("button", { name: "Apply filters" }),
+    page.getByRole("combobox", { name: "Account", exact: true }),
+    page.getByRole("searchbox", { name: "Search transactions" }),
+    page.getByText("Book, topic and date filters", { exact: true }),
+  ]) {
+    const bounds = (await control.boundingBox())!;
+    expect(bounds.height).toBeGreaterThanOrEqual(44);
+    expect(bounds.width).toBeGreaterThanOrEqual(44);
+  }
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+  await info.attach("larger-font-first-row-y", {
+    body: String(firstRowY),
+    contentType: "text/plain",
+  });
+  await page.screenshot({
+    path: info.outputPath("fictional-collection-larger-font.png"),
     fullPage: true,
   });
 });
