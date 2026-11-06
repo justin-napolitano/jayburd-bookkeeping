@@ -19,6 +19,8 @@ taxonomy, journal, provisioning or default browser activation.
 | Integration attempts | Full make test attempted: existing acquisition/webhookhost/workerhost/workerruntime socket bind denied. web-browser built fixtures but55tests could not start (EPERM ::1:3100). app-integration stopped at synthetic listener probe; none bypassed |
 | Browser follow-up | Direct unchanged npm run test:browser from web PASS55/55; earlier make-wrapper listener failure retained above. Go/app listener restrictions persist |
 | Approval reconciliation | ADR0006, source-first and private-categorization status now link accepted GitHub238/242 design; implementation/source/security gates retained |
+| Independent review | Separate agent reviewed HTTP/service/server/OpenAPI; nullable currency numeric_code mismatch corrected in schema/types and proved against real42 fixture |
+| Real adapter proof | New integration-tagged TestCollectionReadHTTPPostgres PASS with actual synthetic_runtime login: hugeUSD/datedmetadata, nullableEURnumericcode, foreignactor/closedJSONdeny, correction/revision, stale page-one snapshot, workspace revoke, zero books/journals; runtime proof depends on agent42 and is not yet a default CI step |
 
 ## Current evidence
 

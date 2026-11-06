@@ -9333,8 +9333,10 @@
             "pattern": "^[A-Z]{3}$"
           },
           "numeric_code": {
-            "type": "string",
-            "pattern": "^[0-9]{3}$"
+            "anyOf": [
+              { "type": "string", "pattern": "^[0-9]{3}$" },
+              { "type": "null" }
+            ]
           },
           "minor_unit": {
             "type": "integer",

@@ -34,7 +34,8 @@ Idempotency-Key are rejected. POST requires exactly `application/json`, maximum
 8192 bytes. Workspace path is canonical lowercase nonzero UUID. Workspace GET
 rejects bodies; HEAD cannot inherit GET behavior. Responses are noncached JSON,
 maximum1MiB, with the expected versioned object profile. Decimal strings and
-dated currency metadata pass unchanged; Go computes no money or totals.
+dated currency metadata pass unchanged; numeric_code is nullable when the stored
+reference omits it. No replacement code is inferred. Go computes no money or totals.
 
 Each read uses one bounded repeatable-read transaction. It is not READ ONLY:
 SQL's current-authority locks require row locks. Four-second context and local
