@@ -6,8 +6,9 @@
 CAT433 dedicated issue/433-classification-contract from28eee40/PR434. Source-only
 proposal for413/414/242 and remaining daily-money gates. No runtime/DDL/API,
 provider/private/credential/cloud/deployment/consent or accounting-policy action.
-42+ unclaimed;40/41 retain existing reservations. Authority238/239/242/304 remains
-open; proposed topic/rule policy is not an implemented grant.
+Current design approval is recorded in GitHub238/242;239 owns42 under65, and304
+implementation remains open. The historical preparation stages below preserve
+their original evidence; design approval is not an implemented grant.
 
 ## Stage ledger
 

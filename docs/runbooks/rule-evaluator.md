@@ -6,7 +6,7 @@
 RULE414-EVAL, feat/414-rule-evaluator from2315cc4; one root source writer.
 Unintegrated pure algorithm child of414, no private authority activation.
 No SQL/migration/API/UI/service/provider/cloud/consent or accounting effect.
-238/239/242/304 remain prerequisites for sensitive integrated implementation.
+238/242 design accepted;239/304 implementation remains prerequisite to activation.
 
 ## Stage ledger
 
@@ -26,14 +26,15 @@ fails in this runtime. Tracked module/toolchain/dependency pins are unchanged.
 This does not establish restricted-role grants, replay or full414 acceptance.
 New CI initially could not start due account billing. Owner explicitly directed
 making jayburd-bookkeeping public; visibility was changed and verified2026-11-06.
-Existing rollout PR439 rerun jobs now start normally. This is no source-security
-review or private data/provider authorization, and engine exact-head CI remains
-required after publication.
+Engine PR440 now passes canonical foundation/frontend/validate/security and real
+application integration (rerun9m50); first application attempt hit20minute limit
+after slow apt download, not a matcher failure. No check was weakened. This is no
+private data/provider authorization or full414 integration acceptance.
 
 ## Remaining work
 
-Finish canonical checks and publish source PR for human review. After accepted
-238/private authority and242 taxonomy,239/304 own exact source selection, SQL
+PR440 is published for review. Accepted238/242 design does not replace239/304's
+exact source selection, SQL
 grant/lock/revision/revocation/retention and preview/apply/receipt integration.
 413 owns PFC compatibility/mapping;305 and414 still need the actual review UI.
 No activation/deployment or issue closure from a pure matcher test.
