@@ -15,6 +15,7 @@ integration only; no live/provider/cloud, browser activation or journal effect.
 | PFC source review | PR441 explicit decoder sidecar/map reviewed; legacy wire remains unchanged; exact account+transaction+change and current-page digest bind metadata; bounded closed decoding and abstention |
 | Focus repair review | PR444 replaces precommit frame focus with postcommit effects; independent immediate-frame regression reviewed; original implementation fails it. No financial/request behavior changed |
 | Read protocol review | HEAD denial now carries Allow:GET; focused collection/rule/PFC/server race tests PASS after combined imports |
+| Resume consistency | Delivery map and historical preparation/evaluator status reconciled with accepted238/242 and completed436 Sandbox rollout; remaining SQL/runtime gates stay explicit |
 
 ## Current evidence
 
