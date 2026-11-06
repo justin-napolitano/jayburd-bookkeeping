@@ -1,5 +1,11 @@
 # Project context
 
+[Parallel classification build](runbooks/daily-classification-build.md): reviewed
+source slices and combined synthetic proof; GitHub issues own delivery state.
+
+[PFC sidecar](contracts/pfc-normalization.md) and [stages](runbooks/pfc-normalization.md),
+413: explicit current-response attribution; legacy ingestion remains unchanged.
+
 [Private source read API](contracts/collection-read-api.md) and
 [stages](runbooks/collection-read-api.md),239/304: optional managed transport,
 default off; SQL authority and full analytic review remain separate gates.
