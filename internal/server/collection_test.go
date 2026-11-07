@@ -6,11 +6,35 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 )
 
 // syntheticCollection exposes no SQL behavior; it checks only explicit route composition.
 type syntheticCollection struct{ calls int }
+
+// syntheticLabels checks route wiring only; real SQL behavior has separate proofs.
+type syntheticLabels struct{ calls int }
+
+func (s *syntheticLabels) Catalog(_ context.Context, r collectionlabels.Request) (json.RawMessage, error) {
+	s.calls++
+	return json.RawMessage(`{"profile":"private-collection-catalog-v1","workspace_id":"` + r.Workspace + `"}`), nil
+}
+func (s *syntheticLabels) Query(context.Context, collectionlabels.Request) (json.RawMessage, error) {
+	panic("unexpected query")
+}
+func (s *syntheticLabels) Preview(context.Context, collectionlabels.Request) (json.RawMessage, error) {
+	panic("unexpected preview")
+}
+func (s *syntheticLabels) Prepare(context.Context, collectionlabels.Request) (json.RawMessage, error) {
+	panic("unexpected prepare")
+}
+func (s *syntheticLabels) Pending(context.Context, collectionlabels.Request) (json.RawMessage, error) {
+	panic("unexpected pending")
+}
+func (s *syntheticLabels) Transition(context.Context, collectionlabels.Request, string) (json.RawMessage, error) {
+	panic("unexpected transition")
+}
 
 // Workspace supplies a fixed source workspace only when the route reaches this synthetic port.
 func (s *syntheticCollection) Workspace(context.Context, collectionread.Request) (json.RawMessage, error) {
@@ -36,7 +60,8 @@ func TestCollectionComposition(t *testing.T) {
 	for _, enabled := range []bool{false, true} {
 		c := Config{Mode: "managed", Listen: "127.0.0.1:8080", Origin: "http://localhost:3000", Project: "synthetic-project", DatabaseURL: "synthetic", CollectionEnabled: enabled}
 		port := &syntheticCollection{}
-		d := Dependencies{Auth: syntheticAuth{}, Operations: syntheticOps{}, Ready: func(context.Context) error { return nil }, Collection: port}
+		labels := &syntheticLabels{}
+		d := Dependencies{Auth: syntheticAuth{}, Operations: syntheticOps{}, Ready: func(context.Context) error { return nil }, Collection: port, Labels: labels}
 		s, err := New(c, d)
 		if err != nil {
 			t.Fatal(err)
@@ -65,7 +90,32 @@ func TestCollectionComposition(t *testing.T) {
 		if port.calls != want {
 			t.Fatal("private port reached without feature/auth/origin")
 		}
+		for _, tc := range []struct {
+			token, origin string
+			status        int
+		}{{"Bearer synthetic", c.Origin, 200}, {"", c.Origin, 401}, {"Bearer synthetic", "https://foreign.invalid", 403}} {
+			r := httptest.NewRequest("GET", "/v1/collections/00000000-0000-4000-8000-000000000001/taxonomy", nil)
+			r.Header.Set("Authorization", tc.token)
+			r.Header.Set("Origin", tc.origin)
+			w := httptest.NewRecorder()
+			s.HTTP.Handler.ServeHTTP(w, r)
+			status := tc.status
+			if !enabled && tc.origin == c.Origin {
+				status = 404
+			}
+			if w.Code != status {
+				t.Fatalf("label enabled%v status%d want%d", enabled, w.Code, status)
+			}
+		}
+		if labels.calls != want {
+			t.Fatal("label port reached without feature/auth/origin")
+		}
 		if enabled {
+			d.Labels = nil
+			if _, err = New(c, d); err == nil {
+				t.Fatal("enabled label workflow without adapter")
+			}
+			d.Labels = labels
 			d.Collection = nil
 			if _, err = New(c, d); err == nil {
 				t.Fatal("enabled feature without adapter")

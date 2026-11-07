@@ -45,14 +45,15 @@ esac
 CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/private.test ./internal/privateregistry
 docker cp .local/private.test "$proof_id:/proof/private.test"
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/private.test "$POSTGRES_IMAGE" -private-registry-proof -collection-read-proof -test.v -test.timeout=240s
-# Mandatory empty rollback/reapply preserves schema41; any retained custody forbids down.
+# Exercise42 itself even when later empty-safe migrations are installed.
 docker exec "$proof_id" createdb -U postgres private_empty_down -T private_template
 run_empty_migration() {
  docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" \
   "$MIGRATE_IMAGE" -path /proof/migrations -database 'postgres://postgres@database:5432/private_empty_down?sslmode=disable' "$@"
 }
+run_empty_migration goto 42
 run_empty_migration down 1
-run_empty_migration up
+run_empty_migration up 1
 docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -d private_empty_down -c "INSERT INTO ledger.principal(principal_id,issuer,subject)VALUES('00000000-0000-4000-8000-000000000999','synthetic','retained-owner');INSERT INTO banking.collection_workspace(owner_principal_id,capabilities)VALUES('00000000-0000-4000-8000-000000000999',ARRAY['read']);" >/dev/null
 if run_empty_migration down 1 >".local/$proof_id-down.log" 2>&1; then
  echo 'FAIL: retained custody allowed destructive downgrade.' >&2

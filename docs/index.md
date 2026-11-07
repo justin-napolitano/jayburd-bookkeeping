@@ -1,5 +1,9 @@
 # Project context
 
+[Persistent private labels](contracts/collection-labels.md):304/305 SQL/API/UI
+and [integration stages](runbooks/collection-label-build.md); shared command gate,
+topic editing and actual private review client. GitHub449 owns merge/CI state.
+
 [Parallel classification build](runbooks/daily-classification-build.md): reviewed
 source slices and combined synthetic proof; GitHub issues own delivery state.
 
@@ -8,7 +12,8 @@ source slices and combined synthetic proof; GitHub issues own delivery state.
 
 [Private review component](contracts/collection-review-ui.md) and
 [stages](runbooks/collection-review-ui.md),305: guarded injected service port;
-persisted taxonomy/commands and application activation remain304 dependencies.
+[connected delivery](contracts/collection-live-labels.md) now supplies the actual
+authenticated client/taxonomy/recovery UI. Hosted activation remains separate.
 
 [Private source registry](contracts/private-registry.md) and
 [stages](runbooks/private-registry.md),239: forward42, current row locks,
@@ -25,7 +30,8 @@ and preview/apply dependencies remain open.
 
 [Private categorization design](contracts/private-categorization.md), [fixed cases](reviews/classification-433.md)
 and [delivery gates](plans/classification-delivery.md),433: owner design accepted in
-GitHub238/242;239/304 implementation remains open. [Stages](runbooks/private-categorization.md).
+GitHub238/242; registry42 merged447; private labels43/current UI are in449.
+Provider/rule runtime remains separate. [Stages](runbooks/private-categorization.md).
 
 [Source Overview](contracts/source-overview.md) and [stages](runbooks/source-overview.md),432:
 all-imported activity with exact unit and merchant drills; dependent source preparation.
@@ -207,7 +213,7 @@ background work. The two predecessor repos are reference material only.
 | What must pass before live sync, and how will scaling be measured? | [Sync quality gates](plans/sync-quality.md) and [validation evidence](runbooks/sync-quality.md) |
 | What works now, and how do I review it? | [Project status and frontend guide](project-status.md) |
 | What are we building? | [Product scope](product.md) |
-| What is the connect-first and global transaction boundary? | [Source-first decision](decisions/0006-source-first-workspace.md) and [authority matrix](contracts/source-first-workspace.md); design accepted238, implementation239/304 pending |
+| What is the connect-first and global transaction boundary? | [Source-first decision](decisions/0006-source-first-workspace.md), [authority matrix](contracts/source-first-workspace.md) and [private labels](contracts/collection-labels.md); registry42 merged447, label43/UI in449 |
 | Why this stack and boundaries? | [Architecture](decisions/0001-architecture.md) |
 | What research supports the database direction? | [Research review](research/database-foundations.md) |
 | Which source sections were reviewed? | [Source register](research/database-sources.md) |

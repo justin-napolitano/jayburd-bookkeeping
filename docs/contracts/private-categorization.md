@@ -249,6 +249,7 @@ proposed product/engineering choices, not facts established by the research.
 [Fixed cases](../reviews/classification-433.md) specify independent expected
 results and [delivery gates](../plans/classification-delivery.md) map the remaining
 issues. Named tests there are **planned**, not passing runtime evidence. This
-proposal is complete for review, not accepted or deployed. Exact SQL grants,
-lock schedules, OpenAPI and physical migration still belong to239/304/413/414
-after238 authority and242 taxonomy decisions are reviewed.
+design was accepted in238/242. Registry42/source reads merged447; label43 and
+connected UI implementation/evidence are in449. Provider/rule runtime413/414
+and managed activation retain their separate gates; no deployment follows from
+these source proofs.

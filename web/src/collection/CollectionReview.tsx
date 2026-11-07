@@ -2,6 +2,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type FormEvent,
@@ -29,6 +30,7 @@ import {
   type Workspace,
 } from "./types";
 import styles from "./collection.module.css";
+import { TaxonomyEditor, TopicReview } from "./TaxonomyEditor";
 
 // Injected authorized projections/ports keep this component independent from unimplemented runtime authority.
 export type CollectionReviewProps = {
@@ -37,6 +39,13 @@ export type CollectionReviewProps = {
   catalog: Catalog;
   port: CollectionPort;
   locked?: boolean;
+  active?: boolean;
+  canClassify?: boolean;
+  onLockChange?: (locked: boolean) => void;
+  onAcknowledged?: () => void;
+  onRefreshCatalog?: () => void;
+  onPrepareConflict?: () => Promise<void> | void;
+  refreshVersion?: number;
   onDenied: () => void;
 };
 const initial: Selector = {
@@ -53,7 +62,7 @@ const initial: Selector = {
 export function CollectionReview(props: CollectionReviewProps) {
   return (
     <Review
-      key={`${props.workspace.workspace_id}/${props.workspace.authority_revision}/${props.catalog.taxonomy_revision}/${!!props.locked}`}
+      key={`${props.workspace.workspace_id}/${props.workspace.authority_revision}/${props.catalog.taxonomy_revision}`}
       {...props}
     />
   );
@@ -66,8 +75,16 @@ function Review({
   catalog,
   port,
   locked = false,
+  active = true,
+  canClassify = true,
+  onLockChange,
+  onAcknowledged,
+  onRefreshCatalog,
+  onPrepareConflict,
+  refreshVersion = 0,
   onDenied,
 }: CollectionReviewProps) {
+  const topicChoiceLabel = useId();
   const [draft, setDraft] = useState<Selector>(initial),
     [selector, setSelector] = useState<Selector>(initial);
   const [query, setQuery] = useState<Query>({
@@ -105,7 +122,52 @@ function Review({
       view: "preview" | "command";
     } | null>(null);
   onDeniedRef.current = onDenied;
-  const blocked = locked || denied || busy || !ready || !!command || uncertain;
+  const recoveredVersion = useRef(refreshVersion);
+  const reciprocalRefreshPending = recoveredVersion.current !== refreshVersion;
+  const blocked =
+    locked ||
+    denied ||
+    busy ||
+    !ready ||
+    !!command ||
+    uncertain ||
+    reciprocalRefreshPending;
+  const title = useRef<HTMLHeadingElement>(null);
+  const wasActive = useRef(active);
+  useEffect(() => {
+    if (active && !wasActive.current && !command && !preview)
+      title.current?.focus();
+    wasActive.current = active;
+  }, [active, command, preview]);
+  const lockCallback = useRef(onLockChange);
+  const conflictCallback = useRef(onPrepareConflict);
+  conflictCallback.current = onPrepareConflict;
+  lockCallback.current = onLockChange;
+  useEffect(() => {
+    lockCallback.current?.(
+      !denied &&
+        (!ready ||
+          busy ||
+          !!preview ||
+          !!command ||
+          uncertain ||
+          reciprocalRefreshPending),
+    );
+  }, [
+    ready,
+    busy,
+    preview,
+    command,
+    uncertain,
+    denied,
+    reciprocalRefreshPending,
+  ]);
+  useEffect(() => {
+    if (locked) {
+      setPage(null);
+      setSelected([]);
+    }
+  }, [locked]);
 
   // Denial destroys private state; fixed messages never echo raw service errors.
   const failure = useCallback((reason: unknown, mutation = false) => {
@@ -130,17 +192,20 @@ function Review({
     }
     if (mutation) setUncertain(true);
     setError(
-      reason instanceof CollectionFailure && reason.kind === "stale"
-        ? "Transactions or categories changed. Refresh before reviewing another selection."
-        : mutation
-          ? "The saved review outcome is unknown. Recover the saved review before continuing."
-          : "Transactions are unavailable. Refresh to try again.",
+      mutation
+        ? "The saved review outcome is unknown. Recover the saved review before continuing."
+        : reason instanceof CollectionFailure && reason.kind === "stale"
+          ? "Transactions or categories changed. Refresh before reviewing another selection."
+          : reason instanceof CollectionFailure && reason.kind === "rejected"
+            ? "The review was rejected. Refresh before reviewing another request."
+            : "Transactions are unavailable. Refresh to try again.",
     );
   }, []);
 
   // Discovery never executes or acknowledges and must finish before new label work is enabled.
   const recover = useCallback(async () => {
     const n = ++epoch.current;
+    setReady(false);
     setBusy(true);
     setError("");
     setPage(null);
@@ -198,16 +263,43 @@ function Review({
     }
   }, [port, workspace, catalog, failure]);
   useEffect(() => {
-    if (!locked) void recover();
+    void recover();
     return () => {
       epoch.current++;
     };
-  }, [recover, locked]);
+  }, [recover]);
+  useEffect(() => {
+    if (
+      !reciprocalRefreshPending ||
+      !ready ||
+      busy ||
+      preview ||
+      command ||
+      uncertain ||
+      denied ||
+      pendingOutcome.current
+    )
+      return;
+    // Recheck pending in this session; never remount a newly busy or uncertain prepare.
+    recoveredVersion.current = refreshVersion;
+    void recover();
+  }, [
+    reciprocalRefreshPending,
+    refreshVersion,
+    ready,
+    busy,
+    preview,
+    command,
+    uncertain,
+    denied,
+    recover,
+  ]);
 
   // Focus only the committed current review; frames can run before React attaches its heading.
   useEffect(() => {
     const request = focusRequest.current;
     if (!request) return;
+    if (locked) return;
     focusRequest.current = null;
     if (
       request.epoch !== epoch.current ||
@@ -230,7 +322,21 @@ function Review({
 
   // Every page request carries the exact selector and server-owned all-source snapshot.
   useEffect(() => {
-    if (!ready || locked || denied || command || uncertain) return;
+    if (!active) {
+      setPage(null);
+      setSelected([]);
+      setReading(false);
+      return;
+    }
+    if (
+      !ready ||
+      locked ||
+      denied ||
+      command ||
+      uncertain ||
+      reciprocalRefreshPending
+    )
+      return;
     const n = ++epoch.current;
     setReading(true);
     setPage(null);
@@ -255,7 +361,9 @@ function Review({
     };
   }, [
     query,
+    active,
     ready,
+    reciprocalRefreshPending,
     locked,
     denied,
     command,
@@ -288,6 +396,12 @@ function Review({
     });
   const applyFilters = (event: FormEvent) => {
     event.preventDefault();
+    if (Array.from(draft.search).length > 100) {
+      setError(
+        "Search supports up to 100 characters. Shorten the search and retry.",
+      );
+      return;
+    }
     if (
       draft.starts_on &&
       draft.through_date &&
@@ -318,15 +432,20 @@ function Review({
   };
   // Preview is inert and compares every selected composite identity/revision before showing a review.
   const previewLabels = async () => {
-    if (!page || !selected.length || !choice) return;
+    if (!selected.length || !choice) return;
     const action: LabelAction =
       choice === "uncategorized"
         ? { kind: "uncategorized" }
         : { kind: "topic", topic_id: choice.slice(6) };
+    await previewAction(action, selected);
+  };
+  // Both taxonomy and labels share the exact inert-preview and durable recovery engine.
+  const previewAction = async (action: LabelAction, selection: Selection[]) => {
+    if (!page || blocked || !canClassify) return;
     const request = {
       workspace_id: workspace.workspace_id,
       snapshot: page.snapshot,
-      selection: selected,
+      selection,
       action,
     };
     const n = ++epoch.current;
@@ -357,8 +476,13 @@ function Review({
   // An uncertain prepare retains its exact key/preview; retry never creates different intent.
   const prepare = async () => {
     if (!preview) return;
+    const wasUncertain = uncertain || pendingOutcome.current !== null;
     if (Date.parse(preview.expires_at) <= Date.now()) {
-      failure(new CollectionFailure("stale"));
+      if (!wasUncertain) {
+        setPreview(null);
+        prepareKey.current = null;
+      }
+      failure(new CollectionFailure("stale"), wasUncertain);
       return;
     }
     const key = prepareKey.current ?? crypto.randomUUID();
@@ -379,8 +503,7 @@ function Review({
         !validCommand(saved, workspace, catalog) ||
         saved.prepare_key !== key ||
         saved.preview.preview_id !== preview.preview_id ||
-        !samePreview(saved.preview, preview) ||
-        saved.acknowledged
+        !samePreview(saved.preview, preview)
       )
         throw Error("invalid saved intent");
       pendingOutcome.current = null;
@@ -397,7 +520,26 @@ function Review({
       setSelected([]);
       setUncertain(false);
     } catch (reason) {
-      if (n === epoch.current) failure(reason, true);
+      if (n === epoch.current) {
+        if (
+          !wasUncertain &&
+          reason instanceof CollectionFailure &&
+          ["stale", "rejected"].includes(reason.kind)
+        ) {
+          pendingOutcome.current = null;
+          intent.current = null;
+          prepareKey.current = null;
+          setPreview(null);
+          failure(reason);
+          // A rejected prepare may conflict with another tab's saved command.
+          // Keep the shared gate closed until fresh pending discovery completes.
+          setReady(false);
+          await Promise.all([
+            recover(),
+            reason.kind === "stale" ? conflictCallback.current?.() : undefined,
+          ]);
+        } else failure(reason, true);
+      }
     } finally {
       if (n === epoch.current) setBusy(false);
     }
@@ -424,7 +566,7 @@ function Review({
         result.preview.preview_id !== current.preview.preview_id ||
         !samePreview(result.preview, current.preview) ||
         ((action === "execute" || action === "cancel") &&
-          (result.state === "prepared" || result.acknowledged)) ||
+          result.state === "prepared") ||
         (action === "acknowledge" &&
           (!result.acknowledged ||
             result.state === "prepared" ||
@@ -440,7 +582,13 @@ function Review({
         knownTerminal.current = null;
         setCommand(null);
         prepareKey.current = null;
-        refresh();
+        // The validated acknowledgement completed before a new read advances its epoch.
+        setBusy(false);
+        if (onAcknowledged) onAcknowledged();
+        else {
+          setReady(true);
+          refresh();
+        }
       } else {
         knownTerminal.current =
           result.state === "prepared" ? null : result.state;
@@ -470,14 +618,16 @@ function Review({
     >
       <div className={styles.heading}>
         <div>
-          <h2>All transactions</h2>
+          <h2 ref={title} tabIndex={-1}>
+            All transactions
+          </h2>
           <p>{workspace.name}</p>
         </div>
         <button
           type="button"
           className="secondary"
           disabled={blocked || reading}
-          onClick={refresh}
+          onClick={() => (onRefreshCatalog ? onRefreshCatalog() : refresh())}
           aria-label="Refresh transactions"
         >
           Refresh
@@ -510,7 +660,7 @@ function Review({
                 Search transactions
                 <input
                   type="search"
-                  maxLength={100}
+                  maxLength={200}
                   value={draft.search}
                   onChange={(event) =>
                     setDraft({ ...draft, search: event.target.value })
@@ -701,7 +851,7 @@ function Review({
                       checked={selected.some(
                         (item) => selectionKey(item) === selectionKey(row),
                       )}
-                      disabled={blocked || !!preview || reading}
+                      disabled={blocked || !!preview || reading || !canClassify}
                       onChange={(event) => select(row, event.target.checked)}
                     />
                     <span className={styles.date}>{row.booked_date}</span>
@@ -744,15 +894,18 @@ function Review({
             </ul>
           )}
           <p className={styles.note}>
-            Original imported activity. Topics help organize transactions; journal
-            state is shown separately.
+            Original imported activity. Topics help organize transactions;
+            journal state is shown separately.
           </p>
           <div className={styles.actions}>
             <label>
-              Label selected transactions
+              <span id={topicChoiceLabel}>Label selected transactions</span>
               <select
+                aria-labelledby={topicChoiceLabel}
                 value={choice}
-                disabled={blocked || !!preview || !selected.length}
+                disabled={
+                  blocked || !!preview || !selected.length || !canClassify
+                }
                 onChange={(event) => {
                   setChoice(event.target.value);
                   setPreview(null);
@@ -761,18 +914,26 @@ function Review({
               >
                 <option value="">Choose a topic</option>
                 <option value="uncategorized">Explicit Uncategorized</option>
-                {catalog.topics.map((topic) => (
-                  <option
-                    key={topic.topic_id}
-                    value={`topic:${topic.topic_id}`}
-                  >
-                    {topic.name}
-                  </option>
-                ))}
+                {catalog.topics
+                  .filter((topic) => topic.status === "active")
+                  .map((topic) => (
+                    <option
+                      key={topic.topic_id}
+                      value={`topic:${topic.topic_id}`}
+                    >
+                      {topic.name}
+                    </option>
+                  ))}
               </select>
             </label>
             <button
-              disabled={blocked || !!preview || !selected.length || !choice}
+              disabled={
+                blocked ||
+                !!preview ||
+                !selected.length ||
+                !choice ||
+                !canClassify
+              }
               onClick={() => void previewLabels()}
             >
               Preview labels for {selected.length} selected
@@ -803,21 +964,43 @@ function Review({
               Next page
             </button>
           </div>
+          {!canClassify && (
+            <p>Topics are read-only with your current access.</p>
+          )}
+          {canClassify && (
+            <TaxonomyEditor
+              topics={catalog.topics}
+              disabled={blocked || !!preview || reading}
+              onPreview={(topics) =>
+                void previewAction({ kind: "taxonomy", topics }, [])
+              }
+            />
+          )}
         </>
       )}
       {preview && !command && !denied && (
         <div role="region" className={styles.review} aria-label="Label preview">
           <h3 tabIndex={-1} ref={heading}>
-            Review {preview.selected_count} selected transactions
+            {preview.action.kind === "taxonomy"
+              ? "Review topic changes"
+              : `Review ${preview.selected_count} selected transactions`}
           </h3>
           <p>
-            Set owner topic to{" "}
+            {preview.action.kind === "taxonomy"
+              ? "Replace the private topic edition with "
+              : "Set owner topic to "}
             <strong>{actionLabel(preview.action, catalog)}</strong>. Source
             facts and journals stay unchanged.
           </p>
-          <ReviewRows rows={preview.review_rows} />
+          {preview.action.kind === "taxonomy" ? (
+            <TopicReview topics={preview.action.topics} />
+          ) : (
+            <ReviewRows rows={preview.review_rows} />
+          )}
           <button disabled={busy || uncertain} onClick={() => void prepare()}>
-            Save label review
+            {preview.action.kind === "taxonomy"
+              ? "Save topic review"
+              : "Save label review"}
           </button>
           <button
             className="secondary"
@@ -827,7 +1010,9 @@ function Review({
               prepareKey.current = null;
             }}
           >
-            Back to selection
+            {preview.action.kind === "taxonomy"
+              ? "Back to topic editor"
+              : "Back to selection"}
           </button>
         </div>
       )}
@@ -838,13 +1023,27 @@ function Review({
           aria-label="Saved label review"
         >
           <h3 tabIndex={-1} ref={savedHeading}>
-            Saved label review
+            {command.preview.action.kind === "taxonomy"
+              ? "Saved topic review"
+              : "Saved label review"}
           </h3>
           <p>
-            {command.preview.selected_count} selected transactions; owner topic:{" "}
+            {command.preview.action.kind === "taxonomy"
+              ? "Private topic edition: "
+              : `${command.preview.selected_count} selected transactions; owner topic: `}
             <strong>{actionLabel(command.preview.action, catalog)}</strong>.
           </p>
-          <ReviewRows rows={command.preview.review_rows} />
+          {command.preview.action.kind === "taxonomy" ? (
+            <TopicReview topics={command.preview.action.topics} />
+          ) : (
+            <ReviewRows rows={command.preview.review_rows} />
+          )}
+          {command.acknowledged && (
+            <p>
+              This result was acknowledged in another session. Acknowledge here
+              to continue.
+            </p>
+          )}
           {command.state === "prepared" ? (
             <>
               <p>
@@ -853,14 +1052,16 @@ function Review({
                   : "This saved review has not been applied."}
               </p>
               <button
-                disabled={busy || uncertain}
+                disabled={busy || uncertain || locked || !canClassify}
                 onClick={() => void transition("execute")}
               >
-                Confirm labels for {command.preview.selected_count} selected
+                {command.preview.action.kind === "taxonomy"
+                  ? "Confirm topic changes"
+                  : `Confirm labels for ${command.preview.selected_count} selected`}
               </button>
               <button
                 className="secondary"
-                disabled={busy || uncertain}
+                disabled={busy || uncertain || locked}
                 onClick={() => void transition("cancel")}
               >
                 Cancel saved review
@@ -870,11 +1071,15 @@ function Review({
             <>
               <p role="status">
                 {command.state === "committed"
-                  ? "Labels applied. No journal was created."
-                  : "Saved label review cancelled."}
+                  ? command.preview.action.kind === "taxonomy"
+                    ? "Topics updated. No journal was created."
+                    : "Labels applied. No journal was created."
+                  : command.preview.action.kind === "taxonomy"
+                    ? "Saved topic review cancelled."
+                    : "Saved label review cancelled."}
               </p>
               <button
-                disabled={busy || uncertain}
+                disabled={busy || uncertain || locked}
                 onClick={() => void transition("acknowledge")}
               >
                 Acknowledge result
@@ -905,6 +1110,7 @@ function topicLabel(row: Row): string {
         : "Not classified";
 }
 function actionLabel(action: LabelAction, catalog: Catalog): string {
+  if (action.kind === "taxonomy") return `${action.topics.length} topics`;
   return action.kind === "uncategorized"
     ? "Explicit Uncategorized"
     : (catalog.topics.find((topic) => topic.topic_id === action.topic_id)

@@ -22,6 +22,36 @@ import {
 } from "./types";
 
 describe("collection safe projection", () => {
+  it("accepts a4096-character opaque cursor and rejects4097 without loosening identity bounds", () => {
+    const q = collectionQuery();
+    const page = {
+      ...collectionPage(q),
+      matching_count: "2",
+      next_cursor: "a".repeat(4096),
+    };
+    expect(validPage(page, q, collectionWorkspace, collectionCatalog)).toBe(
+      true,
+    );
+    expect(
+      validPage(
+        { ...page, next_cursor: "a".repeat(4097) },
+        q,
+        collectionWorkspace,
+        collectionCatalog,
+      ),
+    ).toBe(false);
+    expect(
+      validPage(
+        {
+          ...page,
+          items: [{ ...page.items[0], observation_id: "b".repeat(2049) }],
+        },
+        q,
+        collectionWorkspace,
+        collectionCatalog,
+      ),
+    ).toBe(false);
+  });
   it("rejects a wrong-account row even when the response echoes the requested account selector", () => {
     const q = collectionQuery({ source_account_id: "fictional-checking" });
     const p = collectionPage(q, [collectionRow(1)]);
