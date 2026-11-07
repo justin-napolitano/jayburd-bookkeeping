@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -462,5 +463,148 @@ func TestRule46LegacyVersionFences(t *testing.T) {
 	}
 	if _, e = rule46Transition(t, s, w, id, "acknowledge"); e != nil {
 		t.Fatal(e)
+	}
+}
+
+// TestRule46StalePins never promotes an old preview after any classification/source edition changes.
+func TestRule46StalePins(t *testing.T) {
+	for _, mode := range []string{"source_execute", "taxonomy", "tags", "rules", "manual"} {
+		t.Run(mode, func(t *testing.T) {
+			owner, pool, db := rule46Fixture(t)
+			s := &Service{DB: pool, Rules: RuleProcessor{}}
+			w := provision(t, db, actor)
+			_, sources := register(t, db, w, actor, "stale-"+mode, 1)
+			_, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", []map[string]any{change("cafe-a", "1.00", "USD"), change("cafe-b", "2.00", "USD")})
+			if e != nil {
+				t.Fatal(e)
+			}
+			seedTopics(t, db, w)
+			seedTags(t, db, w)
+			rule := rule46Rule("00000000-0000-4000-8000-000000006050", "Cafe", "Fictional Cafe", childTopic)
+			rule46Catalog(t, s, w, "rule-catalog", rule)
+			chosen := selection(rule46Query(t, s, w)["items"].([]any))
+			p, e := rule46Preview(t, s, w, chosen, map[string]any{"kind": "rules_apply"})
+			if e != nil {
+				t.Fatal(e)
+			}
+			var id string
+			if mode == "source_execute" {
+				c, e := rule46Prepare(t, s, w, "old-intent", p)
+				if e != nil {
+					t.Fatal(e)
+				}
+				id = c["command"].(map[string]any)["command_id"].(string)
+			}
+			switch mode {
+			case "source_execute":
+				corrected := change("cafe-b", "2.01", "USD")
+				corrected["operation"] = "modified"
+				if _, e = publish(t, db, w, sources[0], "correction", "1", "c1", "c2", []map[string]any{corrected}); e != nil {
+					t.Fatal(e)
+				}
+			case "taxonomy":
+				tagrecApply(t, db, w, "topic-edit", []map[string]any{}, topicsAction([]map[string]any{topic(rootTopic, "Everyday renamed", nil, "active"), topic(childTopic, "Dining", rootTopic, "active")}))
+			case "tags":
+				tagrecApply(t, db, w, "tag-edit", []map[string]any{}, tagCatalog(tag(tagA, "Travel renamed", "active"), tag(tagB, "Reimburse", "active")))
+			case "rules":
+				rule["name"] = "Cafe renamed"
+				rule46Catalog(t, s, w, "rule-edit", rule)
+			case "manual":
+				tagrecApply(t, db, w, "manual-edit", []map[string]any{chosen[0]}, map[string]any{"kind": "topic", "topic_id": rootTopic})
+			}
+			before := rule46Hash(t, owner)
+			if mode == "source_execute" {
+				_, e = rule46Transition(t, s, w, id, "execute")
+				rule46Failure(t, e, 409, "collection_snapshot_changed")
+				if value(t, owner, "SELECT count(*)::text FROM banking.collection_label_command WHERE state='prepared'") != "1" {
+					t.Fatal("stale execute changed command")
+				}
+				if _, e = rule46Transition(t, s, w, id, "cancel"); e != nil {
+					t.Fatal("stale cancel", e)
+				}
+				if _, e = rule46Transition(t, s, w, id, "acknowledge"); e != nil {
+					t.Fatal("stale acknowledgement", e)
+				}
+			} else {
+				_, e = rule46Prepare(t, s, w, "stale-prepare", p)
+				rule46Failure(t, e, 409, "collection_snapshot_changed")
+			}
+			if value(t, owner, "SELECT count(*)::text FROM banking.collection_rule_decision") != "0" || rule46Hash(t, owner) != before {
+				t.Fatal("stale intent had partial effects")
+			}
+		})
+	}
+}
+
+// TestRule46AtomicFailure forces a later insert failure and proves the whole reviewed batch rolls back.
+func TestRule46AtomicFailure(t *testing.T) {
+	owner, pool, db := rule46Fixture(t)
+	s := &Service{DB: pool, Rules: RuleProcessor{}}
+	w := provision(t, db, actor)
+	_, sources := register(t, db, w, actor, "atomic-rules", 1)
+	if _, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", []map[string]any{change("cafe-a", "1.00", "USD"), change("cafe-b", "2.00", "USD")}); e != nil {
+		t.Fatal(e)
+	}
+	seedTopics(t, db, w)
+	seedTags(t, db, w)
+	rule46Catalog(t, s, w, "rules", rule46Rule("00000000-0000-4000-8000-000000006060", "Cafe", "Fictional Cafe", childTopic))
+	chosen := selection(rule46Query(t, s, w)["items"].([]any))
+	p, e := rule46Preview(t, s, w, chosen, map[string]any{"kind": "rules_apply"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	c, e := rule46Prepare(t, s, w, "atomic-prepare", p)
+	if e != nil {
+		t.Fatal(e)
+	}
+	id := c["command"].(map[string]any)["command_id"].(string)
+	before := rule46Hash(t, owner)
+	revision := value(t, owner, "SELECT decision_revision::text FROM banking.collection_label_state WHERE workspace_id=$1", w)
+	// This test-only constraint affects only this disposable clone; production SQL is unchanged.
+	_, e = owner.Exec(context.Background(), "ALTER TABLE banking.collection_rule_decision ADD CONSTRAINT synthetic_later_row_failure CHECK(observation_id<>"+"'"+chosen[1]["observation_id"].(string)+"'::uuid) NOT VALID")
+	if e != nil {
+		t.Fatal(e)
+	}
+	_, e = rule46Transition(t, s, w, id, "execute")
+	rule46Failure(t, e, 503, "temporarily_unavailable")
+	if value(t, owner, "SELECT count(*)::text FROM banking.collection_rule_decision") != "0" || value(t, owner, "SELECT decision_revision::text FROM banking.collection_label_state WHERE workspace_id=$1", w) != revision || value(t, owner, "SELECT state FROM banking.collection_label_command WHERE command_id=$1", id) != "prepared" {
+		t.Fatal("failed batch partially committed")
+	}
+	exec(t, owner, "ALTER TABLE banking.collection_rule_decision DROP CONSTRAINT synthetic_later_row_failure")
+	if _, e = rule46Transition(t, s, w, id, "execute"); e != nil {
+		t.Fatal(e)
+	}
+	if value(t, owner, "SELECT count(*)::text FROM banking.collection_rule_decision") != "2" || rule46Hash(t, owner) != before {
+		t.Fatal("same reviewed retry did not commit exactly once")
+	}
+	if _, e = rule46Transition(t, s, w, id, "acknowledge"); e != nil {
+		t.Fatal(e)
+	}
+}
+
+// TestRule46RetainedRollback refuses to erase even an unprepared immutable v3 review.
+func TestRule46RetainedRollback(t *testing.T) {
+	owner, pool, db := rule46Fixture(t)
+	s := &Service{DB: pool, Rules: RuleProcessor{}}
+	w := provision(t, db, actor)
+	seedTopics(t, db, w)
+	if _, e := rule46Preview(t, s, w, []map[string]any{}, map[string]any{"kind": "rule_catalog", "rules": []map[string]any{rule46Rule("00000000-0000-4000-8000-000000006070", "Cafe", "Fictional Cafe", childTopic)}}); e != nil {
+		t.Fatal(e)
+	}
+	down, e := os.ReadFile("/proof/migrations/000046_collection_rules.down.sql")
+	if e != nil {
+		t.Fatal("synthetic fixture migration source unavailable")
+	}
+	ddl := strings.Replace(string(down), "BEGIN;", "", 1)
+	ddl = strings.TrimSuffix(strings.TrimSpace(ddl), "COMMIT;")
+	tx, e := owner.Begin(context.Background())
+	if e != nil {
+		t.Fatal(e)
+	}
+	_, e = tx.Exec(context.Background(), ddl)
+	code(t, e, "P2802")
+	_ = tx.Rollback(context.Background())
+	if value(t, owner, "SELECT count(*)::text FROM banking.collection_label_preview WHERE wire_version=3") != "1" || value(t, owner, "SELECT count(*)::text FROM banking.collection_rule_edition") != "1" {
+		t.Fatal("refused downgrade lost retained review/history")
 	}
 }

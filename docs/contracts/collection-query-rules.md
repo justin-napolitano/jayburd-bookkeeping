@@ -193,8 +193,9 @@ acceptance/persistence, with8192 bytes reserved for the command wrapper around a
 preview. Reads retain basic rows when stored active outputs have since retired:
 the inert suggestion becomes unavailable. New invalid rule syntax or expanded
 regex work returns fixed400 invalid_collection; catalog byte limits return422
-collection_limit. Go checks request cancellation before compilation and between
-fact evaluations; existing bounded RE2 compilation/matching remains the only
+collection_limit. Go uses additive context-aware wrappers around the same compiler/matcher,
+checking cancellation between rules, conditions and facts/matches; canceled
+work returns no partial engine/results and maps to503, never invalid-rule400; existing bounded RE2 compilation/matching remains the only
 matcher. Empty46 rollback is supported; retained editions, decisions or v3
 previews/commands forbid downgrade.
 
