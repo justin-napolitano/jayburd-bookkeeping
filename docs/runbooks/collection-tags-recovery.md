@@ -39,6 +39,9 @@ TAGREC-20261107T0340Z. Synthetic data only; no hosted/provider/live activation.
 
 | First canonical result |497ac9e main real topic/tag lost-response journey PASS; frontend75/76 PASS and migration44 proof PASS. Mobile action753.7px exceeded750px bound under Linux fonts;9107fbe compacts actual layout without changing assertions/44px targets (nine focused local browsers PASS). Two clear cases failed before execution because a spec-local component cannot mount;69e6b63 moves the unchanged harness into an imported story with all real clear assertions retained. New-head canonical gate required |
 
+| Full canonical application |65436c7 all application journeys PASS, including both real inaccessible-clear cases, exact SQL postconditions and every legacy recovery/connection/Production/demo journey; frontend76 cases/build/image, foundation/security PASS |
+| Legacy principal compatibility |Canonical ledger found derived recovery-state FK blocking otherwise-unused principal deletion. Reviewed05859d0: only that derived FK follows absent parent; direct fence deletion denied and all retained-history FKs unchanged. Entire unchanged legacy ledger binary and seven recovery/deletion/race groups PASS, plus corrected44 empty roundtrip and core check/build. Independent PFC source review agrees. New full CI required |
+
 ## Current evidence
 
 All source lanes are integrated and independently reviewed. The stage ledger distinguishes local SQL/HTTP/component evidence from the canonical full-stack gate. GitHub PR and issues450/451/65 own current exact source, checks and merge state; no hosted activation is inferred.

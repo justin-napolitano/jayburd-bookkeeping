@@ -1185,3 +1185,77 @@ func tagrecDeadline(t testing.TB, db, query string, args ...any) (map[string]any
 	e = json.Unmarshal(b, &v)
 	return v, e
 }
+
+// TestTagRecUnusedPrincipalFence permits unused identity deletion while retaining all protected history.
+func TestTagRecUnusedPrincipalFence(t *testing.T) {
+	owner, db := tagrecFixture(t)
+	_, e := owner.Exec(context.Background(), "DELETE FROM ledger.collection_recovery_state WHERE principal_id=$1", actor)
+	code(t, e, "P2802")
+	if value(t, owner, "SELECT count(*)::text FROM ledger.collection_recovery_state WHERE principal_id=$1", actor) != "1" {
+		t.Fatal("direct deletion lost current fence")
+	}
+	w := provision(t, db, actor)
+	p, e := tagrecPreview(t, db, w, tagrecPage(t, db, w)["snapshot"], []map[string]any{}, tagCatalog())
+	if e != nil {
+		t.Fatal(e)
+	}
+	r, e := tagrecPrepare(t, db, w, "retained", p)
+	if e != nil {
+		t.Fatal(e)
+	}
+	id := tagrecCommand(t, r)["command_id"].(string)
+	if _, e = tagrecTransition(t, db, w, id, "cancel"); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = tagrecTransition(t, db, w, id, "acknowledge"); e != nil {
+		t.Fatal(e)
+	}
+	_, e = owner.Exec(context.Background(), "DELETE FROM ledger.principal WHERE principal_id=$1", actor)
+	code(t, e, "23503")
+	if value(t, owner, "SELECT count(*)::text FROM ledger.principal WHERE principal_id=$1", actor) != "1" || value(t, owner, "SELECT count(*)::text FROM ledger.collection_recovery_receipt WHERE principal_id=$1", actor) != "1" || value(t, owner, "SELECT count(*)::text FROM ledger.collection_recovery_state WHERE principal_id=$1", actor) != "1" {
+		t.Fatal("retained history or its fence was deleted")
+	}
+	if value(t, owner, `SELECT count(*)::text FROM pg_constraint WHERE contype='f'AND confrelid='ledger.principal'::regclass AND confdeltype='c'AND conrelid<>'ledger.collection_recovery_state'::regclass`) != "0" {
+		t.Fatal("cascade broadened into retained principal history")
+	}
+	unused := "00000000-0000-4000-8000-000000000090"
+	exec(t, owner, `INSERT INTO ledger.principal(principal_id,issuer,subject)VALUES($1,'synthetic','unused-principal')`, unused)
+	reader := connect(t, db, "synthetic_runtime")
+	defer reader.Close(context.Background())
+	readTx, e := reader.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer readTx.Rollback(context.Background())
+	var count int
+	if e = readTx.QueryRow(context.Background(), "SELECT count(*)FROM pg_catalog.pg_class").Scan(&count); e != nil {
+		t.Fatal(e)
+	}
+	writer := connect(t, db, "postgres")
+	defer writer.Close(context.Background())
+	tx, e := writer.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer tx.Rollback(context.Background())
+	if _, e = tx.Exec(context.Background(), "DELETE FROM ledger.principal WHERE principal_id=$1", unused); e != nil {
+		t.Fatal(e)
+	}
+	done := make(chan error, 1)
+	go func() {
+		var b []byte
+		err := readTx.QueryRow(context.Background(), "SELECT banking.collection_recovery_status($1)", unused).Scan(&b)
+		_ = readTx.Rollback(context.Background())
+		done <- err
+	}()
+	waitBlocked(t, owner, reader.PgConn().PID())
+	if e = tx.Commit(context.Background()); e != nil {
+		t.Fatal(e)
+	}
+	code(t, <-done, "40001")
+	if value(t, owner, "SELECT count(*)::text FROM ledger.principal WHERE principal_id=$1", unused) != "0" || value(t, owner, "SELECT count(*)::text FROM ledger.collection_recovery_state WHERE principal_id=$1", unused) != "0" {
+		t.Fatal("unused parent/fence deletion blocked")
+	}
+	_, e = recoveryStatus(t, db, unused)
+	code(t, e, "P2801")
+}

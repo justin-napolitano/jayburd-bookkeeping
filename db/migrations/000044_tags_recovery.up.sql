@@ -265,7 +265,7 @@ DECLARE c banking.collection_label_command;p banking.collection_label_preview;v 
  SELECT * INTO c FROM banking.collection_label_command WHERE workspace_id=w AND command_id=id AND principal_id=actor;IF NOT FOUND THEN PERFORM banking.collection_error('P2801');END IF;SELECT * INTO p FROM banking.collection_label_preview WHERE workspace_id=w AND preview_id=c.preview_id;PERFORM banking.collection_label_reauthorize(actor,w,p);IF p.wire_version=2 THEN PERFORM banking.collection_error('P2804');END IF;RETURN banking.collection_tag_transition_v1_base(actor,w,id,operation,raw);
 EXCEPTION WHEN SQLSTATE 'P2100'OR SQLSTATE 'P2400'THEN PERFORM banking.collection_error('P2800');END $$;
 -- A current-row fence exists before any claim, including for a principal without a collection.
-CREATE TABLE ledger.collection_recovery_state(principal_id uuid PRIMARY KEY REFERENCES ledger.principal,revision bigint NOT NULL DEFAULT 0 CHECK(revision>=0));
+CREATE TABLE ledger.collection_recovery_state(principal_id uuid PRIMARY KEY REFERENCES ledger.principal ON DELETE CASCADE,revision bigint NOT NULL DEFAULT 0 CHECK(revision>=0));
 INSERT INTO ledger.collection_recovery_state(principal_id)SELECT principal_id FROM ledger.principal;
 CREATE FUNCTION banking.collection_recovery_initialize()RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$BEGIN INSERT INTO ledger.collection_recovery_state(principal_id)VALUES(NEW.principal_id);RETURN NEW;END $$;
 CREATE TRIGGER collection_recovery_initialize AFTER INSERT ON ledger.principal FOR EACH ROW EXECUTE FUNCTION banking.collection_recovery_initialize();
@@ -274,7 +274,11 @@ ALTER TABLE ledger.interactive_command_reservation ADD CONSTRAINT interactive_co
 CREATE TABLE ledger.collection_recovery_receipt(principal_id uuid NOT NULL REFERENCES ledger.principal,recovery_id uuid NOT NULL,recorded_at timestamptz NOT NULL DEFAULT clock_timestamp()CHECK(isfinite(recorded_at)),PRIMARY KEY(principal_id,recovery_id));
 CREATE TRIGGER immutable BEFORE UPDATE OR DELETE ON ledger.collection_recovery_receipt FOR EACH ROW EXECUTE FUNCTION ledger.immutable_row();
 CREATE FUNCTION banking.collection_recovery_guard()RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$BEGIN
- IF TG_OP='DELETE'OR NEW.principal_id<>OLD.principal_id OR NEW.revision<>OLD.revision+1 THEN PERFORM banking.collection_error('P2802');END IF;RETURN NEW;
+ IF TG_OP='DELETE'THEN
+  -- This derived fence follows only deletion of its unused parent, never direct removal.
+  IF EXISTS(SELECT FROM ledger.principal WHERE principal_id=OLD.principal_id)THEN PERFORM banking.collection_error('P2802');END IF;RETURN OLD;
+ END IF;
+ IF NEW.principal_id<>OLD.principal_id OR NEW.revision<>OLD.revision+1 THEN PERFORM banking.collection_error('P2802');END IF;RETURN NEW;
 END $$;
 CREATE TRIGGER preserve_recovery_state BEFORE UPDATE OR DELETE ON ledger.collection_recovery_state FOR EACH ROW EXECUTE FUNCTION banking.collection_recovery_guard();
 -- Only a real explicit private acknowledgement can write closure proof; absence is never proof.
