@@ -46,6 +46,19 @@ make check/build PASS after46, focused collectionlabels/categorization unit
 results are recorded at handoff. The dedicated collection-rules runner pins46
 and runs only TestRule46 groups;45 and earlier runners remain separately pinned.
 
+Additional real46 followup evidence: manual/historical group PASS0.82s;
+new v3 manual preview at ruleset1 retains effective applied before-values;
+v2 preview recovery payload remains unchanged. Lost actual commit/revocation
+group PASS0.37s:503 resolves via immutable terminal receipt, revoked replay
+denies, inaccessible clear only acknowledges and preserves accepted decisions.
+Root found v1 prepare/pending could admit/render new wire3 because44 guarded
+only wire2. Forward46 now uses exact44 wrappers with wire_version<>1; down
+restores44 bodies. Actual initial-rule0 legacy fence group PASS0.25s with
+no rejected-call reservation/audit effects, including prepared and committed
+commands. Latest empty46 down/up PASS; updated source privilege inventory
+PASS0.10s against46. Earlier source fixture name collision was removed only
+from this lane's disposable synthetic database before the successful rerun.
+
 ## Remaining work
 
 Finish canonical checks and independent integration review, including

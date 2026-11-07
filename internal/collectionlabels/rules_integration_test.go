@@ -271,3 +271,196 @@ func TestRule46Validation(t *testing.T) {
 		t.Fatal("invalid stored output hid basic row or silently fell through")
 	}
 }
+
+// TestRule46ManualAndHistorical protects independent manual fields and historical preview versions.
+func TestRule46ManualAndHistorical(t *testing.T) {
+	owner, pool, db := rule46Fixture(t)
+	s := &Service{DB: pool, Rules: RuleProcessor{}}
+	w := provision(t, db, actor)
+	_, sources := register(t, db, w, actor, "manual-rules", 1)
+	changes := []map[string]any{}
+	for _, id := range []string{"topic-only", "tags-only", "both", "neither"} {
+		changes = append(changes, change(id, "1.00", "USD"))
+	}
+	if _, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", changes); e != nil {
+		t.Fatal(e)
+	}
+	seedTopics(t, db, w)
+	seedTags(t, db, w)
+	rows := tagrecPage(t, db, w)["items"].([]any)
+	chosen := selection(rows)
+	tagrecApply(t, db, w, "manual-topic", []map[string]any{chosen[0]}, map[string]any{"kind": "topic", "topic_id": rootTopic})
+	tagrecApply(t, db, w, "manual-tags", []map[string]any{chosen[1]}, tagAction("replace", tagB))
+	tagrecApply(t, db, w, "manual-both-topic", []map[string]any{chosen[2]}, map[string]any{"kind": "topic", "topic_id": rootTopic})
+	tagrecApply(t, db, w, "manual-both-tags", []map[string]any{chosen[2]}, tagAction("replace", tagB))
+	before := rule46Hash(t, owner)
+	rule46Catalog(t, s, w, "rule-edition", rule46Rule("00000000-0000-4000-8000-000000006020", "Cafe", "Fictional Cafe", childTopic, tagA))
+	p, e := rule46Preview(t, s, w, chosen, map[string]any{"kind": "rules_apply"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if p["apply_count"] != "3" || p["abstain_count"] != "1" {
+		t.Fatal("manual fields changed eligibility", raw(p["rule_results"]))
+	}
+	preserved := map[string]map[string]bool{}
+	for _, x := range p["rule_results"].([]any) {
+		v := x.(map[string]any)
+		m := v["preserved"].(map[string]any)
+		preserved[v["observation_id"].(string)] = map[string]bool{"topic": m["topic"].(bool), "tags": m["tags"].(bool)}
+	}
+	if !preserved[chosen[0]["observation_id"].(string)]["topic"] || !preserved[chosen[1]["observation_id"].(string)]["tags"] {
+		t.Fatal("manual protection disappeared")
+	}
+	rule46Complete(t, s, w, "apply-fieldwise", p)
+	current := rule46Query(t, s, w)
+	byID := map[string]map[string]any{}
+	for _, x := range current["items"].([]any) {
+		r := x.(map[string]any)
+		byID[r["observation_id"].(string)] = r
+	}
+	if byID[chosen[0]["observation_id"].(string)]["owner_topic"].(map[string]any)["topic_id"] != rootTopic {
+		t.Fatal("manual topic overwritten")
+	}
+	tags := byID[chosen[1]["observation_id"].(string)]["owner_tags"].(map[string]any)["tags"].([]any)
+	if len(tags) != 1 || tags[0].(map[string]any)["tag_id"] != tagB {
+		t.Fatal("manual tags overwritten")
+	}
+	// New v3 manual preview uses the current nonzero rule pins and effective before-values.
+	manual, e := rule46Preview(t, s, w, []map[string]any{chosen[3]}, map[string]any{"kind": "topic", "topic_id": rootTopic})
+	if e != nil {
+		t.Fatal("nonzero v3 manual preview", e)
+	}
+	oldrow := manual["review_rows"].([]any)[0].(map[string]any)
+	if oldrow["owner_topic"].(map[string]any)["topic_id"] != childTopic {
+		t.Fatal("manual review hid applied rule before-value")
+	}
+	rule46Complete(t, s, w, "manual-after-rule", manual)
+	// A newly saved historical v2 preview remains byte-shape identical inside v3 recovery.
+	legacy, e := tagrecPreview(t, db, w, tagrecPage(t, db, w)["snapshot"], []map[string]any{chosen[3]}, tagAction("replace", tagB))
+	if e != nil {
+		t.Fatal(e)
+	}
+	saved, e := tagrecPrepare(t, db, w, "historical-v2", legacy)
+	if e != nil {
+		t.Fatal(e)
+	}
+	id := tagrecCommand(t, saved)["command_id"].(string)
+	b, e := s.Pending(context.Background(), Request{Actor: actor, Workspace: w, Version: 3})
+	pending := rule46Object(t, b, e)
+	if raw(pending["command"].(map[string]any)["preview"]) != raw(legacy) {
+		t.Fatal("historical v2 preview changed in v3 wrapper")
+	}
+	if _, e = rule46Transition(t, s, w, id, "cancel"); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = rule46Transition(t, s, w, id, "acknowledge"); e != nil {
+		t.Fatal(e)
+	}
+	if rule46Hash(t, owner) != before {
+		t.Fatal("manual/rule operations changed source or journals")
+	}
+}
+
+// TestRule46UnknownReplyAndRevocation resolves a real lost commit with immutable same-command replay.
+func TestRule46UnknownReplyAndRevocation(t *testing.T) {
+	owner, pool, db := rule46Fixture(t)
+	s := &Service{DB: pool, Rules: RuleProcessor{}}
+	w := provision(t, db, actor)
+	_, sources := register(t, db, w, actor, "lost-rule", 1)
+	if _, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", []map[string]any{change("cafe", "1.00", "USD")}); e != nil {
+		t.Fatal(e)
+	}
+	seedTopics(t, db, w)
+	seedTags(t, db, w)
+	rule46Catalog(t, s, w, "lost-catalog", rule46Rule("00000000-0000-4000-8000-000000006030", "Cafe", "Fictional Cafe", childTopic))
+	p, e := rule46Preview(t, s, w, selection(rule46Query(t, s, w)["items"].([]any)), map[string]any{"kind": "rules_apply"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	c, e := rule46Prepare(t, s, w, "lost-prepare", p)
+	if e != nil {
+		t.Fatal(e)
+	}
+	id := c["command"].(map[string]any)["command_id"].(string)
+	lost := &lostRecoveryCommit{pool: pool}
+	lost.lose.Store(true)
+	faulty := &Service{DB: lost, Rules: RuleProcessor{}}
+	_, e = rule46Transition(t, faulty, w, id, "execute")
+	rule46Failure(t, e, 503, "temporarily_unavailable")
+	if value(t, owner, "SELECT count(*)::text FROM banking.collection_rule_decision") != "1" {
+		t.Fatal("lost actual commit did not persist exactly one decision")
+	}
+	b, e := s.Pending(context.Background(), Request{Actor: actor, Workspace: w, Version: 3})
+	recovered := rule46Object(t, b, e)
+	if recovered["command"].(map[string]any)["state"] != "committed" {
+		t.Fatal("lost reply not recovered")
+	}
+	replay, e := rule46Transition(t, s, w, id, "execute")
+	if e != nil {
+		t.Fatal(e)
+	}
+	if raw(replay["command"]) != raw(recovered["command"]) {
+		t.Fatal("terminal receipt changed")
+	}
+	_, e = call(t, db, "synthetic_operator", "serializable", "SELECT banking.provision_collection_owner($1,'rule-revoke',$2)", actor, raw(map[string]any{"expected_revision": "1", "capabilities": []string{}, "evidence_ref": evidence}))
+	if e != nil {
+		t.Fatal(e)
+	}
+	_, e = rule46Transition(t, s, w, id, "execute")
+	rule46Failure(t, e, 404, "collection_denied")
+	status, e := recoveryStatus(t, db, actor)
+	if e != nil || status["state"] != "inaccessible" {
+		t.Fatal("inaccessible rule recovery", e)
+	}
+	if _, e = recoveryClear(t, db, actor, status["recovery_id"]); e != nil {
+		t.Fatal(e)
+	}
+	if value(t, owner, "SELECT count(*)::text FROM banking.collection_rule_decision") != "1" {
+		t.Fatal("clear changed accepted effects")
+	}
+	if value(t, owner, "SELECT count(*)::text FROM banking.collection_label_command WHERE state='committed' AND acknowledged_at IS NOT NULL") != "4" { // topic catalog, tag catalog, rule catalog, rule apply
+		t.Fatal("clear failed to preserve terminal history")
+	}
+}
+
+// TestRule46LegacyVersionFences rejects v3 work before legacy code can reserve or render it.
+func TestRule46LegacyVersionFences(t *testing.T) {
+	owner, pool, db := rule46Fixture(t)
+	s := &Service{DB: pool, Rules: RuleProcessor{}}
+	w := provision(t, db, actor)
+	seedTopics(t, db, w)
+	p, e := rule46Preview(t, s, w, []map[string]any{}, map[string]any{"kind": "rule_catalog", "rules": []map[string]any{rule46Rule("00000000-0000-4000-8000-000000006040", "Cafe", "Fictional Cafe", childTopic)}})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if p["snapshot"].(map[string]any)["ruleset_revision"] != "0" {
+		t.Fatal("fixture did not target initial-zero legacy guard")
+	}
+	audit := value(t, owner, "SELECT count(*)::text FROM audit.collection_label_action")
+	_, e = prepare(t, db, w, "legacy-must-deny", p)
+	code(t, e, "P2804")
+	if value(t, owner, "SELECT count(*)::text FROM banking.collection_label_command") != "1" || value(t, owner, "SELECT count(*)::text FROM ledger.interactive_command_reservation") != "0" || value(t, owner, "SELECT count(*)::text FROM audit.collection_label_action") != audit {
+		t.Fatal("rejected legacy prepare changed command/reservation/audit")
+	}
+	c, e := rule46Prepare(t, s, w, "correct-v3", p)
+	if e != nil {
+		t.Fatal(e)
+	}
+	id := c["command"].(map[string]any)["command_id"].(string)
+	for _, phase := range []string{"prepared", "committed"} {
+		if phase == "committed" {
+			if _, e = rule46Transition(t, s, w, id, "execute"); e != nil {
+				t.Fatal(e)
+			}
+		}
+		before := value(t, owner, "SELECT count(*)::text FROM audit.collection_label_action")
+		_, e = call(t, db, "synthetic_runtime", "repeatable read", "SELECT banking.pending_collection_label_command($1,$2)", actor, w)
+		code(t, e, "P2804")
+		if value(t, owner, "SELECT count(*)::text FROM audit.collection_label_action") != before || value(t, owner, "SELECT count(*)::text FROM ledger.interactive_command_reservation") != "1" {
+			t.Fatal("rejected legacy pending changed durable state")
+		}
+	}
+	if _, e = rule46Transition(t, s, w, id, "acknowledge"); e != nil {
+		t.Fatal(e)
+	}
+}

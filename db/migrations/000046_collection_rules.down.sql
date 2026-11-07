@@ -32,6 +32,20 @@ CREATE OR REPLACE FUNCTION banking.collection_query_snapshot(w uuid)RETURNS json
 CREATE OR REPLACE FUNCTION banking.collection_query_pins(v jsonb,current_value jsonb)RETURNS void LANGUAGE sql SET search_path=pg_catalog,pg_temp AS $$SELECT banking.collection_tag_pins(v,current_value)$$;
 DROP FUNCTION banking.collection_label_snapshot(uuid);
 ALTER FUNCTION banking.collection_rule_legacy_snapshot_base(uuid)RENAME TO collection_label_snapshot;
+CREATE OR REPLACE FUNCTION banking.prepare_collection_label_command(actor uuid,w uuid,raw text)RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE v jsonb;p banking.collection_label_preview;BEGIN
+ PERFORM banking.collection_label_authorize(actor,w,true);v:=banking.import_json(raw,4096);PERFORM banking.collection_keys(v,ARRAY['preview_id','prepare_key']);
+ SELECT * INTO p FROM banking.collection_label_preview WHERE workspace_id=w AND preview_id=ledger.uuid_value(v->'preview_id')AND principal_id=actor;IF NOT FOUND THEN PERFORM banking.collection_error('P2801');END IF;PERFORM banking.collection_label_reauthorize(actor,w,p);IF p.wire_version=2 THEN PERFORM banking.collection_error('P2804');END IF;RETURN banking.collection_tag_prepare_v1_base(actor,w,raw);
+EXCEPTION WHEN SQLSTATE 'P2100'OR SQLSTATE 'P2400'THEN PERFORM banking.collection_error('P2800');END $$;
+CREATE OR REPLACE FUNCTION banking.pending_collection_label_command(actor uuid,w uuid)RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE c banking.collection_label_command;p banking.collection_label_preview;BEGIN
+ PERFORM banking.collection_label_authorize(actor,w,false);SELECT * INTO c FROM banking.collection_label_command WHERE workspace_id=w AND principal_id=actor AND acknowledged_at IS NULL;
+ IF FOUND THEN
+  IF NOT EXISTS(SELECT FROM banking.collection_workspace WHERE workspace_id=w AND 'classify'=ANY(capabilities))THEN PERFORM banking.collection_error('P2801');END IF;
+  SELECT * INTO p FROM banking.collection_label_preview WHERE workspace_id=w AND preview_id=c.preview_id;PERFORM banking.collection_label_reauthorize(actor,w,p);IF p.wire_version=2 THEN PERFORM banking.collection_error('P2804');END IF;
+ END IF;RETURN banking.collection_tag_pending_v1_base(actor,w);
+END $$;
+
 CREATE OR REPLACE FUNCTION banking.transition_collection_label_command(actor uuid,w uuid,id uuid,operation text,raw text)RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$DECLARE c banking.collection_label_command;p banking.collection_label_preview;v jsonb;BEGIN
  PERFORM banking.collection_label_authorize(actor,w,true);v:=banking.import_json(raw,1024);PERFORM banking.collection_keys(v,ARRAY[]::text[]);
  SELECT * INTO c FROM banking.collection_label_command WHERE workspace_id=w AND command_id=id AND principal_id=actor;IF NOT FOUND THEN PERFORM banking.collection_error('P2801');END IF;
