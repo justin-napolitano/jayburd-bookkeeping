@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
 )
 
 // v3Reader exercises the public port without pretending synthetic authentication proves SQL authority.
@@ -16,6 +17,33 @@ type v3Reader struct{ fakeOperations }
 
 func (p *v3Reader) Detail(_ context.Context, r Request) (json.RawMessage, error) {
 	return p.call(r, "detail")
+}
+
+type rejectedRuleHook struct{ err error }
+
+func (h rejectedRuleHook) Process(context.Context, pgx.Tx, Request, string) (json.RawMessage, bool, error) {
+	return nil, false, h.err
+}
+
+// A definite regex/budget rejection stays editable; unapproved hook errors remain unavailable.
+func TestRuleHookFixedValidationFailures(t *testing.T) {
+	for _, tc := range []struct {
+		err    error
+		status int
+		code   string
+	}{
+		{&ledger.Failure{Status: 400, Code: "invalid_collection"}, 400, "invalid_collection"},
+		{&ledger.Failure{Status: 422, Code: "collection_limit"}, 422, "collection_limit"},
+		{&ledger.Failure{Status: 403, Code: "private diagnostic"}, 503, "temporarily_unavailable"},
+		{&ledger.Failure{Status: 500, Code: "invalid_collection"}, 503, "temporarily_unavailable"},
+	} {
+		db := &fakeDB{}
+		_, err := (&Service{DB: db, Rules: rejectedRuleHook{err: tc.err}}).Preview(context.Background(), Request{Version: 3, Actor: "verified", Workspace: workspace, Body: `{}`})
+		var f *ledger.Failure
+		if !errors.As(err, &f) || f.Status != tc.status || f.Code != tc.code || db.commits != 0 || db.query != "" {
+			t.Fatal("hook error escaped the fixed validation boundary")
+		}
+	}
 }
 
 func TestV3ReadTransport(t *testing.T) {

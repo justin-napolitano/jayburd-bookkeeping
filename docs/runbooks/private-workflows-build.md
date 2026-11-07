@@ -23,6 +23,7 @@ financial data, cloud/provider/consent/IAM/resource or worker operation is impli
 | Browser composition | Actual private browser fixture now forwards reviewed v3 requests through the same Next bridge; v1/v2 saved recovery paths retained. Complete real browser/API/SQL run remains required |
 | Rule client protocol | Shared API.query/Next bridge admit exact reviewed v3 preview/command routes with original finite caps/no automatic retry.134 shared bridge/API tests PASS. Rules46 SQL/Go/UI integration remains in progress; bridge membership alone is not rule execution acceptance |
 | Rule server protocol | Fixed v3 command SQL mappings/profiles preserve raw historical nested previews. A missing Go rule hook rejects v3 previews before SQL, preventing an unvalidated catalog fallback. Protocol/closed schema and generated API types prepared; concrete RuleProcessor/46 composition remains required |
+| Definite rule rejection | Actual rule integration found safeFailure collapsed known Go validation errors to503. Strictly preserve only400 invalid_collection/422 collection_limit, cloning fixed fields; all unapproved hook errors remain503. Focused rollback/no-fallback tests PASS |
 
 ## Current evidence
 

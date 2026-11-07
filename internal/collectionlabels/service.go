@@ -402,6 +402,13 @@ func unavailable() *ledger.Failure {
 
 // safeFailure translates only the fixed SQLSTATE vocabulary; unknown errors fail closed.
 func safeFailure(err error) *ledger.Failure {
+	// Only these definite Go validation failures may cross the hook boundary;
+	// copy fixed fields so an internal error cannot choose arbitrary HTTP output.
+	var f *ledger.Failure
+	if errors.As(err, &f) && f != nil &&
+		((f.Status == 400 && f.Code == "invalid_collection") || (f.Status == 422 && f.Code == "collection_limit")) {
+		return &ledger.Failure{Status: f.Status, Code: f.Code}
+	}
 	var pg *pgconn.PgError
 	if errors.As(err, &pg) {
 		switch pg.Code {
