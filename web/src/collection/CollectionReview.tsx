@@ -2,6 +2,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type FormEvent,
@@ -83,6 +84,7 @@ function Review({
   refreshVersion = 0,
   onDenied,
 }: CollectionReviewProps) {
+  const topicChoiceLabel = useId();
   const [draft, setDraft] = useState<Selector>(initial),
     [selector, setSelector] = useState<Selector>(initial);
   const [query, setQuery] = useState<Query>({
@@ -897,8 +899,9 @@ function Review({
           </p>
           <div className={styles.actions}>
             <label>
-              Label selected transactions
+              <span id={topicChoiceLabel}>Label selected transactions</span>
               <select
+                aria-labelledby={topicChoiceLabel}
                 value={choice}
                 disabled={
                   blocked || !!preview || !selected.length || !canClassify
