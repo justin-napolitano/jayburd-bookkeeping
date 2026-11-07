@@ -163,3 +163,9 @@ precreated state row. This detects primed snapshot misses of pending commands,
 while excluding that revision from the source digest so preparing a preview does
 not invalidate its own execute pins. All14 named SQL proof groups and exact
 observations are recorded in the marked runbook; remaining HTTP/UI proof is root-owned.
+
+Read-only pending discovery: after current read authorization, command:null may be
+returned only if no current unacknowledged command exists. A present saved command
+still requires current classify capability and source/book reauthorization before
+any payload disclosure. This preserves idle read-only browsing while keeping
+inaccessible saved intent closed; no implicit clearing or auto-acknowledgement.
