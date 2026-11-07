@@ -17,6 +17,7 @@ financial record, product SQL or application matcher change.
 | Fixture | bootstrapRuleBrowser uses existing provision/register/publish and v2 manual command helpers. Three source facts preserve exact USD0.20/0.10/9007199254740993.01. Two acknowledged bootstrap commands install Food/Travel topics and manual Travel choice. No46 bootstrap call or modification to actor1's original four facts/commands. |
 | Browser source | Real Bookkeeping composition and synthetic.rules.proof token. Browser authors three rules via controls; both catalog and selected preview/save are inert. Exact selected application loses one actual successful execute reply, remounts/restores immutable committed preview, explicitly acknowledges and checks manual topic retained, conflict abstained, original evidence unchanged and browser storage empty. Only delivery is fault-injected. |
 | Source checks | Integration-tagged Go package compile PASS; make check/build PASS with installed Go1.26.5/external temporary modfile/cache. New TypeScript files formatted with existing pinned formatter. Actual46 browser execution remains pending root composition and canonical runner. |
+| Delivery barrier | The lost-reply counter advances only after route.abort completes, so remount waits for the real committed response and completed delivery fault rather than racing an outstanding route handler. |
 
 ## Current evidence
 

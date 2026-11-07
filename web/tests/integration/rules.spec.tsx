@@ -249,8 +249,8 @@ test("private rules preserve manual fields, abstain on conflicts and recover an 
       expect(receipt.command.preview.apply_count).toBe("2");
       expect(receipt.command.preview.abstain_count).toBe("1");
       committedPreview = JSON.stringify(receipt.command.preview);
-      executions++;
       await route.abort("failed");
+      executions++;
     },
   );
   await page
