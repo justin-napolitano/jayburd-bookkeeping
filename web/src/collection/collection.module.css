@@ -20,6 +20,23 @@
   color: var(--muted, #555b63);
   max-width: 78ch;
 }
+.taxonomy {
+  border-top: 1px solid var(--line, #dce0e3);
+  margin-top: 0.75rem;
+}
+.taxonomy > summary {
+  min-height: 44px;
+}
+.topicEdit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 0.5rem 1rem;
+  border-bottom: 1px solid var(--line, #dce0e3);
+}
+.topicEdit input,
+.topicEdit select {
+  width: 100%;
+}
 .filters {
   border-block: 1px solid var(--line, #dce0e3);
   margin-block: 0.6rem;
