@@ -52,6 +52,8 @@ jobs:
         run: make source-registry-test
       - name: Synthetic staging through durable import service proof
         run: make import-service-test
+      - name: Private source authority, replay and restricted HTTP proof
+        run: make private-registry-test
       - name: Fenced synthetic provider publication proof
         run: make sync-state-test
       - name: Scoped synthetic connection lifecycle proof

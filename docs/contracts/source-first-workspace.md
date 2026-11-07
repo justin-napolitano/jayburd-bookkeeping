@@ -1,6 +1,8 @@
-# Source-first workspace contract proposal
+# Source-first workspace contract
 
-Status: proposed under #238, 2026-10-21. [ADR 0006](../decisions/0006-source-first-workspace.md)
+Design accepted2026-11-06; canonical owner decision and operation/fixed-case
+acceptance are in [GitHub238](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/238).
+[ADR 0006](../decisions/0006-source-first-workspace.md)
 owns the decision and evidence. This document defines authority and acceptance
 for later scoped SQL/API contracts; it is not an implemented endpoint, migration,
 permission grant or posting policy.

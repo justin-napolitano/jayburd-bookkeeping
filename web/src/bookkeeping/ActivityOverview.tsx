@@ -151,7 +151,8 @@ function Overview({
     sourceEpoch = useRef(0),
     deniedRef = useRef(denied),
     detailHeading = useRef<HTMLHeadingElement>(null),
-    summaryHeading = useRef<HTMLHeadingElement>(null);
+    summaryHeading = useRef<HTMLHeadingElement>(null),
+    summaryFocusEpoch = useRef<number | null>(null);
   deniedRef.current = denied;
   const choiceRef = useRef(onSourceChoice);
   choiceRef.current = onSourceChoice;
@@ -305,15 +306,19 @@ function Overview({
         throw Error("invalid context");
       setDetail({ query: q, page: p, title });
       setBack(parent);
-      requestAnimationFrame(() => {
-        if (n === epoch.current) detailHeading.current?.focus();
-      });
     } catch (failure) {
       if (n === epoch.current) failed(failure);
     } finally {
       if (n === epoch.current) setBusy(false);
     }
   };
+  // Focus only after React commits the current heading, not a frame that can beat its ref.
+  useEffect(() => {
+    const restoreEpoch = summaryFocusEpoch.current;
+    summaryFocusEpoch.current = null;
+    if (detail) detailHeading.current?.focus();
+    else if (restoreEpoch === epoch.current) summaryHeading.current?.focus();
+  }, [detail]);
   const open = (
     unit: Unit,
     kind: "observations" | "merchants",
@@ -596,9 +601,9 @@ function Overview({
               onClick={() => {
                 if (back) void readDetail(back.query, back.title);
                 else {
+                  summaryFocusEpoch.current = epoch.current;
                   setDetail(null);
                   setBack(null);
-                  requestAnimationFrame(() => summaryHeading.current?.focus());
                 }
               }}
             >
