@@ -9,6 +9,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/clouddb"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionactivation"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/identity"
@@ -139,6 +140,16 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 		d.Collection = &collectionread.Service{DB: pool}
 		d.Labels = &collectionlabels.Service{DB: pool}
 	}
+	if c.CollectionActivationPlanFile != "" {
+		plan, err := collectionactivation.Load(c.CollectionActivationPlanFile, time.Now())
+		if err != nil {
+			return fail()
+		}
+		d.Activation, err = collectionactivation.NewService(pool, plan)
+		if err != nil {
+			return fail()
+		}
+	}
 	return d, nil
 }
 
@@ -168,6 +179,9 @@ func collectionReady(ctx context.Context, pool *pgxpool.Pool) error {
  'banking.transition_collection_label_command_v2(uuid,uuid,uuid,text,text)',
  'banking.collection_recovery_status(uuid)',
  'banking.clear_collection_recovery(uuid,text)'
+	 ,'banking.get_collection_taxonomy_v3(uuid,uuid)'
+	 ,'banking.query_collection_review_v3(uuid,uuid,text)'
+	 ,'banking.get_collection_detail(uuid,uuid,text)'
 	 ]) AS f(signature) WHERE to_regprocedure(f.signature) IS NULL
 	 OR NOT has_function_privilege(current_user,to_regprocedure(f.signature),'EXECUTE'))
 	 AND NOT has_function_privilege(current_user,'banking.provision_collection_owner(uuid,text,text)','EXECUTE')`).Scan(&safe)

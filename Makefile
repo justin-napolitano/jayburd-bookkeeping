@@ -127,6 +127,12 @@ labels-integration:
 tags-recovery-test:
 	bash scripts/test-tags-recovery.sh
 
+.PHONY: collection-query-test private-activation-test
+collection-query-test:
+	bash scripts/test-collection-query.sh
+private-activation-test:
+	bash scripts/test-private-activation.sh
+
 .PHONY: import-service-test
 import-service-test:
 	bash scripts/test-import-service.sh

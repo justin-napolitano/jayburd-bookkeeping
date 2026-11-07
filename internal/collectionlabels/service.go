@@ -30,6 +30,19 @@ type Operations interface {
 	Transition(context.Context, Request, string) (json.RawMessage, error)
 }
 
+// DetailOperations reads one exact source revision and independently authorized journal anchors.
+type DetailOperations interface {
+	Detail(context.Context, Request) (json.RawMessage, error)
+}
+
+// Detail uses the v3 bounded reader without changing historical command versions.
+func (s *Service) Detail(ctx context.Context, r Request) (json.RawMessage, error) {
+	if r.Version != 3 {
+		return nil, &ledger.Failure{Status: 400, Code: "invalid_collection"}
+	}
+	return s.run(ctx, r, "detail")
+}
+
 // RecoveryOperations exposes payload-free owner recovery independently of workspace grants.
 type RecoveryOperations interface {
 	Recovery(context.Context, Request) (json.RawMessage, error)
@@ -47,7 +60,16 @@ func (s *Service) ClearRecovery(ctx context.Context, r Request) (json.RawMessage
 }
 
 // Service uses a caller-composed restricted pool; SQL owns every business invariant.
-type Service struct{ DB ledger.Beginner }
+type Service struct {
+	DB    ledger.Beginner
+	Rules RuleHook
+}
+
+// RuleHook evaluates only authoritative SQL inputs inside this operation's transaction.
+// Its output still passes the fixed result fence and acknowledged-commit boundary.
+type RuleHook interface {
+	Process(context.Context, pgx.Tx, Request, string) (json.RawMessage, bool, error)
+}
 
 // Catalog reads the complete bounded authorized catalog and source aliases.
 func (s *Service) Catalog(ctx context.Context, r Request) (json.RawMessage, error) {
@@ -117,7 +139,7 @@ func (s *Service) run(parent context.Context, r Request, operation string) (json
 // attempt acknowledges COMMIT before returning a private result and cleans up on every exit.
 func (s *Service) attempt(ctx context.Context, r Request, operation string) (json.RawMessage, error, bool) {
 	isolation := pgx.Serializable
-	if operation == "catalog" || operation == "query" || operation == "pending" {
+	if operation == "catalog" || operation == "query" || operation == "pending" || operation == "detail" {
 		isolation = pgx.RepeatableRead
 	}
 	tx, err := s.DB.BeginTx(ctx, pgx.TxOptions{IsoLevel: isolation})
@@ -138,25 +160,36 @@ func (s *Service) attempt(ctx context.Context, r Request, operation string) (jso
 		return nil, err, false
 	}
 	var body json.RawMessage
-	switch operation {
-	case "catalog":
-		err = tx.QueryRow(ctx, labelStatement("get_collection_taxonomy", r.Version), r.Actor, r.Workspace).Scan(&body)
-	case "query":
-		err = tx.QueryRow(ctx, labelStatement("query_collection_review", r.Version), r.Actor, r.Workspace, r.Body).Scan(&body)
-	case "preview":
-		err = tx.QueryRow(ctx, labelStatement("preview_collection_labels", r.Version), r.Actor, r.Workspace, r.Body).Scan(&body)
-	case "prepare":
-		err = tx.QueryRow(ctx, labelStatement("prepare_collection_label_command", r.Version), r.Actor, r.Workspace, r.Body).Scan(&body)
-	case "pending":
-		err = tx.QueryRow(ctx, labelStatement("pending_collection_label_command", r.Version), r.Actor, r.Workspace).Scan(&body)
-	case "execute", "cancel", "acknowledge":
-		err = tx.QueryRow(ctx, labelStatement("transition_collection_label_command", r.Version), r.Actor, r.Workspace, r.Command, operation, r.Body).Scan(&body)
-	case "recovery":
-		err = tx.QueryRow(ctx, "select banking.collection_recovery_status($1::uuid)", r.Actor).Scan(&body)
-	case "clear_recovery":
-		err = tx.QueryRow(ctx, "select banking.clear_collection_recovery($1::uuid,$2::text)", r.Actor, r.Body).Scan(&body)
-	default:
-		return nil, unavailable(), false
+	handled := false
+	if r.Version == 3 && s.Rules != nil && (operation == "query" || operation == "preview" || operation == "detail") {
+		body, handled, err = s.Rules.Process(ctx, tx, r, operation)
+		if err != nil {
+			return nil, err, false
+		}
+	}
+	if !handled {
+		switch operation {
+		case "catalog":
+			err = tx.QueryRow(ctx, labelStatement("get_collection_taxonomy", r.Version), r.Actor, r.Workspace).Scan(&body)
+		case "query":
+			err = tx.QueryRow(ctx, labelStatement("query_collection_review", r.Version), r.Actor, r.Workspace, r.Body).Scan(&body)
+		case "detail":
+			err = tx.QueryRow(ctx, "select banking.get_collection_detail($1::uuid,$2::uuid,$3::text)", r.Actor, r.Workspace, r.Body).Scan(&body)
+		case "preview":
+			err = tx.QueryRow(ctx, labelStatement("preview_collection_labels", r.Version), r.Actor, r.Workspace, r.Body).Scan(&body)
+		case "prepare":
+			err = tx.QueryRow(ctx, labelStatement("prepare_collection_label_command", r.Version), r.Actor, r.Workspace, r.Body).Scan(&body)
+		case "pending":
+			err = tx.QueryRow(ctx, labelStatement("pending_collection_label_command", r.Version), r.Actor, r.Workspace).Scan(&body)
+		case "execute", "cancel", "acknowledge":
+			err = tx.QueryRow(ctx, labelStatement("transition_collection_label_command", r.Version), r.Actor, r.Workspace, r.Command, operation, r.Body).Scan(&body)
+		case "recovery":
+			err = tx.QueryRow(ctx, "select banking.collection_recovery_status($1::uuid)", r.Actor).Scan(&body)
+		case "clear_recovery":
+			err = tx.QueryRow(ctx, "select banking.clear_collection_recovery($1::uuid,$2::text)", r.Actor, r.Body).Scan(&body)
+		default:
+			return nil, unavailable(), false
+		}
 	}
 	if err != nil {
 		return nil, err, false
@@ -179,11 +212,17 @@ func (s *Service) attempt(ctx context.Context, r Request, operation string) (jso
 func labelStatement(name string, version int) string {
 	switch name {
 	case "get_collection_taxonomy":
+		if version == 3 {
+			return "select banking.get_collection_taxonomy_v3($1::uuid,$2::uuid)"
+		}
 		if version == 2 {
 			return "select banking.get_collection_taxonomy_v2($1::uuid,$2::uuid)"
 		}
 		return "select banking.get_collection_taxonomy($1::uuid,$2::uuid)"
 	case "query_collection_review":
+		if version == 3 {
+			return "select banking.query_collection_review_v3($1::uuid,$2::uuid,$3::text)"
+		}
 		if version == 2 {
 			return "select banking.query_collection_review_v2($1::uuid,$2::uuid,$3::text)"
 		}
@@ -214,6 +253,9 @@ func labelStatement(name string, version int) string {
 
 // validRequestResult keeps versioned payloads and opaque recovery receipts within their exact boundary.
 func validRequestResult(body json.RawMessage, operation string, r Request) bool {
+	if r.Version == 3 {
+		return validV3ReadResult(body, operation, r)
+	}
 	if operation == "recovery" || operation == "clear_recovery" {
 		if len(body) > 4096 || !json.Valid(body) {
 			return false
@@ -260,6 +302,41 @@ func validRequestResult(body json.RawMessage, operation string, r Request) bool 
 	v["profile"], _ = json.Marshal(strings.TrimSuffix(profile, "-v2") + "-v1")
 	normalized, err := json.Marshal(v)
 	return err == nil && validResult(normalized, operation, r.Workspace)
+}
+
+// validV3ReadResult fences the new reader without relabeling immutable v1/v2 commands.
+func validV3ReadResult(body json.RawMessage, operation string, r Request) bool {
+	if len(body) > 1<<20 || !json.Valid(body) {
+		return false
+	}
+	var envelope struct {
+		Profile   string `json:"profile"`
+		Workspace string `json:"workspace_id"`
+		Row       struct {
+			Source      string `json:"source_id"`
+			Observation string `json:"observation_id"`
+			Revision    string `json:"observation_revision"`
+		} `json:"row"`
+	}
+	if json.Unmarshal(body, &envelope) != nil || envelope.Workspace != r.Workspace {
+		return false
+	}
+	switch operation {
+	case "catalog":
+		return envelope.Profile == "private-collection-catalog-v3"
+	case "query":
+		return envelope.Profile == "private-collection-review-v3"
+	case "detail":
+		var request struct {
+			Source      string `json:"source_id"`
+			Observation string `json:"observation_id"`
+			Revision    string `json:"observation_revision"`
+		}
+		return envelope.Profile == "private-collection-detail-v1" && json.Unmarshal([]byte(r.Body), &request) == nil &&
+			validID(request.Source) && validID(request.Observation) && request.Revision != "" &&
+			envelope.Row.Source == request.Source && envelope.Row.Observation == request.Observation && envelope.Row.Revision == request.Revision
+	}
+	return false
 }
 
 // validResult fences profile, workspace, command-nullability and budget, leaving business fields to SQL.

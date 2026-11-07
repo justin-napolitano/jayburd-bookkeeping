@@ -21,13 +21,17 @@ const collectionQuery = new RegExp(`^${collectionPath}/review/query$`);
 const collectionPreview = new RegExp(`^${collectionPath}/labels/preview$`);
 const collectionPrepare = new RegExp(`^${collectionPath}/label-commands$`);
 const collectionTransition = new RegExp(`^${collectionPath}/label-commands/${uuid}/(?:execute|cancel|acknowledge)$`);
+// v3 initially exposes only the reviewed reader; old command recovery stays explicit.
+const collectionV3Read = new RegExp(`^/v3/collections/${uuid}/taxonomy$`);
+const collectionV3Query = new RegExp(`^/v3/collections/${uuid}/review/(?:query|detail)$`);
+const collectionActivation = '/v1/collection-activation/adopt';
 /** Exact private route membership prevents unrelated POSTs inheriting body-key semantics. */
 function collectionRoute(path: string): boolean {
-  return path === '/v1/collection' || path === '/v1/collection-recovery' || path === '/v1/collection-recovery/clear' || collectionRead.test(path) || collectionQuery.test(path) || collectionPreview.test(path) || collectionPrepare.test(path) || collectionTransition.test(path);
+  return path === '/v1/collection' || path === '/v1/collection-recovery' || path === '/v1/collection-recovery/clear' || path === collectionActivation || collectionV3Read.test(path) || collectionV3Query.test(path) || collectionRead.test(path) || collectionQuery.test(path) || collectionPreview.test(path) || collectionPrepare.test(path) || collectionTransition.test(path);
 }
 /** Taxonomy editions have a larger bounded preview than a selection/query/transition. */
 function collectionBodyLimit(path: string): number {
-  return collectionPreview.test(path) ? 524288 : collectionQuery.test(path) ? 8192 : collectionPrepare.test(path) ? 4096 : 1024;
+  return collectionPreview.test(path) ? 524288 : collectionQuery.test(path) || collectionV3Query.test(path) ? 8192 : collectionPrepare.test(path) ? 4096 : 1024;
 }
 const connectionAction = new RegExp(`^${bookPath}/connection-attempts/${uuid}/(?:execute|complete|reconcile|abandon)$`);
 const reportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)$`, 'i');
@@ -56,7 +60,7 @@ function allowed(url: URL, method: string): boolean {
   if (url.pathname.length + url.search.length > 4096) return false;
   if (collectionRoute(url.pathname)) {
     if (url.href.includes('?') || url.hash) return false;
-    return method === 'GET' ? url.pathname === '/v1/collection' || url.pathname === '/v1/collection-recovery' || collectionRead.test(url.pathname) : method === 'POST' && (url.pathname === '/v1/collection-recovery/clear' || collectionQuery.test(url.pathname) || collectionPreview.test(url.pathname) || collectionPrepare.test(url.pathname) || collectionTransition.test(url.pathname));
+    return method === 'GET' ? url.pathname === '/v1/collection' || url.pathname === '/v1/collection-recovery' || collectionRead.test(url.pathname) || collectionV3Read.test(url.pathname) : method === 'POST' && (url.pathname === '/v1/collection-recovery/clear' || url.pathname === collectionActivation || collectionV3Query.test(url.pathname) || collectionQuery.test(url.pathname) || collectionPreview.test(url.pathname) || collectionPrepare.test(url.pathname) || collectionTransition.test(url.pathname));
   }
   // Discovery permits only bounded, duplicate-free keyset parameters.
   if (method === 'GET' && new RegExp(`^${bookPath}/connection-attempts$`).test(url.pathname)) {

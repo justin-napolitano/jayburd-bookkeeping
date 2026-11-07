@@ -19,10 +19,15 @@ var errConfiguration = errors.New("invalid server configuration")
 type Config struct {
 	Mode, Listen, Origin, Project, DatabaseURL, DatabaseMode, CloudSQLInstance, ProviderEnvironment string
 	CollectionEnabled                                                                               bool
+	CollectionActivationPlanFile                                                                    string
 }
 
 // Validate rejects ambiguous listener and origin configuration before dependencies start.
 func (c Config) Validate() error {
+	// A finite approval file restricts an existing verified actor; it grants no identity.
+	if c.CollectionActivationPlanFile != "" && (!c.CollectionEnabled || c.Mode != "managed" || c.Project != "jayburd-bookkeeping-dev" || c.ProviderEnvironment == "production") {
+		return errConfiguration
+	}
 	if c.CollectionEnabled && c.Mode != "managed" {
 		return errConfiguration
 	}
