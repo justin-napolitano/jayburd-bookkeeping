@@ -3,6 +3,10 @@
 
 ## Status and boundary
 
+Historical isolated slice, merged447. Current persistence/client/application
+stages are [collection labels](collection-label-build.md) and
+[connected UI](collection-live-labels.md); GitHub449 owns integration state.
+
 UI305-COLLECTION, feat/305-collection-review from2315cc4. Root-reviewed typed
 synthetic port, isolated component only. No default application route/navigation,
 HTTP/API, SQL, live/private/provider/cloud/credential or browser persistence.
