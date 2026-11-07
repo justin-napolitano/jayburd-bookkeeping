@@ -8,8 +8,9 @@ COPY web/next.config.ts web/next-env.d.ts web/tsconfig.json ./
 COPY web/src ./src
 RUN npm run build
 FROM node:24.18.0-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS runtime
-# Patch runtime OpenSSL; package installation tools are build-only and must not ship.
+# Patch runtime libraries on the pinned base; installation tools must not ship.
 RUN apk add --no-cache 'libcrypto3>=3.5.8-r0' 'libssl3>=3.5.8-r0' \
+    'musl>=1.2.6-r3' 'musl-utils>=1.2.6-r3' 'zlib>=1.3.2-r1' \
     && rm -rf /usr/local/lib/node_modules/npm /opt/yarn-* \
     && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app

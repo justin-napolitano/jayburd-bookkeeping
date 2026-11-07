@@ -327,8 +327,8 @@ does not declare them complete.
 
 Runtime rollout, job ordering, IAM ingress and revocation permission references are annotated as G19–G23 in the [GCP source register](gcp-sources.md).
 
-G28 in the [GCP source register](gcp-sources.md#g28--node-runtime-image-contents--2026-10-12)
-reviews Node maintainers' guidance on excluding build package managers from runtime.
+[G28](gcp-sources.md#g28--node-runtime-image-contents--2026-10-12): runtime tools.
+[IS01–02](image-security-sources.md): Go reviewed; Alpine access limited; scan gate, 2026-11-07.
 
 G29 in the [GCP source register](gcp-sources.md#g29--execution-field-serialization--2026-10-12)
 records Cloud Run timeout encoding and CLI array projections, checked against the
