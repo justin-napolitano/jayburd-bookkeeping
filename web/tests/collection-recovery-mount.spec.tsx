@@ -93,8 +93,12 @@ for (const restored of ["same", "other"] as const) {
           ruleset_revision: "0",
           map_revision: "0",
           tag_revision: "1",
-          books:[],currencies:[],institution:{state:"unavailable"},legal_owner:{state:"unknown"},
+          books: [],
+          currencies: [],
+          institution: { state: "unavailable" },
+          legal_owner: { state: "unknown" },
           topics: [],
+          rules: [],
           tags: [],
           sources: [],
         });
@@ -111,7 +115,7 @@ for (const restored of ["same", "other"] as const) {
           partial: false,
         });
       const wrap = () => ({
-        profile: "private-collection-command-v2",
+        profile: "private-collection-command-v3",
         workspace_id: workspace,
         command: pending,
       });

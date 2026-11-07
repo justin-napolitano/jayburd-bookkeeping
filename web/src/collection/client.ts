@@ -1,3 +1,4 @@
+import { validRuleCatalog } from "./rules";
 import { APIError, type API } from "../bookkeeping/api";
 import {
   CollectionFailure,
@@ -74,6 +75,7 @@ export async function discoverCollection(
     !revision(catalog.map_revision) ||
     !revision(catalog.tag_revision) ||
     !validReadCatalog(catalog) ||
+    !validRuleCatalog(catalog.rules) ||
     !validTags(catalog.tags) ||
     !validTopics(catalog.topics) ||
     !Array.isArray(catalog.sources) ||
@@ -93,6 +95,7 @@ export async function discoverCollection(
   return {
     workspace: context,
     catalog: {
+      rules: catalog.rules,
       books: catalog.books,
       currencies: catalog.currencies,
       institution: catalog.institution,
@@ -116,7 +119,7 @@ function mapFailure(reason: unknown, mutation: boolean): CollectionFailure {
     if ([401, 403, 404].includes(reason.status))
       return new CollectionFailure("denied");
     if (reason.status === 409) return new CollectionFailure("stale");
-    if (mutation && !reason.uncertain && [400, 422].includes(reason.status))
+    if (!reason.uncertain && [400, 422].includes(reason.status))
       return new CollectionFailure("rejected");
     if (mutation && reason.uncertain) return new CollectionFailure("uncertain");
   }
@@ -126,7 +129,7 @@ function mapFailure(reason: unknown, mutation: boolean): CollectionFailure {
 // The injected existing API owns fresh authentication/no-store transport; no actor or browser store is used.
 export function createCollectionPort(api: API): CollectionPort {
   const base = (workspace: string) =>
-    `/v2/collections/${encodeURIComponent(workspace)}`;
+    `/v3/collections/${encodeURIComponent(workspace)}`;
   const body = (value: unknown, maximum: number) => {
     const json = JSON.stringify(value);
     if (new TextEncoder().encode(json).byteLength > maximum)
@@ -159,7 +162,7 @@ export function createCollectionPort(api: API): CollectionPort {
       );
       if (
         !record(result) ||
-        result.profile !== "private-collection-command-v2" ||
+        result.profile !== "private-collection-command-v3" ||
         result.workspace_id !== workspace ||
         !Object.hasOwn(result, "command") ||
         (result.command === null ? mutation : !record(result.command))

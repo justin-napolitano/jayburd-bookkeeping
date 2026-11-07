@@ -7,15 +7,18 @@ import {
   type DetailRequest,
   type SourceDetail,
   type BookChoice,
+  type Catalog,
 } from "./types";
 import { CollectionJournal } from "./CollectionJournal";
 import type { JournalIdentity, JournalReader } from "./journal";
+import { RuleSuggestionView, RuleApplicationView } from "./RuleViews";
 import styles from "./collection.module.css";
 
 // A focused read keeps the list's bounded page in its parent and never expands a selected mutation.
 export function CollectionDetail({
   request,
   books = [],
+  catalog,
   port,
   readJournal,
   onBack,
@@ -23,6 +26,7 @@ export function CollectionDetail({
 }: {
   request: DetailRequest;
   books?: BookChoice[];
+  catalog: Catalog;
   port: CollectionPort;
   readJournal?: JournalReader;
   onBack: () => void;
@@ -148,6 +152,13 @@ export function CollectionDetail({
               : "Unavailable"}
             . This is separate from an owner decision or accounting treatment.
           </p>
+          <h3>Saved rule provenance</h3>
+          <RuleApplicationView application={detail.row.rule_application} />
+          <h3>Current rule suggestion</h3>
+          <RuleSuggestionView
+            suggestion={detail.row.rule_suggestion}
+            catalog={catalog}
+          />
           <h3>Relevant book entries</h3>
           {detail.links.state === "unavailable" ? (
             <p>Book entries are unavailable with your current access.</p>

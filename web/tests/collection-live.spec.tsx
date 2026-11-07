@@ -61,7 +61,10 @@ async function serve(
     });
   if (scenario === "pending_taxonomy") {
     const preview: Preview = {
-      profile: "private-collection-preview-v2",
+      profile: "private-collection-preview-v3",
+      rule_results: [],
+      apply_count: "0",
+      abstain_count: "0",
       tag_results: [],
       workspace_id: workspace,
       preview_id: "50000000-0000-4000-8000-000000000001",
@@ -124,7 +127,10 @@ async function serve(
         state: "prepared",
         acknowledged: false,
         preview: {
-          profile: "private-collection-preview-v2",
+          profile: "private-collection-preview-v3",
+          rule_results: [],
+          apply_count: "0",
+          abstain_count: "0",
           tag_results: [],
           workspace_id: workspace,
           preview_id: "50000000-0000-4000-8000-000000000002",
@@ -171,6 +177,7 @@ async function serve(
           currencies: [],
           institution: { state: "unavailable" },
           legal_owner: { state: "unknown" },
+          rules: [],
           tags: [],
           topics: state.topics,
           sources: [{ source_id: source, name: "Fictional private checking" }],
@@ -198,7 +205,10 @@ async function serve(
     if (path.endsWith("/labels/preview")) {
       state.preview = {
         ...body,
-        profile: "private-collection-preview-v2",
+        profile: "private-collection-preview-v3",
+        rule_results: [],
+        apply_count: "0",
+        abstain_count: "0",
         tag_results: [],
         workspace_id: workspace,
         preview_id: "50000000-0000-4000-8000-000000000001",
@@ -206,13 +216,22 @@ async function serve(
         selected_count: String(body.selection.length),
         review_rows: body.selection.map(
           (selection: { observation_id: string }) =>
-            row(Number(selection.observation_id.slice(-12)) - 1),
+            (() => {
+              const {
+                institution: _i,
+                legal_owner: _o,
+                rule_suggestion: _s,
+                rule_application: _a,
+                ...base
+              } = row(Number(selection.observation_id.slice(-12)) - 1);
+              return base;
+            })(),
         ),
       };
       return route.fulfill({ json: state.preview });
     }
     const wrap = () => ({
-      profile: "private-collection-command-v2",
+      profile: "private-collection-command-v3",
       workspace_id: workspace,
       command: state.pending,
     });
@@ -456,7 +475,7 @@ test("a failed private acknowledgement keeps Overview until a confirmed same-ide
   ).toBeVisible();
   const acknowledgements: string[] = [];
   await page.route(
-    "**/v2/collections/*/label-commands/*/acknowledge",
+    "**/v3/collections/*/label-commands/*/acknowledge",
     async (route) => {
       acknowledgements.push(new URL(route.request().url()).pathname);
       if (acknowledgements.length === 1)

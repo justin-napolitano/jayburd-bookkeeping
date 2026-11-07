@@ -394,3 +394,40 @@
 .detail .reviewRows li > span:last-child {
   display: block;
 }
+
+.managementRules {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ruleEdit {
+  border-block: 1px solid var(--line, #dce0e3);
+  margin-block: 1rem;
+  padding-block: 0.5rem;
+}
+.ruleCondition {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 0.5rem 1rem;
+  align-items: end;
+}
+.ruleCondition input,
+.ruleCondition select {
+  width: 100%;
+}
+
+.reviewRows > .ruleResult {
+  display: block;
+}
+.ruleResult > strong,
+.ruleResult > span {
+  display: block;
+}
+.ruleResult p,
+.ruleResult ul,
+.ruleResult ol {
+  margin-block: 0.35rem;
+}
+.ruleResult li {
+  display: list-item;
+  border: 0;
+  padding-block: 0.15rem;
+}
