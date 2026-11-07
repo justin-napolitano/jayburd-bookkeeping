@@ -83,6 +83,10 @@ func (s *Service) Query(ctx context.Context, r Request) (json.RawMessage, error)
 
 // Preview persists a bounded inert server preview in a serializable transaction.
 func (s *Service) Preview(ctx context.Context, r Request) (json.RawMessage, error) {
+	// v3 can persist rule catalogs: never bypass the trusted Go validation hook.
+	if r.Version == 3 && (s == nil || s.Rules == nil) {
+		return nil, unavailable()
+	}
 	return s.run(ctx, r, "preview")
 }
 
@@ -228,21 +232,33 @@ func labelStatement(name string, version int) string {
 		}
 		return "select banking.query_collection_review($1::uuid,$2::uuid,$3::text)"
 	case "preview_collection_labels":
+		if version == 3 {
+			return "select banking.preview_collection_labels_v3($1::uuid,$2::uuid,$3::text)"
+		}
 		if version == 2 {
 			return "select banking.preview_collection_labels_v2($1::uuid,$2::uuid,$3::text)"
 		}
 		return "select banking.preview_collection_labels($1::uuid,$2::uuid,$3::text)"
 	case "prepare_collection_label_command":
+		if version == 3 {
+			return "select banking.prepare_collection_label_command_v3($1::uuid,$2::uuid,$3::text)"
+		}
 		if version == 2 {
 			return "select banking.prepare_collection_label_command_v2($1::uuid,$2::uuid,$3::text)"
 		}
 		return "select banking.prepare_collection_label_command($1::uuid,$2::uuid,$3::text)"
 	case "pending_collection_label_command":
+		if version == 3 {
+			return "select banking.pending_collection_label_command_v3($1::uuid,$2::uuid)"
+		}
 		if version == 2 {
 			return "select banking.pending_collection_label_command_v2($1::uuid,$2::uuid)"
 		}
 		return "select banking.pending_collection_label_command($1::uuid,$2::uuid)"
 	case "transition_collection_label_command":
+		if version == 3 {
+			return "select banking.transition_collection_label_command_v3($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)"
+		}
 		if version == 2 {
 			return "select banking.transition_collection_label_command_v2($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)"
 		}
@@ -253,7 +269,7 @@ func labelStatement(name string, version int) string {
 
 // validRequestResult keeps versioned payloads and opaque recovery receipts within their exact boundary.
 func validRequestResult(body json.RawMessage, operation string, r Request) bool {
-	if r.Version == 3 {
+	if r.Version == 3 && (operation == "catalog" || operation == "query" || operation == "detail") {
 		return validV3ReadResult(body, operation, r)
 	}
 	if operation == "recovery" || operation == "clear_recovery" {
@@ -284,7 +300,7 @@ func validRequestResult(body json.RawMessage, operation string, r Request) bool 
 		}
 		return profile == "private-collection-recovery-clear-v1" && json.Unmarshal(v["recovery_id"], &id) == nil && validID(id) && json.Unmarshal(v["cleared"], &cleared) == nil && cleared && json.Unmarshal([]byte(r.Body), &request) == nil && request.RecoveryID == id
 	}
-	if r.Version != 2 {
+	if r.Version != 2 && r.Version != 3 {
 		return validResult(body, operation, r.Workspace)
 	}
 	if len(body) > 1<<20 || !json.Valid(body) {
@@ -295,11 +311,15 @@ func validRequestResult(body json.RawMessage, operation string, r Request) bool 
 		return false
 	}
 	var profile string
-	if json.Unmarshal(v["profile"], &profile) != nil || !strings.HasSuffix(profile, "-v2") {
+	suffix := "-v2"
+	if r.Version == 3 {
+		suffix = "-v3"
+	}
+	if json.Unmarshal(v["profile"], &profile) != nil || !strings.HasSuffix(profile, suffix) {
 		return false
 	}
 	// Reuse the same envelope/nullability fence while keeping immutable saved previews untouched.
-	v["profile"], _ = json.Marshal(strings.TrimSuffix(profile, "-v2") + "-v1")
+	v["profile"], _ = json.Marshal(strings.TrimSuffix(profile, suffix) + "-v1")
 	normalized, err := json.Marshal(v)
 	return err == nil && validResult(normalized, operation, r.Workspace)
 }

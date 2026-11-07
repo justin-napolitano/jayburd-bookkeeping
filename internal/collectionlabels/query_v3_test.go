@@ -81,3 +81,34 @@ func TestRuleHookFailureClosesTransaction(t *testing.T) {
 		t.Fatal("hook failure escaped transaction fence")
 	}
 }
+
+// Missing composition must never fall back to a rule catalog SQL call without Go validation.
+func TestV3PreviewRequiresRuleHook(t *testing.T) {
+	db := &fakeDB{}
+	_, err := (&Service{DB: db}).Preview(context.Background(), Request{Version: 3, Actor: "verified", Workspace: workspace, Body: `{}`})
+	if err == nil || db.calls != 0 {
+		t.Fatal("v3 preview bypassed the rule validation hook")
+	}
+}
+
+func TestV3CommandsKeepExactLegacyPreviewBytes(t *testing.T) {
+	body := `{"profile":"private-collection-command-v3","workspace_id":"` + workspace + `","command":{"preview":{"profile":"private-collection-preview-v2","historical":"untouched"}}}`
+	for _, operation := range []string{"prepare", "pending", "execute", "cancel", "acknowledge"} {
+		db := &fakeDB{body: body}
+		r := Request{Version: 3, Actor: "verified", Workspace: workspace, Command: commandID, Body: `{}`}
+		var result json.RawMessage
+		var err error
+		s := &Service{DB: db}
+		switch operation {
+		case "prepare":
+			result, err = s.Prepare(context.Background(), r)
+		case "pending":
+			result, err = s.Pending(context.Background(), r)
+		default:
+			result, err = s.Transition(context.Background(), r, operation)
+		}
+		if err != nil || string(result) != body || db.commits != 1 || !strings.Contains(db.query, "_v3(") {
+			t.Fatal("v3 command changed a historical preview or selected a legacy SQL entrypoint")
+		}
+	}
+}

@@ -85,12 +85,11 @@ func New(c Config, d Dependencies) (*Server, error) {
 			for _, suffix := range []string{"taxonomy", "review/query", "labels/preview", "label-commands", "label-commands/pending", "label-commands/{command}/execute", "label-commands/{command}/cancel", "label-commands/{command}/acknowledge"} {
 				application.Handle("/v1/collections/{workspace}/"+suffix, labels)
 				application.Handle("/v2/collections/{workspace}/"+suffix, labels)
+				application.Handle("/v3/collections/{workspace}/"+suffix, labels)
 			}
 			application.Handle("/v1/collection-recovery", labels)
 			application.Handle("/v1/collection-recovery/clear", labels)
-			for _, suffix := range []string{"taxonomy", "review/query", "review/detail"} {
-				application.Handle("/v3/collections/{workspace}/"+suffix, labels)
-			}
+			application.Handle("/v3/collections/{workspace}/review/detail", labels)
 			if c.CollectionActivationPlanFile != "" {
 				if d.Activation == nil {
 					return nil, errConfiguration

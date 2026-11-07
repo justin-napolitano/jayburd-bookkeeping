@@ -32,10 +32,9 @@ func Handler(auth ledger.Authenticator, operations Operations) http.Handler {
 	} {
 		mux.HandleFunc(pattern, endpoint(auth, operations, operation))
 		mux.HandleFunc(strings.Replace(pattern, "/v1/", "/v2/", 1), endpoint(auth, operations, "v2_"+operation))
+		mux.HandleFunc(strings.Replace(pattern, "/v1/", "/v3/", 1), endpoint(auth, operations, "v3_"+operation))
 	}
-	// The richer reader is additive; durable v1/v2 manual recovery stays mounted.
-	mux.HandleFunc("GET /v3/collections/{workspace}/taxonomy", endpoint(auth, operations, "v3_catalog"))
-	mux.HandleFunc("POST /v3/collections/{workspace}/review/query", endpoint(auth, operations, "v3_query"))
+	// Detail is additive; historic command profiles keep their own exact routes.
 	mux.HandleFunc("POST /v3/collections/{workspace}/review/detail", endpoint(auth, operations, "v3_detail"))
 	mux.HandleFunc("GET /v1/collection-recovery", endpoint(auth, operations, "recovery"))
 	mux.HandleFunc("POST /v1/collection-recovery/clear", endpoint(auth, operations, "clear_recovery"))
