@@ -94,7 +94,7 @@ async function mockCommands(page: Page, empty = false) {
       url = new URL(req.url()),
       path = url.pathname;
     // This book-only fixture explicitly models the optional private feature as absent.
-    if (path === "/v1/collection")
+    if (path === "/v1/collection" || path === "/v1/collection-recovery")
       return route.fulfill({ status: 404, json: { code: "not_found" } });
     if (path === "/v1/workspace")
       return route.fulfill({ json: state.workspace });

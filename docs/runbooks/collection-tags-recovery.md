@@ -29,6 +29,9 @@ TAGREC-20261107T0340Z. Synthetic data only; no hosted/provider/live activation.
 | Assembled frontend |548 units, TypeScript and Next production build PASS. Full browser run caught book-only fixture returning generic200 for the new feature-off recovery path; agent is updating explicit404 fixture membership without weakening assertions. Added actual Next v2 catch-all route so approved v2 requests reach the same bounded bridge |
 | Parent recovery tests | Reviewed26a3e54: same-A ordinary review versus different-B suppression, no scoped discovery after inaccessible state, unknown clear followed by none, exact receipt before unlock; two parent browsers PASS |
 
+| Independent proof import | Reviewed13bd90f: nine exact final44 SQL/HTTP groups and listener-free browser setup PASS, unchanged43 upgrade race preserved, source/journal/topic history and current-denial coverage. Removing only status fence in own clone causes expected failure (false none instead of40001); no product/template mutation |
+| Browser compatibility correction | Reviewed20e5e80: book-only fixtures now explicitly return feature-off404 for both private discovery paths; all original assertions retained. Full75/76 run exposed shared refresh counter automatically reloading denied private view. Root split global-only versus scoped refresh; canonical and affected rerun required |
+
 ## Current evidence
 
 Implementation in progress. Parent449 all five checks passed; that is baseline,

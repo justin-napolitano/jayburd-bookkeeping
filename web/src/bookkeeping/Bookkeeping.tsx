@@ -121,9 +121,20 @@ export function Bookkeeping({
       setOpaqueRecoveryResolved(true);
   }, []);
   const [collectionRefreshVersion, setCollectionRefreshVersion] = useState(0);
+  const [opaqueRefreshVersion, setOpaqueRefreshVersion] = useState(0);
+  const refreshOpaqueRecovery = useCallback(() => {
+    setOpaqueRecoveryLocked(true);
+    setOpaqueRefreshVersion((version) => version + 1);
+  }, []);
+  const refreshScopedRecovery = useCallback(() => {
+    setCollectionLocked(true);
+    setCollectionRefreshVersion((version) => version + 1);
+  }, []);
   const refreshPrivateRecovery = useCallback(() => {
     setCollectionLocked(true);
     setCollectionRefreshVersion((version) => version + 1);
+    setOpaqueRecoveryLocked(true);
+    setOpaqueRefreshVersion((version) => version + 1);
   }, []);
   const recovery = useCommands(api, refreshPrivateRecovery);
   const locked = recovery.locked || collectionLocked || opaqueRecoveryLocked;
@@ -309,10 +320,10 @@ export function Bookkeeping({
       </div>
       <CollectionRecovery
         api={api}
-        refreshVersion={collectionRefreshVersion}
+        refreshVersion={opaqueRefreshVersion}
         onLockChange={setOpaqueRecoveryLocked}
         onStateChange={updateOpaqueRecovery}
-        onAvailable={refreshPrivateRecovery}
+        onAvailable={refreshScopedRecovery}
         onCleared={() => {
           refreshPrivateRecovery();
           void recovery.refreshIfIdle();
@@ -327,7 +338,7 @@ export function Bookkeeping({
             opaqueRecoveryState.state !== "none" ||
             opaqueRecoveryState.uncertain
           }
-          onRecoveryNeeded={refreshPrivateRecovery}
+          onRecoveryNeeded={refreshOpaqueRecovery}
           onLockChange={setCollectionLocked}
           refreshVersion={collectionRefreshVersion}
           onPrepareConflict={() => recovery.refreshIfIdle()}

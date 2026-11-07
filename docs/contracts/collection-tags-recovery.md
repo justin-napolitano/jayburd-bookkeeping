@@ -26,7 +26,7 @@ retirement is terminal. Names are case-sensitive unique across the full catalog.
 Tags have no hierarchy and remain independent of primary topics.
 
 V2 query adds required `tag`: {kind:all}, {kind:untagged}, or
-{kind:tag,tag_id}. The filter is orthogonal to topic. Untagged includes absent or
+{kind:tag,tag_id}. The filter is orthogonal to topic. Untagged includes current empty, absent or
 stale sets; a tag match uses only a current source-pinned set. Multiple tags never
 duplicate source rows, counts, topic totals or journal amounts. Rows add
 `owner_tags`:{state:unclassified|current|stale,tags:[{tag_id,name,status}]}.
@@ -120,3 +120,5 @@ claim race, primed status retry, no payload disclosure, tag retirement/foreign
 IDs/stale source/catalog pins/atomic sets, source/topic/journal preservation,
 unchanged v1 outputs, real browser/API/PostgreSQL lost-reply recovery, and
 synthetic mobile/desktop/keyboard inspection. GitHub records actual results.
+
+Implementation appendices: [SQL](tags-recovery-sql.md), [UI](collection-tags-recovery-ui.md), and [independent proof stages](../runbooks/tags-recovery-proof.md).
