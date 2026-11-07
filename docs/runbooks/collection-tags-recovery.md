@@ -16,6 +16,8 @@ TAGREC-20261107T0340Z. Synthetic data only; no hosted/provider/live activation.
 
 | API and transport | Fixed v2 SQL calls and exact opaque recovery envelopes; active actor separate from raw JSON; SERIALIZABLE recovery including GET, no retry after unknown commit. Focused Go adapter/server tests pass. Exact bridge/version/cap/same-origin checks extended; old schemas preserved while v2 OpenAPI/types added |
 
+| Compatibility and gating | Every original OpenAPI schema/route is semantically identical to merged449.106 focused browser bridge/API tests pass. Go server feature/origin and adapter tests pass; matching44 readiness now requires all eight new grants. Existing43 runner pinned explicitly43; separate44 proof runner/CI preserves all old proofs |
+
 ## Current evidence
 
 Implementation in progress. Parent449 all five checks passed; that is baseline,
