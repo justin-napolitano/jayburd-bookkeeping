@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/experimental-ct-react";
 import { IntegrationHarness } from "./Harness";
-import { Bookkeeping } from "../../src/bookkeeping/Bookkeeping";
+import { RecoveryHarness } from "./RecoveryHarness";
 
 /** Only delivery is fault-injected: actual commands commit through Next, Go and PostgreSQL. */
 test("private topics and strategic tags recover committed responses without books or journals", async ({
@@ -291,22 +291,6 @@ test("private topics and strategic tags recover committed responses without book
     fullPage: true,
   });
 });
-
-const preparedRecoveryToken = async () => "synthetic.prepared.proof";
-const committedRecoveryToken = async () => "synthetic.committed.proof";
-const rejectRecoveryIdentity = () => {
-  throw new Error("Fictional recovery identity unexpectedly rejected");
-};
-
-/** Both identities exist only in the disposable integration binary and test browser bundle. */
-function RecoveryHarness({ committed = false }: { committed?: boolean }) {
-  return (
-    <Bookkeeping
-      getToken={committed ? committedRecoveryToken : preparedRecoveryToken}
-      rejectSession={rejectRecoveryIdentity}
-    />
-  );
-}
 
 test("inaccessible prepared private work retains the same clear identity after response loss", async ({
   mount,
