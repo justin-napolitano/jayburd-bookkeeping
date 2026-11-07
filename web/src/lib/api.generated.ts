@@ -1060,6 +1060,206 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v2/collections/{workspace}/taxonomy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current-authorized private analytic label workflow
+         * @description Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap0 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.
+         */
+        get: operations["getPrivateLabelCatalogV2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/collections/{workspace}/review/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Current-authorized private analytic label workflow
+         * @description Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap8192 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.
+         */
+        post: operations["queryPrivateLabelReviewV2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/collections/{workspace}/labels/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Current-authorized private analytic label workflow
+         * @description Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap524288 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.
+         */
+        post: operations["previewPrivateLabelsV2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/collections/{workspace}/label-commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Current-authorized private analytic label workflow
+         * @description Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap4096 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.
+         */
+        post: operations["preparePrivateLabelsV2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/collections/{workspace}/label-commands/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current-authorized private analytic label workflow
+         * @description Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap0 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.
+         */
+        get: operations["pendingPrivateLabelsV2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/collections/{workspace}/label-commands/{command}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Current-authorized private analytic label workflow
+         * @description Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap1024 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.
+         */
+        post: operations["executePrivateLabelsV2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/collections/{workspace}/label-commands/{command}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Current-authorized private analytic label workflow
+         * @description Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap1024 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.
+         */
+        post: operations["cancelPrivateLabelsV2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/collections/{workspace}/label-commands/{command}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Current-authorized private analytic label workflow
+         * @description Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap1024 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.
+         */
+        post: operations["acknowledgePrivateLabelsV2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collection-recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payload-free recovery of owned inaccessible private commands
+         * @description Active verified owner, SERIALIZABLE even for GET. Exact opaque recovery identity only; no workspace, saved payload or private grant inference. Explicit clear cancels prepared or acknowledges terminal private work, preserves committed decisions and uses durable receipts. No query/encoding/header key; clear body max1024 bytes. Same-origin authenticated bridge; feature default off; matching migration44 required. See docs/contracts/collection-tags-recovery.md.
+         */
+        get: operations["getPrivateCollectionRecovery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collection-recovery/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Payload-free recovery of owned inaccessible private commands
+         * @description Active verified owner, SERIALIZABLE even for GET. Exact opaque recovery identity only; no workspace, saved payload or private grant inference. Explicit clear cancels prepared or acknowledges terminal private work, preserves committed decisions and uses durable receipts. No query/encoding/header key; clear body max1024 bytes. Same-origin authenticated bridge; feature default off; matching migration44 required. See docs/contracts/collection-tags-recovery.md.
+         */
+        post: operations["clearPrivateCollectionRecovery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2581,6 +2781,319 @@ export interface components {
             /** Format: uuid */
             workspace_id: string;
             command: components["schemas"]["PrivateLabelCommand"] | null;
+        };
+        PrivateLabelTopicV2: {
+            /** Format: uuid */
+            topic_id: string;
+            name: string;
+            parent_id: string | null;
+            /** @enum {string} */
+            status: "active" | "retired";
+        };
+        PrivateLabelSnapshotV2: {
+            authority_revision: string;
+            source_snapshot: string;
+            taxonomy_revision: string;
+            ruleset_revision: string;
+            map_revision: string;
+            decision_revision: string;
+            tag_revision: string;
+        };
+        PrivateLabelSelectionV2: {
+            /** Format: uuid */
+            workspace_id: string;
+            /** Format: uuid */
+            source_id: string;
+            /** Format: uuid */
+            observation_id: string;
+            observation_revision: string;
+        };
+        /** @description Add/remove require at least one ID; replacement may be empty. Final per-observation set at most25. Add/replace require active local tags; retired removal allowed. SQL checks conditional limits/current authority. */
+        PrivateLabelActionV2: {
+            /** @constant */
+            kind: "topic";
+            /** Format: uuid */
+            topic_id: string;
+        } | {
+            /** @constant */
+            kind: "uncategorized";
+        } | {
+            /** @constant */
+            kind: "taxonomy";
+            topics: components["schemas"]["PrivateLabelTopicV2"][];
+        } | {
+            /** @constant */
+            kind: "tag_catalog";
+            tags: components["schemas"]["PrivateStrategicTag"][];
+        } | {
+            /** @constant */
+            kind: "tags";
+            /** @enum {string} */
+            operation: "add" | "remove" | "replace";
+            tag_ids: string[];
+        };
+        PrivateLabelTopicFilterV2: {
+            /** @enum {string} */
+            kind: "all" | "unclassified" | "uncategorized";
+        } | {
+            /** @constant */
+            kind: "topic";
+            /** Format: uuid */
+            topic_id: string;
+        };
+        PrivateLabelSelectorV2: {
+            source_account_id: string | null;
+            /** @enum {string} */
+            assignment: "all" | "assigned" | "unassigned";
+            starts_on: string | null;
+            through_date: string | null;
+            search: string;
+            topic: components["schemas"]["PrivateLabelTopicFilterV2"];
+            /** @enum {string} */
+            sort: "date_asc" | "date_desc";
+            tag: components["schemas"]["PrivateTagFilter"];
+        };
+        PrivateLabelQueryV2: {
+            /** @constant */
+            profile: "private-collection-review-v2";
+            source_account_id: string | null;
+            /** @enum {string} */
+            assignment: "all" | "assigned" | "unassigned";
+            starts_on: string | null;
+            through_date: string | null;
+            search: string;
+            topic: components["schemas"]["PrivateLabelTopicFilterV2"];
+            /** @enum {string} */
+            sort: "date_asc" | "date_desc";
+            snapshot: components["schemas"]["PrivateLabelSnapshotV2"] | null;
+            cursor: string | null;
+            limit: number;
+            tag: components["schemas"]["PrivateTagFilter"];
+        };
+        PrivateLabelMoneyV2: {
+            /** @constant */
+            state: "available";
+            amount: string;
+            /** @enum {string} */
+            direction: "inflow" | "outflow" | "zero";
+            currency: string;
+            /** Format: uuid */
+            currency_version_id: string;
+            numeric_code: string | null;
+            minor_unit: number;
+            /** Format: date */
+            valid_from: string;
+            valid_to: string | null;
+        } | {
+            /** @constant */
+            state: "held";
+            /** @enum {string} */
+            reason: "unsupported_currency" | "invalid_precision";
+            amount: null;
+            direction: null;
+            currency: null;
+            currency_version_id: null;
+            numeric_code: null;
+            minor_unit: null;
+            valid_from: null;
+            valid_to: null;
+        };
+        PrivateLabelAssignmentV2: {
+            /** @enum {string} */
+            state: "unassigned" | "unavailable";
+        } | {
+            /** @constant */
+            state: "assigned";
+            books: {
+                /** Format: uuid */
+                book_id: string;
+                name: string;
+            }[];
+        };
+        PrivateLabelOwnerTopicV2: {
+            /** @enum {string} */
+            state: "unclassified" | "uncategorized" | "stale";
+        } | {
+            /** @constant */
+            state: "topic";
+            /** Format: uuid */
+            topic_id: string;
+            name: string;
+        };
+        PrivateLabelProviderV2: {
+            /** @constant */
+            state: "unavailable";
+        } | {
+            /** @constant */
+            state: "attributed";
+            label: string;
+            taxonomy_version: string;
+            confidence: string;
+        };
+        PrivateLabelRowV2: {
+            /** Format: uuid */
+            workspace_id: string;
+            /** Format: uuid */
+            source_id: string;
+            /** Format: uuid */
+            observation_id: string;
+            observation_revision: string;
+            account_name: string;
+            /** Format: date */
+            booked_date: string;
+            description: string;
+            merchant: string | null;
+            money: components["schemas"]["PrivateLabelMoneyV2"];
+            /** @enum {string} */
+            source_state: "booked" | "pending" | "removed" | "held";
+            assignment: components["schemas"]["PrivateLabelAssignmentV2"];
+            /** @enum {string} */
+            journal_state: "unposted" | "posted" | "correction_required" | "unavailable";
+            owner_topic: components["schemas"]["PrivateLabelOwnerTopicV2"];
+            provider_suggestion: components["schemas"]["PrivateLabelProviderV2"];
+            owner_tags: components["schemas"]["PrivateOwnerTags"];
+        };
+        PrivateLabelCatalogV2: {
+            /** @constant */
+            profile: "private-collection-catalog-v2";
+            /** Format: uuid */
+            workspace_id: string;
+            authority_revision: string;
+            taxonomy_revision: string;
+            ruleset_revision: string;
+            map_revision: string;
+            topics: components["schemas"]["PrivateLabelTopicV2"][];
+            sources: {
+                /** Format: uuid */
+                source_id: string;
+                name: string;
+            }[];
+            tag_revision: string;
+            tags: components["schemas"]["PrivateStrategicTag"][];
+        };
+        PrivateLabelPageV2: {
+            /** @constant */
+            profile: "private-collection-review-v2";
+            /** Format: uuid */
+            workspace_id: string;
+            selector: components["schemas"]["PrivateLabelSelectorV2"];
+            snapshot: components["schemas"]["PrivateLabelSnapshotV2"];
+            matching_count: string;
+            start_index: string;
+            items: components["schemas"]["PrivateLabelRowV2"][];
+            next_cursor: string | null;
+            /** @description Incomplete source history; independent of assignment metadata availability. */
+            partial: boolean;
+        };
+        /** @description Labels require1–100 exact selections; taxonomy actions require empty selection and retain every existing topic ID. SQL validates these conditional invariants. */
+        PrivateLabelPreviewRequestV2: {
+            snapshot: components["schemas"]["PrivateLabelSnapshotV2"];
+            selection: components["schemas"]["PrivateLabelSelectionV2"][];
+            action: components["schemas"]["PrivateLabelActionV2"];
+        };
+        PrivateLabelPreviewV2: {
+            /** @constant */
+            profile: "private-collection-preview-v2";
+            /** Format: uuid */
+            workspace_id: string;
+            snapshot: components["schemas"]["PrivateLabelSnapshotV2"];
+            selection: components["schemas"]["PrivateLabelSelectionV2"][];
+            action: components["schemas"]["PrivateLabelActionV2"];
+            /** Format: uuid */
+            preview_id: string;
+            /** Format: date-time */
+            expires_at: string;
+            selected_count: string;
+            review_rows: components["schemas"]["PrivateLabelRowV2"][];
+            tag_results: components["schemas"]["PrivateTagResult"][];
+        };
+        PrivateLabelPrepareV2: {
+            /** Format: uuid */
+            preview_id: string;
+            prepare_key: string;
+        };
+        PrivateLabelTransitionV2: Record<string, never>;
+        PrivateLabelCommandV2: {
+            /** Format: uuid */
+            workspace_id: string;
+            /** Format: uuid */
+            command_id: string;
+            prepare_key: string;
+            /** @enum {string} */
+            state: "prepared" | "committed" | "cancelled";
+            acknowledged: boolean;
+            preview: components["schemas"]["PrivateLabelPreview"] | components["schemas"]["PrivateLabelPreviewV2"];
+        };
+        PrivateLabelCommandEnvelopeV2: {
+            /** @constant */
+            profile: "private-collection-command-v2";
+            /** Format: uuid */
+            workspace_id: string;
+            command: components["schemas"]["PrivateLabelCommandV2"];
+        };
+        PrivateLabelPendingEnvelopeV2: {
+            /** @constant */
+            profile: "private-collection-command-v2";
+            /** Format: uuid */
+            workspace_id: string;
+            command: components["schemas"]["PrivateLabelCommandV2"] | null;
+        };
+        PrivateStrategicTag: {
+            /** Format: uuid */
+            tag_id: string;
+            name: string;
+            /** @enum {string} */
+            status: "active" | "retired";
+        };
+        PrivateTagFilter: {
+            /** @enum {string} */
+            kind: "all" | "untagged";
+        } | {
+            /** @constant */
+            kind: "tag";
+            /** Format: uuid */
+            tag_id: string;
+        };
+        PrivateOwnerTags: {
+            /** @enum {string} */
+            state: "unclassified" | "current" | "stale";
+            tags: components["schemas"]["PrivateStrategicTag"][];
+        };
+        PrivateTagResult: {
+            /** Format: uuid */
+            workspace_id: string;
+            /** Format: uuid */
+            source_id: string;
+            /** Format: uuid */
+            observation_id: string;
+            observation_revision: string;
+            tags: components["schemas"]["PrivateStrategicTag"][];
+        };
+        PrivateCollectionRecovery: {
+            /** @constant */
+            profile: "private-collection-recovery-v1";
+            /** @constant */
+            state: "none";
+            recovery_id: null;
+        } | {
+            /** @constant */
+            profile: "private-collection-recovery-v1";
+            /** @enum {string} */
+            state: "available" | "inaccessible";
+            /** Format: uuid */
+            recovery_id: string;
+        };
+        PrivateCollectionRecoveryClear: {
+            /** Format: uuid */
+            recovery_id: string;
+        };
+        PrivateCollectionRecoveryReceipt: {
+            /** @constant */
+            profile: "private-collection-recovery-clear-v1";
+            /** Format: uuid */
+            recovery_id: string;
+            /** @constant */
+            cleared: true;
         };
     };
     responses: {
@@ -4766,6 +5279,353 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrivateLabelCommandEnvelope"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPrivateLabelCatalogV2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateLabelCatalogV2"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    queryPrivateLabelReviewV2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateLabelQueryV2"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateLabelPageV2"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    previewPrivateLabelsV2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateLabelPreviewRequestV2"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateLabelPreviewV2"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    preparePrivateLabelsV2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateLabelPrepareV2"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateLabelCommandEnvelopeV2"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    pendingPrivateLabelsV2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateLabelPendingEnvelopeV2"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    executePrivateLabelsV2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+                command: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateLabelTransitionV2"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateLabelCommandEnvelopeV2"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    cancelPrivateLabelsV2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+                command: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateLabelTransitionV2"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateLabelCommandEnvelopeV2"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    acknowledgePrivateLabelsV2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+                command: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateLabelTransitionV2"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateLabelCommandEnvelopeV2"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPrivateCollectionRecovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateCollectionRecovery"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    clearPrivateCollectionRecovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateCollectionRecoveryClear"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateCollectionRecoveryReceipt"];
                 };
             };
             /** @description Fixed RFC9457 failure; no private diagnostics */
