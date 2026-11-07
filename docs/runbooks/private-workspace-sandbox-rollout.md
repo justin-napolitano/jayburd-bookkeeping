@@ -25,6 +25,9 @@ Existing source/journal identities and immutable migrations1–44 are preserved.
 
 | Local operation gates | Core check/build and34 release/smoke/migration-receipt cases PASS; full make test attempted, known host socket bind EPERM only. Tracked Go1.26.10 unchanged; local external1.26.5 modfile/cache used |
 | Staging decision | Selected official SDK args/no-traffic/update-traffic sections reviewed; stage ready API/web revisions without traffic, compare named projections, then promote exact revisions. Only API addition is collection-read-enabled=true after clean44; all old acquisition/consent args retained |
+| Scan repair | Issue454 / PR456 (ff3f7d80ea57efe643a3b2e9ad93df581ea2b892): minimal shared x/net0.62.0 and existing APK minimum bounds, independently reviewed by root/private_registry with no source findings. Canonical checks and new trusted build remain required; no scanner waiver |
+| Repair merge/build | All five canonical checks passed on ff3f7d80. PR456 merged2026-11-07T05:44:07Z as a4ad6c1dd2a6b257981c4d19513ad0aebbeb0daf. New trusted main run42343986400/attempt1 dispatched05:44:19Z; independent numeric owner/repository/main/manual/source checks pass. Runtime/scans/publication/receipts pending |
+| Anonymous predecessor smoke | Numeric Sandbox web root/auth-config200, web workspace401, private API workspace403. New collection-recovery route404 on predecessor as expected. curl IPv4 discards bodies; Node host network unavailable. No identity or financial-data acceptance inferred |
 
 ## Current evidence
 
