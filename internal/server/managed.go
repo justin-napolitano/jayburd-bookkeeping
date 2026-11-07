@@ -159,7 +159,15 @@ func collectionReady(ctx context.Context, pool *pgxpool.Pool) error {
 	 'banking.preview_collection_labels(uuid,uuid,text)',
 	 'banking.prepare_collection_label_command(uuid,uuid,text)',
 	 'banking.pending_collection_label_command(uuid,uuid)',
-	 'banking.transition_collection_label_command(uuid,uuid,uuid,text,text)'
+	 'banking.transition_collection_label_command(uuid,uuid,uuid,text,text)',
+ 'banking.get_collection_taxonomy_v2(uuid,uuid)',
+ 'banking.query_collection_review_v2(uuid,uuid,text)',
+ 'banking.preview_collection_labels_v2(uuid,uuid,text)',
+ 'banking.prepare_collection_label_command_v2(uuid,uuid,text)',
+ 'banking.pending_collection_label_command_v2(uuid,uuid)',
+ 'banking.transition_collection_label_command_v2(uuid,uuid,uuid,text,text)',
+ 'banking.collection_recovery_status(uuid)',
+ 'banking.clear_collection_recovery(uuid,text)'
 	 ]) AS f(signature) WHERE to_regprocedure(f.signature) IS NULL
 	 OR NOT has_function_privilege(current_user,to_regprocedure(f.signature),'EXECUTE'))
 	 AND NOT has_function_privilege(current_user,'banking.provision_collection_owner(uuid,text,text)','EXECUTE')`).Scan(&safe)

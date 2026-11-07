@@ -6,7 +6,7 @@ const workspace = "00000000-0000-4000-8000-000000000001";
 const command = "00000000-0000-4000-8000-000000000002";
 const base = `/v1/collections/${workspace}`;
 const env = {BOOKKEEPING_API_MODE:"loopback", BOOKKEEPING_API_ORIGIN:"http://127.0.0.1:18080", BOOKKEEPING_PUBLIC_ORIGIN:"http://localhost:3000"};
-const routes = [
+const baseRoutes = [
   ["GET", "/v1/collection", 0],
   ["GET", `${base}/taxonomy`, 0],
   ["GET", `${base}/label-commands/pending`, 0],
@@ -15,6 +15,12 @@ const routes = [
   ["POST", `${base}/label-commands`, 4096],
   ...["execute","cancel","acknowledge"].map(action=>["POST",`${base}/label-commands/${command}/${action}`,1024]),
 ] as [string,string,number][];
+const routes: [string,string,number][] = [
+ ...baseRoutes,
+ ...baseRoutes.filter(r=>r[1].startsWith("/v1/collections/")).map(([method,path,cap])=>[method,path.replace("/v1/","/v2/"),cap] as [string,string,number]),
+ ["GET","/v1/collection-recovery",0],
+ ["POST","/v1/collection-recovery/clear",1024],
+];
 
 /** Fictional user identity and intercepted loopback transport never reach a real service. */
 function request(method:string, path:string, body?:string, extra:Record<string,string>={}) {

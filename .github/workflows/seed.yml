@@ -56,6 +56,8 @@ jobs:
         run: make private-registry-test
       - name: Private taxonomy, labels and restricted HTTP proof
         run: make collection-labels-test
+      - name: Strategic tags and payload-free private recovery proof
+        run: make tags-recovery-test
       - name: Fenced synthetic provider publication proof
         run: make sync-state-test
       - name: Scoped synthetic connection lifecycle proof

@@ -22,6 +22,9 @@ import {
   type LabelCommand,
   type Page,
   type Preview,
+  type StoredPreview,
+  type LegacyRow,
+  type TagResult,
   type Query,
   type Row,
   type Selection,
@@ -31,6 +34,7 @@ import {
 } from "./types";
 import styles from "./collection.module.css";
 import { TaxonomyEditor, TopicReview } from "./TaxonomyEditor";
+import { TagCatalogReview, TagEditor, TagSelection } from "./TagEditor";
 
 // Injected authorized projections/ports keep this component independent from unimplemented runtime authority.
 export type CollectionReviewProps = {
@@ -46,6 +50,7 @@ export type CollectionReviewProps = {
   onRefreshCatalog?: () => void;
   onPrepareConflict?: () => Promise<void> | void;
   refreshVersion?: number;
+  newWorkLocked?: boolean;
   onDenied: () => void;
 };
 const initial: Selector = {
@@ -55,6 +60,7 @@ const initial: Selector = {
   through_date: null,
   search: "",
   topic: { kind: "all" },
+  tag: { kind: "all" },
   sort: "date_desc",
 };
 
@@ -62,7 +68,7 @@ const initial: Selector = {
 export function CollectionReview(props: CollectionReviewProps) {
   return (
     <Review
-      key={`${props.workspace.workspace_id}/${props.workspace.authority_revision}/${props.catalog.taxonomy_revision}`}
+      key={`${props.workspace.workspace_id}/${props.workspace.authority_revision}/${props.catalog.taxonomy_revision}/${props.catalog.tag_revision}`}
       {...props}
     />
   );
@@ -82,14 +88,16 @@ function Review({
   onRefreshCatalog,
   onPrepareConflict,
   refreshVersion = 0,
+  newWorkLocked = false,
   onDenied,
 }: CollectionReviewProps) {
   const topicChoiceLabel = useId();
+  const tagFilterLabel = useId();
   const [draft, setDraft] = useState<Selector>(initial),
     [selector, setSelector] = useState<Selector>(initial);
   const [query, setQuery] = useState<Query>({
     ...initial,
-    profile: "private-collection-review-v1",
+    profile: "private-collection-review-v2",
     workspace_id: workspace.workspace_id,
     limit: 25,
     snapshot: null,
@@ -110,7 +118,7 @@ function Review({
     prepareKey = useRef<string | null>(null),
     pendingOutcome = useRef<"prepare" | "transition" | null>(null),
     commandId = useRef<string | null>(null),
-    intent = useRef<Preview | null>(null),
+    intent = useRef<StoredPreview | null>(null),
     knownTerminal = useRef<"committed" | "cancelled" | null>(null),
     retryAction = useRef<"execute" | "cancel" | "acknowledge" | null>(null),
     onDeniedRef = useRef(onDenied),
@@ -125,6 +133,7 @@ function Review({
   const recoveredVersion = useRef(refreshVersion);
   const reciprocalRefreshPending = recoveredVersion.current !== refreshVersion;
   const blocked =
+    newWorkLocked ||
     locked ||
     denied ||
     busy ||
@@ -388,7 +397,7 @@ function Review({
   const refresh = () =>
     read({
       ...selector,
-      profile: "private-collection-review-v1",
+      profile: "private-collection-review-v2",
       workspace_id: workspace.workspace_id,
       limit: 25,
       snapshot: null,
@@ -413,7 +422,7 @@ function Review({
     setSelector(draft);
     read({
       ...draft,
-      profile: "private-collection-review-v1",
+      profile: "private-collection-review-v2",
       workspace_id: workspace.workspace_id,
       limit: 25,
       snapshot: null,
@@ -477,7 +486,8 @@ function Review({
   const prepare = async () => {
     if (!preview) return;
     const wasUncertain = uncertain || pendingOutcome.current !== null;
-    if (Date.parse(preview.expires_at) <= Date.now()) {
+    if (newWorkLocked && !wasUncertain) return;
+    if (!wasUncertain && Date.parse(preview.expires_at) <= Date.now()) {
       if (!wasUncertain) {
         setPreview(null);
         prepareKey.current = null;
@@ -606,6 +616,60 @@ function Review({
     }
   };
 
+  const selectionControls = (
+    <div className={styles.selectionControls}>
+      <div className={styles.actions}>
+        <label>
+          <span id={topicChoiceLabel}>Label selected transactions</span>
+          <select
+            aria-labelledby={topicChoiceLabel}
+            value={choice}
+            disabled={blocked || !!preview || !selected.length || !canClassify}
+            onChange={(event) => {
+              setChoice(event.target.value);
+              setPreview(null);
+              prepareKey.current = null;
+            }}
+          >
+            <option value="">Choose a topic</option>
+            <option value="uncategorized">Explicit Uncategorized</option>
+            {catalog.topics
+              .filter((topic) => topic.status === "active")
+              .map((topic) => (
+                <option key={topic.topic_id} value={`topic:${topic.topic_id}`}>
+                  {topic.name}
+                </option>
+              ))}
+          </select>
+        </label>
+        <button
+          disabled={
+            blocked || !!preview || !selected.length || !choice || !canClassify
+          }
+          onClick={() => void previewLabels()}
+        >
+          Preview labels for {selected.length} selected
+        </button>
+      </div>
+      {!!selected.length && (
+        <TagSelection
+          tags={catalog.tags}
+          count={selected.length}
+          stale={
+            page?.items.some(
+              (row) =>
+                selected.some(
+                  (item) => selectionKey(item) === selectionKey(row),
+                ) && row.owner_tags.state === "stale",
+            ) ?? false
+          }
+          disabled={blocked || !!preview || reading || !canClassify}
+          onPreview={(action) => void previewAction(action, selected)}
+        />
+      )}
+    </div>
+  );
+
   if (locked)
     return (
       <p role="status">Finish the pending action to review all transactions.</p>
@@ -672,6 +736,37 @@ function Review({
             <details className={styles.moreFilters}>
               <summary>Book, topic and date filters</summary>
               <div className={styles.advancedFilters}>
+                <label>
+                  <span id={tagFilterLabel}>Tag filter</span>
+                  <select
+                    aria-labelledby={tagFilterLabel}
+                    value={
+                      draft.tag.kind === "tag"
+                        ? "tag:" + draft.tag.tag_id
+                        : draft.tag.kind
+                    }
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        tag: event.target.value.startsWith("tag:")
+                          ? { kind: "tag", tag_id: event.target.value.slice(4) }
+                          : { kind: event.target.value as "all" | "untagged" },
+                      })
+                    }
+                  >
+                    <option value="all">All tags</option>
+                    <option value="untagged">
+                      Untagged or needing confirmation
+                    </option>
+                    {catalog.tags.map((tag) => (
+                      <option key={tag.tag_id} value={"tag:" + tag.tag_id}>
+                        {tag.name}
+                        {tag.status === "retired" ? " (retired)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
                 <label>
                   Book assignment
                   <select
@@ -835,6 +930,25 @@ function Review({
               Some source history is unavailable. Account history is incomplete.
             </p>
           )}
+          {canClassify && (
+            <div className={styles.management}>
+              <TaxonomyEditor
+                topics={catalog.topics}
+                disabled={blocked || !!preview || reading}
+                onPreview={(topics) =>
+                  void previewAction({ kind: "taxonomy", topics }, [])
+                }
+              />
+              <TagEditor
+                tags={catalog.tags}
+                disabled={blocked || !!preview || reading}
+                onPreview={(tags) =>
+                  void previewAction({ kind: "tag_catalog", tags }, [])
+                }
+              />
+            </div>
+          )}
+          {!!selected.length && selectionControls}
           {!page.items.length ? (
             <p>
               No transactions match these filters. Change filters or refresh
@@ -875,6 +989,23 @@ function Review({
                       <summary>Labels and provenance</summary>
                       <p>Owner topic: {topicLabel(row)}</p>
                       <p>
+                        Strategic tags:{" "}
+                        {row.owner_tags.state === "unclassified"
+                          ? "Not classified"
+                          : row.owner_tags.tags
+                              .map(
+                                (tag) =>
+                                  tag.name +
+                                  (tag.status === "retired"
+                                    ? " (retired)"
+                                    : ""),
+                              )
+                              .join(", ") || "None"}
+                        {row.owner_tags.state === "stale"
+                          ? " — needs confirmation"
+                          : ""}
+                      </p>
+                      <p>
                         {row.provider_suggestion.state === "attributed"
                           ? `Provider suggestion: ${row.provider_suggestion.label}; taxonomy ${row.provider_suggestion.taxonomy_version}; reported confidence ${row.provider_suggestion.confidence}.`
                           : "Provider suggestion unavailable."}
@@ -897,48 +1028,7 @@ function Review({
             Original imported activity. Topics help organize transactions;
             journal state is shown separately.
           </p>
-          <div className={styles.actions}>
-            <label>
-              <span id={topicChoiceLabel}>Label selected transactions</span>
-              <select
-                aria-labelledby={topicChoiceLabel}
-                value={choice}
-                disabled={
-                  blocked || !!preview || !selected.length || !canClassify
-                }
-                onChange={(event) => {
-                  setChoice(event.target.value);
-                  setPreview(null);
-                  prepareKey.current = null;
-                }}
-              >
-                <option value="">Choose a topic</option>
-                <option value="uncategorized">Explicit Uncategorized</option>
-                {catalog.topics
-                  .filter((topic) => topic.status === "active")
-                  .map((topic) => (
-                    <option
-                      key={topic.topic_id}
-                      value={`topic:${topic.topic_id}`}
-                    >
-                      {topic.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <button
-              disabled={
-                blocked ||
-                !!preview ||
-                !selected.length ||
-                !choice ||
-                !canClassify
-              }
-              onClick={() => void previewLabels()}
-            >
-              Preview labels for {selected.length} selected
-            </button>
-          </div>
+          {!selected.length && selectionControls}
           <div className={styles.paging}>
             <button
               className="secondary"
@@ -967,40 +1057,53 @@ function Review({
           {!canClassify && (
             <p>Topics are read-only with your current access.</p>
           )}
-          {canClassify && (
-            <TaxonomyEditor
-              topics={catalog.topics}
-              disabled={blocked || !!preview || reading}
-              onPreview={(topics) =>
-                void previewAction({ kind: "taxonomy", topics }, [])
-              }
-            />
-          )}
         </>
       )}
       {preview && !command && !denied && (
         <div role="region" className={styles.review} aria-label="Label preview">
           <h3 tabIndex={-1} ref={heading}>
-            {preview.action.kind === "taxonomy"
-              ? "Review topic changes"
-              : `Review ${preview.selected_count} selected transactions`}
+            {preview.action.kind === "tag_catalog"
+              ? "Review tag catalog"
+              : preview.action.kind === "tags"
+                ? `Review tags for ${preview.selected_count} selected`
+                : preview.action.kind === "taxonomy"
+                  ? "Review topic changes"
+                  : `Review ${preview.selected_count} selected transactions`}
           </h3>
           <p>
-            {preview.action.kind === "taxonomy"
-              ? "Replace the private topic edition with "
-              : "Set owner topic to "}
+            {preview.action.kind === "tag_catalog"
+              ? "Replace the strategic tag catalog with "
+              : preview.action.kind === "tags"
+                ? "Change strategic tags: "
+                : preview.action.kind === "taxonomy"
+                  ? "Replace the private topic edition with "
+                  : "Set owner topic to "}
             <strong>{actionLabel(preview.action, catalog)}</strong>. Source
             facts and journals stay unchanged.
           </p>
-          {preview.action.kind === "taxonomy" ? (
+          {preview.action.kind === "tag_catalog" ? (
+            <TagCatalogReview tags={preview.action.tags} />
+          ) : preview.action.kind === "taxonomy" ? (
             <TopicReview topics={preview.action.topics} />
           ) : (
-            <ReviewRows rows={preview.review_rows} />
+            <>
+              <ReviewRows rows={preview.review_rows} />
+              {preview.action.kind === "tags" && (
+                <TagResults rows={preview.tag_results} />
+              )}
+            </>
           )}
-          <button disabled={busy || uncertain} onClick={() => void prepare()}>
-            {preview.action.kind === "taxonomy"
-              ? "Save topic review"
-              : "Save label review"}
+          <button
+            disabled={busy || uncertain || newWorkLocked}
+            onClick={() => void prepare()}
+          >
+            {preview.action.kind === "tag_catalog"
+              ? "Save tag catalog review"
+              : preview.action.kind === "tags"
+                ? "Save tag review"
+                : preview.action.kind === "taxonomy"
+                  ? "Save topic review"
+                  : "Save label review"}
           </button>
           <button
             className="secondary"
@@ -1023,20 +1126,36 @@ function Review({
           aria-label="Saved label review"
         >
           <h3 tabIndex={-1} ref={savedHeading}>
-            {command.preview.action.kind === "taxonomy"
-              ? "Saved topic review"
-              : "Saved label review"}
+            {command.preview.action.kind === "tag_catalog"
+              ? "Saved tag catalog review"
+              : command.preview.action.kind === "tags"
+                ? "Saved tag review"
+                : command.preview.action.kind === "taxonomy"
+                  ? "Saved topic review"
+                  : "Saved label review"}
           </h3>
           <p>
-            {command.preview.action.kind === "taxonomy"
-              ? "Private topic edition: "
-              : `${command.preview.selected_count} selected transactions; owner topic: `}
+            {command.preview.action.kind === "tag_catalog"
+              ? "Strategic tag catalog: "
+              : command.preview.action.kind === "tags"
+                ? `${command.preview.selected_count} selected transactions; strategic tags: `
+                : command.preview.action.kind === "taxonomy"
+                  ? "Private topic edition: "
+                  : `${command.preview.selected_count} selected transactions; owner topic: `}
             <strong>{actionLabel(command.preview.action, catalog)}</strong>.
           </p>
-          {command.preview.action.kind === "taxonomy" ? (
+          {command.preview.action.kind === "tag_catalog" ? (
+            <TagCatalogReview tags={command.preview.action.tags} />
+          ) : command.preview.action.kind === "taxonomy" ? (
             <TopicReview topics={command.preview.action.topics} />
           ) : (
-            <ReviewRows rows={command.preview.review_rows} />
+            <>
+              <ReviewRows rows={command.preview.review_rows} />
+              {command.preview.profile === "private-collection-preview-v2" &&
+                command.preview.action.kind === "tags" && (
+                  <TagResults rows={command.preview.tag_results} />
+                )}
+            </>
           )}
           {command.acknowledged && (
             <p>
@@ -1055,9 +1174,13 @@ function Review({
                 disabled={busy || uncertain || locked || !canClassify}
                 onClick={() => void transition("execute")}
               >
-                {command.preview.action.kind === "taxonomy"
-                  ? "Confirm topic changes"
-                  : `Confirm labels for ${command.preview.selected_count} selected`}
+                {command.preview.action.kind === "tag_catalog"
+                  ? "Confirm tag catalog changes"
+                  : command.preview.action.kind === "tags"
+                    ? `Confirm tags for ${command.preview.selected_count} selected`
+                    : command.preview.action.kind === "taxonomy"
+                      ? "Confirm topic changes"
+                      : `Confirm labels for ${command.preview.selected_count} selected`}
               </button>
               <button
                 className="secondary"
@@ -1071,9 +1194,13 @@ function Review({
             <>
               <p role="status">
                 {command.state === "committed"
-                  ? command.preview.action.kind === "taxonomy"
-                    ? "Topics updated. No journal was created."
-                    : "Labels applied. No journal was created."
+                  ? command.preview.action.kind === "tag_catalog"
+                    ? "Tag catalog updated. No journal was created."
+                    : command.preview.action.kind === "tags"
+                      ? "Tags applied. No journal was created."
+                      : command.preview.action.kind === "taxonomy"
+                        ? "Topics updated. No journal was created."
+                        : "Labels applied. No journal was created."
                   : command.preview.action.kind === "taxonomy"
                     ? "Saved topic review cancelled."
                     : "Saved label review cancelled."}
@@ -1110,6 +1237,9 @@ function topicLabel(row: Row): string {
         : "Not classified";
 }
 function actionLabel(action: LabelAction, catalog: Catalog): string {
+  if (action.kind === "tag_catalog") return `${action.tags.length} tags`;
+  if (action.kind === "tags")
+    return `${action.operation === "add" ? "Add" : action.operation === "remove" ? "Remove" : "Replace with"} ${action.tag_ids.length} tags`;
   if (action.kind === "taxonomy") return `${action.topics.length} topics`;
   return action.kind === "uncategorized"
     ? "Explicit Uncategorized"
@@ -1117,7 +1247,7 @@ function actionLabel(action: LabelAction, catalog: Catalog): string {
         ?.name ?? "Selected topic");
 }
 // The saved server projection exposes exact selected values without aggregation or hidden expansion.
-function ReviewRows({ rows }: { rows: Row[] }) {
+function ReviewRows({ rows }: { rows: (Row | LegacyRow)[] }) {
   return (
     <ul className={styles.reviewRows}>
       {rows.map((row) => (
@@ -1135,7 +1265,7 @@ function ReviewRows({ rows }: { rows: Row[] }) {
 }
 
 // Holds disclose unavailable money without substituting zero, a direction or a guessed currency.
-function MoneyLabel({ row }: { row: Row }) {
+function MoneyLabel({ row }: { row: Row | LegacyRow }) {
   return row.money.state === "held" ? (
     <>
       <span>Money unavailable</span>
@@ -1155,5 +1285,23 @@ function MoneyLabel({ row }: { row: Row }) {
         {row.money.currency}
       </strong>
     </>
+  );
+}
+
+function TagResults({ rows }: { rows: TagResult[] }) {
+  return (
+    <ul aria-label="Resulting strategic tags" className={styles.reviewRows}>
+      {rows.map((row) => (
+        <li key={selectionKey(row)}>
+          {row.source_id} · {row.observation_id}:{" "}
+          {row.tags
+            .map(
+              (tag) =>
+                tag.name + (tag.status === "retired" ? " (retired)" : ""),
+            )
+            .join(", ") || "No tags"}
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -118,11 +118,14 @@ source-registry-test:
 private-registry-test:
 	bash scripts/test-private-registry.sh
 
-.PHONY: collection-labels-test labels-integration
+.PHONY: collection-labels-test tags-recovery-test labels-integration
 collection-labels-test:
 	bash scripts/test-collection-labels.sh
 labels-integration:
 	bash scripts/test-app-integration.sh --labels
+
+tags-recovery-test:
+	bash scripts/test-tags-recovery.sh
 
 .PHONY: import-service-test
 import-service-test:

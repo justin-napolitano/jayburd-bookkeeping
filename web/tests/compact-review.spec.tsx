@@ -29,7 +29,10 @@ async function serveCompact(page: Page, multiple = false) {
     )
       writes.push(url.pathname);
     // Explicitly absent private feature keeps this existing book-only fixture bounded.
-    if (url.pathname === "/v1/collection")
+    if (
+      url.pathname === "/v1/collection" ||
+      url.pathname === "/v1/collection-recovery"
+    )
       return route.fulfill({ status: 404, json: { code: "not_found" } });
     if (url.pathname === "/v1/workspace")
       return route.fulfill({ json: positionWorkspace });

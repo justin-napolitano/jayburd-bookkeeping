@@ -34,7 +34,7 @@ done
 [[ "$ready" == 1 ]] || exit 1
 docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE DATABASE labels_template' >/dev/null
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" \
- "$MIGRATE_IMAGE" -path /proof/migrations -database 'postgres://postgres@database:5432/labels_template?sslmode=disable' up
+ "$MIGRATE_IMAGE" -path /proof/migrations -database 'postgres://postgres@database:5432/labels_template?sslmode=disable' goto 43
 docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE ROLE synthetic_operator LOGIN NOINHERIT IN ROLE bookkeeping_owner; CREATE ROLE synthetic_runtime LOGIN IN ROLE bookkeeping_api; CREATE ROLE synthetic_sync LOGIN IN ROLE bookkeeping_sync; CREATE ROLE synthetic_other LOGIN; CREATE ROLE synthetic_mixed LOGIN IN ROLE bookkeeping_api,bookkeeping_sync' >/dev/null
 mkdir -p .local
 case "$(docker exec "$proof_id" uname -m)" in
@@ -44,7 +44,10 @@ case "$(docker exec "$proof_id" uname -m)" in
 esac
 CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/labels.test ./internal/collectionlabels
 docker cp .local/labels.test "$proof_id:/proof/labels.test"
-docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/labels.test "$POSTGRES_IMAGE" -collection-label-proof -test.v -test.timeout=240s
+# Preserve every existing43 proof; new44 groups run in the separate tagrec_template runner.
+legacy_tests=$(docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/labels.test "$POSTGRES_IMAGE" -test.list '^Test' | grep '^Test' | grep -vE '^Test(TagRec|Independent)' | paste -sd '|' -)
+[[ -n "$legacy_tests" ]] || { echo 'FAIL: no legacy label proof groups found.' >&2; exit 1; }
+docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/labels.test "$POSTGRES_IMAGE" -collection-label-proof -test.run "^($legacy_tests)$" -test.v -test.timeout=240s
 # Exercise actual42->43 backfill of old pending work on a separate synthetic database.
 run_gate_migration() {
  local gate_database=$1
@@ -55,7 +58,7 @@ run_gate_migration() {
 docker exec "$proof_id" createdb -U postgres labels_legacy_backfill -T labels_template
 run_gate_migration labels_legacy_backfill down 1
 docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -d labels_legacy_backfill -c "INSERT INTO ledger.principal(principal_id,issuer,subject)VALUES('00000000-0000-4000-8000-000000000999','synthetic','legacy-pending');INSERT INTO ledger.interactive_command(command_id,principal_id,registration_key,operation,request_body)VALUES('00000000-0000-4000-8000-000000000998','00000000-0000-4000-8000-000000000999','legacy-before43','setup','{}');" >/dev/null
-run_gate_migration labels_legacy_backfill up
+run_gate_migration labels_legacy_backfill goto 43
 [[ "$(docker exec "$proof_id" psql -X -At -v ON_ERROR_STOP=1 -U postgres -d labels_legacy_backfill -c "SELECT count(*) FROM ledger.interactive_command_reservation WHERE legacy_command_id='00000000-0000-4000-8000-000000000998'")" == 1 ]]
 docker exec "$proof_id" createdb -U postgres labels_gate_retained -T labels_legacy_backfill
 if run_gate_migration labels_gate_retained down 1 >".local/$proof_id-gate-down.log" 2>&1; then
@@ -78,7 +81,7 @@ run_empty_migration() {
   "$MIGRATE_IMAGE" -path /proof/migrations -database 'postgres://postgres@database:5432/labels_empty_down?sslmode=disable' "$@"
 }
 run_empty_migration down 1
-run_empty_migration up
+run_empty_migration goto 43
 docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -d labels_empty_down -c "INSERT INTO ledger.principal(principal_id,issuer,subject)VALUES('00000000-0000-4000-8000-000000000999','synthetic','retained-owner');INSERT INTO banking.collection_workspace(owner_principal_id,capabilities)VALUES('00000000-0000-4000-8000-000000000999',ARRAY['read']);" >/dev/null
 if run_empty_migration down 1 >".local/$proof_id-down.log" 2>&1; then
  echo 'FAIL: retained custody allowed destructive downgrade.' >&2

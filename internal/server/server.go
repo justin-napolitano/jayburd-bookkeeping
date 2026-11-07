@@ -82,7 +82,10 @@ func New(c Config, d Dependencies) (*Server, error) {
 			labels := collectionlabels.Handler(d.Auth, d.Labels)
 			for _, suffix := range []string{"taxonomy", "review/query", "labels/preview", "label-commands", "label-commands/pending", "label-commands/{command}/execute", "label-commands/{command}/cancel", "label-commands/{command}/acknowledge"} {
 				application.Handle("/v1/collections/{workspace}/"+suffix, labels)
+				application.Handle("/v2/collections/{workspace}/"+suffix, labels)
 			}
+			application.Handle("/v1/collection-recovery", labels)
+			application.Handle("/v1/collection-recovery/clear", labels)
 		}
 		if d.Connections != nil {
 			mountConnections(application, d.Auth, d.Connections)
@@ -92,6 +95,7 @@ func New(c Config, d Dependencies) (*Server, error) {
 			return nil, errConfiguration
 		}
 		mux.Handle("/v1/", h)
+		mux.Handle("/v2/", h)
 	}
 	// Concurrency bounds cap authenticated provider work and queued database pressure.
 	slots := make(chan struct{}, 32)
