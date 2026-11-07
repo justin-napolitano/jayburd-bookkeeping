@@ -62,6 +62,8 @@ jobs:
         run: make collection-query-test
       - name: Finite owner-only Sandbox activation operator proof
         run: make private-activation-test
+      - name: Private rule service and atomic reviewed application proof
+        run: make collection-rules-test
       - name: Fenced synthetic provider publication proof
         run: make sync-state-test
       - name: Scoped synthetic connection lifecycle proof

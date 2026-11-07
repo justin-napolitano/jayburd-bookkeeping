@@ -138,7 +138,7 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 	}, Close: closeAll}
 	if c.CollectionEnabled {
 		d.Collection = &collectionread.Service{DB: pool}
-		d.Labels = &collectionlabels.Service{DB: pool}
+		d.Labels = &collectionlabels.Service{DB: pool, Rules: collectionlabels.RuleProcessor{}}
 	}
 	if c.CollectionActivationPlanFile != "" {
 		plan, err := collectionactivation.Load(c.CollectionActivationPlanFile, time.Now())
@@ -182,6 +182,12 @@ func collectionReady(ctx context.Context, pool *pgxpool.Pool) error {
 	 ,'banking.get_collection_taxonomy_v3(uuid,uuid)'
 	 ,'banking.query_collection_review_v3(uuid,uuid,text)'
 	 ,'banking.get_collection_detail(uuid,uuid,text)'
+ ,'banking.preview_collection_labels_v3(uuid,uuid,text)'
+ ,'banking.prepare_collection_label_command_v3(uuid,uuid,text)'
+ ,'banking.pending_collection_label_command_v3(uuid,uuid)'
+ ,'banking.transition_collection_label_command_v3(uuid,uuid,uuid,text,text)'
+ ,'banking.collection_rule_context(uuid,uuid,text,boolean)'
+ ,'banking.publish_collection_rule_preview(uuid,uuid,text,text)'
 	 ]) AS f(signature) WHERE to_regprocedure(f.signature) IS NULL
 	 OR NOT has_function_privilege(current_user,to_regprocedure(f.signature),'EXECUTE'))
 	 AND NOT has_function_privilege(current_user,'banking.provision_collection_owner(uuid,text,text)','EXECUTE')`).Scan(&safe)
