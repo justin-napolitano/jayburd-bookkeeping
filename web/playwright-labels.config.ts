@@ -16,6 +16,7 @@ export default defineConfig({
         proxy: {
           "/v1": { target: "http://127.0.0.1:39082", changeOrigin: false },
           "/v2": { target: "http://127.0.0.1:39082", changeOrigin: false },
+          "/v3": { target: "http://127.0.0.1:39082", changeOrigin: false },
         },
       },
     },
