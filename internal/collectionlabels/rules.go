@@ -3,6 +3,7 @@ package collectionlabels
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"slices"
 
 	"github.com/jackc/pgx/v5"
@@ -265,7 +266,13 @@ func evaluateRuleContext(ctx context.Context, c ruleContext, validateCandidate b
 	if ctx.Err() != nil {
 		return nil, unavailable()
 	}
-	engine, compileErr := categorization.Compile(categorization.Catalog{Scope: scope, TaxonomyRevision: c.Snapshot.Taxonomy, RulesRevision: c.Snapshot.Rules, Topics: c.Topics, Tags: c.Tags}, rules)
+	engine, compileErr := categorization.CompileContext(ctx, categorization.Catalog{Scope: scope, TaxonomyRevision: c.Snapshot.Taxonomy, RulesRevision: c.Snapshot.Rules, Topics: c.Topics, Tags: c.Tags}, rules)
+	if ctx.Err() != nil {
+		return nil, unavailable()
+	}
+	if compileErr != nil && !errors.Is(compileErr, categorization.ErrInput) {
+		return nil, unavailable()
+	}
 	if validateCandidate && compileErr != nil {
 		return nil, &ledger.Failure{Status: 400, Code: "invalid_collection"}
 	}
@@ -283,7 +290,7 @@ func evaluateRuleContext(ctx context.Context, c ruleContext, validateCandidate b
 			result.Status = "override"
 			result.Output = &ruleOutput{Kind: f.Topic.Kind, TopicID: f.Topic.TopicID, TagIDs: slices.Clone(f.Tags.TagIDs)}
 		case compileErr == nil && f.SourceState == "booked" && f.MoneyState == "available" && f.Currency != nil && f.Direction != nil && (*f.Direction == "inflow" || *f.Direction == "outflow"):
-			evaluated, e := engine.Evaluate([]categorization.Fact{{Scope: scope, ID: f.Source + ":" + f.Observation, Revision: f.Revision, Account: f.Source, CurrencyVersion: *f.Currency, Direction: *f.Direction, Date: f.Date, Merchant: f.Merchant, Description: f.Description}})
+			evaluated, e := engine.EvaluateContext(ctx, []categorization.Fact{{Scope: scope, ID: f.Source + ":" + f.Observation, Revision: f.Revision, Account: f.Source, CurrencyVersion: *f.Currency, Direction: *f.Direction, Date: f.Date, Merchant: f.Merchant, Description: f.Description}})
 			if e != nil {
 				return nil, unavailable()
 			}
