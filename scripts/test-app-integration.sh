@@ -118,9 +118,18 @@ if [[ "$labels_test" == true ]]; then
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.book')" == 0 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.journal_entry')" == 0 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_observation')" == 4 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_revision')" == 4 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_label_decision')" == 1 ]]
- [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_label_command WHERE state='committed' AND acknowledged_at IS NOT NULL")" == 2 ]]
- echo 'PASS: actual private topic/label browser recovery through Next/Go/restricted SQL; zero books/journals'
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_tag_decision')" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_label_command WHERE principal_id='00000000-0000-4000-8000-000000000001' AND state='committed' AND acknowledged_at IS NOT NULL")" == 4 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT state||':'||(acknowledged_at IS NOT NULL)::text FROM banking.collection_label_command WHERE principal_id='00000000-0000-4000-8000-000000000091'")" == 'cancelled:true' ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT state||':'||(acknowledged_at IS NOT NULL)::text FROM banking.collection_label_command WHERE principal_id='00000000-0000-4000-8000-000000000092'")" == 'committed:true' ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM audit.collection_label_action WHERE principal_id='00000000-0000-4000-8000-000000000091' AND operation='cancel'")" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM audit.collection_label_action WHERE principal_id='00000000-0000-4000-8000-000000000092' AND operation='cancel'")" == 0 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.collection_recovery_receipt WHERE principal_id='00000000-0000-4000-8000-000000000091'")" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.interactive_command_reservation')" == 0 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT (e.tags->0->>'name')||':'||(e.tags->0->>'status') FROM banking.collection_tag_edition e JOIN banking.collection_workspace w USING(workspace_id) WHERE w.owner_principal_id='00000000-0000-4000-8000-000000000092' AND e.tag_revision=2")" == 'Fictional hidden committed tag:active' ]]
+ echo 'PASS: actual private topics/tags and payload-free recovery through Next/Go/restricted SQL; zero books/journals'
  exit 0
 fi
 if [[ "$production_test" == true ]]; then
