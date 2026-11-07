@@ -431,3 +431,20 @@
   border: 0;
   padding-block: 0.15rem;
 }
+
+.ruleCondition textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--paper, #fff);
+  border: 1px solid #819994;
+  border-radius: 5px;
+  padding: 0.65rem 0.8rem;
+  width: 100%;
+  max-width: 100%;
+  min-height: 66px;
+  resize: vertical;
+}
+.ruleResult code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

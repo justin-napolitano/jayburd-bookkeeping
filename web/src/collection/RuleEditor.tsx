@@ -134,6 +134,7 @@ export function RuleEditor({
   seed?: RuleSeed | null;
   onSeedConsumed?: () => void;
 }) {
+  const conditionValueLabel = useId();
   const [draft, setDraft] = useState<Draft[]>(() => catalog.rules.map(draftOf)),
     [open, setOpen] = useState(false),
     [error, setError] = useState(""),
@@ -422,17 +423,31 @@ export function RuleEditor({
                               </Choice>
                             ) : (
                               <label>
-                                {label} value
-                                <input
-                                  type={
-                                    condition.field === "date" ? "date" : "text"
-                                  }
-                                  maxLength={128}
-                                  value={condition.value}
-                                  onChange={(event) =>
-                                    update({ value: event.target.value })
-                                  }
-                                />
+                                <span
+                                  id={`${conditionValueLabel}-${rule.conditionKeys[conditionIndex]}`}
+                                >
+                                  {label} value
+                                </span>
+                                {condition.field === "date" ? (
+                                  <input
+                                    type="date"
+                                    aria-labelledby={`${conditionValueLabel}-${rule.conditionKeys[conditionIndex]}`}
+                                    value={condition.value}
+                                    onChange={(event) =>
+                                      update({ value: event.target.value })
+                                    }
+                                  />
+                                ) : (
+                                  <textarea
+                                    rows={2}
+                                    aria-labelledby={`${conditionValueLabel}-${rule.conditionKeys[conditionIndex]}`}
+                                    maxLength={128}
+                                    value={condition.value}
+                                    onChange={(event) =>
+                                      update({ value: event.target.value })
+                                    }
+                                  />
+                                )}
                               </label>
                             )}
                             <button
