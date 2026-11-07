@@ -112,3 +112,31 @@ from its own clone makes the same blocked private-admission schedule return
 none/null instead of40001, failing the expected assertion. The production fenced
 private/book schedules pass. This substantiates the absent-claim race protection;
 no shared source/template was changed by that negative control.
+
+## Canonical ledger compatibility follow-up
+
+PR452/head65436c7 canonical validate failed at the unchanged
+TestDeletedUnusedPrincipalDenied:44's precreated derived recovery fence introduced
+a restrictive FK on an otherwise unused principal. Root approved a narrow44-only
+correction: this derived state FK follows unused principal deletion with ON DELETE
+CASCADE; its delete guard still rejects direct fence removal while the principal
+exists. Command/workspace/decision/audit/closure-receipt principal FKs retain their
+original restrictions. No existing ledger test or merged1–43 SQL was changed.
+
+Fresh corrected1–44 proof: the entire internal/ledger integration executable PASS,
+including unchanged TestDeletedUnusedPrincipalDenied and
+TestHistoricalPrincipalRetentionAndDisable and all remaining ledger/report/command/
+setup/transport groups. Seven relevant tag/recovery groups PASS: prepared recovery,
+all terminal states, restored authority/new claim, primed status, stale-only
+ordinary recovery, privileges and new TestTagRecUnusedPrincipalFence. The latter
+proves direct fence deletion P2802, retained history deletion23503 with every
+protected row/fence retained, metadata inventory showing no other cascading
+principal FK, and an actual blocked primed status vs unused-principal deletion
+schedule yielding40001 then fresh P2801. Both unused parent and derived row are
+physically absent afterwards. Empty44→43→44 rerun PASS.
+
+The independent reviewer inspected the exact diff read-only and found the narrow
+cascade/guard/retention/snapshot boundaries consistent. Owned follow-up fixture
+jayburd-tagrec44-ci-proof is separate from the already removed original fixture;
+root may use independent cloned DBs before authorizing cleanup. Canonical CI must
+rerun on the updated exact head before any merge claim.
