@@ -20,7 +20,7 @@ const access = {
   capabilities: ["read", "classify"],
 };
 const catalog = {
-  profile: "private-collection-catalog-v2",
+  profile: "private-collection-catalog-v3",
   workspace_id: workspace,
   authority_revision: "1",
   ...collectionCatalog,
@@ -119,7 +119,7 @@ describe("always-mounted private recovery coordinator", () => {
     expect(api.query).not.toHaveBeenCalled();
     expect(request.mock.calls.map(([path]) => path)).toEqual([
       "/v1/collection",
-      `/v2/collections/${workspace}/taxonomy`,
+      `/v3/collections/${workspace}/taxonomy`,
       `/v2/collections/${workspace}/label-commands/pending`,
     ]);
     expect(lock).toHaveBeenLastCalledWith(true);

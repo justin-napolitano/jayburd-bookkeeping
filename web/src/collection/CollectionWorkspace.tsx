@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { API } from "../bookkeeping/api";
+import { createCollectionJournalReader } from "./journal";
 import { CollectionReview } from "./CollectionReview";
 import {
   createCollectionPort,
@@ -36,6 +37,7 @@ export function CollectionWorkspace({
   const [sessionLocked, setSessionLocked] = useState(true);
   const epoch = useRef(0);
   const refreshedVersion = useRef(refreshVersion);
+  const readJournal = useMemo(() => createCollectionJournalReader(api), [api]);
   const port = useMemo(() => createCollectionPort(api), [api]);
   const load = useCallback(async () => {
     const n = ++epoch.current;
@@ -112,6 +114,7 @@ export function CollectionWorkspace({
         sources={bootstrap.sources}
         catalog={bootstrap.catalog}
         port={port}
+        readJournal={readJournal}
         canClassify={bootstrap.canClassify}
         locked={bookLocked}
         active={active}

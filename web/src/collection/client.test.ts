@@ -19,7 +19,7 @@ const access = {
   capabilities: ["read", "classify"],
 };
 const catalog = {
-  profile: "private-collection-catalog-v2",
+  profile: "private-collection-catalog-v3",
   workspace_id: workspace,
   authority_revision: "1",
   ...collectionCatalog,
@@ -69,7 +69,7 @@ describe("authenticated private collection port", () => {
     });
     expect(request.mock.calls).toEqual([
       ["/v1/collection"],
-      [`/v2/collections/${workspace}/taxonomy`],
+      [`/v3/collections/${workspace}/taxonomy`],
     ]);
   });
   it("does not selfgrant or fabricate a catalog for explicit feature-off404", async () => {
@@ -124,7 +124,7 @@ describe("authenticated private collection port", () => {
     await port.query(q);
     const { workspace_id: _, ...queryBody } = q;
     expect(query.mock.calls[0]).toEqual([
-      `/v2/collections/${workspace}/review/query`,
+      `/v3/collections/${workspace}/review/query`,
       JSON.stringify(queryBody),
     ]);
     const previewRequest = {
