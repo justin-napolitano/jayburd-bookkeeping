@@ -9,6 +9,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/clouddb"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/identity"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
@@ -136,11 +137,12 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 	}, Close: closeAll}
 	if c.CollectionEnabled {
 		d.Collection = &collectionread.Service{DB: pool}
+		d.Labels = &collectionlabels.Service{DB: pool}
 	}
 	return d, nil
 }
 
-// collectionReady requires the reviewed read functions only on explicit feature activation.
+// collectionReady requires matching source and label functions only on explicit activation.
 // The base runtime safety query separately denies table, operator and schema authority.
 func collectionReady(ctx context.Context, pool *pgxpool.Pool) error {
 	var safe bool
@@ -151,6 +153,15 @@ func collectionReady(ctx context.Context, pool *pgxpool.Pool) error {
 	 AND has_function_privilege(current_user,'banking.get_collection_workspace(uuid)','EXECUTE')
 	 AND has_function_privilege(current_user,'banking.list_collection_sources(uuid,uuid,text)','EXECUTE')
 	 AND has_function_privilege(current_user,'banking.query_collection_observations(uuid,uuid,text)','EXECUTE')
+	 AND NOT EXISTS(SELECT FROM unnest(ARRAY[
+	 'banking.get_collection_taxonomy(uuid,uuid)',
+	 'banking.query_collection_review(uuid,uuid,text)',
+	 'banking.preview_collection_labels(uuid,uuid,text)',
+	 'banking.prepare_collection_label_command(uuid,uuid,text)',
+	 'banking.pending_collection_label_command(uuid,uuid)',
+	 'banking.transition_collection_label_command(uuid,uuid,uuid,text,text)'
+	 ]) AS f(signature) WHERE to_regprocedure(f.signature) IS NULL
+	 OR NOT has_function_privilege(current_user,to_regprocedure(f.signature),'EXECUTE'))
 	 AND NOT has_function_privilege(current_user,'banking.provision_collection_owner(uuid,text,text)','EXECUTE')`).Scan(&safe)
 	if err != nil || !safe {
 		return errors.New("dependencies unavailable")
