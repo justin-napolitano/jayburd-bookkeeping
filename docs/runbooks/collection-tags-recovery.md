@@ -34,15 +34,16 @@ TAGREC-20261107T0340Z. Synthetic data only; no hosted/provider/live activation.
 
 | Real versioned route composition | Next v2 catch-all and labels-only Vite test proxy both forward v2 to the existing bounded bridge/API; all old paths remain. This closes versioned routing through the actual app stack rather than intercepting responses |
 
+| Final combined local proof |548 frontend units,76 component browsers, generated API check, type generation/production build and core check/build PASS. Exact combined binary passes all25 new SQL/HTTP groups on44, plus29 legacy/adapter groups on43 (all21 old real integration groups retained). Migration tamper/order checks PASS. Actual100/3000 HTTP timings under concurrent load stayed0.54–1.07s per operation within4s; no SLA |
+| Host limits |Full make test attempted:18 release-policy node tests and all non-socket Go packages PASS; existing acquisition/webhookhost/workerhost/workerruntime listener tests fail bind EPERM. Actual app labels script attempted and stops at listener preflight before Docker resources. No test/pin weakened; canonical Linux app/default gates remain mandatory |
+
 ## Current evidence
 
-Implementation in progress. Parent449 all five checks passed; that is baseline,
-not acceptance of this new source. GitHub450/451/65 own actual progress/results.
+All source lanes are integrated and independently reviewed. The stage ledger distinguishes local SQL/HTTP/component evidence from the canonical full-stack gate. GitHub PR and issues450/451/65 own current exact source, checks and merge state; no hosted activation is inferred.
 
 ## Remaining work
 
-Implement SQL/API/UI and independent proofs; inspect synthetic UI; run required
-checks and full canonical browser/API/PostgreSQL journeys before source merge.
+Canonical full browser/API/PostgreSQL and complete repository CI must pass at the exact final source before merge. No further code changes are planned unless verification finds a defect. Broader242 filters/detail links and separate provider/rule runtime remain open; migration45 is unallocated.
 
 ## PR handoff
 
