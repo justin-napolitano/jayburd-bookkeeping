@@ -281,6 +281,7 @@ export function Bookkeeping({
         onLockChange={setCollectionLocked}
         refreshVersion={collectionRefreshVersion}
         onPrepareConflict={() => recovery.refreshIfIdle()}
+        onAcknowledged={() => setTool("All transactions")}
       />
       {recovery.locked && (
         <CommandPanel recovery={recovery} workspace={workspace} />

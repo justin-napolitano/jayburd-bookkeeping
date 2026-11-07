@@ -25,6 +25,8 @@ creation, fabricated catalog or browser financial persistence is permitted.
 | Visual review |Revised390px taxonomy editor screenshot inspected; readable name/parent/status controls and explicit preview action fit without horizontal overflow. Original default/larger-font screenshots remain synthetic fixtures |
 | Reciprocal reservation followup |Root identified independent pending-store race; first definite409 now checks both engine-specific recovery endpoints. Parent closes private gate synchronously; private refresh defers while non-idle; book idle-only refresh preserves active work. Book locks no longer unmount private uncertain intent; old registration keys survive later409 and unrelated pending identities |
 | Followup validation |509 full frontend units and69 full browsers PASS;67 focused collection/book-hook units plus both real-client mocked cross-context winner cases pass. Existing initial account-registration recovery assertions retained; strict key guard applies only after a later definite rejected retry |
+| Acknowledged task context |Static real-journey review found force-visible private recovery would disappear back to Overview after acknowledgement. Confirmed explicit private ack now opens All transactions before reload. Strengthened pending/committed/remount browser checks require active private navigation and visible rows before another click; failed ack/unknown/book locks retain Overview |
+| Task-context validation |57 collection units,10 real-client mock browser journeys, Next/TypeScript check and production build PASS. Root owns combined/full-stack exact-head recheck and CI; real integration assertions remain unchanged |
 
 ## Current evidence
 
