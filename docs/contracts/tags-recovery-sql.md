@@ -134,3 +134,11 @@ rendering100 times without widening selection or moving authority into Go. Named
 deadline proofs measure preview/prepare/atomic execute under3500ms statement and4s
 context; exact observations/limits are in the SQL runbook. Immutable historic v1
 previews keep their original version and content; old1–43 source remains unchanged.
+
+Unused principal compatibility: the persistent recovery fence is derived metadata,
+so its FK alone follows physical deletion of an otherwise unused principal.
+Direct fence deletion remains denied while that principal exists. Any retained
+workspace/command/decision/audit/closure-receipt reference still prevents principal
+deletion; their FKs are unchanged. Current recovery checks the active principal
+before the fence/receipt, and primed deletion races abort rather than authorize a
+removed identity. No retained history is cascaded or reset.

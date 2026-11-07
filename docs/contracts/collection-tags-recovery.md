@@ -78,6 +78,7 @@ A persistent precreated per-principal revision fence, touched on reservation
 insert/delete, prevents a primed status snapshot from missing a new claim after
 waiting. Lock current active principal first and fence last in compatible order.
 Known40001/40P01 aborts retry; unknown commits never automatically retry.
+Only the derived fence row follows deletion of an otherwise-unused principal. Its guard denies direct deletion while the parent exists; commands, workspaces, decisions and closure receipts retain their restrictive history FKs. Primed deletion forces retry and fresh deleted identity is denied.
 
 The always-mounted UI discovers opaque recovery before ordinary private discovery
 can establish absence. Inaccessible work offers an explicit clear action. An
