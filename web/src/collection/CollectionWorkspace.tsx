@@ -13,11 +13,15 @@ export function CollectionWorkspace({
   active,
   bookLocked,
   onLockChange,
+  refreshVersion = 0,
+  onPrepareConflict,
 }: {
   api: API;
   active: boolean;
   bookLocked: boolean;
   onLockChange: (locked: boolean) => void;
+  refreshVersion?: number;
+  onPrepareConflict?: () => Promise<void> | void;
 }) {
   const [bootstrap, setBootstrap] = useState<CollectionBootstrap | null>(null);
   const [state, setState] = useState<
@@ -25,6 +29,7 @@ export function CollectionWorkspace({
   >("loading");
   const [sessionLocked, setSessionLocked] = useState(true);
   const epoch = useRef(0);
+  const refreshedVersion = useRef(refreshVersion);
   const port = useMemo(() => createCollectionPort(api), [api]);
   const load = useCallback(async () => {
     const n = ++epoch.current;
@@ -46,10 +51,21 @@ export function CollectionWorkspace({
       epoch.current++;
     };
   }, [load]);
+  const refreshPending = refreshedVersion.current !== refreshVersion;
+  useEffect(() => {
+    if (!refreshPending) return;
+    refreshedVersion.current = refreshVersion;
+    // Existing sessions perform their own idle-only pending refresh without unmounting.
+    if (state === "ready") return;
+    void load();
+  }, [refreshPending, refreshVersion, state, sessionLocked, load]);
   const locked =
     state === "ready"
-      ? sessionLocked
-      : state === "loading" || state === "failed" || state === "denied";
+      ? sessionLocked || refreshPending
+      : state === "loading" ||
+        state === "failed" ||
+        state === "denied" ||
+        refreshPending;
   useEffect(() => {
     onLockChange(locked);
   }, [locked, onLockChange]);
@@ -96,6 +112,8 @@ export function CollectionWorkspace({
         onLockChange={setSessionLocked}
         onAcknowledged={() => void load()}
         onRefreshCatalog={() => void load()}
+        onPrepareConflict={onPrepareConflict}
+        refreshVersion={refreshVersion}
         onDenied={() => {
           epoch.current++;
           setBootstrap(null);

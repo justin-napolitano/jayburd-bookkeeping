@@ -43,6 +43,8 @@ export type CollectionReviewProps = {
   onLockChange?: (locked: boolean) => void;
   onAcknowledged?: () => void;
   onRefreshCatalog?: () => void;
+  onPrepareConflict?: () => Promise<void> | void;
+  refreshVersion?: number;
   onDenied: () => void;
 };
 const initial: Selector = {
@@ -59,7 +61,7 @@ const initial: Selector = {
 export function CollectionReview(props: CollectionReviewProps) {
   return (
     <Review
-      key={`${props.workspace.workspace_id}/${props.workspace.authority_revision}/${props.catalog.taxonomy_revision}/${!!props.locked}`}
+      key={`${props.workspace.workspace_id}/${props.workspace.authority_revision}/${props.catalog.taxonomy_revision}`}
       {...props}
     />
   );
@@ -77,6 +79,8 @@ function Review({
   onLockChange,
   onAcknowledged,
   onRefreshCatalog,
+  onPrepareConflict,
+  refreshVersion = 0,
   onDenied,
 }: CollectionReviewProps) {
   const [draft, setDraft] = useState<Selector>(initial),
@@ -116,7 +120,16 @@ function Review({
       view: "preview" | "command";
     } | null>(null);
   onDeniedRef.current = onDenied;
-  const blocked = locked || denied || busy || !ready || !!command || uncertain;
+  const recoveredVersion = useRef(refreshVersion);
+  const reciprocalRefreshPending = recoveredVersion.current !== refreshVersion;
+  const blocked =
+    locked ||
+    denied ||
+    busy ||
+    !ready ||
+    !!command ||
+    uncertain ||
+    reciprocalRefreshPending;
   const title = useRef<HTMLHeadingElement>(null);
   const wasActive = useRef(active);
   useEffect(() => {
@@ -125,12 +138,34 @@ function Review({
     wasActive.current = active;
   }, [active, command, preview]);
   const lockCallback = useRef(onLockChange);
+  const conflictCallback = useRef(onPrepareConflict);
+  conflictCallback.current = onPrepareConflict;
   lockCallback.current = onLockChange;
   useEffect(() => {
     lockCallback.current?.(
-      !denied && (!ready || busy || !!preview || !!command || uncertain),
+      !denied &&
+        (!ready ||
+          busy ||
+          !!preview ||
+          !!command ||
+          uncertain ||
+          reciprocalRefreshPending),
     );
-  }, [ready, busy, preview, command, uncertain, denied]);
+  }, [
+    ready,
+    busy,
+    preview,
+    command,
+    uncertain,
+    denied,
+    reciprocalRefreshPending,
+  ]);
+  useEffect(() => {
+    if (locked) {
+      setPage(null);
+      setSelected([]);
+    }
+  }, [locked]);
 
   // Denial destroys private state; fixed messages never echo raw service errors.
   const failure = useCallback((reason: unknown, mutation = false) => {
@@ -168,6 +203,7 @@ function Review({
   // Discovery never executes or acknowledges and must finish before new label work is enabled.
   const recover = useCallback(async () => {
     const n = ++epoch.current;
+    setReady(false);
     setBusy(true);
     setError("");
     setPage(null);
@@ -229,12 +265,39 @@ function Review({
     return () => {
       epoch.current++;
     };
-  }, [recover, locked]);
+  }, [recover]);
+  useEffect(() => {
+    if (
+      !reciprocalRefreshPending ||
+      !ready ||
+      busy ||
+      preview ||
+      command ||
+      uncertain ||
+      denied ||
+      pendingOutcome.current
+    )
+      return;
+    // Recheck pending in this session; never remount a newly busy or uncertain prepare.
+    recoveredVersion.current = refreshVersion;
+    void recover();
+  }, [
+    reciprocalRefreshPending,
+    refreshVersion,
+    ready,
+    busy,
+    preview,
+    command,
+    uncertain,
+    denied,
+    recover,
+  ]);
 
   // Focus only the committed current review; frames can run before React attaches its heading.
   useEffect(() => {
     const request = focusRequest.current;
     if (!request) return;
+    if (locked) return;
     focusRequest.current = null;
     if (
       request.epoch !== epoch.current ||
@@ -263,7 +326,15 @@ function Review({
       setReading(false);
       return;
     }
-    if (!ready || locked || denied || command || uncertain) return;
+    if (
+      !ready ||
+      locked ||
+      denied ||
+      command ||
+      uncertain ||
+      reciprocalRefreshPending
+    )
+      return;
     const n = ++epoch.current;
     setReading(true);
     setPage(null);
@@ -290,6 +361,7 @@ function Review({
     query,
     active,
     ready,
+    reciprocalRefreshPending,
     locked,
     denied,
     command,
@@ -460,7 +532,10 @@ function Review({
           // A rejected prepare may conflict with another tab's saved command.
           // Keep the shared gate closed until fresh pending discovery completes.
           setReady(false);
-          void recover();
+          await Promise.all([
+            recover(),
+            reason.kind === "stale" ? conflictCallback.current?.() : undefined,
+          ]);
         } else failure(reason, true);
       }
     } finally {
@@ -508,7 +583,10 @@ function Review({
         // The validated acknowledgement completed before a new read advances its epoch.
         setBusy(false);
         if (onAcknowledged) onAcknowledged();
-        else refresh();
+        else {
+          setReady(true);
+          refresh();
+        }
       } else {
         knownTerminal.current =
           result.state === "prepared" ? null : result.state;

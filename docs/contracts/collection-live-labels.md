@@ -92,6 +92,36 @@ Inactive idle collection views clear retained rows and skip row queries while
 continuing pending discovery. Sign-out clears memory; persisted server discovery
 supports later recovery. No financial data/key/token enters browser persistence.
 
+## Reciprocal command discovery
+
+The shared principal reservation is an authoritative SQL boundary coordinated
+upstream; this browser does not assume that its initial two pending reads remain
+current across other tabs. A first definite private prepare409 checks both its
+own pending endpoint and idle book recovery. A first definite book registration409
+checks its own endpoint and requests a private recovery refresh. The shared gate
+closes synchronously before reciprocal refresh and remains closed until both
+current reads settle. Each endpoint retains its own payload/identity; no private
+command is returned through book recovery or vice versa. Neither read executes,
+cancels or acknowledges work.
+
+The private coordinator defers refresh while its current session is busy, reviewed,
+pending or uncertain. Book idle-only refresh skips active commands and uncertain
+registrations. Book workflow locks clear private rows/selection and disable
+actions, but no longer key/unmount or automatically rediscover a private session:
+this explicitly supersedes the isolated component's old lock-unmount behavior.
+Authority/workspace/taxonomy changes still destroy that scope-owned session.
+
+A previously uncertain book registration keeps the exact key/body/path after a
+later definite409 and never triggers the first-rejection callback. After that
+rejection, book pending cannot prove a command belongs to the retained key;
+only explicit exact-key registration retry resolves it. Existing initial ambiguous
+reply discovery still restores the server's current pending intent for explicit
+review; it is not proof that the original candidate executed. No ledger key-echo
+wire change or broader recovery policy is introduced. Idle-only
+reciprocal refresh cannot replace a known active command. These controls preserve
+intent while SQL reservation/replay proves the actual cross-context no-effect
+boundary; browser mocks alone do not prove database mutual exclusion.
+
 ## Evidence and alternatives
 
 Client unit tests name exact operations/bodies/wrappers, feature-off/denied/stale/
