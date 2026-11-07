@@ -70,6 +70,16 @@ stops in251ms; the full concurrent run passes both changed packages. make
 check/build PASS. Full make test remains non-green solely in the four existing
 network-listener packages with sandbox bind EPERM;18 Node checks pass.
 
+Final actual46 run after the context patch: all8 integration groups and2 unit
+groups PASS. Stale source execute plus taxonomy/tag/ruleset/manual prepare
+changes all reject409 without effects (2.11s total). A test-only later-row
+constraint forces503 and proves zero decisions/revision advance with prepared
+command preserved; removing only that clone constraint allows the same intent
+to commit exactly2 decisions (0.53s). Retained unprepared v3 review prevents
+rollback with P2802 and retained history intact (0.19s). Original source/journal
+hashes remain equal around failed/successful classification operations. The
+final admitted deadline run stops in250ms.
+
 ## Remaining work
 
 Finish canonical checks and independent integration review, including
