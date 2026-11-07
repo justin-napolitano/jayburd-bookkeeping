@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -320,5 +321,82 @@ func TestCollectionLabelsHTTPResultCapPostgres(t *testing.T) {
 	// The failed read released the only acquired transaction and did not create accounting or commands.
 	if value(t, owner, "SELECT((SELECT count(*)FROM banking.collection_label_command)+(SELECT count(*)FROM ledger.journal_entry))::text") != "0" {
 		t.Fatal("result-fence failure created durable effects")
+	}
+}
+
+// TestCollectionLabelsUpgradeAcknowledgementRace proves old snapshots cannot strand a backfilled claim.
+func TestCollectionLabelsUpgradeAcknowledgementRace(t *testing.T) {
+	owner, _, db := labelHTTPFixture(t)
+	// Only source artifacts copied by the disposable runner are read; no inherited path or DSN.
+	down, err := os.ReadFile("/proof/migrations/000043_collection_labels.down.sql")
+	if err != nil {
+		t.Fatal("synthetic migration source unavailable")
+	}
+	up, err := os.ReadFile("/proof/migrations/000043_collection_labels.up.sql")
+	if err != nil {
+		t.Fatal("synthetic migration source unavailable")
+	}
+	exec(t, owner, string(down))
+	const legacyID = "00000000-0000-4000-8000-000000000901"
+	// A fictional already-reviewed42-era setup intent needs no invented book or journal.
+	exec(t, owner, `INSERT INTO ledger.interactive_command(command_id,principal_id,registration_key,operation,request_body)VALUES($1,$2,'http-upgrade-legacy','setup','{}')`, legacyID, actor)
+	if _, err = call(t, db, "synthetic_runtime", "serializable", "SELECT ledger.transition_command($1,$2,$3,'cancel','{}')", actor, legacyID, evidence); err != nil {
+		t.Fatal("synthetic legacy cancellation failed", err)
+	}
+	runtime := connect(t, db, "synthetic_runtime")
+	defer runtime.Close(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	stale, err := runtime.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stale.Rollback(context.Background())
+	var count int
+	if err = stale.QueryRow(ctx, "SELECT count(*)FROM pg_catalog.pg_class").Scan(&count); err != nil {
+		t.Fatal("synthetic old snapshot unavailable", err)
+	}
+	// Strip only the script's outer transaction so the real backfill remains uncommitted during ACK.
+	source := string(up)
+	body := strings.Replace(source, "\nBEGIN;\n", "\n", 1)
+	trimmed := strings.TrimSpace(body)
+	if body == source || !strings.HasSuffix(trimmed, "COMMIT;") {
+		t.Fatal("unexpected synthetic migration transaction framing")
+	}
+	body = strings.TrimSuffix(trimmed, "COMMIT;")
+	migration, err := owner.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer migration.Rollback(context.Background())
+	if _, err = migration.Exec(ctx, body); err != nil {
+		t.Fatal("synthetic43 upgrade failed", err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		var result []byte
+		err := stale.QueryRow(ctx, "SELECT ledger.transition_command($1,$2,$3,'acknowledge','{}')", actor, legacyID, evidence).Scan(&result)
+		if err == nil {
+			err = stale.Commit(ctx)
+		}
+		_ = stale.Rollback(context.Background())
+		done <- err
+	}()
+	waitBlocked(t, owner, runtime.PgConn().PID())
+	if err = migration.Commit(ctx); err != nil {
+		t.Fatal("synthetic43 upgrade commit failed", err)
+	}
+	code(t, <-done, "40001")
+	if value(t, owner, "SELECT count(*)::text FROM ledger.interactive_command_reservation WHERE principal_id=$1 AND legacy_command_id=$2", actor, legacyID) != "1" || value(t, owner, "SELECT (acknowledged_at IS NULL)::text FROM ledger.interactive_command WHERE command_id=$1", legacyID) != "true" {
+		t.Fatal("stale acknowledgement released or stranded a partially acknowledged claim")
+	}
+	if _, err = call(t, db, "synthetic_runtime", "serializable", "SELECT ledger.transition_command($1,$2,$3,'acknowledge','{}')", actor, legacyID, evidence); err != nil {
+		t.Fatal("fresh legacy acknowledgement failed", err)
+	}
+	if value(t, owner, "SELECT count(*)::text FROM ledger.interactive_command_reservation") != "0" || value(t, owner, "SELECT state||':'||(acknowledged_at IS NOT NULL)::text FROM ledger.interactive_command WHERE command_id=$1", legacyID) != "cancelled:true" || value(t, owner, "SELECT count(*)::text FROM audit.command_action WHERE command_id=$1 AND action='acknowledge'", legacyID) != "1" {
+		t.Fatal("fresh acknowledgement failed exact release or changed historical command")
+	}
+	if value(t, owner, "SELECT((SELECT count(*)FROM ledger.book)+(SELECT count(*)FROM ledger.journal_entry))::text") != "0" {
+		t.Fatal("upgrade recovery fabricated accounting effects")
 	}
 }
