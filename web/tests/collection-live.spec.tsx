@@ -157,16 +157,20 @@ async function serve(
               capabilities: state.capabilities,
             },
           });
-    if (path === `/v2/collections/${workspace}/taxonomy`)
+    if (path === `/v3/collections/${workspace}/taxonomy`)
       return route.fulfill({
         json: {
-          profile: "private-collection-catalog-v2",
+          profile: "private-collection-catalog-v3",
           workspace_id: workspace,
           authority_revision: "1",
           taxonomy_revision: state.taxonomy,
           ruleset_revision: "4",
           map_revision: "0",
           tag_revision: "1",
+          books: [],
+          currencies: [],
+          institution: { state: "unavailable" },
+          legal_owner: { state: "unknown" },
           tags: [],
           topics: state.topics,
           sources: [{ source_id: source, name: "Fictional private checking" }],
@@ -179,7 +183,7 @@ async function serve(
       const start = q.cursor ? 25 : 0;
       return route.fulfill({
         json: {
-          profile: "private-collection-review-v2",
+          profile: "private-collection-review-v3",
           workspace_id: workspace,
           selector: collectionSelector(q),
           snapshot: snapshot(),

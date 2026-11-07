@@ -31,8 +31,13 @@ import {
   type Selector,
   type SourceChoice,
   type Workspace,
+  type DetailRequest,
 } from "./types";
 import styles from "./collection.module.css";
+import { CollectionFilters } from "./CollectionFilters";
+import { collectionFilterError } from "./filters";
+import { CollectionDetail } from "./CollectionDetail";
+import type { JournalReader } from "./journal";
 import { TaxonomyEditor, TopicReview } from "./TaxonomyEditor";
 import { TagCatalogReview, TagEditor, TagSelection } from "./TagEditor";
 
@@ -52,8 +57,15 @@ export type CollectionReviewProps = {
   refreshVersion?: number;
   newWorkLocked?: boolean;
   onDenied: () => void;
+  readJournal?: JournalReader;
 };
 const initial: Selector = {
+  merchant: { kind: "all" },
+  amount: null,
+  institution: { kind: "all" },
+  legal_owner: { kind: "all" },
+  book: { kind: "all" },
+  status: { source: "all", journal: "all" },
   source_account_id: null,
   assignment: "all",
   starts_on: null,
@@ -61,7 +73,7 @@ const initial: Selector = {
   search: "",
   topic: { kind: "all" },
   tag: { kind: "all" },
-  sort: "date_desc",
+  sort: { field: "date", order: "desc" },
 };
 
 // Authority/taxonomy/scope changes unmount all memory-only private rows, keys and pending requests.
@@ -89,15 +101,19 @@ function Review({
   onPrepareConflict,
   refreshVersion = 0,
   newWorkLocked = false,
+  readJournal,
   onDenied,
 }: CollectionReviewProps) {
   const topicChoiceLabel = useId();
+  const [detail, setDetail] = useState<DetailRequest | null>(null);
+  const rowButtons = useRef(new Map<string, HTMLButtonElement>());
+  const detailReturn = useRef<string | null>(null);
   const tagFilterLabel = useId();
   const [draft, setDraft] = useState<Selector>(initial),
     [selector, setSelector] = useState<Selector>(initial);
   const [query, setQuery] = useState<Query>({
     ...initial,
-    profile: "private-collection-review-v2",
+    profile: "private-collection-review-v3",
     workspace_id: workspace.workspace_id,
     limit: 25,
     snapshot: null,
@@ -181,6 +197,7 @@ function Review({
   // Denial destroys private state; fixed messages never echo raw service errors.
   const failure = useCallback((reason: unknown, mutation = false) => {
     setPage(null);
+    setDetail(null);
     setSelected([]);
     if (reason instanceof CollectionFailure && reason.kind === "denied") {
       epoch.current++;
@@ -332,6 +349,7 @@ function Review({
   // Every page request carries the exact selector and server-owned all-source snapshot.
   useEffect(() => {
     if (!active) {
+      setDetail(null);
       setPage(null);
       setSelected([]);
       setReading(false);
@@ -385,6 +403,7 @@ function Review({
 
   // A new selector or page cannot retain an old selection, reviewed preview or prepare identity.
   const read = (next: Query) => {
+    setDetail(null);
     epoch.current++;
     focusRequest.current = null;
     setPage(null);
@@ -397,7 +416,7 @@ function Review({
   const refresh = () =>
     read({
       ...selector,
-      profile: "private-collection-review-v2",
+      profile: "private-collection-review-v3",
       workspace_id: workspace.workspace_id,
       limit: 25,
       snapshot: null,
@@ -419,10 +438,15 @@ function Review({
       setError("Choose an ordered start and end date.");
       return;
     }
+    const filterError = collectionFilterError(draft, catalog);
+    if (filterError) {
+      setError(filterError);
+      return;
+    }
     setSelector(draft);
     read({
       ...draft,
-      profile: "private-collection-review-v2",
+      profile: "private-collection-review-v3",
       workspace_id: workspace.workspace_id,
       limit: 25,
       snapshot: null,
@@ -670,6 +694,30 @@ function Review({
     </div>
   );
 
+  useEffect(() => {
+    if (locked || denied) setDetail(null);
+  }, [locked, denied]);
+  useEffect(() => {
+    if (detail || !detailReturn.current || locked || denied) return;
+    const button = rowButtons.current.get(detailReturn.current);
+    detailReturn.current = null;
+    button?.focus({ preventScroll: true });
+    button?.scrollIntoView?.({ block: "nearest" });
+  }, [detail, page, locked, denied]);
+  if (detail && !locked && !denied)
+    return (
+      <CollectionDetail
+        request={detail}
+        books={catalog.books}
+        port={port}
+        readJournal={readJournal}
+        onBack={() => {
+          detailReturn.current = selectionKey(detail);
+          setDetail(null);
+        }}
+        onDenied={() => failure(new CollectionFailure("denied"))}
+      />
+    );
   if (locked)
     return (
       <p role="status">Finish the pending action to review all transactions.</p>
@@ -854,21 +902,11 @@ function Review({
                     }
                   />
                 </label>
-                <label>
-                  Date order
-                  <select
-                    value={draft.sort}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        sort: event.target.value as Selector["sort"],
-                      })
-                    }
-                  >
-                    <option value="date_desc">Newest first</option>
-                    <option value="date_asc">Oldest first</option>
-                  </select>
-                </label>
+                <CollectionFilters
+                  draft={draft}
+                  catalog={catalog}
+                  onChange={setDraft}
+                />
               </div>
             </details>
           </fieldset>
@@ -971,7 +1009,25 @@ function Review({
                     <span className={styles.date}>{row.booked_date}</span>
                   </label>
                   <div className={styles.description}>
-                    <strong>{row.description}</strong>
+                    <button
+                      type="button"
+                      className={styles.detailLink}
+                      ref={(node) => {
+                        if (node)
+                          rowButtons.current.set(selectionKey(row), node);
+                        else rowButtons.current.delete(selectionKey(row));
+                      }}
+                      disabled={blocked || !!preview || reading}
+                      onClick={() =>
+                        setDetail({
+                          profile: "private-collection-detail-v1",
+                          snapshot: page.snapshot,
+                          ...selectionOf(row),
+                        })
+                      }
+                    >
+                      {row.description}
+                    </button>
                     <span>{row.account_name}</span>
                     <span>
                       {row.merchant === null

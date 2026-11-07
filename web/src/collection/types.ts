@@ -17,7 +17,25 @@ export type Tag = {
   name: string;
   status: "active" | "retired";
 };
+export type BookChoice = {
+  entity_id: string;
+  book_id: string;
+  name: string;
+  entity_name: string;
+};
+export type CurrencyChoice = {
+  currency_version_id: string;
+  code: string;
+  numeric_code: string | null;
+  minor_unit: number;
+  valid_from: string;
+  valid_to: string | null;
+};
 export type Catalog = {
+  books: BookChoice[];
+  currencies: CurrencyChoice[];
+  institution: { state: "unavailable" };
+  legal_owner: { state: "unknown" };
   taxonomy_revision: string;
   ruleset_revision: string;
   map_revision: string;
@@ -55,7 +73,47 @@ export type TagFilter =
   | { kind: "all" }
   | { kind: "untagged" }
   | { kind: "tag"; tag_id: string };
+export type MerchantFilter =
+  | { kind: "all" | "missing" }
+  | { kind: "exact" | "contains"; value: string };
+export type AmountFilter = null | {
+  currency_version_id: string;
+  minimum: string | null;
+  maximum: string | null;
+  direction: "all" | "inflow" | "outflow" | "zero";
+};
+export type BookFilter =
+  | { kind: "all" | "unassigned" | "unavailable" }
+  | { kind: "book"; entity_id: string; book_id: string };
+export type SortField =
+  | "date"
+  | "account"
+  | "description"
+  | "merchant"
+  | "amount"
+  | "currency"
+  | "book"
+  | "source_state"
+  | "journal_state"
+  | "topic"
+  | "tags"
+  | "institution"
+  | "legal_owner";
 export type Selector = {
+  merchant: MerchantFilter;
+  amount: AmountFilter;
+  institution: { kind: "all" | "unavailable" };
+  legal_owner: { kind: "all" | "unknown" };
+  book: BookFilter;
+  status: {
+    source: "all" | "booked" | "pending" | "removed" | "held";
+    journal:
+      | "all"
+      | "unposted"
+      | "posted"
+      | "correction_required"
+      | "unavailable";
+  };
   source_account_id: string | null;
   assignment: "all" | "assigned" | "unassigned";
   starts_on: string | null;
@@ -63,10 +121,10 @@ export type Selector = {
   search: string;
   topic: TopicFilter;
   tag: TagFilter;
-  sort: "date_desc" | "date_asc";
+  sort: { field: SortField; order: "asc" | "desc" };
 };
 export type Query = Selector & {
-  profile: "private-collection-review-v2";
+  profile: "private-collection-review-v3";
   workspace_id: string;
   snapshot: Snapshot | null;
   cursor: string | null;
@@ -132,14 +190,38 @@ export type Row = Selection & {
       };
 };
 export type LegacyRow = Omit<Row, "owner_tags">;
+export type ReviewRow = Row & {
+  institution: { state: "unavailable" };
+  legal_owner: { state: "unknown" };
+};
+export type DetailRequest = Selection & {
+  profile: "private-collection-detail-v1";
+  snapshot: Snapshot;
+};
+export type JournalAnchor = {
+  entity_id: string;
+  book_id: string;
+  journal_id: string;
+  source_revision: string;
+};
+export type SourceDetail = {
+  profile: "private-collection-detail-v1";
+  workspace_id: string;
+  snapshot: Snapshot;
+  row: ReviewRow;
+  links: {
+    state: "available" | "unassigned" | "unavailable";
+    journals: JournalAnchor[];
+  };
+};
 export type Page = {
-  profile: "private-collection-review-v2";
+  profile: "private-collection-review-v3";
   workspace_id: string;
   selector: Selector;
   snapshot: Snapshot;
   matching_count: string;
   start_index: string;
-  items: Row[];
+  items: ReviewRow[];
   next_cursor: string | null;
   partial: boolean;
 };
@@ -181,6 +263,7 @@ export type CommandIdentity = { workspace_id: string; command_id: string };
 // This injected port declares future service behavior; it supplies no fetch, auth bypass or store.
 export type CollectionPort = {
   query: (query: Query) => Promise<Page>;
+  detail: (request: DetailRequest) => Promise<SourceDetail>;
   preview: (request: PreviewRequest) => Promise<Preview>;
   prepare: (request: {
     workspace_id: string;
@@ -583,7 +666,13 @@ export function sameSelector(a: Selector, b: Selector): boolean {
     a.tag.kind === b.tag.kind &&
     (a.tag.kind !== "tag" ||
       (b.tag.kind === "tag" && a.tag.tag_id === b.tag.tag_id)) &&
-    a.sort === b.sort
+    canonical(a.merchant) === canonical(b.merchant) &&
+    canonical(a.amount) === canonical(b.amount) &&
+    canonical(a.institution) === canonical(b.institution) &&
+    canonical(a.legal_owner) === canonical(b.legal_owner) &&
+    canonical(a.book) === canonical(b.book) &&
+    canonical(a.status) === canonical(b.status) &&
+    canonical(a.sort) === canonical(b.sort)
   );
 }
 // Reject a mismatched or oversized safe projection before any private row reaches rendering.
@@ -614,7 +703,7 @@ export function validPage(
     value.items.length > query.limit ||
     !value.items.every(
       (row) =>
-        validRow(row, workspace.workspace_id) &&
+        validReviewRow(row, workspace.workspace_id) &&
         (query.source_account_id === null ||
           row.source_id === query.source_account_id),
     ) ||
@@ -809,4 +898,79 @@ export function samePreview(a: StoredPreview, b: StoredPreview): boolean {
         canonical(a.tag_results) === canonical(b.tag_results)
       : b.profile === "private-collection-preview-v1")
   );
+}
+
+// New read metadata never fabricates an institution or legal owner from account/book text.
+export function validReviewRow(
+  value: unknown,
+  workspace: string,
+): value is ReviewRow {
+  return (
+    validRow(value, workspace) &&
+    object((value as ReviewRow).institution) &&
+    (value as ReviewRow).institution.state === "unavailable" &&
+    object((value as ReviewRow).legal_owner) &&
+    (value as ReviewRow).legal_owner.state === "unknown"
+  );
+}
+// Echo every immutable selector/pin and keep historical journal anchors distinct from current source revisions.
+export function validSourceDetail(
+  value: unknown,
+  request: DetailRequest,
+): value is SourceDetail {
+  if (
+    !object(value) ||
+    value.profile !== request.profile ||
+    value.workspace_id !== request.workspace_id ||
+    !validSnapshot(value.snapshot) ||
+    !sameSnapshot(value.snapshot, request.snapshot) ||
+    !validReviewRow(value.row, request.workspace_id) ||
+    !sameSelection([value.row], [request]) ||
+    !object(value.links) ||
+    !["available", "unassigned", "unavailable"].includes(
+      String(value.links.state),
+    ) ||
+    !Array.isArray(value.links.journals) ||
+    value.links.journals.length > 100 ||
+    (value.links.state !== "available" && value.links.journals.length !== 0)
+  )
+    return false;
+  if (
+    value.links.state === "available"
+      ? value.row.assignment.state !== "assigned"
+      : value.links.state === "unassigned"
+        ? value.row.assignment.state !== "unassigned"
+        : value.row.assignment.state !== "unavailable"
+  )
+    return false;
+  if (
+    (value.links.state === "unavailable") !==
+    (value.row.journal_state === "unavailable")
+  )
+    return false;
+  const detailRow = value.row;
+  const ids = new Set<string>();
+  return value.links.journals.every((anchor) => {
+    if (
+      !object(anchor) ||
+      !tagID(anchor.entity_id) ||
+      !tagID(anchor.book_id) ||
+      !tagID(anchor.journal_id) ||
+      !decimal(anchor.source_revision) ||
+      anchor.source_revision === "0" ||
+      detailRow.assignment.state !== "assigned" ||
+      !detailRow.assignment.books.some(
+        (book) => book.book_id === anchor.book_id,
+      )
+    )
+      return false;
+    const key = JSON.stringify([
+      anchor.entity_id,
+      anchor.book_id,
+      anchor.journal_id,
+    ]);
+    if (ids.has(key)) return false;
+    ids.add(key);
+    return true;
+  });
 }
