@@ -59,6 +59,17 @@ commands. Latest empty46 down/up PASS; updated source privilege inventory
 PASS0.10s against46. Earlier source fixture name collision was removed only
 from this lane's disposable synthetic database before the successful rerun.
 
+A full concurrent make-test run exposed800-pattern compilation taking2.8s
+after a250ms deadline despite fact-level checks. The approved additive
+CompileContext/EvaluateContext now check cancellation between rules, conditions
+and facts/matches; existing wrappers use Background and preserve matching.
+Cancellation returns the original context error and no partial engine/results;
+the service maps it503, while only genuine ErrInput produces400. Exact baseline
+equivalence and pre/mid-work cancellation tests PASS. The admitted workload now
+stops in251ms; the full concurrent run passes both changed packages. make
+check/build PASS. Full make test remains non-green solely in the four existing
+network-listener packages with sandbox bind EPERM;18 Node checks pass.
+
 ## Remaining work
 
 Finish canonical checks and independent integration review, including
