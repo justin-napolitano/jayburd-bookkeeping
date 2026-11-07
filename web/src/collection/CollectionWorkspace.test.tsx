@@ -20,7 +20,7 @@ const access = {
   capabilities: ["read", "classify"],
 };
 const catalog = {
-  profile: "private-collection-catalog-v1",
+  profile: "private-collection-catalog-v2",
   workspace_id: workspace,
   authority_revision: "1",
   ...collectionCatalog,
@@ -49,7 +49,7 @@ function fixture(pending = false) {
     if (path.endsWith("/taxonomy")) return catalog;
     if (path.endsWith("/pending"))
       return {
-        profile: "private-collection-command-v1",
+        profile: "private-collection-command-v2",
         workspace_id: workspace,
         command: pending ? command : null,
       };
@@ -119,8 +119,8 @@ describe("always-mounted private recovery coordinator", () => {
     expect(api.query).not.toHaveBeenCalled();
     expect(request.mock.calls.map(([path]) => path)).toEqual([
       "/v1/collection",
-      `/v1/collections/${workspace}/taxonomy`,
-      `/v1/collections/${workspace}/label-commands/pending`,
+      `/v2/collections/${workspace}/taxonomy`,
+      `/v2/collections/${workspace}/label-commands/pending`,
     ]);
     expect(lock).toHaveBeenLastCalledWith(true);
   });

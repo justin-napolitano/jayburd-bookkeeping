@@ -16,6 +16,8 @@ export function CollectionWorkspace({
   refreshVersion = 0,
   onPrepareConflict,
   onAcknowledged,
+  newWorkLocked = false,
+  onRecoveryNeeded,
 }: {
   api: API;
   active: boolean;
@@ -24,6 +26,8 @@ export function CollectionWorkspace({
   refreshVersion?: number;
   onPrepareConflict?: () => Promise<void> | void;
   onAcknowledged?: () => void;
+  newWorkLocked?: boolean;
+  onRecoveryNeeded?: () => void;
 }) {
   const [bootstrap, setBootstrap] = useState<CollectionBootstrap | null>(null);
   const [state, setState] = useState<
@@ -112,6 +116,7 @@ export function CollectionWorkspace({
         locked={bookLocked}
         active={active}
         onLockChange={setSessionLocked}
+        newWorkLocked={newWorkLocked}
         onAcknowledged={() => {
           onAcknowledged?.();
           void load();
@@ -123,6 +128,7 @@ export function CollectionWorkspace({
           epoch.current++;
           setBootstrap(null);
           setState("denied");
+          onRecoveryNeeded?.();
         }}
       />
     </div>

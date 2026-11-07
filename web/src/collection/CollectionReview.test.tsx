@@ -73,6 +73,36 @@ async function previewOne(
 }
 
 describe("private collection review", () => {
+  it("retries a persisted unknown prepare after preview expiry under the new-work gate", async () => {
+    const h = await start({ scenario: "lost_prepare" });
+    await previewOne(h);
+    await h.user.click(
+      screen.getByRole("button", { name: "Save label review" }),
+    );
+    await screen.findByText(/saved review outcome is unknown/);
+    const saved = structuredClone(h.calls.prepares[0]);
+    const now = vi
+      .spyOn(Date, "now")
+      .mockReturnValue(Date.parse("2100-01-01T00:00:00Z"));
+    h.rerender(
+      <CollectionReview
+        workspace={collectionWorkspace}
+        sources={collectionSources}
+        catalog={collectionCatalog}
+        port={h.port}
+        onDenied={h.denied}
+        newWorkLocked
+      />,
+    );
+    await h.user.click(
+      screen.getByRole("button", { name: "Retry saving same review" }),
+    );
+    await screen.findByRole("heading", { name: "Saved label review" });
+    expect(h.calls.prepares).toEqual([saved, saved]);
+    expect(h.calls.execute).toBe(0);
+    now.mockRestore();
+  });
+
   it("retains an uncertain prepare identity through a book recovery lock without remount or implicit rediscovery", async () => {
     const h = await start({ scenario: "lost_prepare" });
     await previewOne(h);

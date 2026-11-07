@@ -19,7 +19,7 @@ const access = {
   capabilities: ["read", "classify"],
 };
 const catalog = {
-  profile: "private-collection-catalog-v1",
+  profile: "private-collection-catalog-v2",
   workspace_id: workspace,
   authority_revision: "1",
   ...collectionCatalog,
@@ -69,7 +69,7 @@ describe("authenticated private collection port", () => {
     });
     expect(request.mock.calls).toEqual([
       ["/v1/collection"],
-      [`/v1/collections/${workspace}/taxonomy`],
+      [`/v2/collections/${workspace}/taxonomy`],
     ]);
   });
   it("does not selfgrant or fabricate a catalog for explicit feature-off404", async () => {
@@ -124,7 +124,7 @@ describe("authenticated private collection port", () => {
     await port.query(q);
     const { workspace_id: _, ...queryBody } = q;
     expect(query.mock.calls[0]).toEqual([
-      `/v1/collections/${workspace}/review/query`,
+      `/v2/collections/${workspace}/review/query`,
       JSON.stringify(queryBody),
     ]);
     const previewRequest = {
@@ -138,7 +138,7 @@ describe("authenticated private collection port", () => {
     expect(await port.preview(previewRequest)).toEqual(preview);
     const { workspace_id: __, ...previewBody } = previewRequest;
     expect(query.mock.calls[1]).toEqual([
-      `/v1/collections/${workspace}/labels/preview`,
+      `/v2/collections/${workspace}/labels/preview`,
       JSON.stringify(previewBody),
     ]);
     const command = {
@@ -150,7 +150,7 @@ describe("authenticated private collection port", () => {
       preview,
     };
     request.mockResolvedValue({
-      profile: "private-collection-command-v1",
+      profile: "private-collection-command-v2",
       workspace_id: workspace,
       command,
     } as never);
@@ -169,15 +169,15 @@ describe("authenticated private collection port", () => {
       });
     expect(request.mock.calls).toEqual([
       [
-        `/v1/collections/${workspace}/label-commands`,
+        `/v2/collections/${workspace}/label-commands`,
         JSON.stringify({
           preview_id: preview.preview_id,
           prepare_key: "fictional-key",
         }),
       ],
-      [`/v1/collections/${workspace}/label-commands/pending`, undefined],
+      [`/v2/collections/${workspace}/label-commands/pending`, undefined],
       ...["execute", "cancel", "acknowledge"].map((operation) => [
-        `/v1/collections/${workspace}/label-commands/fictional-command/${operation}`,
+        `/v2/collections/${workspace}/label-commands/fictional-command/${operation}`,
         "{}",
       ]),
     ]);
@@ -186,7 +186,7 @@ describe("authenticated private collection port", () => {
     const { api, request } = apiFixture();
     const port = createCollectionPort(api);
     request.mockResolvedValue({
-      profile: "private-collection-command-v1",
+      profile: "private-collection-command-v2",
       workspace_id: workspace,
       command: null,
     } as never);
@@ -195,7 +195,7 @@ describe("authenticated private collection port", () => {
       port.execute({ workspace_id: workspace, command_id: "x" }),
     ).rejects.toMatchObject({ kind: "uncertain" });
     request.mockResolvedValue({
-      profile: "private-collection-command-v1",
+      profile: "private-collection-command-v2",
       workspace_id: source,
       command: null,
     } as never);
