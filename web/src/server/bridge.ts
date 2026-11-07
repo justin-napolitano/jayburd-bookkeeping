@@ -15,13 +15,13 @@ const registrationPreparation = new RegExp(`^${bookPath}/connection-attempts/${u
 // Private search values travel only in a bounded no-store POST read body.
 const reviewQuery = new RegExp(`^${bookPath}/(?:review-items|source-activity)/query$`);
 // Private collection commands carry their persisted identity in a closed JSON body.
-const collectionPath = `/v[12]/collections/${uuid}`;
+const collectionPath = `/v[123]/collections/${uuid}`;
 const collectionRead = new RegExp(`^${collectionPath}/(?:taxonomy|label-commands/pending)$`);
 const collectionQuery = new RegExp(`^${collectionPath}/review/query$`);
 const collectionPreview = new RegExp(`^${collectionPath}/labels/preview$`);
 const collectionPrepare = new RegExp(`^${collectionPath}/label-commands$`);
 const collectionTransition = new RegExp(`^${collectionPath}/label-commands/${uuid}/(?:execute|cancel|acknowledge)$`);
-// v3 initially exposes only the reviewed reader; old command recovery stays explicit.
+// v3 adds richer reads/rules; old command recovery keeps its explicit version.
 const collectionV3Read = new RegExp(`^/v3/collections/${uuid}/taxonomy$`);
 const collectionV3Query = new RegExp(`^/v3/collections/${uuid}/review/(?:query|detail)$`);
 const collectionActivation = '/v1/collection-activation/adopt';
