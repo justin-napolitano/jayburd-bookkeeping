@@ -22,21 +22,36 @@ plan, grant activation or adoption access. Migrations1–44 remain immutable.
 | Core checks | make check/build PASS with installed Go1.26.5 and an untracked modfile resolving only checksum-verified x/net source locally. Tracked1.26.10 remains unchanged. make test18 Node checks and all Go packages except existing acquisition/webhookhost/workerhost/workerruntime bind-EPERM socket tests PASS. Full unit run is not recorded as green. Shell syntax and SQL manifests PASS. |
 | Compatibility inventory | Existing source-registry exact EXECUTE inventories add only the three reviewed45 API entrypoints; private helpers and other roles remain denied. Actual TestSourceRegistryPrivileges PASS0.09s on45. |
 | Extensible v3 pins | Coordinator approved a pre-merge45 follow-up: private collection_query_snapshot/pins aliases initially delegate exactly to v2, while only v3 query/detail use them. Forward46 can replace these aliases without copying the query or changing closed legacy snapshots. Helpers explicitly denied to all runtime roles. |
+| Rule46 source | Separate immutable rule editions/decisions/results reuse the existing reservation, command and inaccessible recovery engine. The existing Go matcher is the only regex/rank implementation, invoked inside the current SQL transaction; SQL owns pins, protection, exact selection and atomic effects. |
 | Independent cursor correction | private_registry found a valid maximum-width selector plus bigint pins could exceed its own4096-hex bound. Replaced only selector payload with SHA256 of canonical selector JSON; all equality/pin/cap checks remain. Actual combined-bound test PASS0.54s: old canonical4190hex, corrected950hex, exact second-page roundtrip and changed-selector P2800. Independent corrected-source review clean. Only an owned clone helper simulated wide future revisions; no stored history or trigger was changed. |
 
 ## Current evidence
 
-Query45 implementation and focused tests are present; rule46 is not implemented.
-Go evaluator precedence/conflict/regex tests establish only the already merged
-algorithm; they do not prove actual rule-store authority or durable apply.
+Query45 and the first rule46 implementation are present. Actual restricted
+SQL plus Service/RuleProcessor lifecycle and validation groups pass: read-only
+suggestions, explicit selected preview, prepare/pending/execute/replay/acknowledge,
+persisted effective filters, same-edition no-op, legacy profile denial, fixed
+invalid-regex errors, byte caps and readable rows after output retirement.
+Source/journal/outbox hashes remain unchanged and manual tables stay untouched.
+These first cases do not establish all concurrency/recovery acceptance below.
+
+Fieldwise model cases pass for independent manual fields,25 preserved tags,
+both-manual/stale/held/pending/zero abstention, inactive output and equal-rank
+conflict. An independently raised deadline concern now has cooperative checks
+before compilation and between facts. The admitted100-rule ×8-condition ×100-fact
+regex batch stops in322ms with a250ms context (2-second regression bound).
+Initial empty46 down/up succeeds on the owned synthetic template. Final clean
+restricted rerun: lifecycle0.66s and validation0.50s PASS, with no debug overlay.
+make check/build PASS after46, focused collectionlabels/categorization unit
+results are recorded at handoff. The dedicated collection-rules runner pins46
+and runs only TestRule46 groups;45 and earlier runners remain separately pinned.
 
 ## Remaining work
 
-Finish query45 unit/canonical checks and independent integration review, including
-primed snapshot races. Independently prove restricted roles, exact counts,
+Finish canonical checks and independent integration review, including
+primed snapshot races and full rule storage/recovery acceptance. Independently prove restricted roles, exact counts,
 global pagination/sorting, original dated-currency preservation, current book
-disclosure, primed snapshot revocation and no journal effects. Freeze46 wire before
-rule DDL; reuse the bounded Go evaluator and existing command/reservation/recovery
+disclosure, primed snapshot revocation and no journal effects. The coordinator froze46 wire before rule DDL; reuse the bounded Go evaluator and existing command/reservation/recovery
 engine, preserve current manual fields, abstain on stale manual overrides, and
 prove exact explicit selection/replay/atomicity/source-taxonomy-ruleset races.
 
