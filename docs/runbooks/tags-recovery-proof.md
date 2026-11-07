@@ -20,6 +20,7 @@ No provider/cloud operation, private financial record or inherited DSN is used.
 | Recovery fence negative control | In an owned disposable clone only, replaced the status function with the same body minus its collection_recovery_lock call. The identical primed private-admission schedule incorrectly returned none instead of SQLSTATE 40001. The expected test failure demonstrates that SSI alone did not protect this schedule. No overlay, weakened SQL or shared template change is tracked. |
 | Browser fixture | Listener-free TestLabelBrowserBootstrapPostgres passed against PostgreSQL. The extended actual browser journey and post-run SQL assertions are prepared for the coordinator's combined canonical run. |
 | Legacy compatibility | TestCollectionLabelsUpgradeAcknowledgementRace passed with the empty migration 44 downgrade preceding its original 43-to-42-to-43 race fixture. The ordinary migration 43 runner remains pinned separately. |
+| Canonical browser correction | PR 452 head 497ac9e, application job 128299317574: the real topic/tag response-loss journey passed in 3.0 seconds. Both inaccessible-clear journeys stopped before application execution because Playwright cannot mount a test-local component. Moved RecoveryHarness unchanged into an imported test story; all clear assertions and delivery fault injection remain intact. This correction requires the next canonical run. |
 
 ## Current evidence
 
