@@ -772,7 +772,7 @@ func TestLabelPrivileges(t *testing.T) {
 	}
 	runtime := connect(t, db, "synthetic_runtime")
 	defer runtime.Close(context.Background())
-	for _, q := range []string{"SELECT * FROM banking.collection_label_state", "SELECT * FROM banking.collection_label_preview", "SELECT * FROM banking.collection_taxonomy_edition", "SELECT * FROM banking.collection_label_command", "SELECT * FROM banking.collection_label_decision", "SELECT * FROM audit.collection_label_action", "SELECT banking.collection_label_snapshot(NULL)", "SET ROLE bookkeeping_owner"} {
+	for _, q := range []string{"SELECT * FROM ledger.interactive_command_reservation", "SELECT * FROM banking.collection_label_state", "SELECT * FROM banking.collection_label_preview", "SELECT * FROM banking.collection_taxonomy_edition", "SELECT * FROM banking.collection_label_command", "SELECT * FROM banking.collection_label_decision", "SELECT * FROM audit.collection_label_action", "SELECT banking.collection_label_snapshot(NULL)", "SET ROLE bookkeeping_owner"} {
 		_, e := runtime.Exec(context.Background(), q)
 		code(t, e, "42501")
 	}
@@ -1100,4 +1100,211 @@ func TestReviewAstralSelectorCursor(t *testing.T) {
 		t.Fatal("astral second page identity/count")
 	}
 	t.Logf("100 astral codepoints, account/topic/date/assignment selector, sixpins: cursor %d hexchars; resumed query %d bytes", len(cursor), len([]byte(raw(v))))
+}
+
+// ledgerIntent is an independent valid old-engine post review; gate proofs never execute it.
+func ledgerIntent(t testing.TB, owner *pgx.Conn) string {
+	t.Helper()
+	return raw(map[string]any{"operation": "post", "entity_id": entityID, "book_id": bookID, "body": map[string]any{"expected_revision": value(t, owner, `SELECT revision::text FROM ledger.book WHERE entity_id=$1 AND book_id=$2`, entityID, bookID), "policy_id": policyID, "accounting_date": "2026-10-01", "description": "Fictional gated journal review", "lines": []map[string]any{{"account_id": accountID, "side": "debit", "transaction_currency": "USD", "transaction_amount": "10.00", "functional_amount": "10.00", "valuation_basis": "identity"}, {"account_id": equityID, "side": "credit", "transaction_currency": "USD", "transaction_amount": "10.00", "functional_amount": "10.00", "valuation_basis": "identity"}}}})
+}
+func prepareLedger(t testing.TB, db, key, body string) (map[string]any, error) {
+	t.Helper()
+	return call(t, db, "synthetic_runtime", "serializable", "SELECT ledger.register_command($1,$2,$3,$4)", actor, key, evidence, body)
+}
+func transitionLedger(t testing.TB, db, id, op string) (map[string]any, error) {
+	t.Helper()
+	return call(t, db, "synthetic_runtime", "serializable", "SELECT ledger.transition_command($1,$2,$3,$4,'{}')", actor, id, evidence, op)
+}
+
+// TestSharedInteractiveReservation races independently connected old/private engines under a primed snapshot.
+func TestSharedInteractiveReservation(t *testing.T) {
+	for _, winner := range []string{"ledger", "private"} {
+		t.Run(winner, func(t *testing.T) {
+			owner, db, _ := legacyFixture(t)
+			w := provision(t, db, actor)
+			before := legacyHash(t, owner)
+			p, e := preview(t, db, w, page(t, db, w)["snapshot"], []map[string]any{}, topicsAction([]map[string]any{}))
+			if e != nil {
+				t.Fatal(e)
+			}
+			body := ledgerIntent(t, owner)
+			first := connect(t, db, "synthetic_runtime")
+			defer first.Close(context.Background())
+			second := connect(t, db, "synthetic_runtime")
+			defer second.Close(context.Background())
+			loserTx, e := second.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.Serializable})
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer loserTx.Rollback(context.Background())
+			var count int
+			if e = loserTx.QueryRow(context.Background(), "SELECT count(*) FROM pg_catalog.pg_class").Scan(&count); e != nil {
+				t.Fatal(e)
+			}
+			tx, e := first.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.Serializable})
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer tx.Rollback(context.Background())
+			privateBody := raw(map[string]any{"preview_id": p["preview_id"], "prepare_key": "private-race"})
+			ledgerSQL := "SELECT ledger.register_command($1,'ledger-race',$2,$3)"
+			privateSQL := "SELECT banking.prepare_collection_label_command($1,$2,$3)"
+			var bytes []byte
+			if winner == "ledger" {
+				e = tx.QueryRow(context.Background(), ledgerSQL, actor, evidence, body).Scan(&bytes)
+			} else {
+				e = tx.QueryRow(context.Background(), privateSQL, actor, w, privateBody).Scan(&bytes)
+			}
+			if e != nil {
+				t.Fatal(e)
+			}
+			var firstResult map[string]any
+			if e = json.Unmarshal(bytes, &firstResult); e != nil {
+				t.Fatal(e)
+			}
+			done := make(chan error, 1)
+			go func() {
+				var result []byte
+				var err error
+				if winner == "ledger" {
+					err = loserTx.QueryRow(context.Background(), privateSQL, actor, w, privateBody).Scan(&result)
+				} else {
+					err = loserTx.QueryRow(context.Background(), ledgerSQL, actor, evidence, body).Scan(&result)
+				}
+				if err == nil {
+					err = loserTx.Commit(context.Background())
+				}
+				_ = loserTx.Rollback(context.Background())
+				done <- err
+			}()
+			waitBlocked(t, owner, second.PgConn().PID())
+			if e = tx.Commit(context.Background()); e != nil {
+				t.Fatal(e)
+			}
+			code(t, <-done, "40001")
+			assertBusy := func() {
+				t.Helper()
+				if winner == "ledger" {
+					_, err := prepare(t, db, w, "private-race", p)
+					code(t, err, "P2802")
+				} else {
+					_, err := prepareLedger(t, db, "ledger-race", body)
+					code(t, err, "P2112")
+				}
+				if value(t, owner, "SELECT count(*)::text FROM ledger.interactive_command_reservation WHERE principal_id=$1", actor) != "1" {
+					t.Fatal("global reservation not unique")
+				}
+			}
+			assertBusy()
+			var id string
+			if winner == "ledger" {
+				id = firstResult["command_id"].(string)
+				replay, err := prepareLedger(t, db, "ledger-race", body)
+				if err != nil || raw(replay) != raw(firstResult) {
+					t.Fatal("ledger same-key recovery", err)
+				}
+				if _, err = transitionLedger(t, db, id, "cancel"); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				id = command(t, firstResult)["command_id"].(string)
+				replay, err := prepare(t, db, w, "private-race", p)
+				if err != nil || raw(replay) != raw(firstResult) {
+					t.Fatal("private same-key recovery", err)
+				}
+				if _, err = transition(t, db, w, id, "cancel"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			assertBusy()
+			if winner == "ledger" {
+				if _, e = transitionLedger(t, db, id, "acknowledge"); e != nil {
+					t.Fatal(e)
+				}
+			} else {
+				if _, e = transition(t, db, w, id, "acknowledge"); e != nil {
+					t.Fatal(e)
+				}
+			}
+			if value(t, owner, "SELECT count(*)::text FROM ledger.interactive_command_reservation WHERE principal_id=$1", actor) != "0" {
+				t.Fatal("explicit ack did not release")
+			}
+			if winner == "ledger" {
+				otherCommand, err := prepare(t, db, w, "private-race", p)
+				if err != nil {
+					t.Fatal("private cannot prepare after ledger ack", err)
+				}
+				replay, err := prepareLedger(t, db, "ledger-race", body)
+				if err != nil || replay["acknowledged"] != true {
+					t.Fatal("historic ledger replay blocked by private pending", err)
+				}
+				otherID := command(t, otherCommand)["command_id"].(string)
+				if _, err = transition(t, db, w, otherID, "cancel"); err != nil {
+					t.Fatal(err)
+				}
+				if _, err = transition(t, db, w, otherID, "acknowledge"); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				otherCommand, err := prepareLedger(t, db, "ledger-race", body)
+				if err != nil {
+					t.Fatal("ledger cannot prepare after private ack", err)
+				}
+				replay, err := prepare(t, db, w, "private-race", p)
+				if err != nil || command(t, replay)["acknowledged"] != true {
+					t.Fatal("historic private replay blocked by ledger pending", err)
+				}
+				otherID := otherCommand["command_id"].(string)
+				if _, err = transitionLedger(t, db, otherID, "cancel"); err != nil {
+					t.Fatal(err)
+				}
+				if _, err = transitionLedger(t, db, otherID, "acknowledge"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if before != legacyHash(t, owner) {
+				t.Fatal("global recovery gate changed original source/journal/history")
+			}
+		})
+	}
+}
+
+// TestSharedReservationCommitAndInaccessibleClear retains terminal work until explicit acknowledgement.
+func TestSharedReservationCommitAndInaccessibleClear(t *testing.T) {
+	owner, db, _ := legacyFixture(t)
+	w := provision(t, db, actor)
+	before := legacyHash(t, owner)
+	body := ledgerIntent(t, owner)
+	p, e := preview(t, db, w, page(t, db, w)["snapshot"], []map[string]any{}, topicsAction([]map[string]any{}))
+	if e != nil {
+		t.Fatal(e)
+	}
+	r, e := prepare(t, db, w, "commit", p)
+	if e != nil {
+		t.Fatal(e)
+	}
+	id := command(t, r)["command_id"].(string)
+	if _, e = transition(t, db, w, id, "execute"); e != nil {
+		t.Fatal(e)
+	}
+	_, e = prepareLedger(t, db, "ledger", body)
+	code(t, e, "P2112")
+	if _, e = transition(t, db, w, id, "acknowledge"); e != nil {
+		t.Fatal(e)
+	}
+	ledger, e := prepareLedger(t, db, "ledger", body)
+	if e != nil {
+		t.Fatal(e)
+	}
+	exec(t, owner, `UPDATE ledger.membership SET revoked_at=clock_timestamp()WHERE entity_id=$1 AND principal_id=$2 AND permission='post'`, entityID, actor)
+	r, e = call(t, db, "synthetic_runtime", "serializable", "SELECT ledger.clear_inaccessible_command($1,$2,'{}')", actor, evidence)
+	if e != nil || r["cleared"] != true {
+		t.Fatal("old inaccessible clear", e)
+	}
+	if value(t, owner, "SELECT count(*)::text FROM ledger.interactive_command_reservation") != "0" || value(t, owner, "SELECT state||':'||(acknowledged_at IS NOT NULL)::text FROM ledger.interactive_command WHERE command_id=$1", ledger["command_id"]) != "cancelled:true" {
+		t.Fatal("clear did not release exact reservation")
+	}
+	if before != legacyHash(t, owner) {
+		t.Fatal("private commit/inaccessible clear changed journals")
+	}
 }
