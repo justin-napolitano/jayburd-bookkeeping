@@ -92,6 +92,7 @@ function Review({
   onDenied,
 }: CollectionReviewProps) {
   const topicChoiceLabel = useId();
+  const tagFilterLabel = useId();
   const [draft, setDraft] = useState<Selector>(initial),
     [selector, setSelector] = useState<Selector>(initial);
   const [query, setQuery] = useState<Query>({
@@ -736,8 +737,9 @@ function Review({
               <summary>Book, topic and date filters</summary>
               <div className={styles.advancedFilters}>
                 <label>
-                  Tag filter
+                  <span id={tagFilterLabel}>Tag filter</span>
                   <select
+                    aria-labelledby={tagFilterLabel}
                     value={
                       draft.tag.kind === "tag"
                         ? "tag:" + draft.tag.tag_id
