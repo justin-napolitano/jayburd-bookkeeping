@@ -3,7 +3,7 @@
 [Metrics](spending-metrics-sources.md): SM01–07, proposed.
 
 [Rules](categorization-rules-sources.md): CR01–08, selected; ML abstract.
-[Labels](../contracts/collection-labels.md): PG17§13.2/13.3,RFC9457§3/5,selected2026-11-07; [reads](../contracts/collection-read-api.md)/[registry](../contracts/private-registry.md).
+[Labels](../contracts/collection-labels.md)/[tags and recovery](../contracts/collection-tags-recovery.md): PG17§13.2/13.3,RFC9457§3/5,2026-11-07; [reads](../contracts/collection-read-api.md)/[registry](../contracts/private-registry.md).
 [PFC](pfc-normalization-sources.md): selected Plaid,2026-11-06.
 
 [Position](position-sources.md): fixed USD/EUR.

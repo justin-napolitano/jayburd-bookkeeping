@@ -326,7 +326,41 @@ func TestCollectionLabelsHTTPResultCapPostgres(t *testing.T) {
 
 // TestCollectionLabelsUpgradeAcknowledgementRace proves old snapshots cannot strand a backfilled claim.
 func TestCollectionLabelsUpgradeAcknowledgementRace(t *testing.T) {
-	owner, _, db := labelHTTPFixture(t)
+	if !*proof {
+		t.Skip("use disposable collection label runner")
+	}
+	// This fixture must down an empty schema before principal inserts create recovery fences in migration 44.
+	db := fmt.Sprintf("labels_upgrade_%d", time.Now().UnixNano())
+	admin := connect(t, "postgres", "postgres")
+	template := "labels_template"
+	if value(t, admin, "SELECT EXISTS(SELECT FROM pg_database WHERE datname='labels_template')::text") == "false" {
+		// The dedicated newer runner has a separate empty template; never modify either template.
+		template = "tagrec_template"
+	}
+	exec(t, admin, "CREATE DATABASE "+pgx.Identifier{db}.Sanitize()+" TEMPLATE "+pgx.Identifier{template}.Sanitize())
+	_ = admin.Close(context.Background())
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		cleanup, err := pgx.Connect(ctx, "host=database port=5432 user=postgres dbname=postgres sslmode=disable connect_timeout=5")
+		if err != nil {
+			t.Error("synthetic upgrade cleanup connection unavailable")
+			return
+		}
+		defer cleanup.Close(ctx)
+		if _, err = cleanup.Exec(ctx, "DROP DATABASE "+pgx.Identifier{db}.Sanitize()); err != nil {
+			t.Error("owned synthetic upgrade cleanup failed")
+		}
+	})
+	owner := connect(t, db, "postgres")
+	t.Cleanup(func() { _ = owner.Close(context.Background()) })
+	if value(t, owner, "SELECT(to_regprocedure('banking.collection_recovery_status(uuid)')IS NOT NULL)::text") == "true" {
+		down44, err := os.ReadFile("/proof/migrations/000044_tags_recovery.down.sql")
+		if err != nil {
+			t.Fatal("synthetic migration44 source unavailable")
+		}
+		exec(t, owner, string(down44))
+	}
 	// Only source artifacts copied by the disposable runner are read; no inherited path or DSN.
 	down, err := os.ReadFile("/proof/migrations/000043_collection_labels.down.sql")
 	if err != nil {
@@ -337,6 +371,7 @@ func TestCollectionLabelsUpgradeAcknowledgementRace(t *testing.T) {
 		t.Fatal("synthetic migration source unavailable")
 	}
 	exec(t, owner, string(down))
+	exec(t, owner, `INSERT INTO ledger.principal(principal_id,issuer,subject)VALUES($1,'synthetic-http-upgrade','owner')`, actor)
 	const legacyID = "00000000-0000-4000-8000-000000000901"
 	// A fictional already-reviewed42-era setup intent needs no invented book or journal.
 	exec(t, owner, `INSERT INTO ledger.interactive_command(command_id,principal_id,registration_key,operation,request_body)VALUES($1,$2,'http-upgrade-legacy','setup','{}')`, legacyID, actor)

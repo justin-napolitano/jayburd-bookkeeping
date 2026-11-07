@@ -23,6 +23,19 @@ export const collectionCatalog: Catalog = {
   taxonomy_revision: "3",
   ruleset_revision: "4",
   map_revision: "0",
+  tag_revision: "1",
+  tags: [
+    {
+      tag_id: "41000000-0000-4000-8000-000000000001",
+      name: "Travel",
+      status: "active",
+    },
+    {
+      tag_id: "41000000-0000-4000-8000-000000000002",
+      name: "Tax review",
+      status: "active",
+    },
+  ],
   topics: [
     { topic_id: "dining", name: "Dining", parent_id: null, status: "active" },
     {
@@ -44,6 +57,7 @@ export const collectionSnapshot = {
   ruleset_revision: "4",
   map_revision: "0",
   decision_revision: "0",
+  tag_revision: "1",
 };
 
 // These independently authored financial examples are test data, never a runtime data source.
@@ -72,6 +86,7 @@ export function collectionRow(index = 0, changes: Partial<Row> = {}): Row {
     assignment: { state: "unavailable" },
     journal_state: "unavailable",
     owner_topic: { state: "unclassified" },
+    owner_tags: { state: "unclassified", tags: [] },
     provider_suggestion: {
       state: "attributed",
       label: "Food and drink",
@@ -137,12 +152,13 @@ export function collectionSelector(q: Query): Selector {
     through_date: q.through_date,
     search: q.search,
     topic: q.topic,
+    tag: q.tag,
     sort: q.sort,
   };
 }
 export function collectionQuery(changes: Partial<Query> = {}): Query {
   return {
-    profile: "private-collection-review-v1",
+    profile: "private-collection-review-v2",
     workspace_id: collectionWorkspace.workspace_id,
     source_account_id: null,
     assignment: "all",
@@ -150,6 +166,7 @@ export function collectionQuery(changes: Partial<Query> = {}): Query {
     through_date: null,
     search: "",
     topic: { kind: "all" },
+    tag: { kind: "all" },
     sort: "date_desc",
     snapshot: null,
     cursor: null,
@@ -162,7 +179,7 @@ export function collectionPage(
   rows = [collectionRow()],
 ): Page {
   return {
-    profile: "private-collection-review-v1",
+    profile: "private-collection-review-v2",
     workspace_id: q.workspace_id,
     selector: collectionSelector(q),
     snapshot: q.snapshot ?? collectionSnapshot,
@@ -180,10 +197,42 @@ export function collectionPreview(
   return {
     ...request,
     preview_id: "fictional-preview",
-    profile: "private-collection-preview-v1",
+    profile: "private-collection-preview-v2",
     expires_at: "2099-01-01T00:00:00Z",
     selected_count: String(request.selection.length),
     review_rows: rows,
+    tag_results:
+      request.action.kind !== "tags"
+        ? []
+        : rows
+            .map((row) => {
+              const action = request.action;
+              if (action.kind !== "tags")
+                throw Error("Invalid fictional tag action");
+              const previous = row.owner_tags.tags.map((tag) => tag.tag_id);
+              const ids =
+                action.operation === "replace"
+                  ? action.tag_ids
+                  : action.operation === "add"
+                    ? [...new Set([...previous, ...action.tag_ids])]
+                    : previous.filter((id) => !action.tag_ids.includes(id));
+              return {
+                ...selectionOf(row),
+                tags: [...ids]
+                  .sort()
+                  .map(
+                    (id) =>
+                      collectionCatalog.tags.find((tag) => tag.tag_id === id)!,
+                  ),
+              };
+            })
+            .sort((a, b) =>
+              selectionKey(a) < selectionKey(b)
+                ? -1
+                : selectionKey(a) > selectionKey(b)
+                  ? 1
+                  : 0,
+            ),
   };
 }
 

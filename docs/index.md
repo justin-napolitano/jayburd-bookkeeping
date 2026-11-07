@@ -1,3 +1,5 @@
+[Strategic tags and private recovery](contracts/collection-tags-recovery.md):450/451 versioned profile and [stages](runbooks/collection-tags-recovery.md); GitHub65 owns active dispatch.
+
 # Project context
 
 [Persistent private labels](contracts/collection-labels.md):304/305 SQL/API/UI

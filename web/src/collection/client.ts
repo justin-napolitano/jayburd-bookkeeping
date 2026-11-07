@@ -2,6 +2,7 @@ import { APIError, type API } from "../bookkeeping/api";
 import {
   CollectionFailure,
   validTopics,
+  validTags,
   type Catalog,
   type CollectionPort,
   type LabelCommand,
@@ -57,19 +58,21 @@ export async function discoverCollection(
   let catalog: unknown;
   try {
     catalog = await api<unknown>(
-      `/v1/collections/${encodeURIComponent(context.workspace_id)}/taxonomy`,
+      `/v2/collections/${encodeURIComponent(context.workspace_id)}/taxonomy`,
     );
   } catch (reason) {
     throw mapFailure(reason, false);
   }
   if (
     !record(catalog) ||
-    catalog.profile !== "private-collection-catalog-v1" ||
+    catalog.profile !== "private-collection-catalog-v2" ||
     catalog.workspace_id !== context.workspace_id ||
     catalog.authority_revision !== context.authority_revision ||
     !revision(catalog.taxonomy_revision) ||
     !revision(catalog.ruleset_revision) ||
     !revision(catalog.map_revision) ||
+    !revision(catalog.tag_revision) ||
+    !validTags(catalog.tags) ||
     !validTopics(catalog.topics) ||
     !Array.isArray(catalog.sources) ||
     catalog.sources.length > 100 ||
@@ -92,6 +95,8 @@ export async function discoverCollection(
       ruleset_revision: catalog.ruleset_revision,
       map_revision: catalog.map_revision,
       topics: catalog.topics,
+      tag_revision: catalog.tag_revision,
+      tags: catalog.tags,
     },
     sources: catalog.sources as SourceChoice[],
     canClassify: workspace.capabilities.includes("classify"),
@@ -115,7 +120,7 @@ function mapFailure(reason: unknown, mutation: boolean): CollectionFailure {
 // The injected existing API owns fresh authentication/no-store transport; no actor or browser store is used.
 export function createCollectionPort(api: API): CollectionPort {
   const base = (workspace: string) =>
-    `/v1/collections/${encodeURIComponent(workspace)}`;
+    `/v2/collections/${encodeURIComponent(workspace)}`;
   const body = (value: unknown, maximum: number) => {
     const json = JSON.stringify(value);
     if (new TextEncoder().encode(json).byteLength > maximum)
@@ -148,7 +153,7 @@ export function createCollectionPort(api: API): CollectionPort {
       );
       if (
         !record(result) ||
-        result.profile !== "private-collection-command-v1" ||
+        result.profile !== "private-collection-command-v2" ||
         result.workspace_id !== workspace ||
         !Object.hasOwn(result, "command") ||
         (result.command === null ? mutation : !record(result.command))

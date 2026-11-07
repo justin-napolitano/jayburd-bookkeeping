@@ -15,7 +15,10 @@ import (
 )
 
 // Request keeps independently verified identity and path selectors separate from unchanged JSON.
-type Request struct{ Actor, Workspace, Command, Body string }
+type Request struct {
+	Actor, Workspace, Command, Body string
+	Version                         int
+}
 
 // Operations exposes only the frozen restricted SQL query and command surface.
 type Operations interface {
@@ -25,6 +28,22 @@ type Operations interface {
 	Prepare(context.Context, Request) (json.RawMessage, error)
 	Pending(context.Context, Request) (json.RawMessage, error)
 	Transition(context.Context, Request, string) (json.RawMessage, error)
+}
+
+// RecoveryOperations exposes payload-free owner recovery independently of workspace grants.
+type RecoveryOperations interface {
+	Recovery(context.Context, Request) (json.RawMessage, error)
+	ClearRecovery(context.Context, Request) (json.RawMessage, error)
+}
+
+// Recovery discovers only an opaque owned private reservation; SQL checks the active principal.
+func (s *Service) Recovery(ctx context.Context, r Request) (json.RawMessage, error) {
+	return s.run(ctx, r, "recovery")
+}
+
+// ClearRecovery obtains an exact durable acknowledgement receipt without returning saved payloads.
+func (s *Service) ClearRecovery(ctx context.Context, r Request) (json.RawMessage, error) {
+	return s.run(ctx, r, "clear_recovery")
 }
 
 // Service uses a caller-composed restricted pool; SQL owns every business invariant.
@@ -121,24 +140,28 @@ func (s *Service) attempt(ctx context.Context, r Request, operation string) (jso
 	var body json.RawMessage
 	switch operation {
 	case "catalog":
-		err = tx.QueryRow(ctx, "select banking.get_collection_taxonomy($1::uuid,$2::uuid)", r.Actor, r.Workspace).Scan(&body)
+		err = tx.QueryRow(ctx, labelStatement("get_collection_taxonomy", r.Version), r.Actor, r.Workspace).Scan(&body)
 	case "query":
-		err = tx.QueryRow(ctx, "select banking.query_collection_review($1::uuid,$2::uuid,$3::text)", r.Actor, r.Workspace, r.Body).Scan(&body)
+		err = tx.QueryRow(ctx, labelStatement("query_collection_review", r.Version), r.Actor, r.Workspace, r.Body).Scan(&body)
 	case "preview":
-		err = tx.QueryRow(ctx, "select banking.preview_collection_labels($1::uuid,$2::uuid,$3::text)", r.Actor, r.Workspace, r.Body).Scan(&body)
+		err = tx.QueryRow(ctx, labelStatement("preview_collection_labels", r.Version), r.Actor, r.Workspace, r.Body).Scan(&body)
 	case "prepare":
-		err = tx.QueryRow(ctx, "select banking.prepare_collection_label_command($1::uuid,$2::uuid,$3::text)", r.Actor, r.Workspace, r.Body).Scan(&body)
+		err = tx.QueryRow(ctx, labelStatement("prepare_collection_label_command", r.Version), r.Actor, r.Workspace, r.Body).Scan(&body)
 	case "pending":
-		err = tx.QueryRow(ctx, "select banking.pending_collection_label_command($1::uuid,$2::uuid)", r.Actor, r.Workspace).Scan(&body)
+		err = tx.QueryRow(ctx, labelStatement("pending_collection_label_command", r.Version), r.Actor, r.Workspace).Scan(&body)
 	case "execute", "cancel", "acknowledge":
-		err = tx.QueryRow(ctx, "select banking.transition_collection_label_command($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", r.Actor, r.Workspace, r.Command, operation, r.Body).Scan(&body)
+		err = tx.QueryRow(ctx, labelStatement("transition_collection_label_command", r.Version), r.Actor, r.Workspace, r.Command, operation, r.Body).Scan(&body)
+	case "recovery":
+		err = tx.QueryRow(ctx, "select banking.collection_recovery_status($1::uuid)", r.Actor).Scan(&body)
+	case "clear_recovery":
+		err = tx.QueryRow(ctx, "select banking.clear_collection_recovery($1::uuid,$2::text)", r.Actor, r.Body).Scan(&body)
 	default:
 		return nil, unavailable(), false
 	}
 	if err != nil {
 		return nil, err, false
 	}
-	if !validResult(body, operation, r.Workspace) {
+	if !validRequestResult(body, operation, r) {
 		return nil, unavailable(), false
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -150,6 +173,93 @@ func (s *Service) attempt(ctx context.Context, r Request, operation string) (jso
 		return nil, err, unknown
 	}
 	return body, nil, false
+}
+
+// labelStatement chooses only fixed reviewed SQL names, never caller-controlled identifiers.
+func labelStatement(name string, version int) string {
+	switch name {
+	case "get_collection_taxonomy":
+		if version == 2 {
+			return "select banking.get_collection_taxonomy_v2($1::uuid,$2::uuid)"
+		}
+		return "select banking.get_collection_taxonomy($1::uuid,$2::uuid)"
+	case "query_collection_review":
+		if version == 2 {
+			return "select banking.query_collection_review_v2($1::uuid,$2::uuid,$3::text)"
+		}
+		return "select banking.query_collection_review($1::uuid,$2::uuid,$3::text)"
+	case "preview_collection_labels":
+		if version == 2 {
+			return "select banking.preview_collection_labels_v2($1::uuid,$2::uuid,$3::text)"
+		}
+		return "select banking.preview_collection_labels($1::uuid,$2::uuid,$3::text)"
+	case "prepare_collection_label_command":
+		if version == 2 {
+			return "select banking.prepare_collection_label_command_v2($1::uuid,$2::uuid,$3::text)"
+		}
+		return "select banking.prepare_collection_label_command($1::uuid,$2::uuid,$3::text)"
+	case "pending_collection_label_command":
+		if version == 2 {
+			return "select banking.pending_collection_label_command_v2($1::uuid,$2::uuid)"
+		}
+		return "select banking.pending_collection_label_command($1::uuid,$2::uuid)"
+	case "transition_collection_label_command":
+		if version == 2 {
+			return "select banking.transition_collection_label_command_v2($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)"
+		}
+		return "select banking.transition_collection_label_command($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)"
+	}
+	return ""
+}
+
+// validRequestResult keeps versioned payloads and opaque recovery receipts within their exact boundary.
+func validRequestResult(body json.RawMessage, operation string, r Request) bool {
+	if operation == "recovery" || operation == "clear_recovery" {
+		if len(body) > 4096 || !json.Valid(body) {
+			return false
+		}
+		var v map[string]json.RawMessage
+		if json.Unmarshal(body, &v) != nil || len(v) != 3 {
+			return false
+		}
+		var profile, id string
+		if json.Unmarshal(v["profile"], &profile) != nil {
+			return false
+		}
+		if operation == "recovery" {
+			var state string
+			if profile != "private-collection-recovery-v1" || json.Unmarshal(v["state"], &state) != nil {
+				return false
+			}
+			if state == "none" {
+				return string(v["recovery_id"]) == "null"
+			}
+			return (state == "available" || state == "inaccessible") && json.Unmarshal(v["recovery_id"], &id) == nil && validID(id)
+		}
+		var cleared bool
+		var request struct {
+			RecoveryID string `json:"recovery_id"`
+		}
+		return profile == "private-collection-recovery-clear-v1" && json.Unmarshal(v["recovery_id"], &id) == nil && validID(id) && json.Unmarshal(v["cleared"], &cleared) == nil && cleared && json.Unmarshal([]byte(r.Body), &request) == nil && request.RecoveryID == id
+	}
+	if r.Version != 2 {
+		return validResult(body, operation, r.Workspace)
+	}
+	if len(body) > 1<<20 || !json.Valid(body) {
+		return false
+	}
+	var v map[string]json.RawMessage
+	if json.Unmarshal(body, &v) != nil {
+		return false
+	}
+	var profile string
+	if json.Unmarshal(v["profile"], &profile) != nil || !strings.HasSuffix(profile, "-v2") {
+		return false
+	}
+	// Reuse the same envelope/nullability fence while keeping immutable saved previews untouched.
+	v["profile"], _ = json.Marshal(strings.TrimSuffix(profile, "-v2") + "-v1")
+	normalized, err := json.Marshal(v)
+	return err == nil && validResult(normalized, operation, r.Workspace)
 }
 
 // validResult fences profile, workspace, command-nullability and budget, leaving business fields to SQL.

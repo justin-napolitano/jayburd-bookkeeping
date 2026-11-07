@@ -12,11 +12,18 @@ export type Topic = {
   parent_id: string | null;
   status: "active" | "retired";
 };
+export type Tag = {
+  tag_id: string;
+  name: string;
+  status: "active" | "retired";
+};
 export type Catalog = {
   taxonomy_revision: string;
   ruleset_revision: string;
   map_revision: string;
   topics: Topic[];
+  tag_revision: string;
+  tags: Tag[];
 };
 // Opaque server state binds every source revision selected by the query, never a JS sum.
 export type Snapshot = {
@@ -26,7 +33,9 @@ export type Snapshot = {
   ruleset_revision: string;
   map_revision: string;
   decision_revision: string;
+  tag_revision: string;
 };
+export type LegacySnapshot = Omit<Snapshot, "tag_revision">;
 export type TopicFilter =
   | { kind: "all" }
   | { kind: "unclassified" }
@@ -35,7 +44,17 @@ export type TopicFilter =
 export type LabelAction =
   | { kind: "topic"; topic_id: string }
   | { kind: "uncategorized" }
-  | { kind: "taxonomy"; topics: Topic[] };
+  | { kind: "taxonomy"; topics: Topic[] }
+  | { kind: "tag_catalog"; tags: Tag[] }
+  | {
+      kind: "tags";
+      operation: "add" | "remove" | "replace";
+      tag_ids: string[];
+    };
+export type TagFilter =
+  | { kind: "all" }
+  | { kind: "untagged" }
+  | { kind: "tag"; tag_id: string };
 export type Selector = {
   source_account_id: string | null;
   assignment: "all" | "assigned" | "unassigned";
@@ -43,10 +62,11 @@ export type Selector = {
   through_date: string | null;
   search: string;
   topic: TopicFilter;
+  tag: TagFilter;
   sort: "date_desc" | "date_asc";
 };
 export type Query = Selector & {
-  profile: "private-collection-review-v1";
+  profile: "private-collection-review-v2";
   workspace_id: string;
   snapshot: Snapshot | null;
   cursor: string | null;
@@ -101,6 +121,7 @@ export type Row = Selection & {
     | { state: "uncategorized" }
     | { state: "stale" }
     | { state: "topic"; topic_id: string; name: string };
+  owner_tags: { state: "unclassified" | "current" | "stale"; tags: Tag[] };
   provider_suggestion:
     | { state: "unavailable" }
     | {
@@ -110,8 +131,9 @@ export type Row = Selection & {
         confidence: string;
       };
 };
+export type LegacyRow = Omit<Row, "owner_tags">;
 export type Page = {
-  profile: "private-collection-review-v1";
+  profile: "private-collection-review-v2";
   workspace_id: string;
   selector: Selector;
   snapshot: Snapshot;
@@ -129,19 +151,31 @@ export type PreviewRequest = {
 };
 // Review rows let restored commands show the exact persisted intent before explicit execution.
 export type Preview = PreviewRequest & {
-  profile: "private-collection-preview-v1";
+  profile: "private-collection-preview-v2";
   preview_id: string;
   expires_at: string;
   selected_count: string;
   review_rows: Row[];
+  tag_results: TagResult[];
 };
+export type TagResult = Selection & { tags: Tag[] };
+export type LegacyPreview = Omit<
+  Preview,
+  "profile" | "snapshot" | "review_rows" | "tag_results" | "action"
+> & {
+  profile: "private-collection-preview-v1";
+  snapshot: LegacySnapshot;
+  review_rows: LegacyRow[];
+  action: Exclude<LabelAction, { kind: "tags" | "tag_catalog" }>;
+};
+export type StoredPreview = Preview | LegacyPreview;
 export type LabelCommand = {
   workspace_id: string;
   command_id: string;
   prepare_key: string;
   state: "prepared" | "committed" | "cancelled";
   acknowledged: boolean;
-  preview: Preview;
+  preview: StoredPreview;
 };
 export type CommandIdentity = { workspace_id: string; command_id: string };
 // This injected port declares future service behavior; it supplies no fetch, auth bypass or store.
@@ -189,17 +223,23 @@ function object(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 // Same-snapshot equality is meaningful only after the server has checked current authority.
-export function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
+export function sameSnapshot(
+  a: Snapshot | LegacySnapshot,
+  b: Snapshot | LegacySnapshot,
+): boolean {
   return (
     a.authority_revision === b.authority_revision &&
     a.source_snapshot === b.source_snapshot &&
     a.taxonomy_revision === b.taxonomy_revision &&
     a.ruleset_revision === b.ruleset_revision &&
     a.map_revision === b.map_revision &&
-    a.decision_revision === b.decision_revision
+    a.decision_revision === b.decision_revision &&
+    ("tag_revision" in a
+      ? "tag_revision" in b && a.tag_revision === b.tag_revision
+      : !("tag_revision" in b))
   );
 }
-function validSnapshot(value: unknown): value is Snapshot {
+function validSnapshot(value: unknown, legacy = false): value is Snapshot {
   return (
     object(value) &&
     decimal(value.authority_revision) &&
@@ -208,7 +248,10 @@ function validSnapshot(value: unknown): value is Snapshot {
     decimal(value.taxonomy_revision) &&
     decimal(value.ruleset_revision) &&
     decimal(value.map_revision) &&
-    decimal(value.decision_revision)
+    decimal(value.decision_revision) &&
+    (legacy
+      ? !Object.hasOwn(value, "tag_revision")
+      : decimal(value.tag_revision))
   );
 }
 // Explicit discriminants keep no label, explicit Uncategorized and a selected topic distinct.
@@ -225,7 +268,16 @@ export function sameAction(a: LabelAction, b: LabelAction): boolean {
                 : 0,
           ),
         }
-      : action;
+      : action.kind === "tag_catalog"
+        ? {
+            ...action,
+            tags: [...action.tags].sort((a, b) =>
+              a.tag_id.localeCompare(b.tag_id),
+            ),
+          }
+        : action.kind === "tags"
+          ? { ...action, tag_ids: [...action.tag_ids].sort() }
+          : action;
   return canonical(normalize(a)) === canonical(normalize(b));
 }
 // Bounded complete editions retain history; semantic hierarchy checks are repeated by SQL.
@@ -275,7 +327,36 @@ export function validTopics(value: unknown): value is Topic[] {
   }
   return true;
 }
-function validAction(value: unknown): value is LabelAction {
+const tagID = (value: unknown): value is string =>
+  typeof value === "string" &&
+  /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value) &&
+  value !== "00000000-0000-0000-0000-000000000000";
+// Catalog and result limits are separate; result sets cannot silently expand past25 identities.
+function validTagList(value: unknown, maximum: number): value is Tag[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= maximum &&
+    value.every(
+      (tag) =>
+        object(tag) &&
+        Object.keys(tag).length === 3 &&
+        tagID(tag.tag_id) &&
+        text(tag.name, 80) &&
+        !/^ *$/.test(tag.name) &&
+        !/[\u0000-\u001f\u007f-\u009f]/u.test(tag.name) &&
+        ["active", "retired"].includes(String(tag.status)),
+    ) &&
+    new Set(value.map((tag) => tag.tag_id)).size === value.length &&
+    new Set(value.map((tag) => tag.name)).size === value.length
+  );
+}
+export function validTags(value: unknown): value is Tag[] {
+  return (
+    validTagList(value, 1000) &&
+    value.filter((tag) => tag.status === "active").length <= 500
+  );
+}
+function validAction(value: unknown, legacy = false): value is LabelAction {
   return (
     object(value) &&
     ((value.kind === "uncategorized" && Object.keys(value).length === 1) ||
@@ -284,7 +365,20 @@ function validAction(value: unknown): value is LabelAction {
         opaque(value.topic_id)) ||
       (value.kind === "taxonomy" &&
         Object.keys(value).length === 2 &&
-        validTopics(value.topics)))
+        validTopics(value.topics)) ||
+      (!legacy &&
+        value.kind === "tag_catalog" &&
+        Object.keys(value).length === 2 &&
+        validTags(value.tags)) ||
+      (!legacy &&
+        value.kind === "tags" &&
+        Object.keys(value).length === 3 &&
+        ["add", "remove", "replace"].includes(String(value.operation)) &&
+        Array.isArray(value.tag_ids) &&
+        value.tag_ids.length <= 25 &&
+        (value.operation === "replace" || value.tag_ids.length >= 1) &&
+        value.tag_ids.every(tagID) &&
+        new Set(value.tag_ids).size === value.tag_ids.length))
   );
 }
 export function selectionKey(value: Selection): string {
@@ -294,7 +388,7 @@ export function selectionKey(value: Selection): string {
     value.observation_id,
   ]);
 }
-export function selectionOf(value: Row): Selection {
+export function selectionOf(value: Row | LegacyRow): Selection {
   return {
     workspace_id: value.workspace_id,
     source_id: value.source_id,
@@ -399,7 +493,11 @@ function validMoney(
     /^0(?:\.0+)?$/.test(value.amount) === (value.direction === "zero")
   );
 }
-function validRow(value: unknown, workspace: string): value is Row {
+function validRow(
+  value: unknown,
+  workspace: string,
+  legacy = false,
+): value is Row {
   if (!validSelection(value, workspace)) return false;
   const r = value as unknown as Record<string, unknown>;
   if (
@@ -411,6 +509,18 @@ function validRow(value: unknown, workspace: string): value is Row {
       String(r.source_state),
     ) ||
     !validMoney(r.money, r.booked_date, r.source_state as string)
+  )
+    return false;
+  if (
+    legacy
+      ? Object.hasOwn(r, "owner_tags")
+      : !object(r.owner_tags) ||
+        !["unclassified", "current", "stale"].includes(
+          String(r.owner_tags.state),
+        ) ||
+        !validTagList(r.owner_tags.tags, 25) ||
+        (r.owner_tags.state === "unclassified" &&
+          r.owner_tags.tags.length !== 0)
   )
     return false;
   if (r.source_state === "held" && r.money.state !== "held") return false;
@@ -470,6 +580,9 @@ export function sameSelector(a: Selector, b: Selector): boolean {
     a.through_date === b.through_date &&
     a.search === b.search &&
     sameTopic(a.topic, b.topic) &&
+    a.tag.kind === b.tag.kind &&
+    (a.tag.kind !== "tag" ||
+      (b.tag.kind === "tag" && a.tag.tag_id === b.tag.tag_id)) &&
     a.sort === b.sort
   );
 }
@@ -486,12 +599,14 @@ export function validPage(
     value.workspace_id !== workspace.workspace_id ||
     !object(value.selector) ||
     !object(value.selector.topic) ||
+    !object(value.selector.tag) ||
     !sameSelector(value.selector as Selector, query) ||
     !validSnapshot(value.snapshot) ||
     value.snapshot.authority_revision !== workspace.authority_revision ||
     value.snapshot.taxonomy_revision !== catalog.taxonomy_revision ||
     value.snapshot.ruleset_revision !== catalog.ruleset_revision ||
     value.snapshot.map_revision !== catalog.map_revision ||
+    value.snapshot.tag_revision !== catalog.tag_revision ||
     (query.snapshot && !sameSnapshot(value.snapshot, query.snapshot)) ||
     !decimal(value.matching_count) ||
     !decimal(value.start_index) ||
@@ -527,35 +642,99 @@ export function validPage(
   return true;
 }
 // Restored previews must include the exact immutable selection and safe review rows.
-export function validPreview(
+function validStoredPreview(
   value: unknown,
-  request: PreviewRequest,
-): value is Preview {
+  request:
+    | PreviewRequest
+    | Pick<LegacyPreview, "workspace_id" | "snapshot" | "selection" | "action">,
+  legacy = false,
+): value is StoredPreview {
   return (
     object(value) &&
     request.selection.length <= 100 &&
-    value.profile === "private-collection-preview-v1" &&
+    value.profile ===
+      (legacy
+        ? "private-collection-preview-v1"
+        : "private-collection-preview-v2") &&
     value.workspace_id === request.workspace_id &&
     opaque(value.preview_id) &&
     text(value.expires_at, 40) &&
     Number.isFinite(Date.parse(value.expires_at)) &&
     decimal(value.selected_count) &&
     value.selected_count === String(request.selection.length) &&
-    (request.action.kind === "taxonomy"
+    (["taxonomy", "tag_catalog"].includes(request.action.kind)
       ? request.selection.length === 0
       : request.selection.length >= 1) &&
-    validSnapshot(value.snapshot) &&
+    validSnapshot(value.snapshot, legacy) &&
     sameSnapshot(value.snapshot, request.snapshot) &&
-    validAction(value.action) &&
+    validAction(value.action, legacy) &&
     sameAction(value.action, request.action) &&
     Array.isArray(value.selection) &&
     uniqueSelection(value.selection, request.workspace_id) &&
     sameSelection(value.selection, request.selection) &&
     Array.isArray(value.review_rows) &&
-    value.review_rows.every((row) => validRow(row, request.workspace_id)) &&
+    value.review_rows.every((row) =>
+      validRow(row, request.workspace_id, legacy),
+    ) &&
     uniqueSelection(value.review_rows, request.workspace_id) &&
-    sameSelection(value.review_rows, request.selection)
+    sameSelection(value.review_rows, request.selection) &&
+    (legacy
+      ? !Object.hasOwn(value, "tag_results")
+      : validTagResults(value as unknown as Preview))
   );
+}
+// SQL supplies exact resulting sets; validate their bounded identities and agreement with reviewed set intent.
+function validTagResults(preview: Preview): boolean {
+  if (!Array.isArray(preview.tag_results)) return false;
+  if (preview.action.kind !== "tags") return preview.tag_results.length === 0;
+  if (
+    !preview.tag_results.every(
+      (result) =>
+        object(result) &&
+        Object.keys(result).length === 5 &&
+        validSelection(result, preview.workspace_id) &&
+        validTagList(result.tags, 25),
+    ) ||
+    !uniqueSelection(preview.tag_results, preview.workspace_id) ||
+    !sameSelection(preview.tag_results, preview.selection)
+  )
+    return false;
+  const keys = preview.tag_results.map(selectionKey);
+  if (canonical(keys) !== canonical([...keys].sort())) return false;
+  const action = preview.action;
+  return preview.tag_results.every((result) => {
+    const row = preview.review_rows.find(
+      (row) => selectionKey(row) === selectionKey(result),
+    );
+    if (
+      !row ||
+      (row.owner_tags.state === "stale" && action.operation !== "replace")
+    )
+      return false;
+    const previous = row.owner_tags.tags.map((tag) => tag.tag_id);
+    const expected =
+      action.operation === "replace"
+        ? action.tag_ids
+        : action.operation === "add"
+          ? [...new Set([...previous, ...action.tag_ids])]
+          : previous.filter((id) => !action.tag_ids.includes(id));
+    const actual = result.tags.map((tag) => tag.tag_id);
+    return (
+      canonical(actual) === canonical([...actual].sort()) &&
+      canonical(actual) === canonical([...expected].sort()) &&
+      (action.operation === "remove" ||
+        result.tags.every(
+          (tag) =>
+            !action.tag_ids.includes(tag.tag_id) || tag.status === "active",
+        ))
+    );
+  });
+}
+export function validPreview(
+  value: unknown,
+  request: PreviewRequest,
+): value is Preview {
+  return validStoredPreview(value, request);
 }
 // Recovery retains historic immutable edition pins; the service rechecks current authority before disclosure.
 export function validCommand(
@@ -572,17 +751,27 @@ export function validCommand(
     typeof value.acknowledged !== "boolean" ||
     (value.state === "prepared" && value.acknowledged) ||
     !object(value.preview) ||
-    !validSnapshot(value.preview.snapshot) ||
+    !validSnapshot(
+      value.preview.snapshot,
+      value.preview.profile === "private-collection-preview-v1",
+    ) ||
     !Array.isArray(value.preview.selection) ||
-    !validAction(value.preview.action)
+    !validAction(
+      value.preview.action,
+      value.preview.profile === "private-collection-preview-v1",
+    )
   )
     return false;
-  return validPreview(value.preview, {
-    workspace_id: workspace.workspace_id,
-    snapshot: value.preview.snapshot,
-    selection: value.preview.selection as Selection[],
-    action: value.preview.action,
-  });
+  return validStoredPreview(
+    value.preview,
+    {
+      workspace_id: workspace.workspace_id,
+      snapshot: value.preview.snapshot,
+      selection: value.preview.selection as Selection[],
+      action: value.preview.action,
+    },
+    value.preview.profile === "private-collection-preview-v1",
+  );
 }
 // Stable structural equality rejects changed saved review values without depending on JSON key order.
 function canonical(value: unknown): string {
@@ -594,8 +783,8 @@ function canonical(value: unknown): string {
       .join(",")}}`;
   return JSON.stringify(value) ?? "null";
 }
-export function samePreview(a: Preview, b: Preview): boolean {
-  const rows = (value: Preview) =>
+export function samePreview(a: StoredPreview, b: StoredPreview): boolean {
+  const rows = (value: StoredPreview) =>
     [...value.review_rows]
       .sort((left, right) =>
         selectionKey(left) < selectionKey(right)
@@ -606,6 +795,7 @@ export function samePreview(a: Preview, b: Preview): boolean {
       )
       .map(canonical);
   return (
+    a.profile === b.profile &&
     a.preview_id === b.preview_id &&
     a.expires_at === b.expires_at &&
     a.selected_count === b.selected_count &&
@@ -613,6 +803,10 @@ export function samePreview(a: Preview, b: Preview): boolean {
     sameSnapshot(a.snapshot, b.snapshot) &&
     canonical(a.action) === canonical(b.action) &&
     sameSelection(a.selection, b.selection) &&
-    canonical(rows(a)) === canonical(rows(b))
+    canonical(rows(a)) === canonical(rows(b)) &&
+    (a.profile === "private-collection-preview-v2"
+      ? b.profile === "private-collection-preview-v2" &&
+        canonical(a.tag_results) === canonical(b.tag_results)
+      : b.profile === "private-collection-preview-v1")
   );
 }
