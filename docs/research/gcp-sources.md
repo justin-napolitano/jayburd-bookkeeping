@@ -210,3 +210,35 @@ a guarantee that the database cannot change after verification. Apply with the
 existing Cloud SQL identity/job sources G27/G29: no added operator grant or new
 provider authentication path. A forced-RLS synthetic fixture checks the actual
 transaction mode; wrong/dirty versions and artifact set/hash mismatches fail.
+
+
+## Private workspace operator review — 2026-11-07
+
+For436, reviewed selected official CLI sections for
+[service update](https://docs.cloud.google.com/sdk/gcloud/reference/run/services/update),
+[traffic update](https://docs.cloud.google.com/sdk/gcloud/reference/run/services/update-traffic),
+[job update](https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/update) and
+[job execute](https://docs.cloud.google.com/sdk/gcloud/reference/run/jobs/execute).
+Relevant argument/image/traffic/async sections only, not the entire SDK manual.
+A per-execution job argument override applies to that execution; the existing
+status default can remain. No-traffic deployment pins existing latest traffic to
+the predecessor revision; explicit subsequent traffic update is necessary.
+Inference: stage matching immutable images, verify readiness/settings, then promote
+exact new revisions. Preserve the complete known non-secret API argument list when
+adding the reviewed collection flag; do not replace consent or acquisition policy.
+These vendor mechanics grant no owner capability, SQL/provider authority or release
+approval. Scope, exact candidate receipts, role/readiness checks, clean44 status and
+anonymous-denial evidence remain project gates. Owner provisioning/history adoption
+requires the separate bounded mechanism453; no identity/grant inference is valid.
+
+Also reviewed Google's [Manage revisions](https://docs.cloud.google.com/run/docs/managing/revisions)
+view-details RETIRED note and [traffic migration](https://docs.cloud.google.com/run/docs/rollouts-rollbacks-traffic-migration)
+gcloud no-traffic then explicit revision percentage sections. Non-current revisions
+can be retired with infrastructure removed. Observed436 staging has Ready=True
+with reason Retired, ContainerReady=True and ResourcesAvailable=Unknown while old
+traffic remains100percent. This is import/staging evidence, not a running startup
+proof. Inference: promote the exact staged revision using the reviewed traffic
+command, then require its active readiness/latest-ready/sole100percent and exact
+settings before completing the rollout. Alternative tagged no-traffic testing
+adds a tag/URL and still cannot prove private authenticated ownership; this
+bounded existing Sandbox operation uses explicit sequential activation instead.
