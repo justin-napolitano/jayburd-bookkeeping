@@ -22,6 +22,10 @@ TAGREC-20261107T0340Z. Synthetic data only; no hosted/provider/live activation.
 | UI import and composition | Reviewed61c6a69: v2 tags, historical v1 saved-review union, opaque global recovery with exact uncertain receipt and same-claim review eligibility. Root mounts it before scoped discovery, separates new-work/ordinary transition gates and refreshes both engines after confirmed closure. Agent69 focused units,15 existing live/client browser checks and4 tag/usability journeys PASS |
 | Hands-on synthetic review | Screenshots inspected at390/1440: selected actions moved from8006/5108px to644/578px; management473/471px, native keyboard/mobile targets and no horizontal clipping/storage. Combined checks follow |
 
+| SQL44 import | Reviewed173e4a2: separate immutable tag editions/sets, exact previews/current pins, shared reservations and payload-free closure receipts.16 real SQL groups, empty44→43→44 and retained-record denial/counts PASS. Merged1–43 unchanged |
+| Bounded large selection | Real100/3000 preview materializes current authorized facts once; SQL preview137ms/prepare42ms/execute50ms under3500ms statement timeout/4s context. Independent actual HTTP query92ms/preview109ms/prepare18ms/execute27ms/ack16ms. Both3000-row page orders and2132hex Unicode cursor pass; no latency SLA |
+| Final filter accessibility | Reviewed6388b2d: tag filter keeps exact accessible name through native selection;26 focused review units PASS |
+
 ## Current evidence
 
 Implementation in progress. Parent449 all five checks passed; that is baseline,
