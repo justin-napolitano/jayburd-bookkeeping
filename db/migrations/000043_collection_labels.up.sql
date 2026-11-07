@@ -1,6 +1,7 @@
 -- #304: private taxonomy, analytic decisions and explicit command recovery; no journals.
 BEGIN;
 SET LOCAL ROLE bookkeeping_owner;
+LOCK TABLE ledger.interactive_command IN SHARE ROW EXCLUSIVE MODE;
 LOCK TABLE banking.collection_workspace IN SHARE ROW EXCLUSIVE MODE;
 CREATE TABLE banking.collection_taxonomy_edition(
  workspace_id uuid NOT NULL REFERENCES banking.collection_workspace,taxonomy_revision bigint NOT NULL CHECK(taxonomy_revision>0),
@@ -27,6 +28,42 @@ CREATE TABLE banking.collection_label_command(
  CHECK((state='prepared' AND terminal_at IS NULL AND result IS NULL AND acknowledged_at IS NULL)OR(state IN('committed','cancelled')AND terminal_at IS NOT NULL AND result IS NOT NULL)),CHECK(result IS NULL OR octet_length(result::text)<=4096)
 );
 CREATE UNIQUE INDEX collection_label_one_pending ON banking.collection_label_command(workspace_id)WHERE acknowledged_at IS NULL;
+-- One cross-engine pending identity per principal; retained command history owns the audit.
+CREATE TABLE ledger.interactive_command_reservation(
+ principal_id uuid PRIMARY KEY REFERENCES ledger.principal,legacy_command_id uuid UNIQUE,
+ workspace_id uuid,label_command_id uuid,created_at timestamptz NOT NULL DEFAULT clock_timestamp()CHECK(isfinite(created_at)),
+ FOREIGN KEY(legacy_command_id)REFERENCES ledger.interactive_command(command_id)DEFERRABLE INITIALLY DEFERRED,
+ FOREIGN KEY(workspace_id,label_command_id)REFERENCES banking.collection_label_command(workspace_id,command_id)DEFERRABLE INITIALLY DEFERRED,
+ CHECK((legacy_command_id IS NOT NULL AND workspace_id IS NULL AND label_command_id IS NULL)OR(legacy_command_id IS NULL AND workspace_id IS NOT NULL AND label_command_id IS NOT NULL))
+);
+INSERT INTO ledger.interactive_command_reservation(principal_id,legacy_command_id)
+ SELECT principal_id,command_id FROM ledger.interactive_command WHERE acknowledged_at IS NULL;
+-- Claim the unique current index last, after both engines have locked the principal first.
+-- An invisible conflicting SERIALIZABLE insert raises40001 instead of trusting a stale EXISTS.
+CREATE FUNCTION banking.collection_label_reserve()RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
+DECLARE old_id uuid;private_id uuid;work uuid;accepted uuid;legacy boolean:=TG_TABLE_SCHEMA='ledger';BEGIN
+ IF TG_OP='INSERT'THEN
+  IF NEW.acknowledged_at IS NOT NULL THEN RETURN NEW;END IF;
+  IF legacy THEN old_id:=NEW.command_id;ELSE private_id:=NEW.command_id;work:=NEW.workspace_id;END IF;
+  INSERT INTO ledger.interactive_command_reservation(principal_id,legacy_command_id,workspace_id,label_command_id)
+   VALUES(NEW.principal_id,old_id,work,private_id)ON CONFLICT(principal_id)DO NOTHING RETURNING principal_id INTO accepted;
+  IF accepted IS NULL THEN
+   IF legacy THEN PERFORM ledger.fail('P2112');ELSE PERFORM banking.collection_error('P2802');END IF;
+  END IF;
+ ELSIF OLD.acknowledged_at IS NULL AND NEW.acknowledged_at IS NOT NULL THEN
+  accepted:=NULL;
+  IF legacy THEN DELETE FROM ledger.interactive_command_reservation WHERE principal_id=NEW.principal_id AND legacy_command_id=NEW.command_id RETURNING principal_id INTO accepted;
+  ELSE DELETE FROM ledger.interactive_command_reservation WHERE principal_id=NEW.principal_id AND workspace_id=NEW.workspace_id AND label_command_id=NEW.command_id RETURNING principal_id INTO accepted;END IF;
+  -- A pre43 SERIALIZABLE snapshot may not see the newly backfilled reservation.
+  -- Never commit acknowledgement while silently leaving its exact current claim behind.
+  IF accepted IS NULL THEN RAISE EXCEPTION USING ERRCODE='40001',MESSAGE='retry_command_acknowledgement';END IF;
+ END IF;RETURN NEW;
+END $$;
+CREATE TRIGGER collection_label_reserve BEFORE INSERT ON ledger.interactive_command FOR EACH ROW EXECUTE FUNCTION banking.collection_label_reserve();
+CREATE TRIGGER collection_label_release AFTER UPDATE ON ledger.interactive_command FOR EACH ROW EXECUTE FUNCTION banking.collection_label_reserve();
+CREATE TRIGGER collection_label_reserve BEFORE INSERT ON banking.collection_label_command FOR EACH ROW EXECUTE FUNCTION banking.collection_label_reserve();
+CREATE TRIGGER collection_label_release AFTER UPDATE ON banking.collection_label_command FOR EACH ROW EXECUTE FUNCTION banking.collection_label_reserve();
+
 CREATE TABLE banking.collection_label_decision(
  workspace_id uuid NOT NULL,source_account_id uuid NOT NULL,observation_id uuid NOT NULL,observation_revision bigint NOT NULL CHECK(observation_revision>0),
  decision_revision bigint NOT NULL CHECK(decision_revision>0),taxonomy_revision bigint NOT NULL,command_id uuid NOT NULL,kind text NOT NULL CHECK(kind IN('topic','uncategorized')),topic_id uuid,
@@ -104,7 +141,9 @@ DECLARE r record;c banking.collection_workspace;BEGIN
  IF NOT integration.provider_api_login(session_user)OR actor IS NULL OR w IS NULL THEN PERFORM banking.collection_error('P2801');END IF;
  IF(writing AND current_setting('transaction_isolation')<>'serializable')OR(NOT writing AND current_setting('transaction_isolation')NOT IN('repeatable read','serializable'))THEN PERFORM banking.collection_error('P2800');END IF;
  PERFORM set_config('lock_timeout','1s',true);
- PERFORM 1 FROM ledger.principal WHERE principal_id=actor FOR SHARE;IF NOT FOUND THEN PERFORM banking.collection_error('P2801');END IF;
+ IF writing THEN PERFORM 1 FROM ledger.principal WHERE principal_id=actor FOR UPDATE;
+ ELSE PERFORM 1 FROM ledger.principal WHERE principal_id=actor FOR SHARE;END IF;
+ IF NOT FOUND THEN PERFORM banking.collection_error('P2801');END IF;
  IF NOT EXISTS(SELECT FROM banking.collection_workspace WHERE workspace_id=w AND owner_principal_id=actor)THEN PERFORM banking.collection_error('P2801');END IF;
  IF(SELECT count(*)FROM banking.collection_source WHERE workspace_id=w)>100 THEN PERFORM banking.collection_error('P2805');END IF;
  FOR r IN SELECT DISTINCT legacy_entity_id e,legacy_book_id b FROM banking.collection_source WHERE workspace_id=w AND origin='legacy'ORDER BY e,b LOOP
@@ -319,6 +358,6 @@ DO $$DECLARE f regprocedure;BEGIN
   EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC,bookkeeping_api,bookkeeping_sync,bookkeeping_webhook,bookkeeping_observer,bookkeeping_publisher,bookkeeping_verifier,bookkeeping_identity_operator',f);
  END LOOP;
 END $$;
-REVOKE ALL ON banking.collection_taxonomy_edition,banking.collection_label_state,banking.collection_label_preview,banking.collection_label_command,banking.collection_label_decision,audit.collection_label_action FROM PUBLIC,bookkeeping_api,bookkeeping_sync,bookkeeping_webhook,bookkeeping_observer,bookkeeping_publisher,bookkeeping_verifier,bookkeeping_identity_operator;
+REVOKE ALL ON ledger.interactive_command_reservation,banking.collection_taxonomy_edition,banking.collection_label_state,banking.collection_label_preview,banking.collection_label_command,banking.collection_label_decision,audit.collection_label_action FROM PUBLIC,bookkeeping_api,bookkeeping_sync,bookkeeping_webhook,bookkeeping_observer,bookkeeping_publisher,bookkeeping_verifier,bookkeeping_identity_operator;
 GRANT EXECUTE ON FUNCTION banking.get_collection_taxonomy(uuid,uuid),banking.query_collection_review(uuid,uuid,text),banking.preview_collection_labels(uuid,uuid,text),banking.prepare_collection_label_command(uuid,uuid,text),banking.pending_collection_label_command(uuid,uuid),banking.transition_collection_label_command(uuid,uuid,uuid,text,text)TO bookkeeping_api;
 COMMIT;
