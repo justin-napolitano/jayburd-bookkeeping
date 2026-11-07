@@ -5206,6 +5206,220 @@
           }
         }
       }
+    },
+    "/v3/collections/{workspace}/taxonomy": {
+      "get": {
+        "operationId": "getPrivateReviewCatalogV3",
+        "summary": "Current-authorized richer private transaction read",
+        "description": "Optional explicit private feature with matching migration45. No query strings, identity overrides, idempotency header or encoded requests. Read-only RR query, JSON body cap8192 bytes where present; max1MiB no-store response. Exact source/snapshot pins and independent current book permission for journal anchors. Institution metadata unavailable and legal ownership unknown; never inferred from source aliases or book entity. Amounts stay original dated-currency decimal strings, no FX total. See docs/contracts/collection-query-rules.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelCatalogV3"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/collections/{workspace}/review/query": {
+      "post": {
+        "operationId": "queryPrivateReviewV3",
+        "summary": "Current-authorized richer private transaction read",
+        "description": "Optional explicit private feature with matching migration45. No query strings, identity overrides, idempotency header or encoded requests. Read-only RR query, JSON body cap8192 bytes where present; max1MiB no-store response. Exact source/snapshot pins and independent current book permission for journal anchors. Institution metadata unavailable and legal ownership unknown; never inferred from source aliases or book entity. Amounts stay original dated-currency decimal strings, no FX total. See docs/contracts/collection-query-rules.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelPageV3"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelQueryV3"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/collections/{workspace}/review/detail": {
+      "post": {
+        "operationId": "getPrivateSourceDetail",
+        "summary": "Current-authorized richer private transaction read",
+        "description": "Optional explicit private feature with matching migration45. No query strings, identity overrides, idempotency header or encoded requests. Read-only RR query, JSON body cap8192 bytes where present; max1MiB no-store response. Exact source/snapshot pins and independent current book permission for journal anchors. Institution metadata unavailable and legal ownership unknown; never inferred from source aliases or book entity. Amounts stay original dated-currency decimal strings, no FX total. See docs/contracts/collection-query-rules.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateSourceDetail"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateSourceDetailRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collection-activation/adopt": {
+      "post": {
+        "operationId": "adoptApprovedPrivateHistory",
+        "summary": "Execute one operator-approved finite Sandbox history adoption plan",
+        "description": "Default absent. Requires separately owner-provisioned workspace, explicit finite approved metadata file and actual managed verified actor matching that plan; caller IDs never establish identity. Exact complete source set/current authority/generation checked by existing SQL in SERIALIZABLE. No provider fetch, new consent, source copying or journal write. Lost reply permits only explicit identical-plan replay while approval remains valid; expiry/denial never establishes absence. No query, Idempotency-Key or content encoding; body1024 bytes, response32768 bytes, no-store. See docs/contracts/private-sandbox-activation.md. Managed operator execution prerequisites remain separate.",
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateActivationResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateActivationRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -13133,6 +13347,1118 @@
           "profile",
           "recovery_id",
           "cleared"
+        ]
+      },
+      "PrivateInstitutionUnavailable": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "const": "unavailable"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "PrivateLegalOwnerUnknown": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "const": "unknown"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "PrivateMerchantFilter": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "all"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "missing"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "contains"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "kind",
+              "value"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "exact"
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "kind",
+              "value"
+            ]
+          }
+        ]
+      },
+      "PrivateAmountFilter": {
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "currency_version_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              "minimum": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 80,
+                    "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "maximum": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 80,
+                    "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "inflow",
+                  "outflow",
+                  "zero"
+                ]
+              }
+            },
+            "required": [
+              "currency_version_id",
+              "minimum",
+              "maximum",
+              "direction"
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "PrivateBookFilter": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "all"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "unassigned"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "book"
+              },
+              "entity_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              "book_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              }
+            },
+            "required": [
+              "kind",
+              "entity_id",
+              "book_id"
+            ]
+          }
+        ]
+      },
+      "PrivateReadStatusFilter": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "all",
+              "booked",
+              "pending",
+              "removed",
+              "held"
+            ]
+          },
+          "journal": {
+            "type": "string",
+            "enum": [
+              "all",
+              "unposted",
+              "posted",
+              "correction_required",
+              "unavailable"
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "journal"
+        ]
+      },
+      "PrivateReadSort": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "date",
+              "account",
+              "description",
+              "merchant",
+              "amount",
+              "currency",
+              "book",
+              "source_state",
+              "journal_state",
+              "topic",
+              "tags",
+              "institution",
+              "legal_owner"
+            ]
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          }
+        },
+        "required": [
+          "field",
+          "order"
+        ]
+      },
+      "PrivateLabelSelectorV3": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source_account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assignment": {
+            "type": "string",
+            "enum": [
+              "all",
+              "assigned",
+              "unassigned"
+            ]
+          },
+          "starts_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "through_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "search": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "topic": {
+            "$ref": "#/components/schemas/PrivateLabelTopicFilterV2"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/PrivateReadSort"
+          },
+          "tag": {
+            "$ref": "#/components/schemas/PrivateTagFilter"
+          },
+          "merchant": {
+            "$ref": "#/components/schemas/PrivateMerchantFilter"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/PrivateAmountFilter"
+          },
+          "institution": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "unavailable"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "legal_owner": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "unknown"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "book": {
+            "$ref": "#/components/schemas/PrivateBookFilter"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PrivateReadStatusFilter"
+          }
+        },
+        "required": [
+          "source_account_id",
+          "assignment",
+          "starts_on",
+          "through_date",
+          "search",
+          "topic",
+          "sort",
+          "tag",
+          "merchant",
+          "amount",
+          "institution",
+          "legal_owner",
+          "book",
+          "status"
+        ]
+      },
+      "PrivateLabelQueryV3": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-review-v3"
+          },
+          "source_account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assignment": {
+            "type": "string",
+            "enum": [
+              "all",
+              "assigned",
+              "unassigned"
+            ]
+          },
+          "starts_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "through_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "search": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "topic": {
+            "$ref": "#/components/schemas/PrivateLabelTopicFilterV2"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/PrivateReadSort"
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrivateLabelSnapshotV2"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "tag": {
+            "$ref": "#/components/schemas/PrivateTagFilter"
+          },
+          "merchant": {
+            "$ref": "#/components/schemas/PrivateMerchantFilter"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/PrivateAmountFilter"
+          },
+          "institution": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "unavailable"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "legal_owner": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "unknown"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "book": {
+            "$ref": "#/components/schemas/PrivateBookFilter"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PrivateReadStatusFilter"
+          }
+        },
+        "required": [
+          "profile",
+          "source_account_id",
+          "assignment",
+          "starts_on",
+          "through_date",
+          "search",
+          "topic",
+          "sort",
+          "snapshot",
+          "cursor",
+          "limit",
+          "tag",
+          "merchant",
+          "amount",
+          "institution",
+          "legal_owner",
+          "book",
+          "status"
+        ]
+      },
+      "PrivateLabelRowV3": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "source_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "account_name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "booked_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "merchant": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "money": {
+            "$ref": "#/components/schemas/PrivateLabelMoneyV2"
+          },
+          "source_state": {
+            "type": "string",
+            "enum": [
+              "booked",
+              "pending",
+              "removed",
+              "held"
+            ]
+          },
+          "assignment": {
+            "$ref": "#/components/schemas/PrivateLabelAssignmentV2"
+          },
+          "journal_state": {
+            "type": "string",
+            "enum": [
+              "unposted",
+              "posted",
+              "correction_required",
+              "unavailable"
+            ]
+          },
+          "owner_topic": {
+            "$ref": "#/components/schemas/PrivateLabelOwnerTopicV2"
+          },
+          "provider_suggestion": {
+            "$ref": "#/components/schemas/PrivateLabelProviderV2"
+          },
+          "owner_tags": {
+            "$ref": "#/components/schemas/PrivateOwnerTags"
+          },
+          "institution": {
+            "$ref": "#/components/schemas/PrivateInstitutionUnavailable"
+          },
+          "legal_owner": {
+            "$ref": "#/components/schemas/PrivateLegalOwnerUnknown"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "source_id",
+          "observation_id",
+          "observation_revision",
+          "account_name",
+          "booked_date",
+          "description",
+          "merchant",
+          "money",
+          "source_state",
+          "assignment",
+          "journal_state",
+          "owner_topic",
+          "provider_suggestion",
+          "owner_tags",
+          "institution",
+          "legal_owner"
+        ]
+      },
+      "PrivateReadBook": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "entity_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "entity_id",
+          "book_id",
+          "name",
+          "entity_name"
+        ]
+      },
+      "PrivateReadCurrency": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "currency_version_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "numeric_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]{3}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minor_unit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 18
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "currency_version_id",
+          "code",
+          "numeric_code",
+          "minor_unit",
+          "valid_from",
+          "valid_to"
+        ]
+      },
+      "PrivateLabelCatalogV3": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-catalog-v3"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "authority_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "taxonomy_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "ruleset_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "map_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateLabelTopicV2"
+            },
+            "minItems": 0,
+            "maxItems": 1000
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "source_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "required": [
+                "source_id",
+                "name"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "tag_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateStrategicTag"
+            },
+            "minItems": 0,
+            "maxItems": 1000
+          },
+          "books": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateReadBook"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "currencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateReadCurrency"
+            },
+            "minItems": 0,
+            "maxItems": 1000
+          },
+          "institution": {
+            "$ref": "#/components/schemas/PrivateInstitutionUnavailable"
+          },
+          "legal_owner": {
+            "$ref": "#/components/schemas/PrivateLegalOwnerUnknown"
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "authority_revision",
+          "taxonomy_revision",
+          "ruleset_revision",
+          "map_revision",
+          "topics",
+          "sources",
+          "tag_revision",
+          "tags",
+          "books",
+          "currencies",
+          "institution",
+          "legal_owner"
+        ]
+      },
+      "PrivateLabelPageV3": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-review-v3"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "selector": {
+            "$ref": "#/components/schemas/PrivateLabelSelectorV3"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/PrivateLabelSnapshotV2"
+          },
+          "matching_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "start_index": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateLabelRowV3"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "partial": {
+            "type": "boolean",
+            "description": "Incomplete source history; independent of assignment metadata availability."
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "selector",
+          "snapshot",
+          "matching_count",
+          "start_index",
+          "items",
+          "next_cursor",
+          "partial"
+        ]
+      },
+      "PrivateSourceDetailRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-detail-v1"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/PrivateLabelSnapshotV2"
+          },
+          "source_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          }
+        },
+        "required": [
+          "profile",
+          "snapshot",
+          "source_id",
+          "observation_id",
+          "observation_revision"
+        ]
+      },
+      "PrivateSourceJournalAnchor": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "journal_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "source_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          }
+        },
+        "required": [
+          "entity_id",
+          "book_id",
+          "journal_id",
+          "source_revision"
+        ]
+      },
+      "PrivateSourceDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-detail-v1"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/PrivateLabelSnapshotV2"
+          },
+          "row": {
+            "$ref": "#/components/schemas/PrivateLabelRowV3"
+          },
+          "links": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": [
+                  "available",
+                  "unassigned",
+                  "unavailable"
+                ]
+              },
+              "journals": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PrivateSourceJournalAnchor"
+                },
+                "minItems": 0,
+                "maxItems": 100
+              }
+            },
+            "required": [
+              "state",
+              "journals"
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "snapshot",
+          "row",
+          "links"
+        ]
+      },
+      "PrivateActivationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          }
+        },
+        "required": [
+          "plan_id"
+        ]
+      },
+      "PrivateActivationResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-sandbox-activation-result-v1"
+          },
+          "plan_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "collection_item_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              "item_generation": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,18})$"
+              },
+              "sources": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "source_account_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                    },
+                    "source_revision": {
+                      "const": "0"
+                    },
+                    "revision": {
+                      "const": "1"
+                    }
+                  },
+                  "required": [
+                    "source_account_id",
+                    "source_revision",
+                    "revision"
+                  ]
+                },
+                "minItems": 0,
+                "maxItems": 25
+              }
+            },
+            "required": [
+              "collection_item_id",
+              "item_generation",
+              "sources"
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "plan_id",
+          "result"
         ]
       }
     },

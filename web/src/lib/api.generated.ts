@@ -1260,6 +1260,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v3/collections/{workspace}/taxonomy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current-authorized richer private transaction read
+         * @description Optional explicit private feature with matching migration45. No query strings, identity overrides, idempotency header or encoded requests. Read-only RR query, JSON body cap8192 bytes where present; max1MiB no-store response. Exact source/snapshot pins and independent current book permission for journal anchors. Institution metadata unavailable and legal ownership unknown; never inferred from source aliases or book entity. Amounts stay original dated-currency decimal strings, no FX total. See docs/contracts/collection-query-rules.md.
+         */
+        get: operations["getPrivateReviewCatalogV3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/collections/{workspace}/review/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Current-authorized richer private transaction read
+         * @description Optional explicit private feature with matching migration45. No query strings, identity overrides, idempotency header or encoded requests. Read-only RR query, JSON body cap8192 bytes where present; max1MiB no-store response. Exact source/snapshot pins and independent current book permission for journal anchors. Institution metadata unavailable and legal ownership unknown; never inferred from source aliases or book entity. Amounts stay original dated-currency decimal strings, no FX total. See docs/contracts/collection-query-rules.md.
+         */
+        post: operations["queryPrivateReviewV3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/collections/{workspace}/review/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Current-authorized richer private transaction read
+         * @description Optional explicit private feature with matching migration45. No query strings, identity overrides, idempotency header or encoded requests. Read-only RR query, JSON body cap8192 bytes where present; max1MiB no-store response. Exact source/snapshot pins and independent current book permission for journal anchors. Institution metadata unavailable and legal ownership unknown; never inferred from source aliases or book entity. Amounts stay original dated-currency decimal strings, no FX total. See docs/contracts/collection-query-rules.md.
+         */
+        post: operations["getPrivateSourceDetail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collection-activation/adopt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute one operator-approved finite Sandbox history adoption plan
+         * @description Default absent. Requires separately owner-provisioned workspace, explicit finite approved metadata file and actual managed verified actor matching that plan; caller IDs never establish identity. Exact complete source set/current authority/generation checked by existing SQL in SERIALIZABLE. No provider fetch, new consent, source copying or journal write. Lost reply permits only explicit identical-plan replay while approval remains valid; expiry/denial never establishes absence. No query, Idempotency-Key or content encoding; body1024 bytes, response32768 bytes, no-store. See docs/contracts/private-sandbox-activation.md. Managed operator execution prerequisites remain separate.
+         */
+        post: operations["adoptApprovedPrivateHistory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3094,6 +3174,251 @@ export interface components {
             recovery_id: string;
             /** @constant */
             cleared: true;
+        };
+        PrivateInstitutionUnavailable: {
+            /** @constant */
+            state: "unavailable";
+        };
+        PrivateLegalOwnerUnknown: {
+            /** @constant */
+            state: "unknown";
+        };
+        PrivateMerchantFilter: {
+            /** @constant */
+            kind: "all";
+        } | {
+            /** @constant */
+            kind: "missing";
+        } | {
+            /** @constant */
+            kind: "contains";
+            value: string;
+        } | {
+            /** @constant */
+            kind: "exact";
+            value: string;
+        };
+        PrivateAmountFilter: {
+            /** Format: uuid */
+            currency_version_id: string;
+            minimum: string | null;
+            maximum: string | null;
+            /** @enum {string} */
+            direction: "all" | "inflow" | "outflow" | "zero";
+        } | null;
+        PrivateBookFilter: {
+            /** @constant */
+            kind: "all";
+        } | {
+            /** @constant */
+            kind: "unassigned";
+        } | {
+            /** @constant */
+            kind: "unavailable";
+        } | {
+            /** @constant */
+            kind: "book";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+        };
+        PrivateReadStatusFilter: {
+            /** @enum {string} */
+            source: "all" | "booked" | "pending" | "removed" | "held";
+            /** @enum {string} */
+            journal: "all" | "unposted" | "posted" | "correction_required" | "unavailable";
+        };
+        PrivateReadSort: {
+            /** @enum {string} */
+            field: "date" | "account" | "description" | "merchant" | "amount" | "currency" | "book" | "source_state" | "journal_state" | "topic" | "tags" | "institution" | "legal_owner";
+            /** @enum {string} */
+            order: "asc" | "desc";
+        };
+        PrivateLabelSelectorV3: {
+            source_account_id: string | null;
+            /** @enum {string} */
+            assignment: "all" | "assigned" | "unassigned";
+            starts_on: string | null;
+            through_date: string | null;
+            search: string;
+            topic: components["schemas"]["PrivateLabelTopicFilterV2"];
+            sort: components["schemas"]["PrivateReadSort"];
+            tag: components["schemas"]["PrivateTagFilter"];
+            merchant: components["schemas"]["PrivateMerchantFilter"];
+            amount: components["schemas"]["PrivateAmountFilter"];
+            institution: {
+                /** @enum {string} */
+                kind: "all" | "unavailable";
+            };
+            legal_owner: {
+                /** @enum {string} */
+                kind: "all" | "unknown";
+            };
+            book: components["schemas"]["PrivateBookFilter"];
+            status: components["schemas"]["PrivateReadStatusFilter"];
+        };
+        PrivateLabelQueryV3: {
+            /** @constant */
+            profile: "private-collection-review-v3";
+            source_account_id: string | null;
+            /** @enum {string} */
+            assignment: "all" | "assigned" | "unassigned";
+            starts_on: string | null;
+            through_date: string | null;
+            search: string;
+            topic: components["schemas"]["PrivateLabelTopicFilterV2"];
+            sort: components["schemas"]["PrivateReadSort"];
+            snapshot: components["schemas"]["PrivateLabelSnapshotV2"] | null;
+            cursor: string | null;
+            limit: number;
+            tag: components["schemas"]["PrivateTagFilter"];
+            merchant: components["schemas"]["PrivateMerchantFilter"];
+            amount: components["schemas"]["PrivateAmountFilter"];
+            institution: {
+                /** @enum {string} */
+                kind: "all" | "unavailable";
+            };
+            legal_owner: {
+                /** @enum {string} */
+                kind: "all" | "unknown";
+            };
+            book: components["schemas"]["PrivateBookFilter"];
+            status: components["schemas"]["PrivateReadStatusFilter"];
+        };
+        PrivateLabelRowV3: {
+            /** Format: uuid */
+            workspace_id: string;
+            /** Format: uuid */
+            source_id: string;
+            /** Format: uuid */
+            observation_id: string;
+            observation_revision: string;
+            account_name: string;
+            /** Format: date */
+            booked_date: string;
+            description: string;
+            merchant: string | null;
+            money: components["schemas"]["PrivateLabelMoneyV2"];
+            /** @enum {string} */
+            source_state: "booked" | "pending" | "removed" | "held";
+            assignment: components["schemas"]["PrivateLabelAssignmentV2"];
+            /** @enum {string} */
+            journal_state: "unposted" | "posted" | "correction_required" | "unavailable";
+            owner_topic: components["schemas"]["PrivateLabelOwnerTopicV2"];
+            provider_suggestion: components["schemas"]["PrivateLabelProviderV2"];
+            owner_tags: components["schemas"]["PrivateOwnerTags"];
+            institution: components["schemas"]["PrivateInstitutionUnavailable"];
+            legal_owner: components["schemas"]["PrivateLegalOwnerUnknown"];
+        };
+        PrivateReadBook: {
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            name: string;
+            entity_name: string;
+        };
+        PrivateReadCurrency: {
+            /** Format: uuid */
+            currency_version_id: string;
+            code: string;
+            numeric_code: string | null;
+            minor_unit: number;
+            /** Format: date */
+            valid_from: string;
+            valid_to: string | null;
+        };
+        PrivateLabelCatalogV3: {
+            /** @constant */
+            profile: "private-collection-catalog-v3";
+            /** Format: uuid */
+            workspace_id: string;
+            authority_revision: string;
+            taxonomy_revision: string;
+            ruleset_revision: string;
+            map_revision: string;
+            topics: components["schemas"]["PrivateLabelTopicV2"][];
+            sources: {
+                /** Format: uuid */
+                source_id: string;
+                name: string;
+            }[];
+            tag_revision: string;
+            tags: components["schemas"]["PrivateStrategicTag"][];
+            books: components["schemas"]["PrivateReadBook"][];
+            currencies: components["schemas"]["PrivateReadCurrency"][];
+            institution: components["schemas"]["PrivateInstitutionUnavailable"];
+            legal_owner: components["schemas"]["PrivateLegalOwnerUnknown"];
+        };
+        PrivateLabelPageV3: {
+            /** @constant */
+            profile: "private-collection-review-v3";
+            /** Format: uuid */
+            workspace_id: string;
+            selector: components["schemas"]["PrivateLabelSelectorV3"];
+            snapshot: components["schemas"]["PrivateLabelSnapshotV2"];
+            matching_count: string;
+            start_index: string;
+            items: components["schemas"]["PrivateLabelRowV3"][];
+            next_cursor: string | null;
+            /** @description Incomplete source history; independent of assignment metadata availability. */
+            partial: boolean;
+        };
+        PrivateSourceDetailRequest: {
+            /** @constant */
+            profile: "private-collection-detail-v1";
+            snapshot: components["schemas"]["PrivateLabelSnapshotV2"];
+            /** Format: uuid */
+            source_id: string;
+            /** Format: uuid */
+            observation_id: string;
+            observation_revision: string;
+        };
+        PrivateSourceJournalAnchor: {
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            /** Format: uuid */
+            journal_id: string;
+            source_revision: string;
+        };
+        PrivateSourceDetail: {
+            /** @constant */
+            profile: "private-collection-detail-v1";
+            /** Format: uuid */
+            workspace_id: string;
+            snapshot: components["schemas"]["PrivateLabelSnapshotV2"];
+            row: components["schemas"]["PrivateLabelRowV3"];
+            links: {
+                /** @enum {string} */
+                state: "available" | "unassigned" | "unavailable";
+                journals: components["schemas"]["PrivateSourceJournalAnchor"][];
+            };
+        };
+        PrivateActivationRequest: {
+            /** Format: uuid */
+            plan_id: string;
+        };
+        PrivateActivationResult: {
+            /** @constant */
+            profile: "private-sandbox-activation-result-v1";
+            /** Format: uuid */
+            plan_id: string;
+            result: {
+                /** Format: uuid */
+                collection_item_id: string;
+                item_generation: string;
+                sources: {
+                    /** Format: uuid */
+                    source_account_id: string;
+                    /** @constant */
+                    source_revision: "0";
+                    /** @constant */
+                    revision: "1";
+                }[];
+            };
         };
     };
     responses: {
@@ -5626,6 +5951,144 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PrivateCollectionRecoveryReceipt"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPrivateReviewCatalogV3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateLabelCatalogV3"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    queryPrivateReviewV3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateLabelQueryV3"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateLabelPageV3"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPrivateSourceDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateSourceDetailRequest"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateSourceDetail"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    adoptApprovedPrivateHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateActivationRequest"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized profiled result; immutable command preview retained for recovery */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateActivationResult"];
                 };
             };
             /** @description Fixed RFC9457 failure; no private diagnostics */
