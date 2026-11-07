@@ -108,6 +108,7 @@ type fakeDB struct {
 	query                     string
 	args                      []any
 	iso                       pgx.TxIsoLevel
+	rowHook                   func()
 }
 
 func (d *fakeDB) BeginTx(_ context.Context, o pgx.TxOptions) (pgx.Tx, error) {
@@ -135,8 +136,66 @@ func (t *fakeTx) Rollback(context.Context) error { t.d.rollbacks++; return nil }
 type fakeRow struct{ d *fakeDB }
 
 func (r fakeRow) Scan(dst ...any) error {
+	if r.d.rowHook != nil {
+		r.d.rowHook()
+	}
 	*dst[0].(*json.RawMessage) = json.RawMessage(`{"collection_item_id":"` + a + `","item_generation":"2","sources":[{"source_account_id":"` + b + `","source_revision":"0","revision":"1"}]}`)
 	return r.d.rowErr
+}
+
+// TestActivationExpiryBeforeCommit discards a candidate receipt when approval
+// expires after SQL returns but before committing the transaction.
+func TestActivationExpiryBeforeCommit(t *testing.T) {
+	p := goodPlan(t)
+	d := &fakeDB{}
+	s, _ := NewService(d, p)
+	d.rowHook = func() { s.now = func() time.Time { return p.deadline } }
+	body, e := s.adopt(context.Background(), a, a)
+	if e == nil || len(body) != 0 || d.commits != 0 || d.rollbacks != 1 {
+		t.Fatal("expired candidate committed or escaped")
+	}
+}
+
+// TestActivationHTTPClosedTransport rejects headers, query and unbounded bodies
+// without exposing the approved metadata or calling the database.
+func TestActivationHTTPClosedTransport(t *testing.T) {
+	for _, kind := range []string{"empty_bearer", "duplicate_auth", "duplicate_media", "key", "encoding", "query", "oversize", "expired"} {
+		t.Run(kind, func(t *testing.T) {
+			d := &fakeDB{}
+			s, _ := NewService(d, goodPlan(t))
+			auth := &authenticator{actor: a}
+			body := `{"plan_id":"` + a + `"}`
+			path := "/v1/collection-activation/adopt"
+			if kind == "query" {
+				path += "?actor=foreign"
+			}
+			if kind == "oversize" {
+				body = strings.Repeat("x", 1025)
+			}
+			req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+			req.Header.Set("Authorization", "Bearer synthetic")
+			req.Header.Set("Content-Type", "application/json")
+			switch kind {
+			case "empty_bearer":
+				req.Header.Set("Authorization", "Bearer ")
+			case "duplicate_auth":
+				req.Header.Add("Authorization", "Bearer other")
+			case "duplicate_media":
+				req.Header.Add("Content-Type", "application/json")
+			case "key":
+				req.Header.Set("Idempotency-Key", "unreviewed")
+			case "encoding":
+				req.Header.Set("Content-Encoding", "gzip")
+			case "expired":
+				s.now = func() time.Time { return s.plan.deadline }
+			}
+			w := httptest.NewRecorder()
+			Handler(auth, s).ServeHTTP(w, req)
+			if w.Code < 400 || d.calls != 0 || strings.Contains(w.Body.String(), s.plan.value.Key) || strings.Contains(w.Body.String(), s.plan.value.Sources[0].Name) {
+				t.Fatal("unsafe transport", w.Code)
+			}
+		})
+	}
 }
 
 // TestActivationAdapterUnknownCommit preserves exact approved SQL intent across
