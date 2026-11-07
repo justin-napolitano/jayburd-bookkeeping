@@ -153,6 +153,8 @@ jobs:
       - name: Install Chromium for real application proof
         working-directory: web
         run: npx --no-install playwright install --with-deps chromium
+      - name: Prove private topics and labels through browser and restricted SQL
+        run: make labels-integration
       - name: Prove browser recovery through real API and PostgreSQL
         run: make app-integration
       - name: Prove synthetic connection through source posting
@@ -161,5 +163,3 @@ jobs:
         run: make production-journey-test
       - name: Prove generated demo balances and cent display
         run: make demo-test
-      - name: Prove private topics and labels through browser and restricted SQL
-        run: make labels-integration

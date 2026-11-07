@@ -29,15 +29,23 @@ GitHub65 lease LABEL304-20261107T0140Z. Source and synthetic proof only.
 | Canonical wrapper compatibility |Initial validate ran all15 old registry/HTTP groups PASS but its final script down1 now targeted43 while expecting42's retained diagnostic. Pinned that specific proof to empty43→42, then42→41→42/up1. Actual fresh clone roundtrip PASS; retained42 down rejects fixed private_registry_retained_records and row count1 remains; own dirty clone dropped, no force/reset |
 | Combined local handoff |Core check/build PASS; api schema/types verified; frontend type/build PASS before final callback-only change,509 units/69 browsers PASS afterward. Full Go test attempted: existing acquisition/webhookhost/workerhost/workerruntime socket-bind EPERM only; local full-stack runner fails its listener preflight. No checks removed; final canonical run required |
 | Real acknowledgement context |f196e27 canonical app journey confirmed committed taxonomy response loss/remount/discovery/ack succeeded, then inactive Overview hid transaction rows. Importedb4be73c: only a confirmed explicit private acknowledgement opens All transactions before reload; idle default Overview unchanged, failed/uncertain acknowledgement cannot navigate. Root509 units/70 browsers/typecheck PASS; real journey assertion retained for new-head CI |
+| Stable selector label |8c54c16 actual journey passed post-ACK row restoration and selection, then exact label lookup exposed native option text in the wrapping label. Importedf7046279: useId text span and explicit aria-labelledby preserve layout/control and stable accessible name. Root509 units/70 browsers PASS with exact label assertions; RTL role assertion uses anchored name matcher (its API has no exact option). Typecheck PASS |
+| CI scheduling |New labels journey moved before existing independent app/connection/Production/demo journeys to surface its failures earlier; every existing proof and pinned security gate retained. Workflow YAML parses; local actionlint module fetch unavailable(DNS), canonical pinned lint remains required |
 
 ## Current evidence
 
-Common profile and browser boundary verified; SQL/API/UI source lanes running.
+All source lanes are integrated and independently reviewed. The ledger above
+distinguishes local SQL/HTTP/browser execution from actual canonical application
+results. GitHub449/65 own the current commit, CI and merge state. Synthetic proof
+does not activate a managed database, provider or live account.
 
 ## Remaining work
 
-Integrate independently reviewed SQL/API/UI lanes; shared transport/bridge/
-OpenAPI/readiness and real full-stack proof; required local and canonical gates.
+Canonical CI and source acceptance are the GitHub449 merge gate. Later hosted
+activation, native provider240, rule/map413/414 and broader242 work remain
+separately scoped. Strategic tags450 and payload-free private recovery451 are
+unclaimed follow-ups;44 is unallocated. No future status is inferred from this
+historical source evidence.
 
 ## PR handoff
 
