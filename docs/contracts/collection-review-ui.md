@@ -1,5 +1,10 @@
 # Private collection review interface —305
 
+Historical component-port baseline delivered in447. The current reviewed wire,
+persisted backend and application integration are [private labels](collection-labels.md)
+and [connected UI](collection-live-labels.md),449. The original boundary below
+records the isolated source slice; its future-service statements are superseded.
+
 Root-reviewed for isolated frontend implementation2026-11-06. User design approval
 lives in GitHub238/242; implementation/dependencies/status live in305/304/239/65.
 This interface is a typed component port, not an implemented HTTP API or SQL grant.

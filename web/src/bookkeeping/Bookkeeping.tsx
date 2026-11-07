@@ -86,8 +86,13 @@ export function Bookkeeping({
   const reviewPreference = useRef<{ scope: string; source: string } | null>(
     null,
   );
-  const recovery = useCommands(api);
   const [collectionLocked, setCollectionLocked] = useState(true);
+  const [collectionRefreshVersion, setCollectionRefreshVersion] = useState(0);
+  const refreshPrivateRecovery = useCallback(() => {
+    setCollectionLocked(true);
+    setCollectionRefreshVersion((version) => version + 1);
+  }, []);
+  const recovery = useCommands(api, refreshPrivateRecovery);
   const locked = recovery.locked || collectionLocked;
   // Collapse presentation only after authoritative recovery confirms there is no work needing attention.
   const idleRecovery =
@@ -274,6 +279,8 @@ export function Bookkeeping({
         active={tool === "All transactions"}
         bookLocked={recovery.locked}
         onLockChange={setCollectionLocked}
+        refreshVersion={collectionRefreshVersion}
+        onPrepareConflict={() => recovery.refreshIfIdle()}
       />
       {recovery.locked && (
         <CommandPanel recovery={recovery} workspace={workspace} />

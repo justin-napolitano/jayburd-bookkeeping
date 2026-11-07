@@ -21,8 +21,10 @@ creation, fabricated catalog or browser financial persistence is permitted.
 | Application connection |Real injected seven-operation client, actual capability/catalog discovery, independent All transactions navigation without book requirement, always-mounted recovery and cross-tool mutation/navigation gate |
 | Taxonomy |Complete edition with stable IDs, rename/parent/retire, read-only retired history, explicit preview/save/confirm/cancel/ack through the same label engine; Unicode codepoint bounds and canonical request topic sets |
 | Review fixes |Initial definite prepare rejection rechecks pending under a continuously closed gate; earlier unknown keys remain locked. Exact acknowledged terminal receipts from another context are shown but require explicit local ack. Later denial destroys private payloads and remains globally locked until fresh discovery succeeds |
-| Focused evidence |55 collection units and12 collection/browser cases pass; no automatic execution or acknowledgement, no inactive idle row query,4096cursor+100astral search retained, original fold/control guards unchanged |
+| Focused evidence |Base563ab5d:55 collection units and12 collection/browser cases pass; no automatic execution or acknowledgement, no inactive idle row query,4096cursor+100astral search retained, original fold/control guards unchanged |
 | Visual review |Revised390px taxonomy editor screenshot inspected; readable name/parent/status controls and explicit preview action fit without horizontal overflow. Original default/larger-font screenshots remain synthetic fixtures |
+| Reciprocal reservation followup |Root identified independent pending-store race; first definite409 now checks both engine-specific recovery endpoints. Parent closes private gate synchronously; private refresh defers while non-idle; book idle-only refresh preserves active work. Book locks no longer unmount private uncertain intent; old registration keys survive later409 and unrelated pending identities |
+| Followup validation |509 full frontend units and69 full browsers PASS;67 focused collection/book-hook units plus both real-client mocked cross-context winner cases pass. Existing initial account-registration recovery assertions retained; strict key guard applies only after a later definite rejected retry |
 
 ## Current evidence
 
@@ -56,8 +58,8 @@ restricted identities; local callback tests cannot substitute for it.
 ## Remaining work
 
 Source/UI implementation is complete for integration review. Full local frontend
-504 unit tests, generated API check, Next/TypeScript check and production Next
-build pass;67 browser checks pass. Core make check/build pass. Core make test was attempted and retried after a transient
+509 unit tests, generated API check, Next/TypeScript check and production Next
+build pass;69 browser checks pass. Core make check/build pass. Core make test was attempted and retried after a transient
 Playwright test-results directory scan race: existing socket-listener packages
 still fail bindEPERM in this sandbox.18 release-tool tests and other Go packages
 pass; do not claim full make test success. Core commands use installed Go1.26.5,
@@ -72,6 +74,12 @@ feature stays default off. Source-grant revocation can make old command payloads
 inaccessible; current authority must be restored before cancel/ack because this
 build introduces no payload-free private clear endpoint. No false completion or
 live feature availability is inferred from synthetic UI fixtures.
+
+Reciprocal followup validation adds actual-client mock HTTP cases for each
+cross-context winner, plus unit guards for deferred private refresh, book-lock
+uncertain-key preservation, first-rejection notification, prior-unknown409 replay
+and active book identity. The root owns the additive SQL shared-reservation proof
+and full real browser/API/SQL schedules; no frontend callback is authority.
 
 ## PR handoff
 

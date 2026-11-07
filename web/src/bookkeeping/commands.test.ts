@@ -7,24 +7,40 @@ import { savedRegistration } from "../../tests/registration.fixture";
 afterEach(cleanup);
 
 it("does not return an acknowledged old account plan after the API session changes during discovery", async () => {
-  let resolveOld!: (value: {command:null}) => void;
-  let reads=0,waiting=false;
-  const oldAPI=vi.fn(async(path:string)=>{
-    if(path.endsWith("/pending")) {
-      if(++reads===1) return {command:null};
-      waiting=true;return new Promise<{command:null}>((resolve)=>{resolveOld=resolve;});
+  let resolveOld!: (value: { command: null }) => void;
+  let reads = 0,
+    waiting = false;
+  const oldAPI = vi.fn(async (path: string) => {
+    if (path.endsWith("/pending")) {
+      if (++reads === 1) return { command: null };
+      waiting = true;
+      return new Promise<{ command: null }>((resolve) => {
+        resolveOld = resolve;
+      });
     }
-    return {...savedRegistration,state:"committed",acknowledged:true};
+    return { ...savedRegistration, state: "committed", acknowledged: true };
   }) as unknown as API;
-  const nextAPI=vi.fn(async()=>({command:null})) as unknown as API;
-  const hook=renderHook(({api})=>useCommands(api),{initialProps:{api:oldAPI}});
-  await waitFor(()=>expect(hook.result.current.ready).toBe(true));
-  let outcome:ReturnType<typeof hook.result.current.prepareRegistration>;
-  act(()=>{outcome=hook.result.current.prepareRegistration(savedRegistration.entity_id!,savedRegistration.book_id!,"00000000-0000-4000-8000-000000000004",["synthetic-checking"]);});
-  await waitFor(()=>expect(waiting).toBe(true));
-  hook.rerender({api:nextAPI});
-  await waitFor(()=>expect(hook.result.current.ready).toBe(true));
-  await act(async()=>{resolveOld({command:null});expect(await outcome!).toBeUndefined();});
+  const nextAPI = vi.fn(async () => ({ command: null })) as unknown as API;
+  const hook = renderHook(({ api }) => useCommands(api), {
+    initialProps: { api: oldAPI },
+  });
+  await waitFor(() => expect(hook.result.current.ready).toBe(true));
+  let outcome: ReturnType<typeof hook.result.current.prepareRegistration>;
+  act(() => {
+    outcome = hook.result.current.prepareRegistration(
+      savedRegistration.entity_id!,
+      savedRegistration.book_id!,
+      "00000000-0000-4000-8000-000000000004",
+      ["synthetic-checking"],
+    );
+  });
+  await waitFor(() => expect(waiting).toBe(true));
+  hook.rerender({ api: nextAPI });
+  await waitFor(() => expect(hook.result.current.ready).toBe(true));
+  await act(async () => {
+    resolveOld({ command: null });
+    expect(await outcome!).toBeUndefined();
+  });
   expect(hook.result.current.command).toBeNull();
 });
 
@@ -97,6 +113,63 @@ const prepared: DurableCommand = {
   acknowledged: false,
   created_at: "2026-01-01T00:00:00Z",
 };
+describe("reciprocal prepare-conflict recovery", () => {
+  it("notifies private recovery only for a first definite409 while rechecking its own pending gate", async () => {
+    const conflict = vi.fn();
+    const api = vi.fn(async (path: string) => {
+      if (path === "/v1/commands") throw new APIError(409, false);
+      return { command: null };
+    }) as unknown as API;
+    const hook = renderHook(() => useCommands(api, conflict));
+    await waitFor(() => expect(hook.result.current.ready).toBe(true));
+    act(() => hook.result.current.prepare(input));
+    await waitFor(() => expect(conflict).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(hook.result.current.busy).toBe(false));
+    expect(hook.result.current.registration).toBeNull();
+    expect(
+      vi
+        .mocked(api)
+        .mock.calls.filter(([path]) => path === "/v1/commands/pending"),
+    ).toHaveLength(2);
+  });
+  it("retains a prior uncertain key/body across409 retry and ignores unrelated pending identity", async () => {
+    const conflict = vi.fn();
+    const candidates: { path: string; body?: string; key?: string }[] = [];
+    let pending: DurableCommand | null = null;
+    const api = vi.fn(async (path: string, body?: string, key?: string) => {
+      if (path.endsWith("/pending")) return { command: pending };
+      candidates.push({ path, body, key });
+      if (candidates.length === 1) throw new APIError(503, true);
+      throw new APIError(409, false);
+    }) as unknown as API;
+    const hook = renderHook(() => useCommands(api, conflict));
+    await waitFor(() => expect(hook.result.current.ready).toBe(true));
+    act(() => hook.result.current.prepare(input));
+    await waitFor(() => expect(hook.result.current.busy).toBe(false));
+    const candidate = hook.result.current.registration;
+    expect(candidate).not.toBeNull();
+    pending = { ...prepared, command_id: "unrelated-pending" };
+    act(() => hook.result.current.retryRegistration());
+    await waitFor(() => expect(candidates).toHaveLength(2));
+    await waitFor(() => expect(hook.result.current.busy).toBe(false));
+    expect(candidates[1]).toEqual(candidates[0]);
+    expect(hook.result.current.registration).toEqual(candidate);
+    expect(hook.result.current.command).toBeNull();
+    expect(hook.result.current.locked).toBe(true);
+    expect(conflict).not.toHaveBeenCalled();
+  });
+  it("does not replace an active command during an idle-only reciprocal refresh", async () => {
+    const api = vi.fn(async () => ({ command: prepared })) as unknown as API;
+    const hook = renderHook(() => useCommands(api));
+    await waitFor(() =>
+      expect(hook.result.current.command?.command_id).toBe(prepared.command_id),
+    );
+    const count = vi.mocked(api).mock.calls.length;
+    await act(async () => hook.result.current.refreshIfIdle());
+    expect(vi.mocked(api).mock.calls).toHaveLength(count);
+    expect(hook.result.current.command?.command_id).toBe(prepared.command_id);
+  });
+});
 // API replacement models session composition changes while an old network operation remains unresolved.
 describe("command session boundary", () => {
   it("clears only explicit inaccessible recovery and reloads the command gate", async () => {
