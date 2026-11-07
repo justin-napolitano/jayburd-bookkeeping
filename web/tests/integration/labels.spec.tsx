@@ -26,11 +26,11 @@ test("private topics and labels recover committed responses without books or jou
   await expect(page.getByRole("heading",{name:"Saved topic review",exact:true})).toBeVisible();
   let taxonomyExecutions=0;
   await page.route("**/v1/collections/*/label-commands/*/execute",async route=>{
-    taxonomyExecutions++;
     const response=await route.fetch();
     expect(response.status()).toBe(200);
     expect((await response.json()).command.state).toBe("committed");
     await route.abort("failed");
+    taxonomyExecutions++;
   });
   await page.getByRole("button",{name:"Confirm topic changes",exact:true}).click();
   await expect.poll(()=>taxonomyExecutions).toBe(1);
@@ -48,13 +48,13 @@ test("private topics and labels recover committed responses without books or jou
   await page.getByRole("button",{name:"Save label review",exact:true}).click();
   let labelExecutions=0;
   await page.route("**/v1/collections/*/label-commands/*/execute",async route=>{
-    labelExecutions++;
     const response=await route.fetch();
     expect(response.status()).toBe(200);
     const receipt=await response.json();
     expect(receipt.command.state).toBe("committed");
     expect(receipt.command.preview.review_rows[0].money.amount).toBe("0.1");
     await route.abort("failed");
+    labelExecutions++;
   });
   await page.getByRole("button",{name:"Confirm labels for 1 selected",exact:true}).click();
   await expect.poll(()=>labelExecutions).toBe(1);
