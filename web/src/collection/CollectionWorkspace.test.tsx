@@ -49,7 +49,7 @@ function fixture(pending = false) {
     if (path.endsWith("/taxonomy")) return catalog;
     if (path.endsWith("/pending"))
       return {
-        profile: "private-collection-command-v2",
+        profile: "private-collection-command-v3",
         workspace_id: workspace,
         command: pending ? command : null,
       };
@@ -120,7 +120,7 @@ describe("always-mounted private recovery coordinator", () => {
     expect(request.mock.calls.map(([path]) => path)).toEqual([
       "/v1/collection",
       `/v3/collections/${workspace}/taxonomy`,
-      `/v2/collections/${workspace}/label-commands/pending`,
+      `/v3/collections/${workspace}/label-commands/pending`,
     ]);
     expect(lock).toHaveBeenLastCalledWith(true);
   });

@@ -21,6 +21,7 @@ export const collectionWorkspace: Workspace = {
   name: "Fictional private workspace",
 };
 export const collectionCatalog: Catalog = {
+  rules: [],
   books: [],
   currencies: [],
   institution: { state: "unavailable" },
@@ -71,6 +72,14 @@ export function collectionRow(
   changes: Partial<ReviewRow> = {},
 ): ReviewRow {
   return {
+    rule_suggestion: {
+      status: "unclassified",
+      output: null,
+      rules: [],
+      preserved: { topic: false, tags: false },
+      will_apply: false,
+    },
+    rule_application: { state: "none" },
     institution: { state: "unavailable" },
     legal_owner: { state: "unknown" },
     workspace_id: collectionWorkspace.workspace_id,
@@ -219,10 +228,33 @@ export function collectionPreview(
   return {
     ...request,
     preview_id: "fictional-preview",
-    profile: "private-collection-preview-v2",
+    profile: "private-collection-preview-v3",
+    rule_results:
+      request.action.kind === "rules_apply"
+        ? rows.map((row) => ({
+            ...selectionOf(row),
+            status: "unclassified" as const,
+            output: null,
+            rules: [],
+            preserved: { topic: false, tags: false },
+            will_apply: false,
+          }))
+        : [],
+    apply_count: "0",
+    abstain_count:
+      request.action.kind === "rules_apply" ? String(rows.length) : "0",
     expires_at: "2099-01-01T00:00:00Z",
     selected_count: String(request.selection.length),
-    review_rows: rows,
+    review_rows: rows.map((row) => {
+      const {
+        institution: _i,
+        legal_owner: _o,
+        rule_suggestion: _s,
+        rule_application: _a,
+        ...base
+      } = row as ReviewRow;
+      return base;
+    }),
     tag_results:
       request.action.kind !== "tags"
         ? []

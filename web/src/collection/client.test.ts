@@ -138,7 +138,7 @@ describe("authenticated private collection port", () => {
     expect(await port.preview(previewRequest)).toEqual(preview);
     const { workspace_id: __, ...previewBody } = previewRequest;
     expect(query.mock.calls[1]).toEqual([
-      `/v2/collections/${workspace}/labels/preview`,
+      `/v3/collections/${workspace}/labels/preview`,
       JSON.stringify(previewBody),
     ]);
     const command = {
@@ -150,7 +150,7 @@ describe("authenticated private collection port", () => {
       preview,
     };
     request.mockResolvedValue({
-      profile: "private-collection-command-v2",
+      profile: "private-collection-command-v3",
       workspace_id: workspace,
       command,
     } as never);
@@ -169,15 +169,15 @@ describe("authenticated private collection port", () => {
       });
     expect(request.mock.calls).toEqual([
       [
-        `/v2/collections/${workspace}/label-commands`,
+        `/v3/collections/${workspace}/label-commands`,
         JSON.stringify({
           preview_id: preview.preview_id,
           prepare_key: "fictional-key",
         }),
       ],
-      [`/v2/collections/${workspace}/label-commands/pending`, undefined],
+      [`/v3/collections/${workspace}/label-commands/pending`, undefined],
       ...["execute", "cancel", "acknowledge"].map((operation) => [
-        `/v2/collections/${workspace}/label-commands/fictional-command/${operation}`,
+        `/v3/collections/${workspace}/label-commands/fictional-command/${operation}`,
         "{}",
       ]),
     ]);
@@ -186,7 +186,7 @@ describe("authenticated private collection port", () => {
     const { api, request } = apiFixture();
     const port = createCollectionPort(api);
     request.mockResolvedValue({
-      profile: "private-collection-command-v2",
+      profile: "private-collection-command-v3",
       workspace_id: workspace,
       command: null,
     } as never);
@@ -195,7 +195,7 @@ describe("authenticated private collection port", () => {
       port.execute({ workspace_id: workspace, command_id: "x" }),
     ).rejects.toMatchObject({ kind: "uncertain" });
     request.mockResolvedValue({
-      profile: "private-collection-command-v2",
+      profile: "private-collection-command-v3",
       workspace_id: source,
       command: null,
     } as never);

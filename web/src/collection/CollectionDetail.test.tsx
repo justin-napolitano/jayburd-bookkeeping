@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   collectionFixture,
+  collectionCatalog,
   collectionRow,
   collectionSnapshot,
 } from "../../tests/collection-fixture";
@@ -55,6 +56,7 @@ describe("current source detail", () => {
         back = vi.fn();
       render(
         <CollectionDetail
+          catalog={collectionCatalog}
           request={request}
           port={fixture.port}
           onDenied={denied}
@@ -134,6 +136,7 @@ describe("current source detail", () => {
     const denied = vi.fn();
     const view = render(
       <CollectionDetail
+        catalog={collectionCatalog}
         request={request}
         port={fixture.port}
         onDenied={denied}
@@ -143,6 +146,7 @@ describe("current source detail", () => {
     const next = { ...request, observation_id: "fictional-observation-next" };
     view.rerender(
       <CollectionDetail
+        catalog={collectionCatalog}
         request={next}
         port={fixture.port}
         onDenied={denied}
