@@ -22,6 +22,7 @@ financial data, cloud/provider/consent/IAM/resource or worker operation is impli
 | Local adapter proof | Shared Go adapter/server/activation packages PASS;203 focused collection/bridge/API tests PASS; API types regenerated and web typecheck passes. Temporary local1.26.5 adapter uses exact verified x/net0.62.0 source; tracked1.26.10/dependency pins unchanged |
 | Browser composition | Actual private browser fixture now forwards reviewed v3 requests through the same Next bridge; v1/v2 saved recovery paths retained. Complete real browser/API/SQL run remains required |
 | Rule client protocol | Shared API.query/Next bridge admit exact reviewed v3 preview/command routes with original finite caps/no automatic retry.134 shared bridge/API tests PASS. Rules46 SQL/Go/UI integration remains in progress; bridge membership alone is not rule execution acceptance |
+| Rule server protocol | Fixed v3 command SQL mappings/profiles preserve raw historical nested previews. A missing Go rule hook rejects v3 previews before SQL, preventing an unvalidated catalog fallback. Protocol/closed schema and generated API types prepared; concrete RuleProcessor/46 composition remains required |
 
 ## Current evidence
 

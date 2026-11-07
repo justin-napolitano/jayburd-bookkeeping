@@ -5420,6 +5420,380 @@
           }
         }
       }
+    },
+    "/v3/collections/{workspace}/labels/preview": {
+      "post": {
+        "operationId": "previewPrivateLabelsV3",
+        "summary": "Current-authorized private labels and deterministic rule workflow",
+        "description": "Matching migration46 and same-transaction SQL-authorized Go rule evaluation required. Immutable revision-pinned preview, explicit selection, durable shared command reservation and exact current-authorized replay. Manual fields preserved independently; stale manual input/conflict abstains. No provider request, journal/draft or silent historical write. No query/Idempotency-Key/content encoding. Existing bounded body budgets retained; response<=1MiB and rules<=256KiB before persistence. See docs/contracts/collection-query-rules.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelPreviewV3"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelPreviewRequestV3"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/collections/{workspace}/label-commands": {
+      "post": {
+        "operationId": "preparePrivateLabelsV3",
+        "summary": "Current-authorized private labels and deterministic rule workflow",
+        "description": "Matching migration46 and same-transaction SQL-authorized Go rule evaluation required. Immutable revision-pinned preview, explicit selection, durable shared command reservation and exact current-authorized replay. Manual fields preserved independently; stale manual input/conflict abstains. No provider request, journal/draft or silent historical write. No query/Idempotency-Key/content encoding. Existing bounded body budgets retained; response<=1MiB and rules<=256KiB before persistence. See docs/contracts/collection-query-rules.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelCommandEnvelopeV3"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelPrepareV2"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/collections/{workspace}/label-commands/pending": {
+      "get": {
+        "operationId": "pendingPrivateLabelsV3",
+        "summary": "Current-authorized private labels and deterministic rule workflow",
+        "description": "Matching migration46 and same-transaction SQL-authorized Go rule evaluation required. Immutable revision-pinned preview, explicit selection, durable shared command reservation and exact current-authorized replay. Manual fields preserved independently; stale manual input/conflict abstains. No provider request, journal/draft or silent historical write. No query/Idempotency-Key/content encoding. Existing bounded body budgets retained; response<=1MiB and rules<=256KiB before persistence. See docs/contracts/collection-query-rules.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelPendingEnvelopeV3"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/collections/{workspace}/label-commands/{command}/execute": {
+      "post": {
+        "operationId": "executePrivateLabelsV3",
+        "summary": "Current-authorized private labels and deterministic rule workflow",
+        "description": "Matching migration46 and same-transaction SQL-authorized Go rule evaluation required. Immutable revision-pinned preview, explicit selection, durable shared command reservation and exact current-authorized replay. Manual fields preserved independently; stale manual input/conflict abstains. No provider request, journal/draft or silent historical write. No query/Idempotency-Key/content encoding. Existing bounded body budgets retained; response<=1MiB and rules<=256KiB before persistence. See docs/contracts/collection-query-rules.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "command",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelCommandEnvelopeV3"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelTransitionV2"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/collections/{workspace}/label-commands/{command}/cancel": {
+      "post": {
+        "operationId": "cancelPrivateLabelsV3",
+        "summary": "Current-authorized private labels and deterministic rule workflow",
+        "description": "Matching migration46 and same-transaction SQL-authorized Go rule evaluation required. Immutable revision-pinned preview, explicit selection, durable shared command reservation and exact current-authorized replay. Manual fields preserved independently; stale manual input/conflict abstains. No provider request, journal/draft or silent historical write. No query/Idempotency-Key/content encoding. Existing bounded body budgets retained; response<=1MiB and rules<=256KiB before persistence. See docs/contracts/collection-query-rules.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "command",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelCommandEnvelopeV3"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelTransitionV2"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/collections/{workspace}/label-commands/{command}/acknowledge": {
+      "post": {
+        "operationId": "acknowledgePrivateLabelsV3",
+        "summary": "Current-authorized private labels and deterministic rule workflow",
+        "description": "Matching migration46 and same-transaction SQL-authorized Go rule evaluation required. Immutable revision-pinned preview, explicit selection, durable shared command reservation and exact current-authorized replay. Manual fields preserved independently; stale manual input/conflict abstains. No provider request, journal/draft or silent historical write. No query/Idempotency-Key/content encoding. Existing bounded body budgets retained; response<=1MiB and rules<=256KiB before persistence. See docs/contracts/collection-query-rules.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "command",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelCommandEnvelopeV3"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelTransitionV2"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -13452,8 +13826,8 @@
                 "anyOf": [
                   {
                     "type": "string",
-                    "maxLength": 80,
-                    "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    "maxLength": 39,
+                    "pattern": "^(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$"
                   },
                   {
                     "type": "null"
@@ -13464,8 +13838,8 @@
                 "anyOf": [
                   {
                     "type": "string",
-                    "maxLength": 80,
-                    "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$"
+                    "maxLength": 39,
+                    "pattern": "^(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$"
                   },
                   {
                     "type": "null"
@@ -13982,6 +14356,12 @@
           },
           "legal_owner": {
             "$ref": "#/components/schemas/PrivateLegalOwnerUnknown"
+          },
+          "rule_suggestion": {
+            "$ref": "#/components/schemas/PrivateRuleSuggestion"
+          },
+          "rule_application": {
+            "$ref": "#/components/schemas/PrivateRuleApplication"
           }
         },
         "required": [
@@ -14001,7 +14381,9 @@
           "provider_suggestion",
           "owner_tags",
           "institution",
-          "legal_owner"
+          "legal_owner",
+          "rule_suggestion",
+          "rule_application"
         ]
       },
       "PrivateReadBook": {
@@ -14063,7 +14445,7 @@
           "minor_unit": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 18
+            "maximum": 9
           },
           "valid_from": {
             "type": "string",
@@ -14183,6 +14565,9 @@
           },
           "legal_owner": {
             "$ref": "#/components/schemas/PrivateLegalOwnerUnknown"
+          },
+          "rules": {
+            "$ref": "#/components/schemas/PrivateRuleCatalog"
           }
         },
         "required": [
@@ -14199,7 +14584,8 @@
           "books",
           "currencies",
           "institution",
-          "legal_owner"
+          "legal_owner",
+          "rules"
         ]
       },
       "PrivateLabelPageV3": {
@@ -14418,7 +14804,7 @@
               },
               "item_generation": {
                 "type": "string",
-                "pattern": "^(0|[1-9][0-9]{0,18})$"
+                "pattern": "^[1-9][0-9]{0,18}$"
               },
               "sources": {
                 "type": "array",
@@ -14459,6 +14845,887 @@
           "profile",
           "plan_id",
           "result"
+        ]
+      },
+      "PrivateRuleCondition": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "field": {
+                "type": "string",
+                "enum": [
+                  "merchant",
+                  "description"
+                ]
+              },
+              "operator": {
+                "type": "string",
+                "enum": [
+                  "exact",
+                  "contains",
+                  "regex"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "description": "At most128 UTF8 bytes; bounded Go regexp syntax/work validation is authoritative."
+              }
+            },
+            "required": [
+              "field",
+              "operator",
+              "value"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "field": {
+                "type": "string",
+                "enum": [
+                  "account",
+                  "currency_version"
+                ]
+              },
+              "operator": {
+                "const": "exact"
+              },
+              "value": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              }
+            },
+            "required": [
+              "field",
+              "operator",
+              "value"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "field": {
+                "const": "direction"
+              },
+              "operator": {
+                "const": "exact"
+              },
+              "value": {
+                "type": "string",
+                "enum": [
+                  "inflow",
+                  "outflow"
+                ]
+              }
+            },
+            "required": [
+              "field",
+              "operator",
+              "value"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "field": {
+                "const": "date"
+              },
+              "operator": {
+                "type": "string",
+                "enum": [
+                  "on_or_after",
+                  "on_or_before"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "field",
+              "operator",
+              "value"
+            ]
+          }
+        ]
+      },
+      "PrivateRuleOutput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "topic"
+              },
+              "topic_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              "tag_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "minItems": 0,
+                "maxItems": 20,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "kind",
+              "topic_id",
+              "tag_ids"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "uncategorized"
+              },
+              "tag_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "minItems": 0,
+                "maxItems": 20,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "kind",
+              "tag_ids"
+            ]
+          }
+        ]
+      },
+      "PrivateEffectiveRuleOutput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "topic"
+              },
+              "topic_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              "tag_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "minItems": 0,
+                "maxItems": 25,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "kind",
+              "topic_id",
+              "tag_ids"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "uncategorized"
+              },
+              "tag_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "minItems": 0,
+                "maxItems": 25,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "kind",
+              "tag_ids"
+            ]
+          }
+        ],
+        "description": "More than20 tags are permitted only when the result preserves an existing manual tag field; never a newly authored rule output."
+      },
+      "PrivateRule": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "retired"
+            ]
+          },
+          "source_account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateRuleCondition"
+            },
+            "minItems": 1,
+            "maxItems": 8
+          },
+          "output": {
+            "$ref": "#/components/schemas/PrivateRuleOutput"
+          }
+        },
+        "required": [
+          "rule_id",
+          "name",
+          "status",
+          "source_account_id",
+          "priority",
+          "conditions",
+          "output"
+        ]
+      },
+      "PrivateRuleCatalog": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PrivateRule"
+        },
+        "minItems": 0,
+        "maxItems": 1000,
+        "description": "Complete immutable edition, at most100 active rules and256KiB serialized rules. Retain existing IDs, terminal retirement, active names case-sensitive unique. Aggregate catalog/preview/command response budget1MiB enforced before accepting new state."
+      },
+      "PrivateRuleProvenance": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "rule_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          }
+        },
+        "required": [
+          "rule_id",
+          "rule_revision"
+        ]
+      },
+      "PrivateRuleSuggestion": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "rule",
+              "override",
+              "conflict",
+              "unclassified",
+              "stale_override",
+              "unavailable"
+            ]
+          },
+          "output": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrivateEffectiveRuleOutput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateRuleProvenance"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "preserved": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "topic": {
+                "type": "boolean"
+              },
+              "tags": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "topic",
+              "tags"
+            ]
+          },
+          "will_apply": {
+            "const": false
+          }
+        },
+        "required": [
+          "status",
+          "output",
+          "rules",
+          "preserved",
+          "will_apply"
+        ],
+        "description": "Current matcher proposal only. A read never applies labels, and false is not an authoritative future preview eligibility decision."
+      },
+      "PrivateRuleResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "source_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "rule",
+              "override",
+              "conflict",
+              "unclassified",
+              "stale_override",
+              "unavailable"
+            ]
+          },
+          "output": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrivateEffectiveRuleOutput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateRuleProvenance"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "preserved": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "topic": {
+                "type": "boolean"
+              },
+              "tags": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "topic",
+              "tags"
+            ]
+          },
+          "will_apply": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "source_id",
+          "observation_id",
+          "observation_revision",
+          "status",
+          "output",
+          "rules",
+          "preserved",
+          "will_apply"
+        ]
+      },
+      "PrivateRuleApplication": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "none"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": [
+                  "current",
+                  "stale",
+                  "superseded"
+                ]
+              },
+              "ruleset_revision": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,18})$"
+              },
+              "rules": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PrivateRuleProvenance"
+                },
+                "minItems": 0,
+                "maxItems": 100
+              },
+              "fields": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "topic": {
+                    "type": "boolean"
+                  },
+                  "tags": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "topic",
+                  "tags"
+                ]
+              }
+            },
+            "required": [
+              "state",
+              "ruleset_revision",
+              "rules",
+              "fields"
+            ]
+          }
+        ],
+        "description": "Stored prior applied decision origin, separate from current matching suggestions. No inference of manual origin from a current matching rule."
+      },
+      "PrivateLabelActionV3": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "topic"
+              },
+              "topic_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              }
+            },
+            "required": [
+              "kind",
+              "topic_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "uncategorized"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "taxonomy"
+              },
+              "topics": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PrivateLabelTopicV2"
+                },
+                "minItems": 0,
+                "maxItems": 1000
+              }
+            },
+            "required": [
+              "kind",
+              "topics"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "tag_catalog"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PrivateStrategicTag"
+                },
+                "minItems": 0,
+                "maxItems": 1000
+              }
+            },
+            "required": [
+              "kind",
+              "tags"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "tags"
+              },
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "remove",
+                  "replace"
+                ]
+              },
+              "tag_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "minItems": 0,
+                "maxItems": 25,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "kind",
+              "operation",
+              "tag_ids"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "rule_catalog"
+              },
+              "rules": {
+                "$ref": "#/components/schemas/PrivateRuleCatalog"
+              }
+            },
+            "required": [
+              "kind",
+              "rules"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "rules_apply"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        ]
+      },
+      "PrivateLabelPreviewRequestV3": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/PrivateLabelSnapshotV2"
+          },
+          "selection": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateLabelSelectionV2"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "action": {
+            "$ref": "#/components/schemas/PrivateLabelActionV3"
+          }
+        },
+        "required": [
+          "snapshot",
+          "selection",
+          "action"
+        ],
+        "description": "Rule catalog edits require empty selection; rule apply requires1–100 exact current observations. SQL pins and explicit persisted preview/prepare/execute/ack are mandatory; no caller-supplied match results."
+      },
+      "PrivateLabelPreviewV3": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-preview-v3"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/PrivateLabelSnapshotV2"
+          },
+          "selection": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateLabelSelectionV2"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "action": {
+            "$ref": "#/components/schemas/PrivateLabelActionV3"
+          },
+          "preview_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "selected_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "review_rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateLabelRowV2"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "tag_results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateTagResult"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "rule_results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateRuleResult"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "apply_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "abstain_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "snapshot",
+          "selection",
+          "action",
+          "preview_id",
+          "expires_at",
+          "selected_count",
+          "review_rows",
+          "tag_results",
+          "rule_results",
+          "apply_count",
+          "abstain_count"
+        ]
+      },
+      "PrivateLabelCommandV3": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "command_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "prepare_key": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "prepared",
+              "committed",
+              "cancelled"
+            ]
+          },
+          "acknowledged": {
+            "type": "boolean"
+          },
+          "preview": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PrivateLabelPreview"
+              },
+              {
+                "$ref": "#/components/schemas/PrivateLabelPreviewV2"
+              },
+              {
+                "$ref": "#/components/schemas/PrivateLabelPreviewV3"
+              }
+            ]
+          }
+        },
+        "required": [
+          "workspace_id",
+          "command_id",
+          "prepare_key",
+          "state",
+          "acknowledged",
+          "preview"
+        ]
+      },
+      "PrivateLabelCommandEnvelopeV3": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-command-v3"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "command": {
+            "$ref": "#/components/schemas/PrivateLabelCommandV3"
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "command"
+        ]
+      },
+      "PrivateLabelPendingEnvelopeV3": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-command-v3"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "command": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrivateLabelCommandV3"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "command"
         ]
       }
     },
