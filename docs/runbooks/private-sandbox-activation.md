@@ -21,6 +21,7 @@ credential/financial-record read or live activation.
 | Operator SQL proof | Actual pinned PostgreSQL17 with unchanged migrations1–44 and real synthetic operator/API logins: TestActivationOperatorInitialReplay, TestActivationOperatorIdentityScopeAndAtomicDeny, TestActivationOperatorPrecommitExpiryRollback and TestActivationOperatorRuntimeProvisionDenied all PASS. One original workspace/provision receipt retained; delayed new grant fully rolled back after approval expiry. |
 | Transport followup | Six activation unit/race groups PASS, adding precommit-expiry discard and closed HTTP header/query/oversize/current-expiry denials before DB work. |
 | Source checks | make check/build PASS using installed Go1.26.5 and external temporary modfile/cache. make test attempted:18 offline release tests and non-listening packages PASS; preexisting acquisition/webhookhost/workerhost/workerruntime listener tests fail because local sandbox denies TCP bind. No skips or test weakening. |
+| Restricted HTTP/SQL | New integration-tagged activation_http_integration_test.go uses existing legacyFixture, actual restricted synthetic_runtime pool and real Handler→Service→SQL. All5 groups PASS on source44 and again on source43 after empty44 down in the owned unused template. TestActivationHTTPPostgres fixes exact replay/changed-intent denial/one adoption receipt/paused generation2 and unchanged original anchors; TestActivationHTTPCurrentAuthority covers principal/workspace/book/source revocations before execution and receipt replay (8 subcases); TestActivationHTTPPreconditions covers generation, omitted active second source, pending connection/staging and injected late receipt failure with atomic rollback (5 subcases); TestActivationHTTPLostReplyPostgres loses one real commit reply then explicitly replays and rechecks revoked source authority; TestActivationIdentityClaimRaces observes actual blocked legacy/native identity contenders in both winner orders. |
 
 ## Current evidence
 
@@ -30,13 +31,15 @@ SQL groups ran against a network-none disposable fixture. Host nested shell
 Docker access was denied, so equivalent direct Docker commands copied the exact
 SQL and fixed fixture assertions into the owned container and executed there.
 scripts/test-private-activation.sh preserves the same proof as a normal CI gate;
-bash syntax validation PASS. Actual restricted HTTP/SQL adoption proof belongs to
-root's independent fixture. Existing managed
+bash syntax validation PASS. Root reassigned its previously uncreated dedicated
+HTTP/SQL test file to this lane; its actual restricted PostgreSQL evidence is
+recorded above. The authenticator in this integration binary remains a synthetic
+test double, not managed Firebase identity proof. Existing managed
 operator authority is unresolved and no managed activation is claimed.
 
 ## Remaining work
 
-Run shared restricted HTTP/SQL integration and canonical full checks. No managed
+Run canonical full checks with root-owned shared wiring. No managed
 operator profile or live activation is implied.
 
 Before managed use, the owner must review the fixed Sandbox database, active
