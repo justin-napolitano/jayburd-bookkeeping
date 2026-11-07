@@ -32,6 +32,8 @@ TAGREC-20261107T0340Z. Synthetic data only; no hosted/provider/live activation.
 | Independent proof import | Reviewed13bd90f: nine exact final44 SQL/HTTP groups and listener-free browser setup PASS, unchanged43 upgrade race preserved, source/journal/topic history and current-denial coverage. Removing only status fence in own clone causes expected failure (false none instead of40001); no product/template mutation |
 | Browser compatibility correction | Reviewed20e5e80: book-only fixtures now explicitly return feature-off404 for both private discovery paths; all original assertions retained. Full75/76 run exposed shared refresh counter automatically reloading denied private view. Root split global-only versus scoped refresh; canonical and affected rerun required |
 
+| Real versioned route composition | Next v2 catch-all and labels-only Vite test proxy both forward v2 to the existing bounded bridge/API; all old paths remain. This closes versioned routing through the actual app stack rather than intercepting responses |
+
 ## Current evidence
 
 Implementation in progress. Parent449 all five checks passed; that is baseline,
