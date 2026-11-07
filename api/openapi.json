@@ -3156,8 +3156,34 @@
           }
         },
         "responses": {
-          "200": {"description": "Current authorized attempt state", "headers": {"Cache-Control": {"schema": {"type": "string", "const": "no-store"}}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ConnectionAttempt"}}}},
-          "default": {"description": "Fixed safe failure", "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}}}
+          "200": {
+            "description": "Current authorized attempt state",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionAttempt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed safe failure",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -4607,6 +4633,574 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PrivateLabelTransition"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/collections/{workspace}/taxonomy": {
+      "get": {
+        "operationId": "getPrivateLabelCatalogV2",
+        "summary": "Current-authorized private analytic label workflow",
+        "description": "Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap0 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelCatalogV2"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/collections/{workspace}/review/query": {
+      "post": {
+        "operationId": "queryPrivateLabelReviewV2",
+        "summary": "Current-authorized private analytic label workflow",
+        "description": "Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap8192 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelPageV2"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelQueryV2"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/collections/{workspace}/labels/preview": {
+      "post": {
+        "operationId": "previewPrivateLabelsV2",
+        "summary": "Current-authorized private analytic label workflow",
+        "description": "Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap524288 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelPreviewV2"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelPreviewRequestV2"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/collections/{workspace}/label-commands": {
+      "post": {
+        "operationId": "preparePrivateLabelsV2",
+        "summary": "Current-authorized private analytic label workflow",
+        "description": "Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap4096 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelCommandEnvelopeV2"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelPrepareV2"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/collections/{workspace}/label-commands/pending": {
+      "get": {
+        "operationId": "pendingPrivateLabelsV2",
+        "summary": "Current-authorized private analytic label workflow",
+        "description": "Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap0 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelPendingEnvelopeV2"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/collections/{workspace}/label-commands/{command}/execute": {
+      "post": {
+        "operationId": "executePrivateLabelsV2",
+        "summary": "Current-authorized private analytic label workflow",
+        "description": "Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap1024 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "command",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelCommandEnvelopeV2"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelTransitionV2"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/collections/{workspace}/label-commands/{command}/cancel": {
+      "post": {
+        "operationId": "cancelPrivateLabelsV2",
+        "summary": "Current-authorized private analytic label workflow",
+        "description": "Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap1024 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "command",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelCommandEnvelopeV2"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelTransitionV2"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/collections/{workspace}/label-commands/{command}/acknowledge": {
+      "post": {
+        "operationId": "acknowledgePrivateLabelsV2",
+        "summary": "Current-authorized private analytic label workflow",
+        "description": "Versioned private tags/topic workflow; matching migration44 required. Optional explicit managed feature with matching schema44. Verified actor/current SQL capability; no caller actor or Idempotency-Key header/query/encoded request. Body cap1024 bytes; response max1MiB/no-store. SQL owns exact validation and immutable pins. Source money/journals unchanged. See docs/contracts/collection-labels.md. See docs/contracts/collection-tags-recovery.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "command",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLabelCommandEnvelopeV2"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateLabelTransitionV2"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collection-recovery": {
+      "get": {
+        "operationId": "getPrivateCollectionRecovery",
+        "summary": "Payload-free recovery of owned inaccessible private commands",
+        "description": "Active verified owner, SERIALIZABLE even for GET. Exact opaque recovery identity only; no workspace, saved payload or private grant inference. Explicit clear cancels prepared or acknowledges terminal private work, preserves committed decisions and uses durable receipts. No query/encoding/header key; clear body max1024 bytes. Same-origin authenticated bridge; feature default off; matching migration44 required. See docs/contracts/collection-tags-recovery.md.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateCollectionRecovery"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collection-recovery/clear": {
+      "post": {
+        "operationId": "clearPrivateCollectionRecovery",
+        "summary": "Payload-free recovery of owned inaccessible private commands",
+        "description": "Active verified owner, SERIALIZABLE even for GET. Exact opaque recovery identity only; no workspace, saved payload or private grant inference. Explicit clear cancels prepared or acknowledges terminal private work, preserves committed decisions and uses durable receipts. No query/encoding/header key; clear body max1024 bytes. Same-origin authenticated bridge; feature default off; matching migration44 required. See docs/contracts/collection-tags-recovery.md.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current-authorized profiled result; immutable command preview retained for recovery",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateCollectionRecoveryReceipt"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateCollectionRecoveryClear"
               }
             }
           }
@@ -9816,8 +10410,13 @@
           },
           "numeric_code": {
             "anyOf": [
-              { "type": "string", "pattern": "^[0-9]{3}$" },
-              { "type": "null" }
+              {
+                "type": "string",
+                "pattern": "^[0-9]{3}$"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "minor_unit": {
@@ -11131,6 +11730,1409 @@
           "profile",
           "workspace_id",
           "command"
+        ]
+      },
+      "PrivateLabelTopicV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "topic_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "retired"
+            ]
+          }
+        },
+        "required": [
+          "topic_id",
+          "name",
+          "parent_id",
+          "status"
+        ]
+      },
+      "PrivateLabelSnapshotV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "authority_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "source_snapshot": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "taxonomy_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "ruleset_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "map_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "decision_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "tag_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          }
+        },
+        "required": [
+          "authority_revision",
+          "source_snapshot",
+          "taxonomy_revision",
+          "ruleset_revision",
+          "map_revision",
+          "decision_revision",
+          "tag_revision"
+        ]
+      },
+      "PrivateLabelSelectionV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "source_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "source_id",
+          "observation_id",
+          "observation_revision"
+        ]
+      },
+      "PrivateLabelActionV2": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "topic"
+              },
+              "topic_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              }
+            },
+            "required": [
+              "kind",
+              "topic_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "uncategorized"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "taxonomy"
+              },
+              "topics": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PrivateLabelTopicV2"
+                },
+                "minItems": 0,
+                "maxItems": 1000
+              }
+            },
+            "required": [
+              "kind",
+              "topics"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "tag_catalog"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PrivateStrategicTag"
+                },
+                "minItems": 0,
+                "maxItems": 1000
+              }
+            },
+            "required": [
+              "kind",
+              "tags"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "tags"
+              },
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "remove",
+                  "replace"
+                ]
+              },
+              "tag_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "minItems": 0,
+                "maxItems": 25,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "kind",
+              "operation",
+              "tag_ids"
+            ]
+          }
+        ],
+        "description": "Add/remove require at least one ID; replacement may be empty. Final per-observation set at most25. Add/replace require active local tags; retired removal allowed. SQL checks conditional limits/current authority."
+      },
+      "PrivateLabelTopicFilterV2": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "unclassified",
+                  "uncategorized"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "topic"
+              },
+              "topic_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              }
+            },
+            "required": [
+              "kind",
+              "topic_id"
+            ]
+          }
+        ]
+      },
+      "PrivateLabelSelectorV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source_account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assignment": {
+            "type": "string",
+            "enum": [
+              "all",
+              "assigned",
+              "unassigned"
+            ]
+          },
+          "starts_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "through_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "search": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "topic": {
+            "$ref": "#/components/schemas/PrivateLabelTopicFilterV2"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "date_asc",
+              "date_desc"
+            ]
+          },
+          "tag": {
+            "$ref": "#/components/schemas/PrivateTagFilter"
+          }
+        },
+        "required": [
+          "source_account_id",
+          "assignment",
+          "starts_on",
+          "through_date",
+          "search",
+          "topic",
+          "sort",
+          "tag"
+        ]
+      },
+      "PrivateLabelQueryV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-review-v2"
+          },
+          "source_account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assignment": {
+            "type": "string",
+            "enum": [
+              "all",
+              "assigned",
+              "unassigned"
+            ]
+          },
+          "starts_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "through_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "search": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "topic": {
+            "$ref": "#/components/schemas/PrivateLabelTopicFilterV2"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "date_asc",
+              "date_desc"
+            ]
+          },
+          "snapshot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrivateLabelSnapshotV2"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "tag": {
+            "$ref": "#/components/schemas/PrivateTagFilter"
+          }
+        },
+        "required": [
+          "profile",
+          "source_account_id",
+          "assignment",
+          "starts_on",
+          "through_date",
+          "search",
+          "topic",
+          "sort",
+          "snapshot",
+          "cursor",
+          "limit",
+          "tag"
+        ]
+      },
+      "PrivateLabelMoneyV2": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "available"
+              },
+              "amount": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,28})(\\.[0-9]{1,9})?$"
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "inflow",
+                  "outflow",
+                  "zero"
+                ]
+              },
+              "currency": {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              "currency_version_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              "numeric_code": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]{3}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "minor_unit": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9
+              },
+              "valid_from": {
+                "type": "string",
+                "format": "date"
+              },
+              "valid_to": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "state",
+              "amount",
+              "direction",
+              "currency",
+              "currency_version_id",
+              "numeric_code",
+              "minor_unit",
+              "valid_from",
+              "valid_to"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "held"
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "unsupported_currency",
+                  "invalid_precision"
+                ]
+              },
+              "amount": {
+                "type": "null"
+              },
+              "direction": {
+                "type": "null"
+              },
+              "currency": {
+                "type": "null"
+              },
+              "currency_version_id": {
+                "type": "null"
+              },
+              "numeric_code": {
+                "type": "null"
+              },
+              "minor_unit": {
+                "type": "null"
+              },
+              "valid_from": {
+                "type": "null"
+              },
+              "valid_to": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "state",
+              "reason",
+              "amount",
+              "direction",
+              "currency",
+              "currency_version_id",
+              "numeric_code",
+              "minor_unit",
+              "valid_from",
+              "valid_to"
+            ]
+          }
+        ]
+      },
+      "PrivateLabelAssignmentV2": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": [
+                  "unassigned",
+                  "unavailable"
+                ]
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "assigned"
+              },
+              "books": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "book_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  },
+                  "required": [
+                    "book_id",
+                    "name"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 25
+              }
+            },
+            "required": [
+              "state",
+              "books"
+            ]
+          }
+        ]
+      },
+      "PrivateLabelOwnerTopicV2": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": [
+                  "unclassified",
+                  "uncategorized",
+                  "stale"
+                ]
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "topic"
+              },
+              "topic_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 80
+              }
+            },
+            "required": [
+              "state",
+              "topic_id",
+              "name"
+            ]
+          }
+        ]
+      },
+      "PrivateLabelProviderV2": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "const": "attributed"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 160
+              },
+              "taxonomy_version": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "confidence": {
+                "type": "string",
+                "maxLength": 80
+              }
+            },
+            "required": [
+              "state",
+              "label",
+              "taxonomy_version",
+              "confidence"
+            ]
+          }
+        ]
+      },
+      "PrivateLabelRowV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "source_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "account_name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "booked_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "merchant": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "money": {
+            "$ref": "#/components/schemas/PrivateLabelMoneyV2"
+          },
+          "source_state": {
+            "type": "string",
+            "enum": [
+              "booked",
+              "pending",
+              "removed",
+              "held"
+            ]
+          },
+          "assignment": {
+            "$ref": "#/components/schemas/PrivateLabelAssignmentV2"
+          },
+          "journal_state": {
+            "type": "string",
+            "enum": [
+              "unposted",
+              "posted",
+              "correction_required",
+              "unavailable"
+            ]
+          },
+          "owner_topic": {
+            "$ref": "#/components/schemas/PrivateLabelOwnerTopicV2"
+          },
+          "provider_suggestion": {
+            "$ref": "#/components/schemas/PrivateLabelProviderV2"
+          },
+          "owner_tags": {
+            "$ref": "#/components/schemas/PrivateOwnerTags"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "source_id",
+          "observation_id",
+          "observation_revision",
+          "account_name",
+          "booked_date",
+          "description",
+          "merchant",
+          "money",
+          "source_state",
+          "assignment",
+          "journal_state",
+          "owner_topic",
+          "provider_suggestion",
+          "owner_tags"
+        ]
+      },
+      "PrivateLabelCatalogV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-catalog-v2"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "authority_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "taxonomy_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "ruleset_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "map_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateLabelTopicV2"
+            },
+            "minItems": 0,
+            "maxItems": 1000
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "source_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "required": [
+                "source_id",
+                "name"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "tag_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateStrategicTag"
+            },
+            "minItems": 0,
+            "maxItems": 1000
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "authority_revision",
+          "taxonomy_revision",
+          "ruleset_revision",
+          "map_revision",
+          "topics",
+          "sources",
+          "tag_revision",
+          "tags"
+        ]
+      },
+      "PrivateLabelPageV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-review-v2"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "selector": {
+            "$ref": "#/components/schemas/PrivateLabelSelectorV2"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/PrivateLabelSnapshotV2"
+          },
+          "matching_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "start_index": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateLabelRowV2"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "partial": {
+            "type": "boolean",
+            "description": "Incomplete source history; independent of assignment metadata availability."
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "selector",
+          "snapshot",
+          "matching_count",
+          "start_index",
+          "items",
+          "next_cursor",
+          "partial"
+        ]
+      },
+      "PrivateLabelPreviewRequestV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/PrivateLabelSnapshotV2"
+          },
+          "selection": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateLabelSelectionV2"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "action": {
+            "$ref": "#/components/schemas/PrivateLabelActionV2"
+          }
+        },
+        "required": [
+          "snapshot",
+          "selection",
+          "action"
+        ],
+        "description": "Labels require1–100 exact selections; taxonomy actions require empty selection and retain every existing topic ID. SQL validates these conditional invariants."
+      },
+      "PrivateLabelPreviewV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-preview-v2"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/PrivateLabelSnapshotV2"
+          },
+          "selection": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateLabelSelectionV2"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "action": {
+            "$ref": "#/components/schemas/PrivateLabelActionV2"
+          },
+          "preview_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "selected_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "review_rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateLabelRowV2"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          },
+          "tag_results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateTagResult"
+            },
+            "minItems": 0,
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "snapshot",
+          "selection",
+          "action",
+          "preview_id",
+          "expires_at",
+          "selected_count",
+          "review_rows",
+          "tag_results"
+        ]
+      },
+      "PrivateLabelPrepareV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "preview_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "prepare_key": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+          }
+        },
+        "required": [
+          "preview_id",
+          "prepare_key"
+        ]
+      },
+      "PrivateLabelTransitionV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "PrivateLabelCommandV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "command_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "prepare_key": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "prepared",
+              "committed",
+              "cancelled"
+            ]
+          },
+          "acknowledged": {
+            "type": "boolean"
+          },
+          "preview": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PrivateLabelPreview"
+              },
+              {
+                "$ref": "#/components/schemas/PrivateLabelPreviewV2"
+              }
+            ]
+          }
+        },
+        "required": [
+          "workspace_id",
+          "command_id",
+          "prepare_key",
+          "state",
+          "acknowledged",
+          "preview"
+        ]
+      },
+      "PrivateLabelCommandEnvelopeV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-command-v2"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "command": {
+            "$ref": "#/components/schemas/PrivateLabelCommandV2"
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "command"
+        ]
+      },
+      "PrivateLabelPendingEnvelopeV2": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-command-v2"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "command": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrivateLabelCommandV2"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "command"
+        ]
+      },
+      "PrivateStrategicTag": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tag_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "retired"
+            ]
+          }
+        },
+        "required": [
+          "tag_id",
+          "name",
+          "status"
+        ]
+      },
+      "PrivateTagFilter": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "untagged"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "tag"
+              },
+              "tag_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              }
+            },
+            "required": [
+              "kind",
+              "tag_id"
+            ]
+          }
+        ]
+      },
+      "PrivateOwnerTags": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "unclassified",
+              "current",
+              "stale"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateStrategicTag"
+            },
+            "minItems": 0,
+            "maxItems": 25
+          }
+        },
+        "required": [
+          "state",
+          "tags"
+        ]
+      },
+      "PrivateTagResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "source_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "observation_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateStrategicTag"
+            },
+            "minItems": 0,
+            "maxItems": 25
+          }
+        },
+        "required": [
+          "workspace_id",
+          "source_id",
+          "observation_id",
+          "observation_revision",
+          "tags"
+        ]
+      },
+      "PrivateCollectionRecovery": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "profile": {
+                "const": "private-collection-recovery-v1"
+              },
+              "state": {
+                "const": "none"
+              },
+              "recovery_id": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "profile",
+              "state",
+              "recovery_id"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "profile": {
+                "const": "private-collection-recovery-v1"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "available",
+                  "inaccessible"
+                ]
+              },
+              "recovery_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              }
+            },
+            "required": [
+              "profile",
+              "state",
+              "recovery_id"
+            ]
+          }
+        ]
+      },
+      "PrivateCollectionRecoveryClear": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "recovery_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          }
+        },
+        "required": [
+          "recovery_id"
+        ]
+      },
+      "PrivateCollectionRecoveryReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-recovery-clear-v1"
+          },
+          "recovery_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "cleared": {
+            "const": true
+          }
+        },
+        "required": [
+          "profile",
+          "recovery_id",
+          "cleared"
         ]
       }
     },

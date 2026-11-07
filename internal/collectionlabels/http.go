@@ -31,12 +31,21 @@ func Handler(auth ledger.Authenticator, operations Operations) http.Handler {
 		"POST " + prefix + "/label-commands/{command}/acknowledge": "acknowledge",
 	} {
 		mux.HandleFunc(pattern, endpoint(auth, operations, operation))
+		mux.HandleFunc(strings.Replace(pattern, "/v1/", "/v2/", 1), endpoint(auth, operations, "v2_"+operation))
 	}
+	mux.HandleFunc("GET /v1/collection-recovery", endpoint(auth, operations, "recovery"))
+	mux.HandleFunc("POST /v1/collection-recovery/clear", endpoint(auth, operations, "clear_recovery"))
 	return mux
 }
 
 // endpoint authenticates before parsing a private selector and never accepts caller identity.
 func endpoint(auth ledger.Authenticator, operations Operations, operation string) http.HandlerFunc {
+	version := 1
+	if strings.HasPrefix(operation, "v2_") {
+		version = 2
+		operation = strings.TrimPrefix(operation, "v2_")
+	}
+	global := operation == "recovery" || operation == "clear_recovery"
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -60,12 +69,12 @@ func endpoint(auth ledger.Authenticator, operations Operations, operation string
 			fail(400, "invalid_collection")
 			return
 		}
-		request := Request{Actor: actor, Workspace: r.PathValue("workspace"), Command: r.PathValue("command")}
-		if !validID(request.Workspace) || ((operation == "execute" || operation == "cancel" || operation == "acknowledge") && !validID(request.Command)) {
+		request := Request{Actor: actor, Workspace: r.PathValue("workspace"), Command: r.PathValue("command"), Version: version}
+		if (!global && !validID(request.Workspace)) || ((operation == "execute" || operation == "cancel" || operation == "acknowledge") && !validID(request.Command)) {
 			fail(400, "invalid_collection")
 			return
 		}
-		if operation != "catalog" && operation != "pending" {
+		if operation != "catalog" && operation != "pending" && operation != "recovery" {
 			if len(r.Header.Values("Content-Type")) != 1 || r.Header.Get("Content-Type") != "application/json" {
 				fail(415, "unsupported_media_type")
 				return
@@ -111,6 +120,17 @@ func endpoint(auth ledger.Authenticator, operations Operations, operation string
 			body, err = operations.Prepare(r.Context(), request)
 		case "pending":
 			body, err = operations.Pending(r.Context(), request)
+		case "recovery", "clear_recovery":
+			recovery, ok := operations.(RecoveryOperations)
+			if !ok {
+				fail(503, "temporarily_unavailable")
+				return
+			}
+			if operation == "recovery" {
+				body, err = recovery.Recovery(r.Context(), request)
+			} else {
+				body, err = recovery.ClearRecovery(r.Context(), request)
+			}
 		default:
 			body, err = operations.Transition(r.Context(), request, operation)
 		}
@@ -126,7 +146,7 @@ func endpoint(auth ledger.Authenticator, operations Operations, operation string
 			fail(503, "temporarily_unavailable")
 			return
 		}
-		if !validResult(body, operation, request.Workspace) {
+		if !validRequestResult(body, operation, request) {
 			fail(503, "temporarily_unavailable")
 			return
 		}
