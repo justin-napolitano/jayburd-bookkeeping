@@ -1,11 +1,11 @@
 # Broader collection queries and private rules — 242/414
 
-## Frozen query45 and proposed rule46 ownership
+## Frozen query45 and rule46 ownership
 
 2026-11-07 query45 frozen by coordinator after merged ca1b37e schema inspection.
 Approved product design remains GitHub238/242; GitHub65 owns live scheduling.
 Forward45 is allocated solely to query/detail; forward46 rule storage is reserved
-to the same sole SQL writer. The rule46 wire below remains proposed until freeze.
+to the same sole SQL writer. The coordinator approved the rule46 wire below before implementation.
 Migrations1–44 remain immutable. No owner activation, source adoption, provider,
 cloud, consent, journal or financial recognition change follows from this work.
 
@@ -91,7 +91,7 @@ available can be empty for a readable unposted legacy row, unassigned denotes
 native, and unavailable hides every denied legacy anchor/name. Each requires a
 freshly authorized read at the existing journal endpoint before disclosure.
 
-## Versioned private rule contract proposal
+## Versioned private rule contract
 
 Reuse internal/categorization's bounded case-sensitive Go matcher as the only
 regex/ranking implementation. SQL selects/locks current authorized facts and
@@ -102,7 +102,7 @@ The application matcher is explicitly trusted for match/rank correctness, not
 misrepresented as a SQL-verified computation; SQL still rejects foreign outputs,
 selection drift, stale pins and protected manual-field replacement.
 
-Propose complete immutable rule editions, initially revision0 empty. At most100
+Use complete immutable rule editions, initially revision0 empty. At most100
 active rules and1000 retained stable IDs, finite UTF8 name, terminal retirement,
 local nullable account scope, integer priority,1–8 closed conjunctive conditions,
 one active topic or explicit Uncategorized and0–20 active tag IDs. All existing
@@ -110,7 +110,7 @@ pattern/regex-program/source-string/batch bounds remain. No text cleanup mutates
 source evidence. Account scope precedes workspace, then priority/specificity;
 equal-winning-rank disagreement abstains with stable provenance.
 
-Proposed new durable actions are rule_catalog (full replacement, empty selection)
+The new durable actions are rule_catalog (full replacement, empty selection)
 and rules_apply (1–100 explicit composite observation/revision identities).
 Preview returns immutable per-row result/provenance and exact apply/abstain
 counts, not a promise to expand a selector at execution. Source/taxonomy/tag/
@@ -125,7 +125,7 @@ fallback. Preserve immutable manual/rule provenance and original posted journal
 anchors. Rule application never writes journals, outbox posting intent or raw
 source facts; canceled and conflict-only work has zero analytic effects.
 
-Future matches may display an inert page-bounded suggestion after current SQL
+Current matches may display an inert page-bounded suggestion after current SQL
 authorization; reads/acquisition do not accept it. Query counts and persisted
 topic/tag filters use stored decisions, not client-side evaluation. A query
 service can evaluate at most100 picked rows within the same RR transaction.
@@ -140,6 +140,63 @@ preview unions; earlier profiles fail closed on unsupported saved work. Current
 grants are checked before payload/replay; stale preview pins do not block an
 otherwise authorized cancel/acknowledge. Unknown commit remains503, never an
 automatic retry; known40001/40P01 whole-transaction retries remain capped at3.
+
+
+### Closed rule and result wire
+
+Catalog v3 adds complete rules with rule_id, name, status active/retired,
+source_account_id nullable UUID, integer priority, conditions, and output.
+Names contain 1–80 codepoints and are unique among active rules; retirement is
+terminal and full replacement must retain every old ID. Conditions preserve
+input order and use merchant/description exact|contains|regex, account or
+currency_version exact, direction exact inflow|outflow, or date
+on_or_after|on_or_before. Values contain 1–128 UTF8 bytes. Priority ranges from
+-1000000 to 1000000. Output is {kind:topic,topic_id,tag_ids} or
+{kind:uncategorized,tag_ids}; authored tags are unique active IDs, at most20.
+The complete serialized rules array is limited to262144 UTF8 bytes.
+
+Each selected rule result contains workspace_id, source_id, observation_id,
+observation_revision, status, output, rules:[{rule_id,rule_revision}],
+preserved:{topic,tags}, and will_apply. Status is rule/override/conflict/
+unclassified/stale_override/unavailable. SQL derives will_apply from durable
+change/provenance eligibility; apply_count counts true flags and abstain_count
+is the complement. Same-edition no-op results do not append decisions. Inert
+query/detail suggestions omit the four composite identity fields and always
+set will_apply false. Effective output may retain25 tags only when preserved.tags
+is true; new rule output remains limited to20. Ranking compares complete rule
+outputs before manual-field preservation, so a tied disagreement abstains even
+when only a protected field differs.
+
+Query/detail also carry rule_application:{state:none}, or state current/stale/
+superseded with ruleset_revision, rules provenance and fields:{topic,tags}.
+This records accepted origin separately from the current inert suggestion.
+Stale applied records remain historical; reads never relabel them as manual or
+rewrite them. Manual preview review_rows retain v2 shape but use current
+persisted effective labels. Historical v1/v2 saved previews remain unchanged.
+
+V3 preview adds rule_results, apply_count and abstain_count; non-rule actions use
+empty results and zero counts. Standard functions are
+preview_collection_labels_v3(uuid,uuid,text),
+prepare_collection_label_command_v3(uuid,uuid,text),
+pending_collection_label_command_v3(uuid,uuid), and
+transition_collection_label_command_v3(uuid,uuid,uuid,text,text).
+Their outer profiles are private-collection-preview-v3 and
+private-collection-command-v3. Pending/transition preserve historical nested
+preview profiles. Raw preview/prepare/transition bounds are524288/4096/1024 bytes.
+The restricted API's trusted application matcher additionally calls
+collection_rule_context(uuid,uuid,text,boolean) and
+publish_collection_rule_preview(uuid,uuid,text,text); the latter accepts only an
+internally generated {results:[...]} object, never an HTTP-supplied result.
+
+Complete catalog, preview and command envelopes are capped at1MiB before
+acceptance/persistence, with8192 bytes reserved for the command wrapper around a
+preview. Reads retain basic rows when stored active outputs have since retired:
+the inert suggestion becomes unavailable. New invalid rule syntax or expanded
+regex work returns fixed400 invalid_collection; catalog byte limits return422
+collection_limit. Go checks request cancellation before compilation and between
+fact evaluations; existing bounded RE2 compilation/matching remains the only
+matcher. Empty46 rollback is supported; retained editions, decisions or v3
+previews/commands forbid downgrade.
 
 ## Sources, standards, alternatives and acceptance
 
