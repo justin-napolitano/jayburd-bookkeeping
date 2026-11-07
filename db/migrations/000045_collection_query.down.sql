@@ -6,4 +6,6 @@ DROP FUNCTION banking.query_collection_review_v3(uuid,uuid,text);
 DROP FUNCTION banking.get_collection_taxonomy_v3(uuid,uuid);
 DROP FUNCTION banking.collection_query_amount(jsonb,integer);
 DROP FUNCTION banking.collection_query_rows(uuid,uuid);
+DROP FUNCTION banking.collection_query_pins(jsonb,jsonb);
+DROP FUNCTION banking.collection_query_snapshot(uuid);
 COMMIT;

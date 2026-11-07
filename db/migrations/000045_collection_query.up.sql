@@ -2,6 +2,10 @@
 BEGIN;
 SET LOCAL ROLE bookkeeping_owner;
 
+-- Only v3 reads use these aliases; later additive rule pins cannot alter v1/v2 wire shapes.
+CREATE FUNCTION banking.collection_query_snapshot(w uuid)RETURNS jsonb LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$SELECT banking.collection_tag_snapshot(w)$$;
+CREATE FUNCTION banking.collection_query_pins(v jsonb,current_value jsonb)RETURNS void LANGUAGE sql SET search_path=pg_catalog,pg_temp AS $$SELECT banking.collection_tag_pins(v,current_value)$$;
+
 -- One safe row remains one source observation. Missing provenance is never inferred from book custody.
 CREATE FUNCTION banking.collection_query_rows(actor uuid,w uuid)
 RETURNS TABLE(source_id uuid,observation_id uuid,observation_revision bigint,booked_date date,body jsonb)
@@ -83,12 +87,12 @@ DECLARE v jsonb;sel jsonb;snap jsonb;sid uuid;first_day date;last_day date;searc
  END IF;
  PERFORM banking.collection_keys(v->'sort',ARRAY['field','order']);sort_field:=ledger.text_value(v->'sort'->'field');sort_order:=ledger.text_value(v->'sort'->'order');
  IF sort_field<>ALL(ARRAY['date','account','description','merchant','amount','currency','book','source_state','journal_state','topic','tags','institution','legal_owner'])OR sort_order<>ALL(ARRAY['asc','desc'])THEN PERFORM banking.collection_error('P2800');END IF;
- snap:=banking.collection_tag_snapshot(w);IF v->'snapshot'<>'null'::jsonb THEN PERFORM banking.collection_tag_pins(v->'snapshot',snap);END IF;sel:=v-ARRAY['profile','snapshot','cursor','limit'];
+ snap:=banking.collection_query_snapshot(w);IF v->'snapshot'<>'null'::jsonb THEN PERFORM banking.collection_query_pins(v->'snapshot',snap);END IF;sel:=v-ARRAY['profile','snapshot','cursor','limit'];
  IF v->'cursor'<>'null'::jsonb THEN
   txt:=ledger.text_value(v->'cursor');IF length(txt)NOT BETWEEN 2 AND 4096 OR txt COLLATE "C" !~ '^([0-9a-f]{2})+$'THEN PERFORM banking.collection_error('P2800');END IF;
   cur:=banking.import_json(convert_from(decode(txt,'hex'),'UTF8'),2048);PERFORM banking.collection_keys(cur,ARRAY['workspace_id','snapshot','selector','offset']);
   IF ledger.uuid_value(cur->'workspace_id')<>w OR cur->'selector'<>sel THEN PERFORM banking.collection_error('P2800');END IF;
-  PERFORM banking.collection_tag_pins(cur->'snapshot',snap);page_offset:=banking.import_revision(cur->'offset');IF page_offset=0 THEN PERFORM banking.collection_error('P2800');END IF;
+  PERFORM banking.collection_query_pins(cur->'snapshot',snap);page_offset:=banking.import_revision(cur->'offset');IF page_offset=0 THEN PERFORM banking.collection_error('P2800');END IF;
  END IF;
  WITH facts AS MATERIALIZED(SELECT r.*,s.origin,s.legacy_entity_id,s.legacy_book_id FROM banking.collection_query_rows(actor,w)r JOIN banking.collection_source s ON s.workspace_id=w AND s.source_account_id=r.source_id),
  matched AS MATERIALIZED(SELECT f.* FROM facts f WHERE(sid IS NULL OR f.source_id=sid)AND(first_day IS NULL OR f.booked_date>=first_day)AND(last_day IS NULL OR f.booked_date<=last_day)
@@ -119,7 +123,7 @@ DECLARE v jsonb;snap jsonb;sid uuid;oid uuid;rev bigint;s banking.collection_sou
  PERFORM banking.collection_label_authorize(actor,w,false);v:=banking.import_json(raw,8192);
  PERFORM banking.collection_keys(v,ARRAY['profile','snapshot','source_id','observation_id','observation_revision']);IF ledger.text_value(v->'profile')<>'private-collection-detail-v1'THEN PERFORM banking.collection_error('P2800');END IF;
  sid:=ledger.uuid_value(v->'source_id');oid:=ledger.uuid_value(v->'observation_id');rev:=banking.import_revision(v->'observation_revision');IF rev=0 THEN PERFORM banking.collection_error('P2800');END IF;
- snap:=banking.collection_tag_snapshot(w);PERFORM banking.collection_tag_pins(v->'snapshot',snap);
+ snap:=banking.collection_query_snapshot(w);PERFORM banking.collection_query_pins(v->'snapshot',snap);
  SELECT * INTO s FROM banking.collection_visible_sources(w)WHERE source_account_id=sid;IF NOT FOUND THEN PERFORM banking.collection_error('P2801');END IF;
  SELECT r.body INTO row_value FROM banking.collection_query_rows(actor,w)r WHERE r.source_id=sid AND r.observation_id=oid;
  IF NOT FOUND THEN PERFORM banking.collection_error('P2801');END IF;IF(row_value->>'observation_revision')::bigint<>rev THEN PERFORM banking.collection_error('P2803');END IF;
@@ -138,6 +142,6 @@ DECLARE v jsonb;snap jsonb;sid uuid;oid uuid;rev bigint;s banking.collection_sou
  IF octet_length(res::text)>1048576 THEN PERFORM banking.collection_error('P2805');END IF;RETURN res;
 EXCEPTION WHEN SQLSTATE 'P2100'OR SQLSTATE 'P2400'OR invalid_text_representation OR character_not_in_repertoire OR untranslatable_character THEN PERFORM banking.collection_error('P2800');END $$;
 
-REVOKE ALL ON FUNCTION banking.collection_query_rows(uuid,uuid),banking.collection_query_amount(jsonb,integer),banking.get_collection_taxonomy_v3(uuid,uuid),banking.query_collection_review_v3(uuid,uuid,text),banking.get_collection_detail(uuid,uuid,text)FROM PUBLIC,bookkeeping_api,bookkeeping_sync,bookkeeping_webhook,bookkeeping_observer,bookkeeping_publisher,bookkeeping_verifier,bookkeeping_identity_operator;
+REVOKE ALL ON FUNCTION banking.collection_query_snapshot(uuid),banking.collection_query_pins(jsonb,jsonb),banking.collection_query_rows(uuid,uuid),banking.collection_query_amount(jsonb,integer),banking.get_collection_taxonomy_v3(uuid,uuid),banking.query_collection_review_v3(uuid,uuid,text),banking.get_collection_detail(uuid,uuid,text)FROM PUBLIC,bookkeeping_api,bookkeeping_sync,bookkeeping_webhook,bookkeeping_observer,bookkeeping_publisher,bookkeeping_verifier,bookkeeping_identity_operator;
 GRANT EXECUTE ON FUNCTION banking.get_collection_taxonomy_v3(uuid,uuid),banking.query_collection_review_v3(uuid,uuid,text),banking.get_collection_detail(uuid,uuid,text)TO bookkeeping_api;
 COMMIT;

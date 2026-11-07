@@ -21,6 +21,7 @@ plan, grant activation or adoption access. Migrations1–44 remain immutable.
 | Actual proof | All four TestQuery45 groups PASS on real restricted SQL: exact large USD/null-code EUR/holds/added→removed states, closed JSON/helper/mixed-role denial,13 sort fields in both directions retaining exact334-of3000 global matches across four pages, real posted source/journal anchors, book revocation and unchanged source/journal hash. Full sort group23.33s total; empty45 rollback/reapply PASS. |
 | Core checks | make check/build PASS with installed Go1.26.5 and an untracked modfile resolving only checksum-verified x/net source locally. Tracked1.26.10 remains unchanged. make test18 Node checks and all Go packages except existing acquisition/webhookhost/workerhost/workerruntime bind-EPERM socket tests PASS. Full unit run is not recorded as green. Shell syntax and SQL manifests PASS. |
 | Compatibility inventory | Existing source-registry exact EXECUTE inventories add only the three reviewed45 API entrypoints; private helpers and other roles remain denied. Actual TestSourceRegistryPrivileges PASS0.09s on45. |
+| Extensible v3 pins | Coordinator approved a pre-merge45 follow-up: private collection_query_snapshot/pins aliases initially delegate exactly to v2, while only v3 query/detail use them. Forward46 can replace these aliases without copying the query or changing closed legacy snapshots. Helpers explicitly denied to all runtime roles. |
 
 ## Current evidence
 
