@@ -1,0 +1,30 @@
+-- Empty-only rollback; retained private reviewed intent/history is never destroyed.
+BEGIN;
+SET LOCAL ROLE bookkeeping_owner;
+LOCK TABLE banking.collection_workspace,banking.collection_label_state IN ACCESS EXCLUSIVE MODE;
+DO $$BEGIN
+ IF EXISTS(SELECT FROM banking.collection_taxonomy_edition)OR EXISTS(SELECT FROM banking.collection_label_state)OR EXISTS(SELECT FROM banking.collection_label_preview)OR EXISTS(SELECT FROM banking.collection_label_command)OR EXISTS(SELECT FROM banking.collection_label_decision)OR EXISTS(SELECT FROM audit.collection_label_action)THEN RAISE EXCEPTION USING ERRCODE='P2802',MESSAGE='collection_labels_retained_records';END IF;
+END $$;
+DROP TRIGGER collection_label_initialize ON banking.collection_workspace;
+DROP TRIGGER collection_label_fence ON banking.collection_label_command;
+DROP TRIGGER collection_label_fence ON banking.collection_source;
+DROP TRIGGER collection_label_fence ON integration.collection_item;
+DROP TRIGGER collection_label_fence ON ledger.membership;
+DROP TRIGGER collection_label_fence ON ledger.entity;
+DROP TRIGGER collection_label_fence ON ledger.book;
+DROP TRIGGER collection_label_fence ON banking.review_item;
+DROP TRIGGER collection_label_fence ON banking.review_assignment;
+DROP TRIGGER collection_label_fence ON banking.source_account;
+DROP TRIGGER preserve_collection_label ON banking.collection_label_state;
+DROP TRIGGER preserve_collection_label ON banking.collection_label_command;
+DROP TRIGGER immutable ON banking.collection_taxonomy_edition;
+DROP TRIGGER immutable ON banking.collection_label_preview;
+DROP TRIGGER immutable ON banking.collection_label_decision;
+DROP TRIGGER immutable ON audit.collection_label_action;
+DROP FUNCTION banking.get_collection_taxonomy(uuid,uuid),banking.query_collection_review(uuid,uuid,text),banking.preview_collection_labels(uuid,uuid,text),banking.prepare_collection_label_command(uuid,uuid,text),banking.pending_collection_label_command(uuid,uuid),banking.transition_collection_label_command(uuid,uuid,uuid,text,text);
+DROP FUNCTION banking.collection_label_render_command(banking.collection_label_command),banking.collection_label_reauthorize(uuid,uuid,banking.collection_label_preview),banking.collection_label_render_preview(banking.collection_label_preview),banking.collection_label_action(uuid,jsonb),banking.collection_label_rows(uuid,uuid),banking.collection_label_pins(jsonb,jsonb),banking.collection_label_snapshot(uuid),banking.collection_label_book_read(uuid,uuid,uuid),banking.collection_label_authorize(uuid,uuid,boolean),banking.collection_label_fence(),banking.collection_label_guard(),banking.collection_label_initialize();
+DROP TABLE audit.collection_label_action,banking.collection_label_decision;
+DROP TABLE banking.collection_label_command;
+DROP TABLE banking.collection_label_preview,banking.collection_label_state;
+DROP TABLE banking.collection_taxonomy_edition;
+COMMIT;
