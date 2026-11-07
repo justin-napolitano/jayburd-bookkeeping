@@ -38,6 +38,23 @@ are documented public resource/version references; existing consent expiry remai
 collection-read-enabled flag after verified44 readiness; this never grants an
 owner or copies history. Existing book-based reads remain separate.
 
+Immutable predecessor pins (retain for compatibility review; never roll SQL down):
+
+| Component | Revision/image |
+| --- | --- |
+| API | jayburd-dev-api-00022-2sq; us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:e15d8c01bd7ff8a891adf01a183cccd163afa83dde3e42193605ddd4ff9e90e6 |
+| Web | jayburd-dev-web-00022-mzn; us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:b525fe62714d62fe94d8f7083bc44fa0d747e78ddc146008ae40247e4e80dd8a |
+| Migrator | us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:e5060c3a62fcf2c6b7f04d838560ec226a48cb7a4470ce1b6211650a88cde691; default action=status, instance=jayburd-bookkeeping-dev:us-central1:jayburd-dev |
+
+SDK staging must preserve service accounts, timeout, concurrency, resources, ports,
+startup probes and all existing API arguments. It must preserve job one-task,
+parallelism1, retry0, timeout660s, restricted migrator identity and default status
+arguments. Per-execution up is separate. No environment or identity setting is
+read or rewritten. Traffic remains on each exact predecessor until ready-image
+comparison passes. New flag and immutable pins must be reconciled into the next
+reviewed operator Terraform inputs; applying the current stale configuration is
+not a safe substitute for this bounded SDK procedure.
+
 ## Remaining work
 
 Require successful trusted build, exact four candidate receipt/runtime/scan
