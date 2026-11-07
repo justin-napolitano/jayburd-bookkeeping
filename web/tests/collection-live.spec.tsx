@@ -295,8 +295,14 @@ test("real client opens private transactions without books, pages3000 and recove
   await expect(page.getByText("0 selected on this page")).toBeVisible();
   await page.getByRole("checkbox").first().check();
   await page
-    .getByLabel("Label selected transactions")
+    .getByLabel("Label selected transactions", { exact: true })
     .selectOption(`topic:${topic}`);
+  await expect(
+    page.getByRole("combobox", {
+      name: "Label selected transactions",
+      exact: true,
+    }),
+  ).toHaveValue(`topic:${topic}`);
   await page
     .getByRole("button", { name: "Preview labels for 1 selected" })
     .click();
@@ -552,7 +558,7 @@ test("empty taxonomy creates stable topic intent through explicit preview and ac
   ).toBeVisible();
   await expect(
     page
-      .getByLabel("Label selected transactions")
+      .getByLabel("Label selected transactions", { exact: true })
       .locator("option")
       .filter({ hasText: "Fictional household food" }),
   ).toHaveCount(1);
@@ -580,7 +586,9 @@ test("read-only discovery still checks pending work and never enables private cl
     page.getByText("Topics are read-only with your current access."),
   ).toBeVisible();
   await expect(page.getByRole("checkbox").first()).toBeDisabled();
-  await expect(page.getByLabel("Label selected transactions")).toBeDisabled();
+  await expect(
+    page.getByLabel("Label selected transactions", { exact: true }),
+  ).toBeDisabled();
   await expect(page.getByText("Manage topics", { exact: true })).toHaveCount(0);
   expect(
     state.requests.some((request) =>
@@ -636,7 +644,7 @@ test("a definite private prepare conflict discovers the other context's ledger c
     .click();
   await page.getByRole("checkbox").first().check();
   await page
-    .getByLabel("Label selected transactions")
+    .getByLabel("Label selected transactions", { exact: true })
     .selectOption(`topic:${topic}`);
   await page
     .getByRole("button", { name: "Preview labels for 1 selected" })

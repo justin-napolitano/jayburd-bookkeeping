@@ -55,10 +55,15 @@ async function previewOne(
   choice = "topic:dining",
 ) {
   await h.user.click(screen.getAllByRole("checkbox")[0]);
-  await h.user.selectOptions(
-    screen.getByLabelText("Label selected transactions"),
-    choice,
-  );
+  const control = screen.getByLabelText("Label selected transactions", {
+    exact: true,
+  });
+  await h.user.selectOptions(control, choice);
+  expect(
+    screen.getByRole("combobox", {
+      name: /^Label selected transactions$/,
+    }),
+  ).toBe(control);
   await h.user.click(
     screen.getByRole("button", { name: "Preview labels for 1 selected" }),
   );
