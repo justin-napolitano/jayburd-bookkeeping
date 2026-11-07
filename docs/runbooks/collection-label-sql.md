@@ -97,3 +97,15 @@ remains denied and existing pending metadata remains denied. Related taxonomy
 lifecycle, stale recovery, role privileges and both execute/cancel race subcases
 also rerun PASS. Prior14-group full-suite evidence remains as recorded above;
 this follow-up does not claim a second complete3000-row run.
+
+## Cursor cross-layer proof
+
+Root aligned UI/OpenAPI with SQL's4096hex-character cursor bound (decoded object
+at most2048bytes). TestReviewAstralSelectorCursor PASS using100 astral search
+codepoints (400UTF8bytes), exact account/topic/date/assignment filters, date_asc,
+six snapshot pins and2matching rows at limit1. Actual cursor1942hexcharacters and
+resumed query2862bytes, within4096/8192. Bothpages retain exact matching_count2,
+start indices1/2, distinct observation identities and final nullcursor. This is
+observed current-revision evidence, not a claim the fixture exceeds2048hexchars;
+future longer canonical revision strings remain covered by the frozen4096bound.
+No SQL changed for this proof.
