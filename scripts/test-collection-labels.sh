@@ -45,6 +45,32 @@ esac
 CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/labels.test ./internal/collectionlabels
 docker cp .local/labels.test "$proof_id:/proof/labels.test"
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/labels.test "$POSTGRES_IMAGE" -collection-label-proof -test.v -test.timeout=240s
+# Exercise actual42->43 backfill of old pending work on a separate synthetic database.
+run_gate_migration() {
+ local gate_database=$1
+ shift
+ docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" \
+  "$MIGRATE_IMAGE" -path /proof/migrations -database "postgres://postgres@database:5432/$gate_database?sslmode=disable" "$@"
+}
+docker exec "$proof_id" createdb -U postgres labels_legacy_backfill -T labels_template
+run_gate_migration labels_legacy_backfill down 1
+docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -d labels_legacy_backfill -c "INSERT INTO ledger.principal(principal_id,issuer,subject)VALUES('00000000-0000-4000-8000-000000000999','synthetic','legacy-pending');INSERT INTO ledger.interactive_command(command_id,principal_id,registration_key,operation,request_body)VALUES('00000000-0000-4000-8000-000000000998','00000000-0000-4000-8000-000000000999','legacy-before43','setup','{}');" >/dev/null
+run_gate_migration labels_legacy_backfill up
+[[ "$(docker exec "$proof_id" psql -X -At -v ON_ERROR_STOP=1 -U postgres -d labels_legacy_backfill -c "SELECT count(*) FROM ledger.interactive_command_reservation WHERE legacy_command_id='00000000-0000-4000-8000-000000000998'")" == 1 ]]
+docker exec "$proof_id" createdb -U postgres labels_gate_retained -T labels_legacy_backfill
+if run_gate_migration labels_gate_retained down 1 >".local/$proof_id-gate-down.log" 2>&1; then
+ echo 'FAIL: retained old-engine reservation allowed destructive downgrade.' >&2
+ exit 1
+fi
+grep -q 'collection_labels_retained_records' ".local/$proof_id-gate-down.log"
+[[ "$(docker exec "$proof_id" psql -X -At -v ON_ERROR_STOP=1 -U postgres -d labels_gate_retained -c 'SELECT count(*) FROM ledger.interactive_command_reservation')" == 1 ]]
+rm -f ".local/$proof_id-gate-down.log"
+# Cancellation keeps the claim; explicit existing-engine acknowledgement releases it.
+docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U synthetic_runtime -d labels_legacy_backfill -c "BEGIN ISOLATION LEVEL SERIALIZABLE;SELECT ledger.transition_command('00000000-0000-4000-8000-000000000999','00000000-0000-4000-8000-000000000998','00000000-0000-4000-8000-000000000997','cancel','{}');SELECT ledger.transition_command('00000000-0000-4000-8000-000000000999','00000000-0000-4000-8000-000000000998','00000000-0000-4000-8000-000000000997','acknowledge','{}');COMMIT;" >/dev/null
+[[ "$(docker exec "$proof_id" psql -X -At -v ON_ERROR_STOP=1 -U postgres -d labels_legacy_backfill -c 'SELECT count(*) FROM ledger.interactive_command_reservation')" == 0 ]]
+run_gate_migration labels_legacy_backfill down 1
+[[ "$(docker exec "$proof_id" psql -X -At -v ON_ERROR_STOP=1 -U postgres -d labels_legacy_backfill -c "SELECT count(*) FROM ledger.interactive_command WHERE state='cancelled' AND acknowledged_at IS NOT NULL")" == 1 ]]
+echo 'PASS: old pending backfill, retained-reservation refusal and explicit acknowledgement preserve old history.'
 # Mandatory empty rollback/reapply preserves schema42; any retained custody forbids down.
 docker exec "$proof_id" createdb -U postgres labels_empty_down -T labels_template
 run_empty_migration() {

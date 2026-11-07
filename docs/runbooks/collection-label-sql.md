@@ -109,3 +109,49 @@ start indices1/2, distinct observation identities and final nullcursor. This is
 observed current-revision evidence, not a claim the fixture exceeds2048hexchars;
 future longer canonical revision strings remain covered by the frozen4096bound.
 No SQL changed for this proof.
+
+## Shared interactive gate follow-up
+
+Root review found that the two independent pending indexes permitted simultaneous
+book/private preparations across tabs despite the global UI gate. Root approved
+one additive43 shared principal reservation. Private writers now acquire the same
+exclusive principal lock as existing ledger command recovery, first in the lock
+order. Both command-table insert triggers arbitrate a shared unique principal
+claim with typed deferred references; execute/cancel retain it and only explicit
+ack releases it, including existing inaccessible-book recovery. Same-key replay
+returns original immutable authorized receipts before any new claim/busy test.
+All old migration/function source remains unchanged; the new helper/table grants
+remain denied. Acknowledged history and all accounting facts remain retained.
+
+Executed TestSharedInteractiveReservation ledger/private winner subcases: actual
+separate SERIALIZABLE sessions prime the loser snapshot, observe pg_locks wait,
+commit one preparation, require40001 for the loser and then fixed current busy
+P2802/P2112. Same-key replay, cancel still busy, explicit ack release, next engine
+preparation and historic acknowledged replay under the opposite pending engine
+all pass. Legacy source/cursor/journal/lines/post receipt/outbox hash unchanged.
+TestSharedReservationCommitAndInaccessibleClear passes: committed private intent
+still blocks book preparation until ack; old inaccessible prepared work is
+cancelled+acknowledged through the actual API and releases the exact reservation
+without changing the original journal hash. Direct reservation table access and
+new helper EXECUTE remain denied in TestLabelPrivileges.
+
+Actual tool proof on a separate empty clone:43down→42, seed an old synthetic
+unacknowledged command,43up backfills exactly1 typed reservation. A second clone
+refuses43down solely because that old command's claim remains; row count stays1.
+Real restricted old API cancel/ack releases count0;43down then preserves the old
+cancelled+acknowledged command count1. No force/reset or retained-history deletion.
+The runner includes these same backfill/refusal/release assertions. Independent
+review found a primed-pre43 ack could miss its newly backfilled claim; release
+now requires exactly1 deletion or aborts fixed40001. Independent actual upgrade
+interleaving proof is owned by the HTTP/SQL reviewer and reported separately.
+
+After the exact-release correction, fresh pinnedPG1–43 and the complete18-group
+SQL suite PASS, including both cross-engine winner schedules. Latest3000-row
+observations2.14s/1.61s; no latency SLA. make check/build, old1–42 immutability,
+script syntax and diff checks PASS. Prior host make test socket-binding limitation
+is unchanged; no canonical gate weakened. The independent reviewer reports
+TestCollectionLabelsUpgradeAcknowledgementRace PASS0.16s on the exact current
+source: own43emptydown→42, cancelled/unacknowledged old command, primed SERIALIZABLE
+reader, uncommitted43 installation/backfill, observed blocked old acknowledgement,
+DDL commit then40001, fresh acknowledgement releases claim0 and retains old
+history. That test file belongs to the independent API integration lane.
