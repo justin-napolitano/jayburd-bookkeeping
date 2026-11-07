@@ -23,6 +23,9 @@ No provider/cloud operations, private records, credentials or inherited DSNs.
 | Real HTTP lifecycle | TestCollectionLabelsHTTPPostgres PASS0.27s: handler→Service→actual synthetic_runtime/SQL43, complete catalog, hugeUSD9007199254740993.01, nullableEURnumericcode, two explicit holds, principal denial, duplicate/unknown keys, path/body caps, taxonomy preview/prepare/execute/ack, immutable replay, exact4-row decisions, stale source/taxonomy409, stale prepared execute atomic refusal followed by cancel/ack, current-grant replay denial and zero books/journals/outbox |
 | Result fault proof | TestCollectionLabelsHTTPResultCapPostgres PASS0.04s: oversized SQL read result in a separately cloned disposable fixture produces bounded503 without private padding; fault function replacement exists only in that owned clone and does not establish production SQL semantics |
 | Disposal | Each new HTTP test clones labels_template into its own labels_http_timestamp database, closes its own pool/connections and drops only that clone; shared template/container/network/volume untouched |
+| Shared gate review | Independently reviewed both-engine principal-first admission, exact reservation ownership/release, backfill/down/grants and browser fixture framing. Identified pre43 SERIALIZABLE acknowledgement snapshot missing the new backfilled reservation; SQL lane fixed release to require exact DELETE RETURNING or40001 |
+| Upgrade acknowledgement proof | TestCollectionLabelsUpgradeAcknowledgementRace PASS0.16s with current SQL437dfb3: own empty43→42 clone, old cancelled/unacknowledged command, primed runtime SERIALIZABLE snapshot, uncommitted real43 backfill, observed blocked ACK, DDL commit, stale40001, then fresh acknowledgement with exact claim removal/one audit and retained cancelled history |
+| Independent negative control | An external temporary Go overlay removed only the new missing-claim40001 guard from the migration string installed in the test's own clone. The identical race test FAILED0.09s with wanted40001/gotnil. No tracked SQL, shared migration artifact, template or product source changed; demonstrates the guard distinguishes the silent-ack defect |
 
 ## Current evidence
 
@@ -35,11 +38,16 @@ tests alone cannot establish SQL authority or durable label semantics. The added
 HTTP integration tests ran against the SQL lane's actual491cea6 schema43 in its
 owned internal-network PostgreSQL17.11 container on Linuxarm64, using an
 integration-tagged test-only authenticator and a real synthetic_runtime pool.
-The binary was cross-compiled locally with the adapter above; no listener,
+The binaries were cross-compiled locally with the adapter above; no listener,
 provider/cloud connection, private record or inherited DSN was used. The shared
-runner's later pending-capability follow-up was not present in this exact proof;
-coordinator's latest combined rerun remains required. Browser/API and full
-canonical CI evidence remain separate.
+runner's later pending-capability/shared-reservation follow-ups were not present
+in the original two HTTP lifecycle tests. The subsequent upgrade-race test uses
+the SQL lane's exact437dfb3 up/down files from fixed runner /proof/migrations,
+including the shared reservation and missing-claim retry. Coordinator's latest
+combined lifecycle rerun remains required. Browser/API and full canonical CI
+evidence remain separate. Existing unit checks were not repeated solely for
+this integration-only regression; Linux integration binary compilation and the
+actual positive/negative PostgreSQL schedules supply its focused evidence.
 
 ## Remaining work
 

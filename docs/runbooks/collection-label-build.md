@@ -22,6 +22,7 @@ GitHub65 lease LABEL304-20261107T0140Z. Source and synthetic proof only.
 | Combined SQL/API | Exact combined package binary on latest43/249e1e1 template: all SQL/HTTP and adapter groups PASS, including read-only discovery, Unicode continuation, both3k sorts/pages (3.90s/1.50s), actual atomic stale/replay/current-denial and oversized-result503. No latency SLA |
 | Cross-context review | Root found separate book/private pending tables could both prepare in different tabs despite UI locks. SoleSQL43 writer is adding shared principal reservation; UI lane adds reciprocal discovery on definite conflicts. This draft is not ready for merge until both winner-order proofs pass |
 | Shared database gate |437dfb3 reviewed/imported: typed principal reservation/backfill and exclusive principal-first write order prevent cross-engine preparation.18 source SQL groups PASS, both actual blocked/primed winner orders, busy diagnostics, cancel retains/ack releases, exact old receipts, inaccessible book clearing and journal-history preservation. Independent upgrade ACK race passes and rejects the old missing-release guard; test import follows |
+| Upgrade regression |ebb06d25 actual pre43 primed transaction, blocked acknowledgement and concurrent43 backfill/commit PASS: stale ACK40001; fresh ACK releases exact claim/history intact. Removing only the missing-release retry guard from an isolated fixture migration string makes this independent test FAIL (wanted40001/gotnil); no old product source modified |
 
 ## Current evidence
 
