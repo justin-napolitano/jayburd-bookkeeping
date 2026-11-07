@@ -1016,3 +1016,37 @@ func TestLabelClosedWire(t *testing.T) {
 		t.Fatal("invalid preview persisted")
 	}
 }
+
+// TestReadOnlyCollectionDiscovery permits idle read-only browsing but never discloses inaccessible saved intent.
+func TestReadOnlyCollectionDiscovery(t *testing.T) {
+	for _, pending := range []bool{false, true} {
+		t.Run(fmt.Sprint(pending), func(t *testing.T) {
+			_, db := fixture(t)
+			w := provision(t, db, actor)
+			if pending {
+				p, e := preview(t, db, w, page(t, db, w)["snapshot"], []map[string]any{}, topicsAction([]map[string]any{}))
+				if e != nil {
+					t.Fatal(e)
+				}
+				if _, e = prepare(t, db, w, "pending", p); e != nil {
+					t.Fatal(e)
+				}
+			}
+			_, e := call(t, db, "synthetic_operator", "serializable", "SELECT banking.provision_collection_owner($1,'read-only',$2)", actor, raw(map[string]any{"expected_revision": "1", "capabilities": []string{"read"}, "evidence_ref": evidence}))
+			if e != nil {
+				t.Fatal(e)
+			}
+			if catalog(t, db, w)["authority_revision"] != "2" || page(t, db, w)["matching_count"] != "0" {
+				t.Fatal("read-only catalog/query denied")
+			}
+			r, e := call(t, db, "synthetic_runtime", "repeatable read", "SELECT banking.pending_collection_label_command($1,$2)", actor, w)
+			if pending {
+				code(t, e, "P2801")
+			} else if e != nil || r["command"] != nil {
+				t.Fatal("idle read-only pending discovery", e)
+			}
+			_, e = preview(t, db, w, page(t, db, w)["snapshot"], []map[string]any{}, topicsAction([]map[string]any{}))
+			code(t, e, "P2801")
+		})
+	}
+}

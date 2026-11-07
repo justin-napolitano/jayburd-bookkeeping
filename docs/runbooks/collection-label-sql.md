@@ -83,3 +83,17 @@ Refs304/305/242/65. Additive43 only, migration42 unchanged; root integrates revi
 source and owns GitHub coordination. All persisted previews/commands/decisions
 remain PostgreSQL-owned. Public service has exactly six entrypoints and no direct
 new table/helper/provision authority. No deployment or private-account action.
+
+## Read-only discovery follow-up
+
+Independent UI/SQL review found that always requiring classify for pending
+lookup denied a legitimate read-only owner before any query could run. Root froze
+a narrow correction: current read authority can discover command:null only when
+no unacknowledged command exists; a present command still requires current
+classify before any saved intent disclosure. No UI shortcut skips recovery.
+TestReadOnlyCollectionDiscovery (idle/present-command subcases) PASS on fresh
+pinnedPG1–43; catalog/query remain available under read-only capability, preview
+remains denied and existing pending metadata remains denied. Related taxonomy
+lifecycle, stale recovery, role privileges and both execute/cancel race subcases
+also rerun PASS. Prior14-group full-suite evidence remains as recorded above;
+this follow-up does not claim a second complete3000-row run.

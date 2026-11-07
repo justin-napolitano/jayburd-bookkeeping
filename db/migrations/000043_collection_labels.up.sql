@@ -272,10 +272,10 @@ EXCEPTION WHEN SQLSTATE 'P2100'OR SQLSTATE 'P2400'THEN PERFORM banking.collectio
 CREATE FUNCTION banking.pending_collection_label_command(actor uuid,w uuid)RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 DECLARE c banking.collection_label_command;p banking.collection_label_preview;res jsonb;BEGIN
  PERFORM banking.collection_label_authorize(actor,w,false);
- -- A read capability alone cannot discover another capability's saved intent.
- IF NOT EXISTS(SELECT FROM banking.collection_workspace WHERE workspace_id=w AND 'classify'=ANY(capabilities))THEN PERFORM banking.collection_error('P2801');END IF;
  SELECT * INTO c FROM banking.collection_label_command WHERE workspace_id=w AND principal_id=actor AND acknowledged_at IS NULL;
+ -- Read-only owners may establish that no work is pending; saved intent still requires classify.
  IF NOT FOUND THEN RETURN jsonb_build_object('profile','private-collection-command-v1','workspace_id',w,'command',NULL);END IF;
+ IF NOT EXISTS(SELECT FROM banking.collection_workspace WHERE workspace_id=w AND 'classify'=ANY(capabilities))THEN PERFORM banking.collection_error('P2801');END IF;
  SELECT * INTO p FROM banking.collection_label_preview WHERE workspace_id=w AND preview_id=c.preview_id;PERFORM banking.collection_label_reauthorize(actor,w,p);
  res:=banking.collection_label_render_command(c);IF octet_length(res::text)>1048576 THEN PERFORM banking.collection_error('P2805');END IF;RETURN res;
 END $$;
