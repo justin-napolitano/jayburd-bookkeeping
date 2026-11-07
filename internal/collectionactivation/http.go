@@ -1,6 +1,8 @@
 package collectionactivation
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -19,8 +21,11 @@ func Handler(auth ledger.Authenticator, s *Service) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		fail := func(status int, code string) {
 			w.Header().Set("Content-Type", "application/problem+json")
+			if status == http.StatusUnauthorized {
+				w.Header().Set("WWW-Authenticate", "Bearer")
+			}
 			w.WriteHeader(status)
-			_ = json.NewEncoder(w).Encode(map[string]any{"type": "about:blank", "title": code, "status": status, "code": code})
+			_ = json.NewEncoder(w).Encode(map[string]any{"type": "about:blank", "title": code, "status": status, "code": code, "request_id": requestID()})
 		}
 		headers := r.Header.Values("Authorization")
 		if auth == nil || len(headers) != 1 || !strings.HasPrefix(headers[0], "Bearer ") || strings.TrimSpace(strings.TrimPrefix(headers[0], "Bearer ")) == "" {
@@ -76,4 +81,16 @@ func Handler(auth ledger.Authenticator, s *Service) http.Handler {
 		_, _ = w.Write(body)
 	})
 	return mux
+}
+
+// requestID identifies a response independently of all private plan/actor IDs.
+func requestID() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
+	}
+	b[6] = (b[6] & 15) | 64
+	b[8] = (b[8] & 63) | 128
+	s := hex.EncodeToString(b[:])
+	return s[:8] + "-" + s[8:12] + "-" + s[12:16] + "-" + s[16:20] + "-" + s[20:]
 }

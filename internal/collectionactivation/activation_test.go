@@ -290,3 +290,43 @@ func TestActivationHTTPIdentity(t *testing.T) {
 		})
 	}
 }
+
+// TestActivationProblemContract checks independent opaque correlation IDs and
+// the fixed authentication challenge without revealing approved intent.
+func TestActivationProblemContract(t *testing.T) {
+	d := &fakeDB{}
+	s, _ := NewService(d, goodPlan(t))
+	seen := map[string]bool{}
+	for _, tc := range []struct {
+		token, body string
+		status      int
+		challenge   string
+	}{
+		{"", `broken`, 401, "Bearer"},
+		{"Bearer synthetic", `{"plan_id":"` + b + `"}`, 404, ""},
+		{"Bearer synthetic", `{"plan_id":"` + b + `"}`, 404, ""},
+	} {
+		r := httptest.NewRequest(http.MethodPost, "/v1/collection-activation/adopt", strings.NewReader(tc.body))
+		r.Header.Set("Content-Type", "application/json")
+		if tc.token != "" {
+			r.Header.Set("Authorization", tc.token)
+		}
+		w := httptest.NewRecorder()
+		Handler(&authenticator{actor: a}, s).ServeHTTP(w, r)
+		var p map[string]json.RawMessage
+		if w.Code != tc.status || json.Unmarshal(w.Body.Bytes(), &p) != nil || len(p) != 5 {
+			t.Fatal("invalid closed problem shape")
+		}
+		var id string
+		if json.Unmarshal(p["request_id"], &id) != nil || !validID(id) || id[14] != '4' || !strings.ContainsRune("89ab", rune(id[19])) || seen[id] || id == a || id == b {
+			t.Fatal("missing/nonunique/private request ID")
+		}
+		seen[id] = true
+		if w.Header().Get("WWW-Authenticate") != tc.challenge || w.Header().Get("Content-Type") != "application/problem+json" {
+			t.Fatal("invalid problem headers")
+		}
+		if strings.Contains(w.Body.String(), s.plan.value.Key) || strings.Contains(w.Body.String(), s.plan.value.Sources[0].Name) || d.calls != 0 {
+			t.Fatal("opaque denial exposed plan or reached SQL")
+		}
+	}
+}
