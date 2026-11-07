@@ -20,13 +20,16 @@ Existing source/journal identities and immutable migrations1–44 are preserved.
 | Trusted build | Dispatched existing owner/main Build images42341240949 at exactf8d9e06, attempt1; independent numeric owner/repository/main/manual provenance checks pass; validation/runtime/scan/publication still required |
 | Sandbox predecessor | API00022-2sq/e15d8c01… and web00022-mzn/b525fe62… Ready100percent; migrator e5060c3a… defaults status, existing restricted identity, one task, retries0,660s |
 | Recovery metadata | Existing instance RUNNABLE PostgreSQL17/db-g1-small; backup/PITR enabled,7-day logs. Backup1793944800000 SUCCESSFUL ended2026-11-06T06:48:01.670Z. No restore or data-equality claim |
-| Prior schema verification | Started predecessor status-only execution jayburd-dev-migrate-mcr7q with unchanged image/arguments; completion not yet inferred |
-| Activation review |42 does not implicitly provision an owner or adopt history. Existing migration job accepts only verify/status/up. No managed owner-provision/adoption execution profile exists; separate bounded activation work is required. No grant or old Item transition performed |
+| Prior schema verification | Started predecessor status-only execution jayburd-dev-migrate-mcr7q with unchanged image/arguments; SUCCESS at2026-11-07T05:10:46.292855Z,1success/no failed/running/retried task; old embedded status proves clean41/seals |
+| Activation review |42 does not implicitly provision an owner or adopt history. Existing migration job accepts only verify/status/up. No managed owner-provision/adoption execution profile exists; separate bounded activation work is tracked in453. No grant or old Item transition performed |
+
+| Local operation gates | Core check/build and34 release/smoke/migration-receipt cases PASS; full make test attempted, known host socket bind EPERM only. Tracked Go1.26.10 unchanged; local external1.26.5 modfile/cache used |
+| Staging decision | Selected official SDK args/no-traffic/update-traffic sections reviewed; stage ready API/web revisions without traffic, compare named projections, then promote exact revisions. Only API addition is collection-read-enabled=true after clean44; all old acquisition/consent args retained |
 
 ## Current evidence
 
 Old images remain the serving predecessor until new candidate runtime/scan/receipt
-checks complete. The selected prior status job is read-only; no managed forward
+checks complete. The selected prior status job completed read-only verification; no managed forward
 migration has run in this stage. GitHub436/65 hold exact current execution state.
 
 Named operational projections exclude all environments/secret values. API arguments
