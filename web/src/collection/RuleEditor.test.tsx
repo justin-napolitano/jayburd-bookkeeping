@@ -136,3 +136,41 @@ it("mounts one bounded rule tag editor instead of100 hidden500-tag checklists", 
     500,
   );
 });
+
+it("displays and previews multiline literal condition text without input sanitization", async () => {
+  const value = "Fictional\nCafe";
+  const preview = vi.fn();
+  render(
+    <RuleEditor
+      catalog={{
+        ...collectionCatalog,
+        rules: [
+          {
+            ...rule,
+            conditions: [{ field: "description", operator: "contains", value }],
+          },
+        ],
+      }}
+      sources={collectionSources}
+      disabled={false}
+      onPreview={preview}
+    />,
+  );
+  await userEvent.click(screen.getByText("Manage rules", { exact: true }));
+  expect(
+    (
+      screen.getByLabelText("Rule 1 condition 1 value", {
+        exact: true,
+      }) as HTMLTextAreaElement
+    ).value,
+  ).toBe(value);
+  await userEvent.clear(screen.getByLabelText("Rule 1 name", { exact: true }));
+  await userEvent.type(
+    screen.getByLabelText("Rule 1 name", { exact: true }),
+    "Fictional multiline rule",
+  );
+  await userEvent.click(
+    screen.getByRole("button", { name: /^Preview rule changes$/ }),
+  );
+  expect(preview.mock.calls[0][0][0].conditions[0].value).toBe(value);
+});
