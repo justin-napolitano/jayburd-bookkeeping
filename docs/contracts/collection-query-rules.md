@@ -18,6 +18,10 @@ ruleset_revision, map_revision and decision_revision. Revisions are decimal
 strings and source_snapshot is lowercase SHA256 hex. Every page/cursor pins the
 complete selector and snapshot. All filters precede count/rank/limit; stable
 source/observation UUID tie-breaks retain one row per observation.
+The bounded opaque cursor stores the SHA256 of canonical normalized selector
+JSON, not the expanded selector. Equality still covers every selector field,
+while maximum UTF8 text and bigint-width pins cannot exceed its own4096-hex/
+2048-decoded-byte input bounds. Cursor selectors remain request-body values only.
 
 Existing account/date/description/topic/tag selectors remain. Proposed additions:
 

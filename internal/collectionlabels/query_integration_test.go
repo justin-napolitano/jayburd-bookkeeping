@@ -5,6 +5,7 @@ package collectionlabels
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -29,6 +30,99 @@ func query45Cleanup(t *testing.T, owner *pgx.Conn, db string) {
 			t.Error("owned query fixture cleanup failed")
 		}
 	})
+}
+
+// TestQuery45MaximumCursor reproduces the old expanded-token overflow using real combined selectors.
+func TestQuery45MaximumCursor(t *testing.T) {
+	owner, db, item := legacyFixture(t)
+	query45Cleanup(t, owner, db)
+	text := strings.Repeat("🧪", 100)
+	for n := 0; n < 2; n++ {
+		oid := fmt.Sprintf("00000000-0000-4000-8000-%012d", 100+n)
+		tx, e := owner.Begin(context.Background())
+		if e != nil {
+			t.Fatal(e)
+		}
+		if _, e = tx.Exec(context.Background(), `INSERT INTO banking.observation_revision(entity_id,book_id,observation_id,revision,source_state,booked_date,currency_version_id,direction,amount_lexeme,amount,description,canonical_fields,previous_revision,adapter_profile,provider_amount_lexeme,provider_fields)VALUES($1,$2,$3,2,'booked','2026-10-01',$4,'outflow','10000000000000000000000000000',10000000000000000000000000000,$5,'{}',1,'jayburd-plaid-transactions/1','10000000000000000000000000000',jsonb_build_object('merchant_name',$5::text))`, entityID, bookID, oid, currency, text); e != nil {
+			t.Fatal(e)
+		}
+		if _, e = tx.Exec(context.Background(), `UPDATE banking.source_observation SET current_revision=2 WHERE entity_id=$1 AND book_id=$2 AND observation_id=$3`, entityID, bookID, oid); e != nil {
+			t.Fatal(e)
+		}
+		if e = tx.Commit(context.Background()); e != nil {
+			t.Fatal(e)
+		}
+	}
+	w := provision(t, db, actor)
+	if _, e := adopt(t, db, w, item); e != nil {
+		t.Fatal(e)
+	}
+	exec(t, owner, `INSERT INTO banking.review_item(entity_id,book_id,review_id,source_account_id,review_revision,state)VALUES($1,$2,$3,$4,1,'posted')`, entityID, bookID, evidence, sourceID)
+	exec(t, owner, `INSERT INTO banking.review_decision(entity_id,book_id,decision_id,review_id,expected_review_revision,kind,actor_id,reason,body)VALUES($1,$2,$3,$3,0,'initialize',$4,'synthetic_import','{}')`, entityID, bookID, evidence, actor)
+	for n := 0; n < 2; n++ {
+		oid := fmt.Sprintf("00000000-0000-4000-8000-%012d", 100+n)
+		exec(t, owner, `INSERT INTO banking.review_evidence(entity_id,book_id,decision_id,observation_id,review_id,linked_revision)VALUES($1,$2,$3,$4,$3,1)`, entityID, bookID, evidence, oid)
+		exec(t, owner, `INSERT INTO banking.review_assignment VALUES($1,$2,$4,$3,$3)`, entityID, bookID, evidence, oid)
+	}
+	exec(t, owner, `INSERT INTO banking.review_draft(entity_id,book_id,draft_id,review_id,review_revision,source_revision,binding_revision,book_revision,posting_body,normalized_request,created_by,idempotency_key)VALUES($1,$2,$3,$3,1,0,1,1,'{}','{}',$4,'cursor45-draft')`, entityID, bookID, evidence, actor)
+	exec(t, owner, `INSERT INTO ledger.interactive_command(command_id,principal_id,registration_key,operation,entity_id,book_id,request_body,state,result,result_entity_id,result_book_id,terminal_at,acknowledged_at)VALUES($1,$2,'cursor45-command','post',$3,$4,'{}','committed','{}',$3,$4,clock_timestamp(),clock_timestamp())`, evidence, actor, entityID, bookID)
+	exec(t, owner, `INSERT INTO banking.review_posting(entity_id,book_id,review_id,draft_id,command_id,journal_id,result)SELECT $1,$2,$3,$3,$3,journal_id,'{}'FROM ledger.journal_entry WHERE entity_id=$1 AND book_id=$2`, entityID, bookID, evidence)
+	seedTopics(t, db, w)
+	seedTags(t, db, w)
+	p := query45Page(t, db, w, query45Selector())
+	rows := p["items"].([]any)
+	tagrecApply(t, db, w, "cursor-topic", selection(rows), map[string]any{"kind": "topic", "topic_id": childTopic})
+	tagrecApply(t, db, w, "cursor-tags", selection(rows), tagAction("add", tagA))
+	// Only this disposable clone's v3 snapshot helper simulates legitimate bigint-width revisions.
+	// No trigger is disabled and no stored source/taxonomy/decision history is rewritten.
+	exec(t, owner, `CREATE OR REPLACE FUNCTION banking.collection_query_snapshot(w uuid)RETURNS jsonb LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$SELECT banking.collection_tag_snapshot(w)||jsonb_build_object('authority_revision','9223372036854775807','taxonomy_revision','9223372036854775807','decision_revision','9223372036854775807','tag_revision','9223372036854775807')$$`)
+	v := query45Selector()
+	v["source_account_id"] = rows[0].(map[string]any)["source_id"]
+	v["assignment"] = "assigned"
+	v["starts_on"] = "0001-01-01"
+	v["through_date"] = "9999-12-31"
+	v["search"] = text
+	v["merchant"] = map[string]any{"kind": "contains", "value": text}
+	v["amount"] = map[string]any{"currency_version_id": currency, "minimum": "10000000000000000000000000000.000000000", "maximum": "90000000000000000000000000000.000000000", "direction": "outflow"}
+	v["book"] = map[string]any{"kind": "book", "entity_id": entityID, "book_id": bookID}
+	v["topic"] = map[string]any{"kind": "topic", "topic_id": childTopic}
+	v["tag"] = map[string]any{"kind": "tag", "tag_id": tagA}
+	v["status"] = map[string]any{"source": "booked", "journal": "correction_required"}
+	v["sort"] = map[string]any{"field": "journal_state", "order": "desc"}
+	v["institution"] = map[string]any{"kind": "unavailable"}
+	v["legal_owner"] = map[string]any{"kind": "unknown"}
+	v["limit"] = 1
+	first := query45Page(t, db, w, v)
+	if first["matching_count"] != "2" || first["next_cursor"] == nil {
+		t.Fatal("combined maximum selector failed")
+	}
+	selector := map[string]any{}
+	for k, x := range v {
+		if k != "profile" && k != "snapshot" && k != "cursor" && k != "limit" {
+			selector[k] = x
+		}
+	}
+	oldBytes, e := strconv.Atoi(value(t, owner, `SELECT(2*octet_length(jsonb_build_object('workspace_id',$1::uuid,'snapshot',$2::jsonb,'selector',$3::jsonb,'offset','1')::text))::text`, w, raw(first["snapshot"]), raw(selector)))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if oldBytes <= 4096 {
+		t.Fatalf("fixture did not reproduce old cursor overflow: %d", oldBytes)
+	}
+	cursor := first["next_cursor"].(string)
+	if len(cursor) > 4096 {
+		t.Fatal("unresumable emitted cursor")
+	}
+	v["cursor"] = cursor
+	v["snapshot"] = first["snapshot"]
+	second := query45Page(t, db, w, v)
+	if second["matching_count"] != "2" || second["start_index"] != "2" || second["next_cursor"] != nil || second["items"].([]any)[0].(map[string]any)["observation_id"] == first["items"].([]any)[0].(map[string]any)["observation_id"] {
+		t.Fatal("maximum cursor did not resume exactly")
+	}
+	v["merchant"] = map[string]any{"kind": "contains", "value": strings.Repeat("🧪", 99) + "X"}
+	_, e = query45Call(t, db, w, actor, v)
+	code(t, e, "P2800")
+	t.Logf("old expanded cursor %d hex; actual digest cursor %d hex; exact second page and changed-selector denial passed", oldBytes, len(cursor))
 }
 
 // query45Selector is the independently authored complete v3 selector.
