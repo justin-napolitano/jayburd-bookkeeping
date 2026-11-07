@@ -33,6 +33,8 @@ func (labelBrowserAuth) Authenticate(_ context.Context, token string) (string, e
 		return labelPreparedRecoveryActor, nil
 	case "synthetic.committed.proof":
 		return labelCommittedRecoveryActor, nil
+	case "synthetic.rules.proof":
+		return ruleBrowserActor, nil
 	}
 	return "", errors.New("synthetic identity rejected")
 }
