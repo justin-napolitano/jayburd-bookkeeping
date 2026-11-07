@@ -84,6 +84,13 @@ after it advanced the current edition. Refresh catalog after explicit ack; never
 replace saved intent with new current catalog values. Explicit top-level Refresh
 also reloads catalog and authority for stale, unsaved reads.
 
+After a confirmed explicit private acknowledgement, the coordinator opens All
+transactions before reloading its catalog/pending state. This preserves the
+private task after a force-visible recovery was restored over the default
+Overview. Initial idle/pending discovery, execution and unresolved replies do not
+change navigation; a failed acknowledgement keeps the current view until an
+explicit same-identity retry confirms its terminal receipt.
+
 Collection pending/unknown/preview work gates book actions and navigation even
 when All transactions is not active. Book recovery independently gates collection
 mutation. The parent passes only the book lock into the collection session; its

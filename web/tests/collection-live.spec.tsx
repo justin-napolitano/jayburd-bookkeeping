@@ -357,6 +357,12 @@ test("pending taxonomy recovery gates book tools, preserves old edition on remou
     page.getByRole("heading", { name: "Saved topic review" }),
   ).toBeFocused();
   await expect(
+    page.getByRole("button", { name: "Overview", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    page.getByRole("button", { name: "All transactions", exact: true }),
+  ).not.toHaveAttribute("aria-current", "page");
+  await expect(
     page.getByRole("button", { name: "All transactions", exact: true }),
   ).toBeDisabled();
   await page.getByRole("button", { name: "Confirm topic changes" }).click();
@@ -365,6 +371,9 @@ test("pending taxonomy recovery gates book tools, preserves old edition on remou
   ).toBeVisible();
   expect(state.taxonomy).toBe("4");
   expect(state.acknowledgements).toBe(0);
+  await expect(
+    page.getByRole("button", { name: "Overview", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
   await component.unmount();
   await mount(<Harness />);
   await expect(
@@ -378,6 +387,13 @@ test("pending taxonomy recovery gates book tools, preserves old edition on remou
   await expect(
     page.getByRole("button", { name: "All transactions", exact: true }),
   ).toBeEnabled();
+  // A confirmed explicit acknowledgement returns to its private task without another navigation click.
+  await expect(
+    page.getByRole("button", { name: "All transactions", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    page.getByText("1–25 of 3000 matching transactions"),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "All transactions", exact: true })
     .click();
@@ -400,6 +416,9 @@ test("unknown private discovery keeps new work disabled until explicit successfu
   await expect(
     page.getByRole("button", { name: "All transactions", exact: true }),
   ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Overview", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
   state.discoveryFails = false;
   await page
     .getByRole("button", { name: "Retry private transaction recovery" })
@@ -408,6 +427,53 @@ test("unknown private discovery keeps new work disabled until explicit successfu
     page.getByRole("button", { name: "All transactions", exact: true }),
   ).toBeEnabled();
   expect(state.executions).toBe(0);
+});
+
+test("a failed private acknowledgement keeps Overview until a confirmed same-identity retry", async ({
+  mount,
+  page,
+}) => {
+  const state = await serve(page, "pending_taxonomy");
+  await mount(<Harness />);
+  await page.getByRole("button", { name: "Confirm topic changes" }).click();
+  await expect(
+    page.getByText("Topics updated. No journal was created."),
+  ).toBeVisible();
+  const acknowledgements: string[] = [];
+  await page.route(
+    "**/v1/collections/*/label-commands/*/acknowledge",
+    async (route) => {
+      acknowledgements.push(new URL(route.request().url()).pathname);
+      if (acknowledgements.length === 1)
+        return route.fulfill({
+          status: 503,
+          json: { code: "temporarily_unavailable" },
+        });
+      return route.fallback();
+    },
+  );
+  await page.getByRole("button", { name: "Acknowledge result" }).click();
+  await expect(
+    page.getByRole("region", { name: "All transactions" }).getByRole("alert"),
+  ).toContainText("outcome is unknown");
+  await expect(
+    page.getByRole("button", { name: "Overview", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    page.getByRole("button", { name: "All transactions", exact: true }),
+  ).not.toHaveAttribute("aria-current", "page");
+  await page
+    .getByRole("button", { name: "Retry same acknowledgement" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "All transactions", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    page.getByText("1–25 of 3000 matching transactions"),
+  ).toBeVisible();
+  expect(acknowledgements).toHaveLength(2);
+  expect(acknowledgements[1]).toBe(acknowledgements[0]);
+  expect(state.acknowledgements).toBe(1);
 });
 
 test("book recovery uncertainty prevents private mutation and navigation", async ({
@@ -419,6 +485,9 @@ test("book recovery uncertainty prevents private mutation and navigation", async
   await expect(
     page.getByRole("button", { name: "All transactions", exact: true }),
   ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Overview", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
   await expect(
     page.getByRole("region", { name: "Saved command" }).getByRole("alert"),
   ).toContainText("Data is unavailable");
