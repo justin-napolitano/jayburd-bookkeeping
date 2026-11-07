@@ -14,6 +14,10 @@ import { CommandPanel } from "./CommandPanel";
 import type { ConnectionLink } from "./Connections";
 import { BookWorkspace, type BookView } from "./BookWorkspace";
 import { Position } from "./Position";
+import {
+  CollectionRecovery,
+  type RecoveryViewState,
+} from "../collection/CollectionRecovery";
 import { CollectionWorkspace } from "../collection/CollectionWorkspace";
 // UI account drafts carry strings unchanged to the authoritative setup transaction.
 type AccountDraft = {
@@ -87,13 +91,42 @@ export function Bookkeeping({
     null,
   );
   const [collectionLocked, setCollectionLocked] = useState(true);
+  const [opaqueRecoveryLocked, setOpaqueRecoveryLocked] = useState(true);
+  const [opaqueRecoveryState, setOpaqueRecoveryState] =
+    useState<RecoveryViewState>({
+      state: "checking",
+      uncertain: false,
+      canReview: false,
+    });
+  const [opaqueRecoveryResolved, setOpaqueRecoveryResolved] = useState(false);
+  const [opaqueReviewAllowed, setOpaqueReviewAllowed] = useState(false);
+  const updateOpaqueRecovery = useCallback((state: RecoveryViewState) => {
+    setOpaqueRecoveryState(state);
+    // Positive current denial or an unrelated claim destroys scoped payloads; transient reads preserve the session.
+    if (
+      state.state === "inaccessible" ||
+      (state.state === "available" && !state.canReview)
+    )
+      setOpaqueReviewAllowed(false);
+    else if (
+      (state.state === "available" && state.canReview) ||
+      (state.state === "none" && !state.uncertain)
+    )
+      setOpaqueReviewAllowed(true);
+    if (
+      state.state === "none" ||
+      state.state === "available" ||
+      state.state === "inaccessible"
+    )
+      setOpaqueRecoveryResolved(true);
+  }, []);
   const [collectionRefreshVersion, setCollectionRefreshVersion] = useState(0);
   const refreshPrivateRecovery = useCallback(() => {
     setCollectionLocked(true);
     setCollectionRefreshVersion((version) => version + 1);
   }, []);
   const recovery = useCommands(api, refreshPrivateRecovery);
-  const locked = recovery.locked || collectionLocked;
+  const locked = recovery.locked || collectionLocked || opaqueRecoveryLocked;
   // Collapse presentation only after authoritative recovery confirms there is no work needing attention.
   const idleRecovery =
     !locked &&
@@ -274,15 +307,36 @@ export function Bookkeeping({
         {loading && <p role="status">Loading authorized books…</p>}
         {error && <p role="alert">{error}</p>}
       </div>
-      <CollectionWorkspace
+      <CollectionRecovery
         api={api}
-        active={tool === "All transactions"}
-        bookLocked={recovery.locked}
-        onLockChange={setCollectionLocked}
         refreshVersion={collectionRefreshVersion}
-        onPrepareConflict={() => recovery.refreshIfIdle()}
-        onAcknowledged={() => setTool("All transactions")}
+        onLockChange={setOpaqueRecoveryLocked}
+        onStateChange={updateOpaqueRecovery}
+        onAvailable={refreshPrivateRecovery}
+        onCleared={() => {
+          refreshPrivateRecovery();
+          void recovery.refreshIfIdle();
+        }}
       />
+      {opaqueRecoveryResolved && opaqueReviewAllowed && (
+        <CollectionWorkspace
+          api={api}
+          active={tool === "All transactions"}
+          bookLocked={recovery.locked}
+          newWorkLocked={
+            opaqueRecoveryState.state !== "none" ||
+            opaqueRecoveryState.uncertain
+          }
+          onRecoveryNeeded={refreshPrivateRecovery}
+          onLockChange={setCollectionLocked}
+          refreshVersion={collectionRefreshVersion}
+          onPrepareConflict={() => recovery.refreshIfIdle()}
+          onAcknowledged={() => {
+            setTool("All transactions");
+            refreshPrivateRecovery();
+          }}
+        />
+      )}
       {recovery.locked && (
         <CommandPanel recovery={recovery} workspace={workspace} />
       )}

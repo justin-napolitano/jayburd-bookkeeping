@@ -44,7 +44,7 @@ case "$(docker exec "$proof_id" uname -m)" in
 esac
 CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/tagrec.test ./internal/collectionlabels
 docker cp .local/tagrec.test "$proof_id:/proof/tagrec.test"
-docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/tagrec.test "$POSTGRES_IMAGE" -collection-label-proof -test.run TestTagRec -test.v -test.timeout=300s
+docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/tagrec.test "$POSTGRES_IMAGE" -collection-label-proof -test.run '^Test(TagRec|Independent)' -test.v -test.timeout=300s
 # Empty rollback/reapply is separate from retained business-history refusal tests.
 docker exec "$proof_id" createdb -U postgres tagrec_empty_down -T tagrec_template
 for direction in down up; do

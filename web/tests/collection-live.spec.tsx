@@ -61,7 +61,8 @@ async function serve(
     });
   if (scenario === "pending_taxonomy") {
     const preview: Preview = {
-      profile: "private-collection-preview-v1",
+      profile: "private-collection-preview-v2",
+      tag_results: [],
       workspace_id: workspace,
       preview_id: "50000000-0000-4000-8000-000000000001",
       expires_at: "2099-01-01T00:00:00Z",
@@ -83,7 +84,7 @@ async function serve(
       preview,
     };
   }
-  await page.route("**/v1/**", async (route) => {
+  await page.route("**/v*/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     const body = request.postData() ? request.postDataJSON() : undefined;
@@ -123,7 +124,8 @@ async function serve(
         state: "prepared",
         acknowledged: false,
         preview: {
-          profile: "private-collection-preview-v1",
+          profile: "private-collection-preview-v2",
+          tag_results: [],
           workspace_id: workspace,
           preview_id: "50000000-0000-4000-8000-000000000002",
           expires_at: "2099-01-01T00:00:00Z",
@@ -155,15 +157,17 @@ async function serve(
               capabilities: state.capabilities,
             },
           });
-    if (path === `/v1/collections/${workspace}/taxonomy`)
+    if (path === `/v2/collections/${workspace}/taxonomy`)
       return route.fulfill({
         json: {
-          profile: "private-collection-catalog-v1",
+          profile: "private-collection-catalog-v2",
           workspace_id: workspace,
           authority_revision: "1",
           taxonomy_revision: state.taxonomy,
           ruleset_revision: "4",
           map_revision: "0",
+          tag_revision: "1",
+          tags: [],
           topics: state.topics,
           sources: [{ source_id: source, name: "Fictional private checking" }],
         },
@@ -175,7 +179,7 @@ async function serve(
       const start = q.cursor ? 25 : 0;
       return route.fulfill({
         json: {
-          profile: "private-collection-review-v1",
+          profile: "private-collection-review-v2",
           workspace_id: workspace,
           selector: collectionSelector(q),
           snapshot: snapshot(),
@@ -190,7 +194,8 @@ async function serve(
     if (path.endsWith("/labels/preview")) {
       state.preview = {
         ...body,
-        profile: "private-collection-preview-v1",
+        profile: "private-collection-preview-v2",
+        tag_results: [],
         workspace_id: workspace,
         preview_id: "50000000-0000-4000-8000-000000000001",
         expires_at: "2099-01-01T00:00:00Z",
@@ -203,7 +208,7 @@ async function serve(
       return route.fulfill({ json: state.preview });
     }
     const wrap = () => ({
-      profile: "private-collection-command-v1",
+      profile: "private-collection-command-v2",
       workspace_id: workspace,
       command: state.pending,
     });
@@ -447,7 +452,7 @@ test("a failed private acknowledgement keeps Overview until a confirmed same-ide
   ).toBeVisible();
   const acknowledgements: string[] = [];
   await page.route(
-    "**/v1/collections/*/label-commands/*/acknowledge",
+    "**/v2/collections/*/label-commands/*/acknowledge",
     async (route) => {
       acknowledgements.push(new URL(route.request().url()).pathname);
       if (acknowledgements.length === 1)

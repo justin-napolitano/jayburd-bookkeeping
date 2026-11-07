@@ -18,6 +18,10 @@ TAGREC-20261107T0340Z. Synthetic data only; no hosted/provider/live activation.
 
 | Compatibility and gating | Every original OpenAPI schema/route is semantically identical to merged449.106 focused browser bridge/API tests pass. Go server feature/origin and adapter tests pass; matching44 readiness now requires all eight new grants. Existing43 runner pinned explicitly43; separate44 proof runner/CI preserves all old proofs |
 
+| Actual readiness | Latest44 disposable PostgreSQL: all eight matching function-grant revoke/restore checks and all old runtime overprivilege/missing-grant cases PASS; root clones and synthetic role cleaned. Core check/build and Go adapter/server race tests PASS |
+| UI import and composition | Reviewed61c6a69: v2 tags, historical v1 saved-review union, opaque global recovery with exact uncertain receipt and same-claim review eligibility. Root mounts it before scoped discovery, separates new-work/ordinary transition gates and refreshes both engines after confirmed closure. Agent69 focused units,15 existing live/client browser checks and4 tag/usability journeys PASS |
+| Hands-on synthetic review | Screenshots inspected at390/1440: selected actions moved from8006/5108px to644/578px; management473/471px, native keyboard/mobile targets and no horizontal clipping/storage. Combined checks follow |
+
 ## Current evidence
 
 Implementation in progress. Parent449 all five checks passed; that is baseline,
