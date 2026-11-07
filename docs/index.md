@@ -1,5 +1,8 @@
 # Project context
 
+[Persistent private labels](contracts/collection-labels.md):304/305 frozen
+SQL/API/UI profile and [integration stages](runbooks/collection-label-build.md).
+
 [Parallel classification build](runbooks/daily-classification-build.md): reviewed
 source slices and combined synthetic proof; GitHub issues own delivery state.
 
