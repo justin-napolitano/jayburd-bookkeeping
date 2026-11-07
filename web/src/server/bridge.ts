@@ -14,6 +14,21 @@ const connectionWrite = new RegExp(`^${bookPath}/(?:connection-attempts|connecti
 const registrationPreparation = new RegExp(`^${bookPath}/connection-attempts/${uuid}/registration$`);
 // Private search values travel only in a bounded no-store POST read body.
 const reviewQuery = new RegExp(`^${bookPath}/(?:review-items|source-activity)/query$`);
+// Private collection commands carry their persisted identity in a closed JSON body.
+const collectionPath = `/v1/collections/${uuid}`;
+const collectionRead = new RegExp(`^${collectionPath}/(?:taxonomy|label-commands/pending)$`);
+const collectionQuery = new RegExp(`^${collectionPath}/review/query$`);
+const collectionPreview = new RegExp(`^${collectionPath}/labels/preview$`);
+const collectionPrepare = new RegExp(`^${collectionPath}/label-commands$`);
+const collectionTransition = new RegExp(`^${collectionPath}/label-commands/${uuid}/(?:execute|cancel|acknowledge)$`);
+/** Exact private route membership prevents unrelated POSTs inheriting body-key semantics. */
+function collectionRoute(path: string): boolean {
+  return path === '/v1/collection' || collectionRead.test(path) || collectionQuery.test(path) || collectionPreview.test(path) || collectionPrepare.test(path) || collectionTransition.test(path);
+}
+/** Taxonomy editions have a larger bounded preview than a selection/query/transition. */
+function collectionBodyLimit(path: string): number {
+  return collectionPreview.test(path) ? 524288 : collectionQuery.test(path) ? 8192 : collectionPrepare.test(path) ? 4096 : 1024;
+}
 const connectionAction = new RegExp(`^${bookPath}/connection-attempts/${uuid}/(?:execute|complete|reconcile|abandon)$`);
 const reportPath = new RegExp(`^${bookPath}/reports/(trial-balance|general-ledger|balance-sheet|profit-and-loss)$`, 'i');
 
@@ -39,6 +54,10 @@ function configuration(env: Record<string, string | undefined>): BridgeConfig {
 /** Permit only currently implemented bookkeeping routes; deferred close/admin paths stay unavailable. */
 function allowed(url: URL, method: string): boolean {
   if (url.pathname.length + url.search.length > 4096) return false;
+  if (collectionRoute(url.pathname)) {
+    if (url.href.includes('?') || url.hash) return false;
+    return method === 'GET' ? url.pathname === '/v1/collection' || collectionRead.test(url.pathname) : method === 'POST' && (collectionQuery.test(url.pathname) || collectionPreview.test(url.pathname) || collectionPrepare.test(url.pathname) || collectionTransition.test(url.pathname));
+  }
   // Discovery permits only bounded, duplicate-free keyset parameters.
   if (method === 'GET' && new RegExp(`^${bookPath}/connection-attempts$`).test(url.pathname)) {
     if (url.hash || (url.href.includes('?') && !url.search) || /%(?![0-9a-f]{2})/i.test(url.search)) return false;
@@ -208,6 +227,8 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
       if (origin !== null && origin !== config.origin || site !== null && site !== 'same-origin') return failure(403);
       const bearer = request.headers.get('Authorization') ?? '';
       if (bearer.length > 16384 || !bearer.startsWith('Bearer ') || !tokenPattern.test(bearer.slice(7))) return failure(401);
+      const collection = collectionRoute(url.pathname);
+      if (collection && (request.headers.has('Idempotency-Key') || request.headers.has('Content-Encoding'))) return failure(400);
       const signal = AbortSignal.any([request.signal, AbortSignal.timeout(12000)]);
       const csv = exportPath.test(url.pathname);
       const headers = new Headers({Authorization: bearer, Origin: config.origin, Accept: csv ? 'text/csv' : 'application/json'});
@@ -217,11 +238,11 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
         if (registrationPreparation.test(url.pathname) && ((request.headers.get('Content-Type') ?? '').toLowerCase() !== 'application/json' || request.headers.has('Content-Encoding'))) return failure(400);
         // Durable command and connection transitions carry their own persisted operation identity.
         const key = request.headers.get('Idempotency-Key');
-        if (reviewQuery.test(url.pathname) && (key !== null || request.headers.has('Content-Encoding') || request.headers.get('Content-Type') !== 'application/json')) return failure(400);
-        if (!reviewQuery.test(url.pathname) && (key !== null || !(url.pathname === inaccessibleCommandAction || commandAction.test(url.pathname) || connectionAction.test(url.pathname))) && !/^[A-Za-z0-9._:-]{1,128}$/.test(key ?? '')) return failure(400);
+        if ((reviewQuery.test(url.pathname) || collection) && (key !== null || request.headers.has('Content-Encoding') || request.headers.get('Content-Type') !== 'application/json')) return failure(400);
+        if (!collection && !reviewQuery.test(url.pathname) && (key !== null || !(url.pathname === inaccessibleCommandAction || commandAction.test(url.pathname) || connectionAction.test(url.pathname))) && !/^[A-Za-z0-9._:-]{1,128}$/.test(key ?? '')) return failure(400);
         headers.set('Content-Type', 'application/json');
         if (key !== null) headers.set('Idempotency-Key', key);
-        try { body = await read(request.body, reviewQuery.test(url.pathname) ? 8192 : registrationPreparation.test(url.pathname) ? 16 << 10 : connectionWrite.test(url.pathname) ? 32 << 10 : limit, signal); } catch (error) { return failure(error instanceof RangeError ? 413 : 504); }
+        try { body = await read(request.body, collection ? collectionBodyLimit(url.pathname) : reviewQuery.test(url.pathname) ? 8192 : registrationPreparation.test(url.pathname) ? 16 << 10 : connectionWrite.test(url.pathname) ? 32 << 10 : limit, signal); } catch (error) { return failure(error instanceof RangeError ? 413 : 504); }
       } else if (request.body !== null) return failure(400);
       if (config.cloud) headers.set('X-Serverless-Authorization', `Bearer ${await serviceToken(config.api, transport, signal)}`);
       const upstream = await transport(config.api + url.pathname + url.search, {
