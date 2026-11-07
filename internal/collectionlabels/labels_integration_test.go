@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -1049,4 +1050,54 @@ func TestReadOnlyCollectionDiscovery(t *testing.T) {
 			code(t, e, "P2801")
 		})
 	}
+}
+
+// TestReviewAstralSelectorCursor proves a maximal-codepoint selector survives both bounded wire pages.
+func TestReviewAstralSelectorCursor(t *testing.T) {
+	_, db := fixture(t)
+	w := provision(t, db, actor)
+	_, sources := register(t, db, w, actor, "astral-selector", 1)
+	search := strings.Repeat("🪶", 100)
+	one := change("one", "10.01", "USD")
+	one["description"] = search + " A"
+	two := change("two", "20.02", "USD")
+	two["description"] = search + " B"
+	if _, e := publish(t, db, w, sources[0], "batch", "0", nil, "c1", []map[string]any{one, two}); e != nil {
+		t.Fatal(e)
+	}
+	seedTopics(t, db, w)
+	apply(t, db, w, "labels", selection(page(t, db, w)["items"].([]any)), map[string]any{"kind": "topic", "topic_id": childTopic})
+	v := selector()
+	v["source_account_id"] = sources[0]
+	v["assignment"] = "unassigned"
+	v["starts_on"] = "2026-01-01"
+	v["through_date"] = "2026-12-31"
+	v["search"] = search
+	v["topic"] = map[string]any{"kind": "topic", "topic_id": childTopic}
+	v["sort"] = "date_asc"
+	v["limit"] = 1
+	first, e := query(t, db, w, actor, v)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if first["matching_count"] != "2" || first["start_index"] != "1" || len(first["items"].([]any)) != 1 {
+		t.Fatal("astral first page")
+	}
+	cursor := first["next_cursor"].(string)
+	if len(cursor) == 0 || len(cursor) > 4096 {
+		t.Fatalf("cursor exceeds frozen bound: %d", len(cursor))
+	}
+	v["cursor"] = cursor
+	v["snapshot"] = first["snapshot"]
+	if len([]byte(raw(v))) > 8192 {
+		t.Fatal("query envelope exceeds wire bound")
+	}
+	second, e := query(t, db, w, actor, v)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if second["matching_count"] != "2" || second["start_index"] != "2" || second["next_cursor"] != nil || len(second["items"].([]any)) != 1 || first["items"].([]any)[0].(map[string]any)["observation_id"] == second["items"].([]any)[0].(map[string]any)["observation_id"] {
+		t.Fatal("astral second page identity/count")
+	}
+	t.Logf("100 astral codepoints, account/topic/date/assignment selector, sixpins: cursor %d hexchars; resumed query %d bytes", len(cursor), len([]byte(raw(v))))
 }
