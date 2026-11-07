@@ -68,6 +68,29 @@ async function previewOne(
 }
 
 describe("private collection review", () => {
+  it("supports100 astral search characters and rejects excess codepoints without truncating intent", async () => {
+    const h = await start();
+    const input = screen.getByRole("searchbox", {
+      name: "Search transactions",
+    });
+    const search = "🍎".repeat(100);
+    await h.user.click(input);
+    await h.user.paste(search);
+    await h.user.click(screen.getByRole("button", { name: "Apply filters" }));
+    await waitFor(() => expect(h.calls.queries.at(-1)?.search).toBe(search));
+    await screen.findByText(
+      "No transactions match these filters. Change filters or refresh imported activity.",
+    );
+    await h.user.clear(input);
+    await h.user.click(input);
+    await h.user.paste("a".repeat(101));
+    const queries = h.calls.queries.length;
+    await h.user.click(screen.getByRole("button", { name: "Apply filters" }));
+    expect(screen.getByRole("alert").textContent).toContain(
+      "up to 100 characters",
+    );
+    expect(h.calls.queries).toHaveLength(queries);
+  });
   it("shows removed held money as removed/unavailable without a fabricated zero", async () => {
     await start({ rows: [removedHeldCollectionRow()] });
     expect(screen.getByText("Source: removed")).toBeTruthy();

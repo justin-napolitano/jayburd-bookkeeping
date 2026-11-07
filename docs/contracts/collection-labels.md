@@ -55,6 +55,7 @@ server matching_count/start_index/selector/partial/next_cursor fields. Snapshot
 contains authority_revision,source_snapshot,taxonomy_revision,ruleset_revision,
 map_revision,decision_revision. Revisions are decimal strings; source_snapshot
 is64 lowercase SHA256 hex characters. Source/assignment/book availability changes
+Continuation tokens are opaque, bounded4096 characters (query body8192 bytes).
 and current decision versions invalidate relevant pages/previews. Money stays
 original decimal strings with dated ISO4217 metadata or explicit nullable holds.
 Unavailable assignment is distinct from unassigned; book/journal disclosures
