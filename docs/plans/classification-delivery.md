@@ -1,25 +1,25 @@
 # Remaining daily-money delivery gates —433 /412
 
-Source-only proposed sequence,2026-11-04. GitHub is live scheduling authority;
+Delivery map refreshed2026-11-06. GitHub is live scheduling authority;
 this map never marks a predecessor complete or grants a lease. Estimates are
 relative. No Production/provider/account action follows from a source PR.
 
 | Step / issues | Ready artifact or remaining work | Gate and acceptance |
 | --- | --- | --- |
-| Source activity429/431 | Corrected exact totals/merchant/drill runtime; hosted5/5 green ataf17686 | Human source/security review, dependent stack merges; migration41 separately managed |
-| Source Overview432/434 | Daily entry, all history, original-unit totals/exact drills;417 unit/55 browser and real Next/Go/SQL journey pass at49ca8c4 | Human source/security/visual review before merge; parent418 remains open |
-| Authority238 | Existing ADR0006/private matrix proposal plus433's analytic authority requirements | Owner/identity/database acceptance still required; no implied private capability from book grants |
+| Source activity429/431 | Merged source41 and managed Sandbox release recorded in436/439 | Independent clean41 status and scanned-image rollout complete; owner visual review remains, no Production change |
+| Source Overview432/434 | Merged PhaseA daily source entry; Sandbox436 release available | Parent418 remains open; bank balance and recognized/category spending still unavailable |
+| Authority238 | Owner design accepted and issue closed; exact operation matrix/fixed cases recorded in GitHub238 | No need to recover chat or reapprove the accepted design; concrete SQL/source evidence remains required |
 | Registry239 | Exact grants/scoped keys, principal/source adoption, revocation/retention and legacy migration |238 accepted; restricted-role/two-principal/two-entity/reconnect/correction/race/rollback proofs; source and posted anchors preserved |
-| Taxonomy242/304 | Proposed topic identity/revision/bulk preview behavior in433; exact SQL/OpenAPI implementation remains |239 authority; cycle/retirement/conflict/atomicity/audit/current grant checks; reviewed wire before305 UI |
-| PFC413 | Full decoder→normalized page→closed SQL gap documented; version/unknown/compatibility contract proposed |238/242 accepted; additive profile/forward SQL and deterministic map, no automatic historical backfill; inert/source-revision/unknown/principal denial proofs |
-| Rules414/243 | Scope/precedence/conflict/bounded matching/recovery specification and independent fixed cases in433 | Reviewed taxonomy/authority; bounded shared Go evaluator, exact SQL preview/apply/receipt with no journal access; version/replay/race/regex tests |
-| All Transactions305 | Currently authorized book-scoped Transactions remains available |304 reviewed wire and authority; global/unassigned/private labels only after real grants;3000 rows, mobile/keyboard/scope/reload and atomic bulk proofs |
+| Taxonomy242/304 | Owner design accepted in242; exact private SQL/persistence/analytic query remains |239 authority; cycle/retirement/conflict/atomicity/audit/current grant checks; actual reviewed wire before activation |
+| PFC413 | PR441 explicit current-response sidecar/map, unchanged legacy wire; local race/fuzz and canonical backend/application proofs | Additive SQL/runner profile and metadata-only revision semantics remain; no historical backfill |
+| Rules414/243 | PR440 pure bounded evaluator; precedence/conflict/regex race/fuzz and canonical checks pass | Exact authorized SQL preview/apply/receipt and actual editor remain; no runtime matcher call yet |
+| All Transactions305 | New isolated private review component under parallel build; existing book-scoped view remains available |304 persisted query/preview/commands still required; component tests are not service authority or atomic SQL proof |
 | Spending417 Phase B | Recognition/allocation proposal and independent oracle in428; source activity is not recognized spending | Explicit reviewed economic treatment, refund links, transfer/repayment exclusions and exact principal/interest allocation; SQL contribution equality and pinned drills |
 | Overview/Spending418 completion | Category/contribution/merchant comparison views remain;432 is only Phase A | Implemented Phase B profile plus taxonomy/provenance; explicit intervals, exact unit versions, incomplete/unknown/error/stale tests and human visual review |
 | Opportunities419 | Contract constraints/cases proposed; no candidate runtime yet | Reviewed spending evidence/history/comparability; recurrence/fee/rising category evidence drills, abstention, scoped dismiss and hypothetical scenario; no promised savings |
-| Sandbox delivery | Existing PR421→422→423→424→425→426→427, source contract430 already on427 branch, then431→434 | Refresh exact GitHub bases/CI/reviews, merge in dependency order, preserve migration40/41 order and apply only through managed Sandbox runbook; smoke actual deployed artifact |
+| Sandbox delivery |436 managed41/scanned-image release completed;439 records exact artifacts/executions | Current parallel build is source-only; no new hosted scope, consent/source-cap or Production change |
 
-Do not reserve migration42 until an implementation claim actually starts.
+Migration42 is exclusively allocated to239 in GitHub65;43 remains unallocated.
 Merged SQL remains immutable. Default commands/tests stay fictional; no provider
 backfill, raw historical extraction, secret retrieval, private data export or live
 consent renewal. Current personal-account pilot consent remains expired. A
@@ -33,7 +33,7 @@ source matrix. Review answers must record reviewer/date/exact accepted sections;
 generic earlier product approval is not approval of new SQL authority. No new
 owner/accountant cross-entity posting decision is requested by the label feature.
 
-Once authority/taxonomy are accepted, claim one bounded implementation child in65,
+Authority/taxonomy design is accepted in238/242. Claim bounded implementation in65,
 generate the seed packet, allocate SQL only if needed, and repeat implement→core/
 boundary tests→source review→merge→Sandbox proof. Keep later data semantics gated
 until their actual predecessor wire exists. Continue independent source work while

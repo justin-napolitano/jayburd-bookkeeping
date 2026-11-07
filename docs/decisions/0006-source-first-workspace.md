@@ -2,10 +2,12 @@
 
 ## Status and question
 
-Proposed for #238 review, 2026-10-21. The owner accepted the product direction:
+Accepted design2026-11-06 under
+[GitHub238](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/238),
+which owns the approval, operation matrix and fixed-case acceptance. The owner accepted:
 connect accounts before creating books, import each provider transaction once under
 its source account, review all authorized transactions, and organize accounting
-into entity books. This ADR proposes the authority boundary. It does not approve
+into entity books. This ADR defines the accepted design boundary. It does not approve
 physical SQL, live-account ownership, intercompany policy or automatic posting.
 Reviewers: owner for product/consent, identity and database owners for authority,
 accounting owner/accountant for any future cross-entity posting treatment.
@@ -14,7 +16,7 @@ Question: how can a verified creator connect a Plaid Item containing accounts fo
 different entities, acquire available history before any book exists, and later
 review/label/account for the observations without changing posted history?
 
-## Decision proposed
+## Decision
 
 1. A **private collection workspace** is scoped to a verified, explicitly enrolled
    principal. A Plaid Item, its credential reference, consent state, verified

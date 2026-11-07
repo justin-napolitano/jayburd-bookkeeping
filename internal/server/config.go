@@ -16,10 +16,16 @@ import (
 var errConfiguration = errors.New("invalid server configuration")
 
 // Config carries owner-injected connection material; errors never format its fields.
-type Config struct{ Mode, Listen, Origin, Project, DatabaseURL, DatabaseMode, CloudSQLInstance, ProviderEnvironment string }
+type Config struct {
+	Mode, Listen, Origin, Project, DatabaseURL, DatabaseMode, CloudSQLInstance, ProviderEnvironment string
+	CollectionEnabled                                                                               bool
+}
 
 // Validate rejects ambiguous listener and origin configuration before dependencies start.
 func (c Config) Validate() error {
+	if c.CollectionEnabled && c.Mode != "managed" {
+		return errConfiguration
+	}
 	if c.ProviderEnvironment != "" && c.ProviderEnvironment != "sandbox" && c.ProviderEnvironment != "production" {
 		return errConfiguration
 	}

@@ -1,5 +1,13 @@
 # Categorization/rules source review —412/413/414
 
+CR08 follow-through2026-11-06: regexp/syntax public Parse/Simplify/Compile/Prog
+and regexp Compile/MatchString/overview sections revisited for the
+[bounded evaluator](../contracts/rule-evaluator.md). Matching guarantees are
+vendor API documentation; finite catalog/rule/condition/batch/string caps,
+conservative pre-expansion rejection and conflict precedence are Jayburd choices.
+Local1.26.5 race/fuzz tests are evidence for that installed version only; tracked
+1.26.10 hosted checks remain required. No implementation code was copied.
+
 ## Scope, review and limitations
 
 Owner requested reusable categorization and explainable rules before a custom

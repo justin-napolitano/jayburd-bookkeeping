@@ -1,0 +1,246 @@
+.workspace {
+  color: var(--ink, #202124);
+  background: var(--paper, #fff);
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.heading h2 {
+  margin: 0 0 0.25rem;
+}
+.heading p {
+  margin: 0.2rem 0;
+}
+.note {
+  color: var(--muted, #555b63);
+  max-width: 78ch;
+}
+.filters {
+  border-block: 1px solid var(--line, #dce0e3);
+  margin-block: 0.6rem;
+  padding-block: 0.35rem;
+}
+.primaryFilters,
+.advancedFilters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 0.25rem 1rem;
+  align-items: end;
+}
+.filters label,
+.actions label {
+  min-width: 0;
+}
+.filters input,
+.filters select,
+.actions select {
+  width: 100%;
+}
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(0, 3fr) minmax(140px, 1fr);
+  gap: 1rem;
+  padding-block: 1rem;
+  border-top: 1px solid var(--line, #dce0e3);
+}
+.check {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.6rem;
+  min-height: 44px;
+  margin: 0;
+  font-weight: 400;
+}
+.check input {
+  min-height: 20px;
+  height: 20px;
+  width: 20px;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+.date {
+  white-space: nowrap;
+}
+.description {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.description > span,
+.states {
+  color: var(--muted, #555b63);
+  font-size: 0.9rem;
+}
+.states {
+  display: flex;
+  gap: 0.35rem 1rem;
+  flex-wrap: wrap;
+}
+.description details {
+  width: 100%;
+}
+.description summary {
+  font-size: 0.9rem;
+  min-height: 44px;
+  display: list-item;
+}
+.description details p {
+  margin-block: 0.35rem;
+  font-size: 0.9rem;
+}
+.money {
+  text-align: right;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.money span {
+  font-size: 0.85rem;
+  color: var(--muted, #555b63);
+}
+.actions,
+.paging,
+.recovery {
+  display: flex;
+  align-items: end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.actions {
+  border-top: 1px solid var(--line, #dce0e3);
+  padding-top: 0.7rem;
+}
+.actions label {
+  min-width: min(100%, 260px);
+}
+.paging {
+  justify-content: flex-end;
+}
+.count {
+  font-weight: 600;
+}
+.resultSummary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.2rem 1rem;
+}
+.resultSummary p {
+  margin: 0;
+}
+.partial {
+  margin-block: 0.6rem;
+}
+.review {
+  border-left: 3px solid var(--accent, #286044);
+  padding: 1rem;
+  margin-top: 1rem;
+  background: #f4f8f5;
+}
+.review h3 {
+  margin-top: 0;
+}
+.reviewRows {
+  list-style: none;
+  padding: 0;
+}
+.reviewRows li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  padding-block: 0.5rem;
+  border-bottom: 1px solid var(--line, #dce0e3);
+  overflow-wrap: anywhere;
+}
+.workspace :focus-visible {
+  outline: 3px solid var(--accent, #286044);
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem 0.8rem;
+  }
+  .check {
+    grid-column: 1;
+    align-items: center;
+  }
+  .check input {
+    margin-top: 0;
+  }
+  .description {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    padding-left: 1.85rem;
+  }
+  .money {
+    grid-row: 1;
+    grid-column: 2;
+    max-width: 180px;
+  }
+  .heading {
+    align-items: flex-start;
+  }
+  .actions {
+    align-items: stretch;
+    gap: 0.3rem;
+  }
+  .actions label,
+  .actions button {
+    width: 100%;
+  }
+  .review {
+    padding: 0.8rem;
+  }
+}
+
+.filters fieldset {
+  display: block;
+}
+.filters label {
+  margin-block: 0.35rem;
+}
+.moreFilters > summary {
+  font-size: 0.9rem;
+  min-height: 44px;
+  padding-top: 0.4rem;
+}
+.reviewRows li > span:last-child {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.heading > button {
+  margin: 0;
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .primaryFilters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .primaryFilters > button {
+    grid-column: 1 / -1;
+  }
+  .heading {
+    row-gap: 0.25rem;
+  }
+}
