@@ -1,9 +1,11 @@
+import { validRuleCatalog } from "./rules";
 import { APIError, type API } from "../bookkeeping/api";
 import {
   CollectionFailure,
   validTopics,
   validTags,
   type Catalog,
+  type CurrencyChoice,
   type CollectionPort,
   type LabelCommand,
   type SourceChoice,
@@ -58,20 +60,22 @@ export async function discoverCollection(
   let catalog: unknown;
   try {
     catalog = await api<unknown>(
-      `/v2/collections/${encodeURIComponent(context.workspace_id)}/taxonomy`,
+      `/v3/collections/${encodeURIComponent(context.workspace_id)}/taxonomy`,
     );
   } catch (reason) {
     throw mapFailure(reason, false);
   }
   if (
     !record(catalog) ||
-    catalog.profile !== "private-collection-catalog-v2" ||
+    catalog.profile !== "private-collection-catalog-v3" ||
     catalog.workspace_id !== context.workspace_id ||
     catalog.authority_revision !== context.authority_revision ||
     !revision(catalog.taxonomy_revision) ||
     !revision(catalog.ruleset_revision) ||
     !revision(catalog.map_revision) ||
     !revision(catalog.tag_revision) ||
+    !validReadCatalog(catalog) ||
+    !validRuleCatalog(catalog.rules) ||
     !validTags(catalog.tags) ||
     !validTopics(catalog.topics) ||
     !Array.isArray(catalog.sources) ||
@@ -91,6 +95,11 @@ export async function discoverCollection(
   return {
     workspace: context,
     catalog: {
+      rules: catalog.rules,
+      books: catalog.books,
+      currencies: catalog.currencies,
+      institution: catalog.institution,
+      legal_owner: catalog.legal_owner,
       taxonomy_revision: catalog.taxonomy_revision,
       ruleset_revision: catalog.ruleset_revision,
       map_revision: catalog.map_revision,
@@ -110,7 +119,7 @@ function mapFailure(reason: unknown, mutation: boolean): CollectionFailure {
     if ([401, 403, 404].includes(reason.status))
       return new CollectionFailure("denied");
     if (reason.status === 409) return new CollectionFailure("stale");
-    if (mutation && !reason.uncertain && [400, 422].includes(reason.status))
+    if (!reason.uncertain && [400, 422].includes(reason.status))
       return new CollectionFailure("rejected");
     if (mutation && reason.uncertain) return new CollectionFailure("uncertain");
   }
@@ -120,7 +129,7 @@ function mapFailure(reason: unknown, mutation: boolean): CollectionFailure {
 // The injected existing API owns fresh authentication/no-store transport; no actor or browser store is used.
 export function createCollectionPort(api: API): CollectionPort {
   const base = (workspace: string) =>
-    `/v2/collections/${encodeURIComponent(workspace)}`;
+    `/v3/collections/${encodeURIComponent(workspace)}`;
   const body = (value: unknown, maximum: number) => {
     const json = JSON.stringify(value);
     if (new TextEncoder().encode(json).byteLength > maximum)
@@ -153,7 +162,7 @@ export function createCollectionPort(api: API): CollectionPort {
       );
       if (
         !record(result) ||
-        result.profile !== "private-collection-command-v2" ||
+        result.profile !== "private-collection-command-v3" ||
         result.workspace_id !== workspace ||
         !Object.hasOwn(result, "command") ||
         (result.command === null ? mutation : !record(result.command))
@@ -174,7 +183,17 @@ export function createCollectionPort(api: API): CollectionPort {
       ))!;
   return {
     query: ({ workspace_id, ...request }) =>
-      read(`${base(workspace_id)}/review/query`, request, 8192),
+      read(
+        `/v3/collections/${encodeURIComponent(workspace_id)}/review/query`,
+        request,
+        8192,
+      ),
+    detail: ({ workspace_id, ...request }) =>
+      read(
+        `/v3/collections/${encodeURIComponent(workspace_id)}/review/detail`,
+        request,
+        8192,
+      ),
     preview: ({ workspace_id, ...request }) =>
       read(`${base(workspace_id)}/labels/preview`, request, 524288),
     prepare: ({ workspace_id, ...request }) =>
@@ -190,4 +209,65 @@ export function createCollectionPort(api: API): CollectionPort {
     cancel: transition("cancel"),
     acknowledge: transition("acknowledge"),
   };
+}
+
+// Complete read choices carry no grant and never substitute an entity for legal ownership.
+function validReadCatalog(
+  value: Record<string, unknown>,
+): value is Record<string, unknown> &
+  Pick<Catalog, "books" | "currencies" | "institution" | "legal_owner"> {
+  if (
+    !record(value.institution) ||
+    value.institution.state !== "unavailable" ||
+    !record(value.legal_owner) ||
+    value.legal_owner.state !== "unknown" ||
+    !Array.isArray(value.books) ||
+    value.books.length > 100 ||
+    !Array.isArray(value.currencies) ||
+    value.currencies.length > 1000
+  )
+    return false;
+  if (
+    !value.books.every(
+      (book) =>
+        record(book) &&
+        id(book.entity_id) &&
+        id(book.book_id) &&
+        typeof book.name === "string" &&
+        [...book.name].length > 0 &&
+        [...book.name].length <= 200 &&
+        typeof book.entity_name === "string" &&
+        [...book.entity_name].length > 0 &&
+        [...book.entity_name].length <= 200,
+    ) ||
+    new Set(
+      value.books.map((book) => JSON.stringify([book.entity_id, book.book_id])),
+    ).size !== value.books.length
+  )
+    return false;
+  return (
+    value.currencies.every(
+      (currency) =>
+        record(currency) &&
+        id(currency.currency_version_id) &&
+        typeof currency.code === "string" &&
+        /^[A-Z]{3}$/.test(currency.code) &&
+        (currency.numeric_code === null ||
+          (typeof currency.numeric_code === "string" &&
+            /^[0-9]{3}$/.test(currency.numeric_code))) &&
+        Number.isInteger(currency.minor_unit) &&
+        Number(currency.minor_unit) >= 0 &&
+        Number(currency.minor_unit) <= 9 &&
+        typeof currency.valid_from === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(currency.valid_from) &&
+        (currency.valid_to === null ||
+          (typeof currency.valid_to === "string" &&
+            /^\d{4}-\d{2}-\d{2}$/.test(currency.valid_to))),
+    ) &&
+    new Set(
+      (value.currencies as CurrencyChoice[]).map(
+        (currency) => currency.currency_version_id,
+      ),
+    ).size === value.currencies.length
+  );
 }

@@ -86,20 +86,25 @@ for (const restored of ["same", "other"] as const) {
       }
       if (path.endsWith("/taxonomy"))
         return reply({
-          profile: "private-collection-catalog-v2",
+          profile: "private-collection-catalog-v3",
           workspace_id: workspace,
           authority_revision: "1",
           taxonomy_revision: "1",
           ruleset_revision: "0",
           map_revision: "0",
           tag_revision: "1",
+          books: [],
+          currencies: [],
+          institution: { state: "unavailable" },
+          legal_owner: { state: "unknown" },
           topics: [],
+          rules: [],
           tags: [],
           sources: [],
         });
       if (path.endsWith("/review/query"))
         return reply({
-          profile: "private-collection-review-v2",
+          profile: "private-collection-review-v3",
           workspace_id: workspace,
           snapshot: { ...snapshot, tag_revision: "1" },
           selector: body,
@@ -110,7 +115,7 @@ for (const restored of ["same", "other"] as const) {
           partial: false,
         });
       const wrap = () => ({
-        profile: "private-collection-command-v2",
+        profile: "private-collection-command-v3",
         workspace_id: workspace,
         command: pending,
       });

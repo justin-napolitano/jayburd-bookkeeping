@@ -366,3 +366,85 @@
     margin: 0;
   }
 }
+
+.detailLink {
+  color: var(--ink, #202124);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  min-height: 44px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.advancedFilters > p {
+  grid-column: 1 / -1;
+  max-width: 78ch;
+  color: var(--muted, #555b63);
+}
+
+.detail {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.detail .reviewRows li > span:last-child {
+  display: block;
+}
+
+.managementRules {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ruleEdit {
+  border-block: 1px solid var(--line, #dce0e3);
+  margin-block: 1rem;
+  padding-block: 0.5rem;
+}
+.ruleCondition {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 0.5rem 1rem;
+  align-items: end;
+}
+.ruleCondition input,
+.ruleCondition select {
+  width: 100%;
+}
+
+.reviewRows > .ruleResult {
+  display: block;
+}
+.ruleResult > strong,
+.ruleResult > span {
+  display: block;
+}
+.ruleResult p,
+.ruleResult ul,
+.ruleResult ol {
+  margin-block: 0.35rem;
+}
+.ruleResult li {
+  display: list-item;
+  border: 0;
+  padding-block: 0.15rem;
+}
+
+.ruleCondition textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--paper, #fff);
+  border: 1px solid #819994;
+  border-radius: 5px;
+  padding: 0.65rem 0.8rem;
+  width: 100%;
+  max-width: 100%;
+  min-height: 66px;
+  resize: vertical;
+}
+.ruleResult code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -31,8 +31,22 @@ import {
   type Selector,
   type SourceChoice,
   type Workspace,
+  type DetailRequest,
 } from "./types";
 import styles from "./collection.module.css";
+import { RuleEditor } from "./RuleEditor";
+import type { RuleSeed } from "./rules";
+import { correctionRuleSeed } from "./ruleSeed";
+import {
+  RuleCatalogReview,
+  RuleResultsView,
+  RuleSuggestionView,
+  RuleApplicationView,
+} from "./RuleViews";
+import { CollectionFilters } from "./CollectionFilters";
+import { collectionFilterError } from "./filters";
+import { CollectionDetail } from "./CollectionDetail";
+import type { JournalReader } from "./journal";
 import { TaxonomyEditor, TopicReview } from "./TaxonomyEditor";
 import { TagCatalogReview, TagEditor, TagSelection } from "./TagEditor";
 
@@ -46,14 +60,23 @@ export type CollectionReviewProps = {
   active?: boolean;
   canClassify?: boolean;
   onLockChange?: (locked: boolean) => void;
-  onAcknowledged?: () => void;
+  onAcknowledged?: (seed?: RuleSeed) => void;
+  ruleSeed?: RuleSeed | null;
+  onSeedConsumed?: () => void;
   onRefreshCatalog?: () => void;
   onPrepareConflict?: () => Promise<void> | void;
   refreshVersion?: number;
   newWorkLocked?: boolean;
   onDenied: () => void;
+  readJournal?: JournalReader;
 };
 const initial: Selector = {
+  merchant: { kind: "all" },
+  amount: null,
+  institution: { kind: "all" },
+  legal_owner: { kind: "all" },
+  book: { kind: "all" },
+  status: { source: "all", journal: "all" },
   source_account_id: null,
   assignment: "all",
   starts_on: null,
@@ -61,14 +84,14 @@ const initial: Selector = {
   search: "",
   topic: { kind: "all" },
   tag: { kind: "all" },
-  sort: "date_desc",
+  sort: { field: "date", order: "desc" },
 };
 
 // Authority/taxonomy/scope changes unmount all memory-only private rows, keys and pending requests.
 export function CollectionReview(props: CollectionReviewProps) {
   return (
     <Review
-      key={`${props.workspace.workspace_id}/${props.workspace.authority_revision}/${props.catalog.taxonomy_revision}/${props.catalog.tag_revision}`}
+      key={`${props.workspace.workspace_id}/${props.workspace.authority_revision}/${props.catalog.taxonomy_revision}/${props.catalog.tag_revision}/${props.catalog.ruleset_revision}`}
       {...props}
     />
   );
@@ -89,15 +112,22 @@ function Review({
   onPrepareConflict,
   refreshVersion = 0,
   newWorkLocked = false,
+  readJournal,
+  ruleSeed,
+  onSeedConsumed,
   onDenied,
 }: CollectionReviewProps) {
   const topicChoiceLabel = useId();
+  const afterAckSeed = useRef<RuleSeed | null>(null);
+  const [detail, setDetail] = useState<DetailRequest | null>(null);
+  const rowButtons = useRef(new Map<string, HTMLButtonElement>());
+  const detailReturn = useRef<string | null>(null);
   const tagFilterLabel = useId();
   const [draft, setDraft] = useState<Selector>(initial),
     [selector, setSelector] = useState<Selector>(initial);
   const [query, setQuery] = useState<Query>({
     ...initial,
-    profile: "private-collection-review-v2",
+    profile: "private-collection-review-v3",
     workspace_id: workspace.workspace_id,
     limit: 25,
     snapshot: null,
@@ -181,6 +211,9 @@ function Review({
   // Denial destroys private state; fixed messages never echo raw service errors.
   const failure = useCallback((reason: unknown, mutation = false) => {
     setPage(null);
+    setDetail(null);
+    if (reason instanceof CollectionFailure && reason.kind === "denied")
+      afterAckSeed.current = null;
     setSelected([]);
     if (reason instanceof CollectionFailure && reason.kind === "denied") {
       epoch.current++;
@@ -332,6 +365,7 @@ function Review({
   // Every page request carries the exact selector and server-owned all-source snapshot.
   useEffect(() => {
     if (!active) {
+      setDetail(null);
       setPage(null);
       setSelected([]);
       setReading(false);
@@ -385,6 +419,7 @@ function Review({
 
   // A new selector or page cannot retain an old selection, reviewed preview or prepare identity.
   const read = (next: Query) => {
+    setDetail(null);
     epoch.current++;
     focusRequest.current = null;
     setPage(null);
@@ -397,7 +432,7 @@ function Review({
   const refresh = () =>
     read({
       ...selector,
-      profile: "private-collection-review-v2",
+      profile: "private-collection-review-v3",
       workspace_id: workspace.workspace_id,
       limit: 25,
       snapshot: null,
@@ -419,10 +454,15 @@ function Review({
       setError("Choose an ordered start and end date.");
       return;
     }
+    const filterError = collectionFilterError(draft, catalog);
+    if (filterError) {
+      setError(filterError);
+      return;
+    }
     setSelector(draft);
     read({
       ...draft,
-      profile: "private-collection-review-v2",
+      profile: "private-collection-review-v3",
       workspace_id: workspace.workspace_id,
       limit: 25,
       snapshot: null,
@@ -477,7 +517,15 @@ function Review({
       };
       setPreview(result);
     } catch (reason) {
-      if (n === epoch.current) failure(reason);
+      if (n === epoch.current) {
+        if (reason instanceof CollectionFailure && reason.kind === "rejected")
+          setError(
+            action.kind === "rule_catalog"
+              ? "The rule preview was rejected. Check condition syntax and output choices, then review again."
+              : "The preview was rejected. Check the selected labels or catalog changes, then review again.",
+          );
+        else failure(reason);
+      }
     } finally {
       if (n === epoch.current) setBusy(false);
     }
@@ -594,7 +642,17 @@ function Review({
         prepareKey.current = null;
         // The validated acknowledgement completed before a new read advances its epoch.
         setBusy(false);
-        if (onAcknowledged) onAcknowledged();
+        const seed = afterAckSeed.current;
+        afterAckSeed.current = null;
+        if (onAcknowledged)
+          onAcknowledged(
+            seed &&
+              seed.workspace_id === current.workspace_id &&
+              seed.command_id === current.command_id &&
+              seed.prepare_key === current.prepare_key
+              ? seed
+              : undefined,
+          );
         else {
           setReady(true);
           refresh();
@@ -652,6 +710,14 @@ function Review({
         </button>
       </div>
       {!!selected.length && (
+        <button
+          disabled={blocked || !!preview || reading || !canClassify}
+          onClick={() => void previewAction({ kind: "rules_apply" }, selected)}
+        >
+          Preview rules for {selected.length} selected
+        </button>
+      )}
+      {!!selected.length && (
         <TagSelection
           tags={catalog.tags}
           count={selected.length}
@@ -670,6 +736,31 @@ function Review({
     </div>
   );
 
+  useEffect(() => {
+    if (locked || denied) setDetail(null);
+  }, [locked, denied]);
+  useEffect(() => {
+    if (detail || !detailReturn.current || locked || denied) return;
+    const button = rowButtons.current.get(detailReturn.current);
+    detailReturn.current = null;
+    button?.focus({ preventScroll: true });
+    button?.scrollIntoView?.({ block: "nearest" });
+  }, [detail, page, locked, denied]);
+  if (detail && !locked && !denied)
+    return (
+      <CollectionDetail
+        request={detail}
+        books={catalog.books}
+        catalog={catalog}
+        port={port}
+        readJournal={readJournal}
+        onBack={() => {
+          detailReturn.current = selectionKey(detail);
+          setDetail(null);
+        }}
+        onDenied={() => failure(new CollectionFailure("denied"))}
+      />
+    );
   if (locked)
     return (
       <p role="status">Finish the pending action to review all transactions.</p>
@@ -854,21 +945,11 @@ function Review({
                     }
                   />
                 </label>
-                <label>
-                  Date order
-                  <select
-                    value={draft.sort}
-                    onChange={(event) =>
-                      setDraft({
-                        ...draft,
-                        sort: event.target.value as Selector["sort"],
-                      })
-                    }
-                  >
-                    <option value="date_desc">Newest first</option>
-                    <option value="date_asc">Oldest first</option>
-                  </select>
-                </label>
+                <CollectionFilters
+                  draft={draft}
+                  catalog={catalog}
+                  onChange={setDraft}
+                />
               </div>
             </details>
           </fieldset>
@@ -931,7 +1012,21 @@ function Review({
             </p>
           )}
           {canClassify && (
-            <div className={styles.management}>
+            <div className={`${styles.management} ${styles.managementRules}`}>
+              <RuleEditor
+                catalog={catalog}
+                sources={sources}
+                disabled={blocked || !!preview || reading}
+                seed={
+                  ruleSeed?.workspace_id === workspace.workspace_id
+                    ? ruleSeed
+                    : null
+                }
+                onSeedConsumed={onSeedConsumed}
+                onPreview={(rules) =>
+                  void previewAction({ kind: "rule_catalog", rules }, [])
+                }
+              />
               <TaxonomyEditor
                 topics={catalog.topics}
                 disabled={blocked || !!preview || reading}
@@ -971,7 +1066,25 @@ function Review({
                     <span className={styles.date}>{row.booked_date}</span>
                   </label>
                   <div className={styles.description}>
-                    <strong>{row.description}</strong>
+                    <button
+                      type="button"
+                      className={styles.detailLink}
+                      ref={(node) => {
+                        if (node)
+                          rowButtons.current.set(selectionKey(row), node);
+                        else rowButtons.current.delete(selectionKey(row));
+                      }}
+                      disabled={blocked || !!preview || reading}
+                      onClick={() =>
+                        setDetail({
+                          profile: "private-collection-detail-v1",
+                          snapshot: page.snapshot,
+                          ...selectionOf(row),
+                        })
+                      }
+                    >
+                      {row.description}
+                    </button>
                     <span>{row.account_name}</span>
                     <span>
                       {row.merchant === null
@@ -987,6 +1100,11 @@ function Review({
                     </div>
                     <details>
                       <summary>Labels and provenance</summary>
+                      <RuleApplicationView application={row.rule_application} />
+                      <RuleSuggestionView
+                        suggestion={row.rule_suggestion}
+                        catalog={catalog}
+                      />
                       <p>Owner topic: {topicLabel(row)}</p>
                       <p>
                         Strategic tags:{" "}
@@ -1062,32 +1180,51 @@ function Review({
       {preview && !command && !denied && (
         <div role="region" className={styles.review} aria-label="Label preview">
           <h3 tabIndex={-1} ref={heading}>
-            {preview.action.kind === "tag_catalog"
-              ? "Review tag catalog"
-              : preview.action.kind === "tags"
-                ? `Review tags for ${preview.selected_count} selected`
-                : preview.action.kind === "taxonomy"
-                  ? "Review topic changes"
-                  : `Review ${preview.selected_count} selected transactions`}
+            {preview.action.kind === "rule_catalog"
+              ? "Review rule changes"
+              : preview.action.kind === "rules_apply"
+                ? `Review rules for ${preview.selected_count} selected`
+                : preview.action.kind === "tag_catalog"
+                  ? "Review tag catalog"
+                  : preview.action.kind === "tags"
+                    ? `Review tags for ${preview.selected_count} selected`
+                    : preview.action.kind === "taxonomy"
+                      ? "Review topic changes"
+                      : `Review ${preview.selected_count} selected transactions`}
           </h3>
           <p>
-            {preview.action.kind === "tag_catalog"
-              ? "Replace the strategic tag catalog with "
-              : preview.action.kind === "tags"
-                ? "Change strategic tags: "
-                : preview.action.kind === "taxonomy"
-                  ? "Replace the private topic edition with "
-                  : "Set owner topic to "}
+            {preview.action.kind === "rule_catalog"
+              ? "Replace the private rule edition with "
+              : preview.action.kind === "rules_apply"
+                ? "Review current rule outcomes: "
+                : preview.action.kind === "tag_catalog"
+                  ? "Replace the strategic tag catalog with "
+                  : preview.action.kind === "tags"
+                    ? "Change strategic tags: "
+                    : preview.action.kind === "taxonomy"
+                      ? "Replace the private topic edition with "
+                      : "Set owner topic to "}
             <strong>{actionLabel(preview.action, catalog)}</strong>. Source
             facts and journals stay unchanged.
           </p>
-          {preview.action.kind === "tag_catalog" ? (
+          {preview.action.kind === "rule_catalog" ? (
+            <RuleCatalogReview rules={preview.action.rules} catalog={catalog} />
+          ) : preview.action.kind === "tag_catalog" ? (
             <TagCatalogReview tags={preview.action.tags} />
           ) : preview.action.kind === "taxonomy" ? (
             <TopicReview topics={preview.action.topics} />
           ) : (
             <>
               <ReviewRows rows={preview.review_rows} />
+              {preview.action.kind === "rules_apply" && (
+                <RuleResultsView
+                  results={preview.rule_results}
+                  rows={preview.review_rows}
+                  catalog={catalog}
+                  applyCount={preview.apply_count}
+                  abstainCount={preview.abstain_count}
+                />
+              )}
               {preview.action.kind === "tags" && (
                 <TagResults rows={preview.tag_results} />
               )}
@@ -1097,13 +1234,17 @@ function Review({
             disabled={busy || uncertain || newWorkLocked}
             onClick={() => void prepare()}
           >
-            {preview.action.kind === "tag_catalog"
-              ? "Save tag catalog review"
-              : preview.action.kind === "tags"
-                ? "Save tag review"
-                : preview.action.kind === "taxonomy"
-                  ? "Save topic review"
-                  : "Save label review"}
+            {preview.action.kind === "rule_catalog"
+              ? "Save rule review"
+              : preview.action.kind === "rules_apply"
+                ? "Save rule application"
+                : preview.action.kind === "tag_catalog"
+                  ? "Save tag catalog review"
+                  : preview.action.kind === "tags"
+                    ? "Save tag review"
+                    : preview.action.kind === "taxonomy"
+                      ? "Save topic review"
+                      : "Save label review"}
           </button>
           <button
             className="secondary"
@@ -1126,32 +1267,55 @@ function Review({
           aria-label="Saved label review"
         >
           <h3 tabIndex={-1} ref={savedHeading}>
-            {command.preview.action.kind === "tag_catalog"
-              ? "Saved tag catalog review"
-              : command.preview.action.kind === "tags"
-                ? "Saved tag review"
-                : command.preview.action.kind === "taxonomy"
-                  ? "Saved topic review"
-                  : "Saved label review"}
+            {command.preview.action.kind === "rule_catalog"
+              ? "Saved rule review"
+              : command.preview.action.kind === "rules_apply"
+                ? "Saved rule application"
+                : command.preview.action.kind === "tag_catalog"
+                  ? "Saved tag catalog review"
+                  : command.preview.action.kind === "tags"
+                    ? "Saved tag review"
+                    : command.preview.action.kind === "taxonomy"
+                      ? "Saved topic review"
+                      : "Saved label review"}
           </h3>
           <p>
-            {command.preview.action.kind === "tag_catalog"
-              ? "Strategic tag catalog: "
-              : command.preview.action.kind === "tags"
-                ? `${command.preview.selected_count} selected transactions; strategic tags: `
-                : command.preview.action.kind === "taxonomy"
-                  ? "Private topic edition: "
-                  : `${command.preview.selected_count} selected transactions; owner topic: `}
+            {command.preview.action.kind === "rule_catalog"
+              ? "Private rule edition: "
+              : command.preview.action.kind === "rules_apply"
+                ? "Exact selected rule outcomes: "
+                : command.preview.action.kind === "tag_catalog"
+                  ? "Strategic tag catalog: "
+                  : command.preview.action.kind === "tags"
+                    ? `${command.preview.selected_count} selected transactions; strategic tags: `
+                    : command.preview.action.kind === "taxonomy"
+                      ? "Private topic edition: "
+                      : `${command.preview.selected_count} selected transactions; owner topic: `}
             <strong>{actionLabel(command.preview.action, catalog)}</strong>.
           </p>
-          {command.preview.action.kind === "tag_catalog" ? (
+          {command.preview.action.kind === "rule_catalog" ? (
+            <RuleCatalogReview
+              rules={command.preview.action.rules}
+              catalog={catalog}
+            />
+          ) : command.preview.action.kind === "tag_catalog" ? (
             <TagCatalogReview tags={command.preview.action.tags} />
           ) : command.preview.action.kind === "taxonomy" ? (
             <TopicReview topics={command.preview.action.topics} />
           ) : (
             <>
               <ReviewRows rows={command.preview.review_rows} />
-              {command.preview.profile === "private-collection-preview-v2" &&
+              {command.preview.profile === "private-collection-preview-v3" &&
+                command.preview.action.kind === "rules_apply" && (
+                  <RuleResultsView
+                    results={command.preview.rule_results}
+                    rows={command.preview.review_rows}
+                    catalog={catalog}
+                    applyCount={command.preview.apply_count}
+                    abstainCount={command.preview.abstain_count}
+                  />
+                )}
+              {command.preview.profile !== "private-collection-preview-v1" &&
                 command.preview.action.kind === "tags" && (
                   <TagResults rows={command.preview.tag_results} />
                 )}
@@ -1174,13 +1338,17 @@ function Review({
                 disabled={busy || uncertain || locked || !canClassify}
                 onClick={() => void transition("execute")}
               >
-                {command.preview.action.kind === "tag_catalog"
-                  ? "Confirm tag catalog changes"
-                  : command.preview.action.kind === "tags"
-                    ? `Confirm tags for ${command.preview.selected_count} selected`
-                    : command.preview.action.kind === "taxonomy"
-                      ? "Confirm topic changes"
-                      : `Confirm labels for ${command.preview.selected_count} selected`}
+                {command.preview.action.kind === "rule_catalog"
+                  ? "Confirm rule changes"
+                  : command.preview.action.kind === "rules_apply"
+                    ? `Confirm rules for ${command.preview.selected_count} selected`
+                    : command.preview.action.kind === "tag_catalog"
+                      ? "Confirm tag catalog changes"
+                      : command.preview.action.kind === "tags"
+                        ? `Confirm tags for ${command.preview.selected_count} selected`
+                        : command.preview.action.kind === "taxonomy"
+                          ? "Confirm topic changes"
+                          : `Confirm labels for ${command.preview.selected_count} selected`}
               </button>
               <button
                 className="secondary"
@@ -1194,13 +1362,17 @@ function Review({
             <>
               <p role="status">
                 {command.state === "committed"
-                  ? command.preview.action.kind === "tag_catalog"
-                    ? "Tag catalog updated. No journal was created."
-                    : command.preview.action.kind === "tags"
-                      ? "Tags applied. No journal was created."
-                      : command.preview.action.kind === "taxonomy"
-                        ? "Topics updated. No journal was created."
-                        : "Labels applied. No journal was created."
+                  ? command.preview.action.kind === "rule_catalog"
+                    ? "Rules updated. No journal was created."
+                    : command.preview.action.kind === "rules_apply"
+                      ? "Rule results applied. No journal was created."
+                      : command.preview.action.kind === "tag_catalog"
+                        ? "Tag catalog updated. No journal was created."
+                        : command.preview.action.kind === "tags"
+                          ? "Tags applied. No journal was created."
+                          : command.preview.action.kind === "taxonomy"
+                            ? "Topics updated. No journal was created."
+                            : "Labels applied. No journal was created."
                   : command.preview.action.kind === "taxonomy"
                     ? "Saved topic review cancelled."
                     : "Saved label review cancelled."}
@@ -1211,6 +1383,18 @@ function Review({
               >
                 Acknowledge result
               </button>
+              {correctionRuleSeed(command) && (
+                <button
+                  className="secondary"
+                  disabled={busy || uncertain || locked}
+                  onClick={() => {
+                    afterAckSeed.current = correctionRuleSeed(command);
+                    void transition("acknowledge");
+                  }}
+                >
+                  Acknowledge and create rule
+                </button>
+              )}
             </>
           )}
         </div>
@@ -1237,6 +1421,8 @@ function topicLabel(row: Row): string {
         : "Not classified";
 }
 function actionLabel(action: LabelAction, catalog: Catalog): string {
+  if (action.kind === "rule_catalog") return `${action.rules.length} rules`;
+  if (action.kind === "rules_apply") return "Reviewed current rule results";
   if (action.kind === "tag_catalog") return `${action.tags.length} tags`;
   if (action.kind === "tags")
     return `${action.operation === "add" ? "Add" : action.operation === "remove" ? "Remove" : "Replace with"} ${action.tag_ids.length} tags`;

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { API } from "../bookkeeping/api";
+import type { RuleSeed } from "./rules";
+import { createCollectionJournalReader } from "./journal";
 import { CollectionReview } from "./CollectionReview";
 import {
   createCollectionPort,
@@ -29,22 +31,38 @@ export function CollectionWorkspace({
   newWorkLocked?: boolean;
   onRecoveryNeeded?: () => void;
 }) {
+  const [seed, setSeed] = useState<{ api: API; value: RuleSeed } | null>(null);
   const [bootstrap, setBootstrap] = useState<CollectionBootstrap | null>(null);
   const [state, setState] = useState<
     "loading" | "ready" | "absent" | "denied" | "failed"
   >("loading");
   const [sessionLocked, setSessionLocked] = useState(true);
   const epoch = useRef(0);
+  const bootstrapAPI = useRef<API | null>(null);
   const refreshedVersion = useRef(refreshVersion);
+  const readJournal = useMemo(() => createCollectionJournalReader(api), [api]);
   const port = useMemo(() => createCollectionPort(api), [api]);
   const load = useCallback(async () => {
     const n = ++epoch.current;
+    bootstrapAPI.current = null;
     setState("loading");
     setBootstrap(null);
     setSessionLocked(true);
     try {
       const result = await discoverCollection(api);
       if (n !== epoch.current) return;
+      setSeed((old) =>
+        old &&
+        result &&
+        old.api === api &&
+        old.value.workspace_id === result.workspace.workspace_id &&
+        result.sources.some(
+          (source) => source.source_id === old.value.source_id,
+        )
+          ? old
+          : null,
+      );
+      bootstrapAPI.current = api;
       setBootstrap(result);
       setState(result ? "ready" : "absent");
     } catch {
@@ -65,9 +83,10 @@ export function CollectionWorkspace({
     if (state === "ready") return;
     void load();
   }, [refreshPending, refreshVersion, state, sessionLocked, load]);
+  const scopeChanged = state === "ready" && bootstrapAPI.current !== api;
   const locked =
     state === "ready"
-      ? sessionLocked || refreshPending
+      ? scopeChanged || sessionLocked || refreshPending
       : state === "loading" ||
         state === "failed" ||
         state === "denied" ||
@@ -75,6 +94,10 @@ export function CollectionWorkspace({
   useEffect(() => {
     onLockChange(locked);
   }, [locked, onLockChange]);
+  if (scopeChanged)
+    return (
+      <p role="status">Checking private transaction access and recovery…</p>
+    );
   if (state === "failed")
     return (
       <section aria-label="Private transaction recovery">
@@ -112,12 +135,26 @@ export function CollectionWorkspace({
         sources={bootstrap.sources}
         catalog={bootstrap.catalog}
         port={port}
+        readJournal={readJournal}
+        ruleSeed={
+          seed?.api === api &&
+          seed.value.workspace_id === bootstrap.workspace.workspace_id
+            ? seed.value
+            : null
+        }
+        onSeedConsumed={() => setSeed(null)}
         canClassify={bootstrap.canClassify}
         locked={bookLocked}
         active={active}
         onLockChange={setSessionLocked}
         newWorkLocked={newWorkLocked}
-        onAcknowledged={() => {
+        onAcknowledged={(ruleSeed) => {
+          setSeed(
+            ruleSeed &&
+              ruleSeed.workspace_id === bootstrap.workspace.workspace_id
+              ? { api, value: ruleSeed }
+              : null,
+          );
           onAcknowledged?.();
           void load();
         }}
@@ -127,6 +164,7 @@ export function CollectionWorkspace({
         onDenied={() => {
           epoch.current++;
           setBootstrap(null);
+          setSeed(null);
           setState("denied");
           onRecoveryNeeded?.();
         }}
