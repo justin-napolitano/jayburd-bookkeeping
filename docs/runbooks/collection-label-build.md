@@ -13,6 +13,7 @@ GitHub65 lease LABEL304-20261107T0140Z. Source and synthetic proof only.
 | Merge predecessor | Owner expressly requested merge447; source f00c70d had all five checks SUCCESS; merge460bad4 verified |
 | Common protocol | collection-labels.md freezes SQL/HTTP/UI profiles, bounds, current-authority locking, exact selection, taxonomy editions and shared recovery before parallel implementation |
 | Browser transport boundary | Private discovery/catalog/query/preview/command routes added to exact bridge allowlist; no Idempotency-Key or encoded bodies, per-operation caps, same verified identity/Origin and fixed diagnostics.211 focused transport tests PASS, including exact bytes and no upstream request for rejected framing |
+| API import review |06781920 reviewed: six fixed parameterized SQL calls/eight HTTP routes, unchanged raw bytes/verified actor, RR versus serializable, bounded retries only after known abort, uncertain commit503 and rollback cleanup, profiled bounded result fences. Source race94.7% coverage/check/build PASS; actual SQL proof awaits43 |
 
 ## Current evidence
 
