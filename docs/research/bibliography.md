@@ -3,7 +3,7 @@
 [Metrics](spending-metrics-sources.md): SM01–07, proposed.
 
 [Rules](categorization-rules-sources.md): CR01–08, selected; ML abstract.
-[Reads](../contracts/collection-read-api.md)/[registry](../contracts/private-registry.md): Go HTTP/PG17/RFC9457, selected.
+[Labels](../contracts/collection-labels.md): PG17§13.2/13.3,RFC9457§3/5,selected2026-11-07; [reads](../contracts/collection-read-api.md)/[registry](../contracts/private-registry.md).
 [PFC](pfc-normalization-sources.md): selected Plaid,2026-11-06.
 
 [Position](position-sources.md): fixed USD/EUR.
@@ -406,7 +406,7 @@ ISO exchange conformance.
 ## Source collection foundations — 2026-10-13
 
 - [Source registry applicability and sources](../contracts/source-registry.md#standards-sources-and-alternatives): applies the existing PostgreSQL key/locking/function and ISO currency source records to narrow synthetic enrollment. Operator attestation is not evidence of live account ownership.
-- [Private staging source review](../contracts/import-staging.md#sources-alternatives-and-limits), ST01–ST03: pinned Go filesystem confinement and Linux local-filesystem link/sync/lock behavior support immutable synthetic evidence storage. Documented limits include cancellation, cooperative locking, power-loss evidence and separately required hosted encryption/retention.
+- [Staging review](../contracts/import-staging.md#sources-alternatives-and-limits), ST01–ST03: pinned Go confinement and Linux link/sync/lock behavior; limits: cancellation, cooperative locks, power-loss evidence, separate hosted encryption/retention.
 - Existing [workspace accessibility sources](financial-workspace-sources.md) support native focus/navigation and semantic financial tables. Runtime screenshots and journey tests are separate evidence; they do not establish full accessibility conformance or competitor superiority.
 
 - [Connections workspace contract](../contracts/connection-workspace.md): application
