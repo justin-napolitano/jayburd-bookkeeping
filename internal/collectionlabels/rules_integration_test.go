@@ -608,3 +608,86 @@ func TestRule46RetainedRollback(t *testing.T) {
 		t.Fatal("refused downgrade lost retained review/history")
 	}
 }
+
+// TestRule46PrimedSnapshotFences observes real blocked current-row locks, not a fresh snapshot after commit.
+func TestRule46PrimedSnapshotFences(t *testing.T) {
+	for _, mode := range []string{"rules", "taxonomy", "tags", "manual", "source"} {
+		t.Run(mode, func(t *testing.T) {
+			owner, pool, db := rule46Fixture(t)
+			s := &Service{DB: pool, Rules: RuleProcessor{}}
+			w := provision(t, db, actor)
+			_, sources := register(t, db, w, actor, "primed-"+mode, 1)
+			if _, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", []map[string]any{change("cafe", "1.00", "USD")}); e != nil {
+				t.Fatal(e)
+			}
+			seedTopics(t, db, w)
+			seedTags(t, db, w)
+			var id string
+			if mode != "source" {
+				action := any(map[string]any{"kind": "rule_catalog", "rules": []map[string]any{rule46Rule("00000000-0000-4000-8000-000000006080", "Cafe", "Fictional Cafe", childTopic)}})
+				chosen := []map[string]any{}
+				switch mode {
+				case "taxonomy":
+					action = topicsAction([]map[string]any{topic(rootTopic, "Renamed", nil, "active"), topic(childTopic, "Dining", rootTopic, "active")})
+				case "tags":
+					action = tagCatalog(tag(tagA, "Renamed", "active"), tag(tagB, "Reimburse", "active"))
+				case "manual":
+					action = map[string]any{"kind": "topic", "topic_id": rootTopic}
+					chosen = selection(rule46Query(t, s, w)["items"].([]any))
+				}
+				p, e := rule46Preview(t, s, w, chosen, action)
+				if e != nil {
+					t.Fatal(e)
+				}
+				c, e := rule46Prepare(t, s, w, "primed-edit", p)
+				if e != nil {
+					t.Fatal(e)
+				}
+				id = c["command"].(map[string]any)["command_id"].(string)
+			}
+			reader := connect(t, db, "synthetic_runtime")
+			defer reader.Close(context.Background())
+			readTx, e := reader.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer readTx.Rollback(context.Background())
+			var prime int
+			if e = readTx.QueryRow(context.Background(), "SELECT count(*) FROM pg_catalog.pg_class").Scan(&prime); e != nil {
+				t.Fatal(e)
+			}
+			writer := connect(t, db, "synthetic_runtime")
+			defer writer.Close(context.Background())
+			writeTx, e := writer.BeginTx(context.Background(), pgx.TxOptions{IsoLevel: pgx.Serializable})
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer writeTx.Rollback(context.Background())
+			var body json.RawMessage
+			if mode == "source" {
+				corrected := change("cafe", "1.01", "USD")
+				corrected["operation"] = "modified"
+				e = writeTx.QueryRow(context.Background(), "SELECT banking.publish_collection_batch($1,$2,$3,$4,$5)", actor, w, sources[0], "primed-correction", raw(map[string]any{"expected_source_revision": "1", "expected_item_generation": "1", "starting_cursor": "c1", "next_cursor": "c2", "readiness": "HISTORICAL_UPDATE_COMPLETE", "changes": []map[string]any{corrected}})).Scan(&body)
+			} else {
+				e = writeTx.QueryRow(context.Background(), "SELECT banking.transition_collection_label_command_v3($1,$2,$3,'execute','{}')", actor, w, id).Scan(&body)
+			}
+			if e != nil {
+				t.Fatal(e)
+			}
+			done := make(chan error, 1)
+			go func() {
+				_, _, err := (RuleProcessor{}).Process(context.Background(), readTx, Request{Actor: actor, Workspace: w, Version: 3, Body: raw(query45Selector())}, "query")
+				done <- err
+			}()
+			waitBlocked(t, owner, reader.PgConn().PID())
+			if e = writeTx.Commit(context.Background()); e != nil {
+				t.Fatal(e)
+			}
+			code(t, <-done, "40001")
+			_ = readTx.Rollback(context.Background())
+			if rule46Query(t, s, w)["matching_count"] != "1" {
+				t.Fatal("fresh current read failed")
+			}
+		})
+	}
+}

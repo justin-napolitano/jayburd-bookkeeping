@@ -80,6 +80,14 @@ rollback with P2802 and retained history intact (0.19s). Original source/journal
 hashes remain equal around failed/successful classification operations. The
 final admitted deadline run stops in250ms.
 
+Observed blocked-snapshot race proof PASS1.32s: each of five cases primes RR
+with pg_class before a real restricted SERIALIZABLE writer changes rules,
+taxonomy, tags, manual decision or source revision. pg_locks proves the old
+v3 RuleProcessor query is blocked before writer commit; each then fails40001,
+and a fresh v3 query succeeds. The rule case executes an actual prepared v3
+rule-catalog command, proving the new edition pointer uses the current fence.
+No sleep-only or sequential stale-pin schedule substitutes for the row wait.
+
 ## Remaining work
 
 Finish canonical checks and independent integration review, including
