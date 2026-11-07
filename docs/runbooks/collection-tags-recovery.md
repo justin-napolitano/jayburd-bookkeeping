@@ -26,6 +26,9 @@ TAGREC-20261107T0340Z. Synthetic data only; no hosted/provider/live activation.
 | Bounded large selection | Real100/3000 preview materializes current authorized facts once; SQL preview137ms/prepare42ms/execute50ms under3500ms statement timeout/4s context. Independent actual HTTP query92ms/preview109ms/prepare18ms/execute27ms/ack16ms. Both3000-row page orders and2132hex Unicode cursor pass; no latency SLA |
 | Final filter accessibility | Reviewed6388b2d: tag filter keeps exact accessible name through native selection;26 focused review units PASS |
 
+| Assembled frontend |548 units, TypeScript and Next production build PASS. Full browser run caught book-only fixture returning generic200 for the new feature-off recovery path; agent is updating explicit404 fixture membership without weakening assertions. Added actual Next v2 catch-all route so approved v2 requests reach the same bounded bridge |
+| Parent recovery tests | Reviewed26a3e54: same-A ordinary review versus different-B suppression, no scoped discovery after inaccessible state, unknown clear followed by none, exact receipt before unlock; two parent browsers PASS |
+
 ## Current evidence
 
 Implementation in progress. Parent449 all five checks passed; that is baseline,
