@@ -54,6 +54,8 @@ jobs:
         run: make import-service-test
       - name: Private source authority, replay and restricted HTTP proof
         run: make private-registry-test
+      - name: Private taxonomy, labels and restricted HTTP proof
+        run: make collection-labels-test
       - name: Fenced synthetic provider publication proof
         run: make sync-state-test
       - name: Scoped synthetic connection lifecycle proof
@@ -159,3 +161,5 @@ jobs:
         run: make production-journey-test
       - name: Prove generated demo balances and cent display
         run: make demo-test
+      - name: Prove private topics and labels through browser and restricted SQL
+        run: make labels-integration

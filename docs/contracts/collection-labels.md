@@ -59,6 +59,12 @@ and current decision versions invalidate relevant pages/previews. Money stays
 original decimal strings with dated ISO4217 metadata or explicit nullable holds.
 Unavailable assignment is distinct from unassigned; book/journal disclosures
 require their own current book authorization in addition to private authority.
+Partial means source-history coverage: any selected visible source without
+HISTORICAL_UPDATE_COMPLETE makes it true, even with no matching rows. Unavailable
+book metadata alone does not imply incomplete source history. Legacy facts whose
+original precision exceeds the dated currency minor unit project as held with
+null interpreted money (source_state held, or removed if already removed); the
+original source quantity/state and posted history are untouched.
 
 Preview profile private-collection-preview-v1 contains workspace_id,snapshot,
 selection,action,preview_id,expires_at,selected_count,review_rows. Labels choose
@@ -66,6 +72,8 @@ topic or explicit uncategorized for1–100 exact composite observations/revision
 Taxonomy action is kind:taxonomy with a complete topics array; its selection and
 review_rows are empty and selected_count is0. It still needs explicit preview,
 durable prepare, execute/cancel and terminal acknowledgement.
+Topic order is not semantic: SQL canonicalizes topic arrays by topic_id. Request
+echo checks compare those complete sets; saved preview/command content is immutable.
 
 Prepare/pending/transitions return private-collection-command-v1 with
 workspace_id and command. Only pending permits command:null. A command retains
@@ -129,6 +137,13 @@ atomic immutable decisions; high repudiation→audited commands/decisions/receip
 medium DoS→finite input/page/topic/selection/deadline bounds; high stale intent→
 explicit conflict/new preview, terminal recovery and acknowledgement. Existing
 source/privacy contracts own retention; no deletion/expiry policy is invented.
+
+Idle pending discovery requires read capability and may return null for a
+read-only workspace; disclosing an existing saved command requires classify.
+Later denial destroys payloads but does not establish absence of saved work.
+Recovery remains locked with an explicit retry until current authority returns
+or fresh discovery establishes the workspace is inaccessible. This slice does
+not add a payload-free inaccessible-command clearing operation.
 
 Acceptance: real restricted-role principal/mixed-role/helper/DML denials,
 3000-row count/pagination/filter/sort, topic cycles/retirement/revision conflicts,

@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
 )
@@ -22,6 +23,7 @@ type Dependencies struct {
 	Operations  ledger.Operations
 	Connections ConnectionOperations
 	Collection  collectionread.Reader
+	Labels      collectionlabels.Operations
 	Ready       func(context.Context) error
 	Close       func()
 }
@@ -69,12 +71,18 @@ func New(c Config, d Dependencies) (*Server, error) {
 		application := http.NewServeMux()
 		application.Handle("/v1/", ledger.Handler(d.Auth, d.Operations))
 		if c.CollectionEnabled {
-			if d.Collection == nil {
+			if d.Collection == nil || d.Labels == nil {
 				return nil, errConfiguration
 			}
 			collection := collectionread.Handler(d.Auth, d.Collection)
 			application.Handle("/v1/collection", collection)
 			application.Handle("/v1/collections/", collection)
+			// The source reader keeps its own closed routes; label commands use a
+			// separately reviewed adapter under the same explicit feature gate.
+			labels := collectionlabels.Handler(d.Auth, d.Labels)
+			for _, suffix := range []string{"taxonomy", "review/query", "labels/preview", "label-commands", "label-commands/pending", "label-commands/{command}/execute", "label-commands/{command}/cancel", "label-commands/{command}/acknowledge"} {
+				application.Handle("/v1/collections/{workspace}/"+suffix, labels)
+			}
 		}
 		if d.Connections != nil {
 			mountConnections(application, d.Auth, d.Connections)
