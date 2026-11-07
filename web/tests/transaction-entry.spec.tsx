@@ -11,6 +11,9 @@ async function serveEntry(page: Page, sourceState = "ready") {
   await page.route("**/v1/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    // Private discovery is separate from this book-only read/navigation fixture.
+    if (url.pathname === "/v1/collection")
+      return route.fulfill({ status: 404, json: { code: "not_found" } });
     if (request.method() !== "GET") mutations.push(url.pathname);
     if (url.pathname === "/v1/workspace")
       return route.fulfill({ json: positionWorkspace });

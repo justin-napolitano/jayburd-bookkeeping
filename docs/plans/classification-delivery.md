@@ -9,17 +9,17 @@ relative. No Production/provider/account action follows from a source PR.
 | Source activity429/431 | Merged source41 and managed Sandbox release recorded in436/439 | Independent clean41 status and scanned-image rollout complete; owner visual review remains, no Production change |
 | Source Overview432/434 | Merged PhaseA daily source entry; Sandbox436 release available | Parent418 remains open; bank balance and recognized/category spending still unavailable |
 | Authority238 | Owner design accepted and issue closed; exact operation matrix/fixed cases recorded in GitHub238 | No need to recover chat or reapprove the accepted design; concrete SQL/source evidence remains required |
-| Registry239 | Exact grants/scoped keys, principal/source adoption, revocation/retention and legacy migration |238 accepted; restricted-role/two-principal/two-entity/reconnect/correction/race/rollback proofs; source and posted anchors preserved |
-| Taxonomy242/304 | Owner design accepted in242; exact private SQL/persistence/analytic query remains |239 authority; cycle/retirement/conflict/atomicity/audit/current grant checks; actual reviewed wire before activation |
+| Registry239 | Forward42/source API merged447; exact grants/scoped keys, adoption/revocation/retention proofs |238 accepted; actual restricted-role/current authority/legacy preservation and safe rollback evidence in private-registry stages |
+| Taxonomy242/304 | Accepted242 design; persistent taxonomy/query/preview/commands in449 |43 SQL/HTTP/current grants, hierarchy/retirement/conflict/bulk/no-journal and shared principal reservation proofs; combined CI/merge state in GitHub |
 | PFC413 | PR441 explicit current-response sidecar/map, unchanged legacy wire; local race/fuzz and canonical backend/application proofs | Additive SQL/runner profile and metadata-only revision semantics remain; no historical backfill |
 | Rules414/243 | PR440 pure bounded evaluator; precedence/conflict/regex race/fuzz and canonical checks pass | Exact authorized SQL preview/apply/receipt and actual editor remain; no runtime matcher call yet |
-| All Transactions305 | New isolated private review component under parallel build; existing book-scoped view remains available |304 persisted query/preview/commands still required; component tests are not service authority or atomic SQL proof |
+| All Transactions305 | Actual authenticated private client/topic editor and existing app integration in449 |Combined SQL/HTTP proof plus browser→Next→Go→SQL recovery required; hosted feature activation is separate |
 | Spending417 Phase B | Recognition/allocation proposal and independent oracle in428; source activity is not recognized spending | Explicit reviewed economic treatment, refund links, transfer/repayment exclusions and exact principal/interest allocation; SQL contribution equality and pinned drills |
 | Overview/Spending418 completion | Category/contribution/merchant comparison views remain;432 is only Phase A | Implemented Phase B profile plus taxonomy/provenance; explicit intervals, exact unit versions, incomplete/unknown/error/stale tests and human visual review |
 | Opportunities419 | Contract constraints/cases proposed; no candidate runtime yet | Reviewed spending evidence/history/comparability; recurrence/fee/rising category evidence drills, abstention, scoped dismiss and hypothetical scenario; no promised savings |
 | Sandbox delivery |436 managed41/scanned-image release completed;439 records exact artifacts/executions | Current parallel build is source-only; no new hosted scope, consent/source-cap or Production change |
 
-Migration42 is exclusively allocated to239 in GitHub65;43 remains unallocated.
+Migration42 is merged447;43 is the sole304 lane in GitHub65;44 is unallocated.
 Merged SQL remains immutable. Default commands/tests stay fictional; no provider
 backfill, raw historical extraction, secret retrieval, private data export or live
 consent renewal. Current personal-account pilot consent remains expired. A

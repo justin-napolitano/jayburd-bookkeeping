@@ -21,9 +21,16 @@ export const collectionWorkspace: Workspace = {
 };
 export const collectionCatalog: Catalog = {
   taxonomy_revision: "3",
+  ruleset_revision: "4",
+  map_revision: "0",
   topics: [
-    { topic_id: "dining", name: "Dining" },
-    { topic_id: "groceries", name: "Groceries" },
+    { topic_id: "dining", name: "Dining", parent_id: null, status: "active" },
+    {
+      topic_id: "groceries",
+      name: "Groceries",
+      parent_id: null,
+      status: "active",
+    },
   ],
 };
 export const collectionSources = [
@@ -35,6 +42,8 @@ export const collectionSnapshot = {
   source_snapshot: "a".repeat(64),
   taxonomy_revision: "3",
   ruleset_revision: "4",
+  map_revision: "0",
+  decision_revision: "0",
 };
 
 // These independently authored financial examples are test data, never a runtime data source.
@@ -171,6 +180,7 @@ export function collectionPreview(
   return {
     ...request,
     preview_id: "fictional-preview",
+    profile: "private-collection-preview-v1",
     expires_at: "2099-01-01T00:00:00Z",
     selected_count: String(request.selection.length),
     review_rows: rows,

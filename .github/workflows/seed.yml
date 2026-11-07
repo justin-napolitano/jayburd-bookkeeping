@@ -54,6 +54,8 @@ jobs:
         run: make import-service-test
       - name: Private source authority, replay and restricted HTTP proof
         run: make private-registry-test
+      - name: Private taxonomy, labels and restricted HTTP proof
+        run: make collection-labels-test
       - name: Fenced synthetic provider publication proof
         run: make sync-state-test
       - name: Scoped synthetic connection lifecycle proof
@@ -151,6 +153,8 @@ jobs:
       - name: Install Chromium for real application proof
         working-directory: web
         run: npx --no-install playwright install --with-deps chromium
+      - name: Prove private topics and labels through browser and restricted SQL
+        run: make labels-integration
       - name: Prove browser recovery through real API and PostgreSQL
         run: make app-integration
       - name: Prove synthetic connection through source posting

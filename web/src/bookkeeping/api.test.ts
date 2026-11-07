@@ -27,6 +27,25 @@ describe("API client boundary", () => {
     expect(fetch).not.toHaveBeenCalled();
     expect(getToken).not.toHaveBeenCalled();
   });
+  it.each(["review/query", "labels/preview"])(
+    "sends private collection %s without a retry header",
+    async (suffix) => {
+      const { fetch, api } = fixture();
+      fetch.mockResolvedValue(Response.json({ profile: "synthetic" }));
+      const path = `/v1/collections/00000000-0000-4000-8000-000000000001/${suffix}`;
+      await api.query!(path, '{"snapshot":null}');
+      expect(fetch.mock.calls[0][0]).toBe(path);
+      expect(fetch.mock.calls[0][1]?.headers).not.toHaveProperty("Idempotency-Key");
+    },
+  );
+  it.each(["label-commands", "label-commands/00000000-0000-4000-8000-000000000002/execute"])(
+    "rejects private command %s through the read helper",
+    async (suffix) => {
+      const { fetch, api } = fixture();
+      await expect(api.query!(`/v1/collections/00000000-0000-4000-8000-000000000001/${suffix}`, "{}")).rejects.toMatchObject({status:400, uncertain:false});
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
   it.each(["review-items", "source-activity"])(
     "sends private %s POST reads with read availability semantics and no retry key",
     async (resource) => {

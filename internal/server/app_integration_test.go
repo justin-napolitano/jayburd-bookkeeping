@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/staging"
 	"io"
@@ -50,6 +52,9 @@ func TestAppIntegrationServer(t *testing.T) {
 	}
 	if *appProofProduction && !*appProofConnections {
 		t.Fatal("Production fixture requires explicit connection proof mode")
+	}
+	if *appProofLabels && (*appProofDemo || *appProofConnections || *appProofProduction) {
+		t.Fatal("exclusive private label proof mode")
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
@@ -106,10 +111,24 @@ func TestAppIntegrationServer(t *testing.T) {
 		connectionFixture = bootstrapConnectionBrowser(t, ctx, admin, pool)
 		connectionService = connectionFixture.service
 	}
-	if !*appProofConnections && !*appProofDemo {
+	if !*appProofConnections && !*appProofDemo && !*appProofLabels {
 		connectionService = expiredEnrollmentProof(t, ctx, pool)
 	}
-	app, err := New(Config{Mode: "managed", Listen: "0.0.0.0:8080", Origin: "http://localhost:39083", Project: "synthetic-browser-proof", DatabaseURL: "synthetic-injected-test-pool"}, Dependencies{Connections: connectionService, Auth: appProofAuth{}, Operations: &ledger.Service{DB: pool}, Ready: func(ctx context.Context) error { return runtimeReady(ctx, pool) }})
+	config := Config{Mode: "managed", Listen: "0.0.0.0:8080", Origin: "http://localhost:39083", Project: "synthetic-browser-proof", DatabaseURL: "synthetic-injected-test-pool", CollectionEnabled: *appProofLabels}
+	dependencies := Dependencies{Connections: connectionService, Auth: appProofAuth{}, Operations: &ledger.Service{DB: pool}, Ready: func(ctx context.Context) error { return runtimeReady(ctx, pool) }}
+	if *appProofLabels {
+		bootstrapLabelBrowser(t, setupCtx, admin, pool)
+		dependencies.Auth = labelBrowserAuth{}
+		dependencies.Collection = &collectionread.Service{DB: pool}
+		dependencies.Labels = &collectionlabels.Service{DB: pool}
+		dependencies.Ready = func(ctx context.Context) error {
+			if err := runtimeReady(ctx, pool); err != nil {
+				return err
+			}
+			return collectionReady(ctx, pool)
+		}
+	}
+	app, err := New(config, dependencies)
 	if err != nil {
 		t.Fatal("synthetic server composition rejected")
 	}

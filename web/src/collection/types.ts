@@ -6,14 +6,26 @@ export type Workspace = {
 };
 // Only current authorized source/topic display projections may be passed to the component.
 export type SourceChoice = { source_id: string; name: string };
-export type Topic = { topic_id: string; name: string };
-export type Catalog = { taxonomy_revision: string; topics: Topic[] };
+export type Topic = {
+  topic_id: string;
+  name: string;
+  parent_id: string | null;
+  status: "active" | "retired";
+};
+export type Catalog = {
+  taxonomy_revision: string;
+  ruleset_revision: string;
+  map_revision: string;
+  topics: Topic[];
+};
 // Opaque server state binds every source revision selected by the query, never a JS sum.
 export type Snapshot = {
   authority_revision: string;
   source_snapshot: string;
   taxonomy_revision: string;
   ruleset_revision: string;
+  map_revision: string;
+  decision_revision: string;
 };
 export type TopicFilter =
   | { kind: "all" }
@@ -22,7 +34,8 @@ export type TopicFilter =
   | { kind: "topic"; topic_id: string };
 export type LabelAction =
   | { kind: "topic"; topic_id: string }
-  | { kind: "uncategorized" };
+  | { kind: "uncategorized" }
+  | { kind: "taxonomy"; topics: Topic[] };
 export type Selector = {
   source_account_id: string | null;
   assignment: "all" | "assigned" | "unassigned";
@@ -116,6 +129,7 @@ export type PreviewRequest = {
 };
 // Review rows let restored commands show the exact persisted intent before explicit execution.
 export type Preview = PreviewRequest & {
+  profile: "private-collection-preview-v1";
   preview_id: string;
   expires_at: string;
   selected_count: string;
@@ -147,7 +161,12 @@ export type CollectionPort = {
 // Fixed failure classes never expose raw provider, SQL or sensitive diagnostics to users.
 export class CollectionFailure extends Error {
   constructor(
-    public readonly kind: "denied" | "stale" | "unavailable" | "uncertain",
+    public readonly kind:
+      | "denied"
+      | "stale"
+      | "rejected"
+      | "unavailable"
+      | "uncertain",
   ) {
     super("Collection action unavailable");
   }
@@ -157,7 +176,7 @@ const revision = /^(0|[1-9][0-9]{0,18})$/;
 const amount = /^(0|[1-9][0-9]{0,28})(?:\.[0-9]{1,9})?$/;
 // text bounds transport fields without interpreting text as HTML, URLs or code.
 function text(value: unknown, max = 500): value is string {
-  return typeof value === "string" && value.length <= max;
+  return typeof value === "string" && Array.from(value).length <= max;
 }
 // opaque tokens are consistency/identity metadata, not verified authorization.
 function opaque(value: unknown): value is string {
@@ -175,7 +194,9 @@ export function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.authority_revision === b.authority_revision &&
     a.source_snapshot === b.source_snapshot &&
     a.taxonomy_revision === b.taxonomy_revision &&
-    a.ruleset_revision === b.ruleset_revision
+    a.ruleset_revision === b.ruleset_revision &&
+    a.map_revision === b.map_revision &&
+    a.decision_revision === b.decision_revision
   );
 }
 function validSnapshot(value: unknown): value is Snapshot {
@@ -185,15 +206,74 @@ function validSnapshot(value: unknown): value is Snapshot {
     text(value.source_snapshot, 64) &&
     /^[a-f0-9]{64}$/.test(value.source_snapshot) &&
     decimal(value.taxonomy_revision) &&
-    decimal(value.ruleset_revision)
+    decimal(value.ruleset_revision) &&
+    decimal(value.map_revision) &&
+    decimal(value.decision_revision)
   );
 }
 // Explicit discriminants keep no label, explicit Uncategorized and a selected topic distinct.
 export function sameAction(a: LabelAction, b: LabelAction): boolean {
-  return (
-    a.kind === b.kind &&
-    (a.kind !== "topic" || (b.kind === "topic" && a.topic_id === b.topic_id))
-  );
+  const normalize = (action: LabelAction) =>
+    action.kind === "taxonomy"
+      ? {
+          ...action,
+          topics: [...action.topics].sort((left, right) =>
+            left.topic_id < right.topic_id
+              ? -1
+              : left.topic_id > right.topic_id
+                ? 1
+                : 0,
+          ),
+        }
+      : action;
+  return canonical(normalize(a)) === canonical(normalize(b));
+}
+// Bounded complete editions retain history; semantic hierarchy checks are repeated by SQL.
+export function validTopics(value: unknown): value is Topic[] {
+  if (!Array.isArray(value) || value.length > 1000) return false;
+  if (
+    !value.every(
+      (topic) =>
+        object(topic) &&
+        Object.keys(topic).length === 4 &&
+        opaque(topic.topic_id) &&
+        text(topic.name, 80) &&
+        !/^ *$/.test(topic.name) &&
+        !/[\u0000-\u001f\u007f-\u009f]/u.test(topic.name) &&
+        (topic.parent_id === null || opaque(topic.parent_id)) &&
+        ["active", "retired"].includes(String(topic.status)),
+    )
+  )
+    return false;
+  const topics = value as Topic[];
+  const byId = new Map(topics.map((topic) => [topic.topic_id, topic]));
+  if (
+    byId.size !== topics.length ||
+    topics.filter((topic) => topic.status === "active").length > 500
+  )
+    return false;
+  const siblings = new Set<string>();
+  for (const topic of topics) {
+    const sibling = JSON.stringify([topic.parent_id, topic.name]);
+    if (siblings.has(sibling)) return false;
+    siblings.add(sibling);
+    const seen = new Set([topic.topic_id]);
+    let parent = topic.parent_id;
+    let depth = 1;
+    while (parent !== null) {
+      const ancestor = byId.get(parent);
+      if (
+        !ancestor ||
+        seen.has(parent) ||
+        ++depth > 8 ||
+        (topic.status === "active" && ancestor.status !== "active")
+      )
+        return false;
+      seen.add(parent);
+      parent = ancestor.parent_id;
+    }
+  }
+  return true;
 }
 function validAction(value: unknown): value is LabelAction {
   return (
@@ -201,7 +281,10 @@ function validAction(value: unknown): value is LabelAction {
     ((value.kind === "uncategorized" && Object.keys(value).length === 1) ||
       (value.kind === "topic" &&
         Object.keys(value).length === 2 &&
-        opaque(value.topic_id)))
+        opaque(value.topic_id)) ||
+      (value.kind === "taxonomy" &&
+        Object.keys(value).length === 2 &&
+        validTopics(value.topics)))
   );
 }
 export function selectionKey(value: Selection): string {
@@ -407,6 +490,8 @@ export function validPage(
     !validSnapshot(value.snapshot) ||
     value.snapshot.authority_revision !== workspace.authority_revision ||
     value.snapshot.taxonomy_revision !== catalog.taxonomy_revision ||
+    value.snapshot.ruleset_revision !== catalog.ruleset_revision ||
+    value.snapshot.map_revision !== catalog.map_revision ||
     (query.snapshot && !sameSnapshot(value.snapshot, query.snapshot)) ||
     !decimal(value.matching_count) ||
     !decimal(value.start_index) ||
@@ -419,7 +504,10 @@ export function validPage(
           row.source_id === query.source_account_id),
     ) ||
     !uniqueSelection(value.items as Row[], workspace.workspace_id) ||
-    !(value.next_cursor === null || opaque(value.next_cursor)) ||
+    !(
+      value.next_cursor === null ||
+      (text(value.next_cursor, 4096) && value.next_cursor.length > 0)
+    ) ||
     typeof value.partial !== "boolean"
   )
     return false;
@@ -445,14 +533,17 @@ export function validPreview(
 ): value is Preview {
   return (
     object(value) &&
-    request.selection.length >= 1 &&
     request.selection.length <= 100 &&
+    value.profile === "private-collection-preview-v1" &&
     value.workspace_id === request.workspace_id &&
     opaque(value.preview_id) &&
     text(value.expires_at, 40) &&
     Number.isFinite(Date.parse(value.expires_at)) &&
     decimal(value.selected_count) &&
     value.selected_count === String(request.selection.length) &&
+    (request.action.kind === "taxonomy"
+      ? request.selection.length === 0
+      : request.selection.length >= 1) &&
     validSnapshot(value.snapshot) &&
     sameSnapshot(value.snapshot, request.snapshot) &&
     validAction(value.action) &&
@@ -466,11 +557,11 @@ export function validPreview(
     sameSelection(value.review_rows, request.selection)
   );
 }
-// Command data is displayed only for the current workspace/current authority and active taxonomy.
+// Recovery retains historic immutable edition pins; the service rechecks current authority before disclosure.
 export function validCommand(
   value: unknown,
   workspace: Workspace,
-  catalog: Catalog,
+  _catalog: Catalog,
 ): value is LabelCommand {
   if (
     !object(value) ||
@@ -482,11 +573,7 @@ export function validCommand(
     (value.state === "prepared" && value.acknowledged) ||
     !object(value.preview) ||
     !validSnapshot(value.preview.snapshot) ||
-    value.preview.snapshot.authority_revision !==
-      workspace.authority_revision ||
-    value.preview.snapshot.taxonomy_revision !== catalog.taxonomy_revision ||
     !Array.isArray(value.preview.selection) ||
-    value.preview.selection.length < 1 ||
     !validAction(value.preview.action)
   )
     return false;
@@ -524,7 +611,7 @@ export function samePreview(a: Preview, b: Preview): boolean {
     a.selected_count === b.selected_count &&
     a.workspace_id === b.workspace_id &&
     sameSnapshot(a.snapshot, b.snapshot) &&
-    sameAction(a.action, b.action) &&
+    canonical(a.action) === canonical(b.action) &&
     sameSelection(a.selection, b.selection) &&
     canonical(rows(a)) === canonical(rows(b))
   );

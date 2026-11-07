@@ -14,6 +14,7 @@ import { CommandPanel } from "./CommandPanel";
 import type { ConnectionLink } from "./Connections";
 import { BookWorkspace, type BookView } from "./BookWorkspace";
 import { Position } from "./Position";
+import { CollectionWorkspace } from "../collection/CollectionWorkspace";
 // UI account drafts carry strings unchanged to the authoritative setup transaction.
 type AccountDraft = {
   code: string;
@@ -39,7 +40,7 @@ const previousMonthEnd = () => {
     .toISOString()
     .slice(0, 10);
 };
-type FinanceTool = "Position" | BookView;
+type FinanceTool = "Position" | "All transactions" | BookView;
 const blankAccount = (): AccountDraft => ({
   code: "",
   name: "",
@@ -85,8 +86,14 @@ export function Bookkeeping({
   const reviewPreference = useRef<{ scope: string; source: string } | null>(
     null,
   );
-  const recovery = useCommands(api);
-  const locked = recovery.locked;
+  const [collectionLocked, setCollectionLocked] = useState(true);
+  const [collectionRefreshVersion, setCollectionRefreshVersion] = useState(0);
+  const refreshPrivateRecovery = useCallback(() => {
+    setCollectionLocked(true);
+    setCollectionRefreshVersion((version) => version + 1);
+  }, []);
+  const recovery = useCommands(api, refreshPrivateRecovery);
+  const locked = recovery.locked || collectionLocked;
   // Collapse presentation only after authoritative recovery confirms there is no work needing attention.
   const idleRecovery =
     !locked &&
@@ -184,6 +191,7 @@ export function Bookkeeping({
             [
               "Money overview",
               "Review transactions",
+              "All transactions",
               "Position",
               "Account activity",
               "Reports",
@@ -205,7 +213,7 @@ export function Bookkeeping({
             </button>
           ))}
         </nav>
-        {workspace && !recovery.accessDenied && (
+        {workspace && !recovery.accessDenied && tool !== "All transactions" && (
           <label className="finance-scope">
             <span className="sr-only">Entity and book</span>
             <select
@@ -266,7 +274,18 @@ export function Bookkeeping({
         {loading && <p role="status">Loading authorized books…</p>}
         {error && <p role="alert">{error}</p>}
       </div>
-      {locked && <CommandPanel recovery={recovery} workspace={workspace} />}
+      <CollectionWorkspace
+        api={api}
+        active={tool === "All transactions"}
+        bookLocked={recovery.locked}
+        onLockChange={setCollectionLocked}
+        refreshVersion={collectionRefreshVersion}
+        onPrepareConflict={() => recovery.refreshIfIdle()}
+        onAcknowledged={() => setTool("All transactions")}
+      />
+      {recovery.locked && (
+        <CommandPanel recovery={recovery} workspace={workspace} />
+      )}
       {workspace &&
         !loading &&
         !recovery.accessDenied &&
@@ -336,6 +355,7 @@ export function Bookkeeping({
       {workspace &&
         !recovery.accessDenied &&
         tool !== "Position" &&
+        tool !== "All transactions" &&
         !selected && (
           <section className="tool-book-picker">
             <h1 ref={toolHeading} tabIndex={-1}>
@@ -375,44 +395,47 @@ export function Bookkeeping({
             )}
           </section>
         )}
-      {selected && !loading && tool !== "Position" && (
-        <BookWorkspace
-          rememberedSource={
-            reviewPreference.current?.scope === scope
-              ? reviewPreference.current.source
-              : ""
-          }
-          rememberSource={(source) => {
-            reviewPreference.current = { scope, source };
-          }}
-          key={`${scope}/${recovery.command?.command_id ?? "none"}/${recovery.command?.state ?? "none"}`}
-          {...selected}
-          currencies={workspace?.currencies ?? []}
-          api={api}
-          connectionLink={connectionLink}
-          prepareRegistration={recovery.prepareRegistration}
-          activeView={tool}
-          navigationKey={navigationKey}
-          onViewChange={setTool}
-          through={through}
-          sourceRevision={sourceRevision}
-          onThroughChange={setThrough}
-          prepare={recovery.prepare}
-          locked={locked}
-          denied={() => {
-            setScope("");
-            setTool("Money overview");
-            requestAnimationFrame(() => toolHeading.current?.focus());
-            void load();
-          }}
-        >
-          <ManualJournal
+      {selected &&
+        !loading &&
+        tool !== "Position" &&
+        tool !== "All transactions" && (
+          <BookWorkspace
+            rememberedSource={
+              reviewPreference.current?.scope === scope
+                ? reviewPreference.current.source
+                : ""
+            }
+            rememberSource={(source) => {
+              reviewPreference.current = { scope, source };
+            }}
+            key={`${scope}/${recovery.command?.command_id ?? "none"}/${recovery.command?.state ?? "none"}`}
             {...selected}
-            locked={locked}
+            currencies={workspace?.currencies ?? []}
+            api={api}
+            connectionLink={connectionLink}
+            prepareRegistration={recovery.prepareRegistration}
+            activeView={tool}
+            navigationKey={navigationKey}
+            onViewChange={setTool}
+            through={through}
+            sourceRevision={sourceRevision}
+            onThroughChange={setThrough}
             prepare={recovery.prepare}
-          />
-        </BookWorkspace>
-      )}
+            locked={locked}
+            denied={() => {
+              setScope("");
+              setTool("Money overview");
+              requestAnimationFrame(() => toolHeading.current?.focus());
+              void load();
+            }}
+          >
+            <ManualJournal
+              {...selected}
+              locked={locked}
+              prepare={recovery.prepare}
+            />
+          </BookWorkspace>
+        )}
       {!locked && !idleRecovery && (
         <CommandPanel recovery={recovery} workspace={workspace} />
       )}

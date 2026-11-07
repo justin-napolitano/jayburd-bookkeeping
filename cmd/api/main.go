@@ -44,7 +44,7 @@ func main() {
 	project := flag.String("project", "", "explicit Identity Platform project")
 	databaseMode := flag.String("database-mode", "url", "url or cloudsql IAM connector")
 	instance := flag.String("cloud-sql-instance", "", "explicit project:region:instance identifier")
-	collectionEnabled := flag.Bool("collection-read-enabled", false, "explicit reviewed private source reads after matching migration and grant provisioning")
+	collectionEnabled := flag.Bool("collection-read-enabled", false, "explicit reviewed private source and label workflows after matching migration and grant provisioning")
 	flag.Parse()
 	if enrollment.Enabled {
 		enrollment.ProjectID = *project
