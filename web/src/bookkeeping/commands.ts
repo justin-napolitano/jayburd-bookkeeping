@@ -4,7 +4,7 @@ import type { DurableCommand, RegisterCommand, PendingCommand } from "./types";
 // Registration retry material lives only in memory; the server discovers durable work after remount.
 type Registration = { key: string; body: string; path?: string };
 // One user command gates new work until a terminal result is explicitly acknowledged.
-export function useCommands(api: API) {
+export function useCommands(api: API, onPrepareConflict?: () => void) {
   const [command, setCommand] = useState<DurableCommand | null>(null);
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [ready, setReady] = useState(false);
@@ -15,40 +15,65 @@ export function useCommands(api: API) {
   const alive = useRef(true);
   const running = useRef(false);
   const generation = useRef(0);
+  const conflictCallback = useRef(onPrepareConflict);
+  conflictCallback.current = onPrepareConflict;
+  const uncertainRegistration = useRef<Registration | null>(null);
+  const rejectedUncertainRegistration = useRef(false);
   // Discovery clears stale recovery errors while preserving a rejected action's explanation.
-  const discover = useCallback(async (actionError = "") => {
-    const version = ++generation.current;
-    setReady(false);
-    try {
-      const result = await api<PendingCommand>("/v1/commands/pending");
-      if (!alive.current || version !== generation.current) return null;
-      setError(actionError);
-      setAccessDenied(false);
-      setCommand(result.command);
-      if (result.command) setRegistration(null);
-      setReady(true);
-      return result.command;
-    } catch (e) {
-      if (alive.current && version === generation.current) {
-        setCommand(null);
-        setAccessDenied(
-          e instanceof APIError && [401, 403, 404].includes(e.status),
-        );
-        setError(
-          e instanceof Error
-            ? e.message
-            : "Recovery is unavailable. New work remains locked.",
-        );
+  const discover = useCallback(
+    async (actionError = "") => {
+      const version = ++generation.current;
+      setReady(false);
+      try {
+        const result = await api<PendingCommand>("/v1/commands/pending");
+        if (!alive.current || version !== generation.current) return null;
+        if (
+          uncertainRegistration.current &&
+          rejectedUncertainRegistration.current
+        ) {
+          // Pending has no registration key: only exact-key replay can resolve this candidate.
+          setError(
+            "Registration is unconfirmed. Retry the same registration before new work.",
+          );
+          setAccessDenied(false);
+          setReady(true);
+          return null;
+        }
+        setError(actionError);
+        setAccessDenied(false);
+        setCommand(result.command);
+        if (result.command) {
+          uncertainRegistration.current = null;
+          rejectedUncertainRegistration.current = false;
+          setRegistration(null);
+        }
+        setReady(true);
+        return result.command;
+      } catch (e) {
+        if (alive.current && version === generation.current) {
+          setCommand(null);
+          setAccessDenied(
+            e instanceof APIError && [401, 403, 404].includes(e.status),
+          );
+          setError(
+            e instanceof Error
+              ? e.message
+              : "Recovery is unavailable. New work remains locked.",
+          );
+        }
+        return null;
       }
-      return null;
-    }
-  }, [api]);
+    },
+    [api],
+  );
   useEffect(() => {
     alive.current = true;
     sessionEpoch.current++;
     running.current = false;
     setCommand(null);
     setRegistration(null);
+    uncertainRegistration.current = null;
+    rejectedUncertainRegistration.current = false;
     setBusy(false);
     setError("");
     setAccessDenied(false);
@@ -64,6 +89,7 @@ export function useCommands(api: API) {
     if (running.current) return;
     const epoch = sessionEpoch.current;
     const current = () => alive.current && epoch === sessionEpoch.current;
+    const wasUncertain = uncertainRegistration.current?.key === candidate.key;
     running.current = true;
     setBusy(true);
     setError("");
@@ -75,6 +101,8 @@ export function useCommands(api: API) {
         candidate.key,
       );
       if (current()) {
+        uncertainRegistration.current = null;
+        rejectedUncertainRegistration.current = false;
         setRegistration(null);
         if (value.acknowledged) await discover();
         else {
@@ -89,7 +117,14 @@ export function useCommands(api: API) {
         e instanceof Error ? e.message : "Command registration is unconfirmed.";
       setError(message);
       // Definitive rejection permits discarding only this failed candidate; a conflicting pending command is still discovered.
-      if (e instanceof APIError && !e.uncertain) setRegistration(null);
+      if (e instanceof APIError && !e.uncertain && !wasUncertain) {
+        setRegistration(null);
+        if (e.status === 409) conflictCallback.current?.();
+      } else {
+        uncertainRegistration.current = candidate;
+        if (wasUncertain && e instanceof APIError && !e.uncertain)
+          rejectedUncertainRegistration.current = true;
+      }
       await discover(e instanceof APIError && e.uncertain ? "" : message);
     } finally {
       if (current()) {
@@ -193,6 +228,10 @@ export function useCommands(api: API) {
     clearInaccessible,
     transition,
     retryRegistration: () => registration && void register(registration),
+    // Reciprocal conflict discovery cannot replace active work or an uncertain registration.
+    refreshIfIdle: async () => {
+      if (!running.current && !command && !registration) await discover();
+    },
     reload: async () => {
       if (!running.current) {
         setError("");

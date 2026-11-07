@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/experimental-ct-react";
 import type { Page } from "playwright-core";
+import type { DurableCommand } from "../src/bookkeeping/types";
 import { Harness } from "./Harness";
 import {
   collectionRow,
@@ -24,12 +25,15 @@ async function serve(
     | "lost_prepare"
     | "pending_taxonomy"
     | "discovery_failure"
-    | "book_unknown" = "normal",
+    | "book_unknown"
+    | "private_prepare_conflict"
+    | "book_prepare_conflict" = "normal",
 ) {
   const state = {
     taxonomy: "3",
     decision: "0",
     pending: null as LabelCommand | null,
+    bookPending: null as DurableCommand | null,
     preview: null as Preview | null,
     executions: 0,
     acknowledgements: 0,
@@ -92,7 +96,15 @@ async function serve(
       return route.fulfill({
         json: {
           entities: [],
-          currencies: [],
+          currencies: [
+            {
+              currency_version_id: "90000000-0000-4000-8000-000000000001",
+              alphabetic_code: "USD",
+              minor_unit: 2,
+              valid_from: "2026-01-01",
+              valid_to: "2027-01-01",
+            },
+          ],
           development_policy: "dev-accrual-usd-v1",
         },
       });
@@ -102,7 +114,33 @@ async function serve(
             status: 503,
             json: { code: "temporarily_unavailable" },
           })
-        : route.fulfill({ json: { command: null } });
+        : route.fulfill({ json: { command: state.bookPending } });
+    if (path === "/v1/commands" && scenario === "book_prepare_conflict") {
+      state.pending = {
+        workspace_id: workspace,
+        command_id: "60000000-0000-4000-8000-000000000002",
+        prepare_key: "70000000-0000-4000-8000-000000000002",
+        state: "prepared",
+        acknowledged: false,
+        preview: {
+          profile: "private-collection-preview-v1",
+          workspace_id: workspace,
+          preview_id: "50000000-0000-4000-8000-000000000002",
+          expires_at: "2099-01-01T00:00:00Z",
+          snapshot: snapshot(),
+          selection: [],
+          selected_count: "0",
+          review_rows: [],
+          action: {
+            kind: "taxonomy",
+            topics: [
+              { ...state.topics[0], name: "Other context private winner" },
+            ],
+          },
+        },
+      };
+      return route.fulfill({ status: 409, json: { code: "pending_command" } });
+    }
     if (path === "/v1/collection")
       return state.discoveryFails
         ? route.fulfill({
@@ -172,6 +210,32 @@ async function serve(
     if (path.endsWith("/label-commands/pending"))
       return route.fulfill({ json: wrap() });
     if (path.endsWith("/label-commands")) {
+      if (scenario === "private_prepare_conflict") {
+        state.bookPending = {
+          command_id: "80000000-0000-4000-8000-000000000001",
+          operation: "setup",
+          entity_id: null,
+          book_id: null,
+          state: "prepared",
+          acknowledged: false,
+          created_at: "2026-01-01T00:00:00Z",
+          result: null,
+          body: {
+            entity_name: "Other context ledger winner",
+            entity_kind: "legal",
+            book_name: "Other context book",
+            starts_on: "2026-01-01",
+            ends_before: "2027-01-01",
+            functional_currency_version_id:
+              "90000000-0000-4000-8000-000000000001",
+            accounts: [],
+          },
+        };
+        return route.fulfill({
+          status: 409,
+          json: { code: "collection_conflict" },
+        });
+      }
       state.pending = {
         workspace_id: workspace,
         command_id: "60000000-0000-4000-8000-000000000001",
@@ -490,4 +554,92 @@ test("revoked read clears retained rows and keeps other work gated until explici
   await expect(
     page.getByRole("button", { name: "Overview", exact: true }),
   ).toBeEnabled();
+});
+
+test("a definite private prepare conflict discovers the other context's ledger command", async ({
+  mount,
+  page,
+}) => {
+  const state = await serve(page, "private_prepare_conflict");
+  await mount(<Harness />);
+  await page
+    .getByRole("button", { name: "All transactions", exact: true })
+    .click();
+  await page.getByRole("checkbox").first().check();
+  await page
+    .getByLabel("Label selected transactions")
+    .selectOption(`topic:${topic}`);
+  await page
+    .getByRole("button", { name: "Preview labels for 1 selected" })
+    .click();
+  await page.getByRole("button", { name: "Save label review" }).click();
+  const saved = page.getByRole("region", {
+    name: "Saved command",
+    exact: true,
+  });
+  await expect(
+    saved.getByText("Other context ledger winner", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    saved.getByRole("button", { name: "Create book", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Overview", exact: true }),
+  ).toBeDisabled();
+  expect(
+    state.requests.filter((request) => request.path === "/v1/commands/pending")
+      .length,
+  ).toBeGreaterThanOrEqual(2);
+  expect(
+    state.requests.filter((request) =>
+      request.path.endsWith("/label-commands/pending"),
+    ).length,
+  ).toBeGreaterThanOrEqual(2);
+  expect(
+    state.requests.some((request) =>
+      /\/(execute|acknowledge)$/.test(request.path),
+    ),
+  ).toBe(false);
+  expect(state.pending).toBeNull();
+});
+
+test("a definite ledger prepare conflict discovers the other context's private command", async ({
+  mount,
+  page,
+}) => {
+  const state = await serve(page, "book_prepare_conflict");
+  await mount(<Harness />);
+  await expect(
+    page.getByRole("button", { name: "All transactions", exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Review Sandbox starter book", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Saved topic review" }),
+  ).toBeFocused();
+  await expect(
+    page.getByText("Other context private winner", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Overview", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Retry registration", exact: true }),
+  ).toHaveCount(0);
+  expect(
+    state.requests.filter((request) => request.path === "/v1/commands/pending")
+      .length,
+  ).toBeGreaterThanOrEqual(2);
+  expect(
+    state.requests.filter((request) =>
+      request.path.endsWith("/label-commands/pending"),
+    ).length,
+  ).toBeGreaterThanOrEqual(2);
+  expect(
+    state.requests.some((request) =>
+      /\/(execute|acknowledge)$/.test(request.path),
+    ),
+  ).toBe(false);
+  expect(state.bookPending).toBeNull();
 });

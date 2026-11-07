@@ -68,6 +68,37 @@ async function previewOne(
 }
 
 describe("private collection review", () => {
+  it("retains an uncertain prepare identity through a book recovery lock without remount or implicit rediscovery", async () => {
+    const h = await start({ scenario: "lost_prepare" });
+    await previewOne(h);
+    await h.user.click(
+      screen.getByRole("button", { name: "Save label review" }),
+    );
+    await screen.findByText(/saved review outcome is unknown/);
+    const saved = h.calls.prepares[0];
+    const pendingReads = h.calls.pending;
+    const props = {
+      workspace: collectionWorkspace,
+      sources: collectionSources,
+      catalog: collectionCatalog,
+      port: h.port,
+      onDenied: h.denied,
+    };
+    h.rerender(<CollectionReview {...props} locked />);
+    expect(
+      screen.queryByRole("button", { name: "Retry saving same review" }),
+    ).toBeNull();
+    h.rerender(<CollectionReview {...props} locked={false} />);
+    await screen.findByRole("button", { name: "Retry saving same review" });
+    expect(h.calls.pending).toBe(pendingReads);
+    await h.user.click(
+      screen.getByRole("button", { name: "Retry saving same review" }),
+    );
+    await screen.findByRole("heading", { name: "Saved label review" });
+    expect(h.calls.prepares).toEqual([saved, saved]);
+    expect(h.calls.execute).toBe(0);
+    expect(h.calls.acknowledge).toBe(0);
+  });
   it("supports100 astral search characters and rejects excess codepoints without truncating intent", async () => {
     const h = await start();
     const input = screen.getByRole("searchbox", {

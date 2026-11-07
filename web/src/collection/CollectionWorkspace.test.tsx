@@ -65,6 +65,45 @@ function fixture(pending = false) {
   return { api, request };
 }
 describe("always-mounted private recovery coordinator", () => {
+  it("defers reciprocal refresh and preserves known private command identity while book locks change", async () => {
+    const { api, request } = fixture(true);
+    const lock = vi.fn();
+    const view = render(
+      <CollectionWorkspace
+        api={api}
+        active={false}
+        bookLocked={false}
+        refreshVersion={0}
+        onLockChange={lock}
+      />,
+    );
+    await screen.findByRole("heading", { name: "Saved topic review" });
+    expect(request).toHaveBeenCalledTimes(3);
+    view.rerender(
+      <CollectionWorkspace
+        api={api}
+        active={false}
+        bookLocked
+        refreshVersion={1}
+        onLockChange={lock}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Confirm topic changes" }),
+    ).toBeNull();
+    view.rerender(
+      <CollectionWorkspace
+        api={api}
+        active={false}
+        bookLocked={false}
+        refreshVersion={1}
+        onLockChange={lock}
+      />,
+    );
+    await screen.findByRole("heading", { name: "Saved topic review" });
+    expect(request).toHaveBeenCalledTimes(3);
+    expect(lock).toHaveBeenLastCalledWith(true);
+  });
   it("discovers pending taxonomy work while another tool is active without querying rows or executing it", async () => {
     const { api, request } = fixture(true);
     const lock = vi.fn();
