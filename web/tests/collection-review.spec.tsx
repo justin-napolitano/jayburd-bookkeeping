@@ -48,7 +48,9 @@ test("390px keyboard review has no horizontal clipping and keeps held money unav
   await first.focus();
   await page.keyboard.press("Space");
   await expect(first).toBeChecked();
-  const choice = page.getByLabel("Label selected transactions");
+  const choice = page.getByLabel("Label selected transactions", {
+    exact: true,
+  });
   await expect(choice).toBeEnabled();
   await choice.focus();
   await expect(choice).toBeFocused();
@@ -105,7 +107,9 @@ test("390px larger font metrics retain the first row and usable controls", async
     expect(bounds.width).toBeGreaterThanOrEqual(44);
   }
   expect(
-    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
   ).toBe(true);
   await info.attach("larger-font-first-row-y", {
     body: String(firstRowY),

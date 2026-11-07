@@ -27,6 +27,8 @@ creation, fabricated catalog or browser financial persistence is permitted.
 | Followup validation |509 full frontend units and69 full browsers PASS;67 focused collection/book-hook units plus both real-client mocked cross-context winner cases pass. Existing initial account-registration recovery assertions retained; strict key guard applies only after a later definite rejected retry |
 | Acknowledged task context |Static real-journey review found force-visible private recovery would disappear back to Overview after acknowledgement. Confirmed explicit private ack now opens All transactions before reload. Strengthened pending/committed/remount browser checks require active private navigation and visible rows before another click; failed ack/unknown/book locks retain Overview |
 | Task-context validation |57 collection units,10 real-client mock browser journeys, Next/TypeScript check and production build PASS. Root owns combined/full-stack exact-head recheck and CI; real integration assertions remain unchanged |
+| Exact selector label |Hosted8c54c16 reached post-ack rows/checkbox, then labels.spec46 timed out on exact topic-select label lookup. Added stable useId text-span/aria-labelledby association without layout/native-control changes; stronger exact-label mock/keyboard checks and unchanged accessible combobox name cover the same selector. Other real exact labels are simple topic-name inputs |
+| Selector validation |57 collection units and15 scoped collection/live-client/browser checks PASS; exact label lookup and accessible combobox name survive selection. Real integration selectors/assertions untouched; root owns combined exact-head gate |
 
 ## Current evidence
 

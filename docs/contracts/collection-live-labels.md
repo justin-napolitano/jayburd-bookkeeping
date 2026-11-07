@@ -91,6 +91,12 @@ Overview. Initial idle/pending discovery, execution and unresolved replies do no
 change navigation; a failed acknowledgement keeps the current view until an
 explicit same-identity retry confirms its terminal receipt.
 
+The topic-choice select references a stable React-generated text-span ID through
+aria-labelledby, while retaining its wrapping native label and layout. Its exact
+accessible name stays Label selected transactions after option changes; option
+text cannot become part of the label lookup. The real journey's exact-label
+assertion remains unchanged, and component/browser checks use the same exact name.
+
 Collection pending/unknown/preview work gates book actions and navigation even
 when All transactions is not active. Book recovery independently gates collection
 mutation. The parent passes only the book lock into the collection session; its
