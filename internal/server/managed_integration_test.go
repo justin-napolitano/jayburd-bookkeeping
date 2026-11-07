@@ -44,6 +44,27 @@ func TestRuntimeReadiness(t *testing.T) {
 	if err = runtimeReady(ctx, pool); err != nil {
 		t.Fatal("least privilege runtime not ready", err)
 	}
+	// Optional collection activation requires every matching44 entrypoint, separately from base readiness.
+	if err = collectionReady(ctx, pool); err != nil {
+		t.Fatal("matching collection runtime not ready", err)
+	}
+	for _, signature := range []string{"get_collection_taxonomy_v2(uuid,uuid)", "query_collection_review_v2(uuid,uuid,text)", "preview_collection_labels_v2(uuid,uuid,text)", "prepare_collection_label_command_v2(uuid,uuid,text)", "pending_collection_label_command_v2(uuid,uuid)", "transition_collection_label_command_v2(uuid,uuid,uuid,text,text)", "collection_recovery_status(uuid)", "clear_collection_recovery(uuid,text)"} {
+		t.Run("collection_"+signature, func(t *testing.T) {
+			// Names are fixed test literals; no request or environment data reaches DDL.
+			if _, err = setup.Exec(ctx, "REVOKE EXECUTE ON FUNCTION banking."+signature+" FROM bookkeeping_api"); err != nil {
+				t.Fatal(err)
+			}
+			if collectionReady(ctx, pool) == nil {
+				t.Fatal("missing collection function grant reported ready")
+			}
+			if _, err = setup.Exec(ctx, "GRANT EXECUTE ON FUNCTION banking."+signature+" TO bookkeeping_api"); err != nil {
+				t.Fatal(err)
+			}
+			if err = collectionReady(ctx, pool); err != nil {
+				t.Fatal("restored collection runtime not ready", err)
+			}
+		})
+	}
 	for _, tc := range []struct{ name, grant, revoke string }{
 		{"table_read", "GRANT SELECT ON ledger.principal TO synthetic_server", "REVOKE SELECT ON ledger.principal FROM synthetic_server"},
 		{"enrollment", "GRANT EXECUTE ON FUNCTION ledger.enroll_principal(text,text) TO synthetic_server", "REVOKE EXECUTE ON FUNCTION ledger.enroll_principal(text,text) FROM synthetic_server"},
