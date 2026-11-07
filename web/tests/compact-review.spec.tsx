@@ -28,6 +28,9 @@ async function serveCompact(page: Page, multiple = false) {
       !url.pathname.endsWith("/source-activity/query")
     )
       writes.push(url.pathname);
+    // Explicitly absent private feature keeps this existing book-only fixture bounded.
+    if (url.pathname === "/v1/collection")
+      return route.fulfill({ status: 404, json: { code: "not_found" } });
     if (url.pathname === "/v1/workspace")
       return route.fulfill({ json: positionWorkspace });
     if (url.pathname === "/v1/commands/pending")
