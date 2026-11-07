@@ -54,8 +54,8 @@ Page profile private-collection-review-v1 retains the existing UI row and exact
 server matching_count/start_index/selector/partial/next_cursor fields. Snapshot
 contains authority_revision,source_snapshot,taxonomy_revision,ruleset_revision,
 map_revision,decision_revision. Revisions are decimal strings; source_snapshot
-is64 lowercase SHA256 hex characters. Source/assignment/book availability changes
-Continuation tokens are opaque, bounded4096 characters (query body8192 bytes).
+is64 lowercase SHA256 hex characters. Continuation tokens are opaque, bounded4096
+characters (query body8192 bytes). Source/assignment/book availability changes
 and current decision versions invalidate relevant pages/previews. Money stays
 original decimal strings with dated ISO4217 metadata or explicit nullable holds.
 Unavailable assignment is distinct from unassigned; book/journal disclosures
@@ -108,6 +108,16 @@ the collection view is inactive. Pending/uncertain collection commands gate book
 actions/navigation; book recovery gates collection actions. Sign-out clears only
 memory; remount discovers persistent work. Catalog refresh after explicit ack
 must not replace a saved command's immutable review values.
+
+Database enforcement also shares one principal-keyed reservation across private
+and existing book commands. Both writers lock the current principal exclusively
+first; a unique claim binds an exact typed command identity and remains until
+explicit acknowledgement. Cancellation retains it.43 backfills existing unacked
+book work under an admission lock; no old migration/function is rewritten.
+Unique-index conflict protects primed snapshots across engines. Releasing a claim
+must delete exactly its one row, or force40001 retry: an old transaction cannot
+acknowledge past a newly backfilled invisible claim and strand recovery. Browser
+conflicts refresh both engines without replacing a known uncertain intent.
 
 ## Evidence, standards, alternatives and threats
 

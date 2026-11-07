@@ -169,3 +169,52 @@ returned only if no current unacknowledged command exists. A present saved comma
 still requires current classify capability and source/book reauthorization before
 any payload disclosure. This preserves idle read-only browsing while keeping
 inaccessible saved intent closed; no implicit clearing or auto-acknowledgement.
+
+## Shared principal interactive reservation —root review follow-up
+
+The collection and existing book command engines share one database exclusion:
+one unacknowledged reviewed command per principal across both engines. The prior
+browser coordinator alone could not enforce this across independently authenticated
+tabs. Existing command recovery already locks the principal FOR UPDATE;43 now
+acquires that same strongest principal lock FIRST for private writes, before
+legacy scope/workspace/source/state locks. Read-only projections retain FOR SHARE.
+
+New ledger.interactive_command_reservation has principal_id as nondeferrable
+primary key and exactly one typed reference: legacy_command_id or the private
+workspace_id/label_command_id pair. Both command FKs are deferrable so a BEFORE
+INSERT trigger can claim the identity before the referenced command insert ends.
+All API/helper/table access is revoked; the owned trigger is the only product
+claim/release boundary. Existing ledger command rows and journal code are unchanged.
+The gate covers these two interactive command engines; existing direct API and
+worker idempotency boundaries keep their reviewed scope.
+
+43 holds an admission lock on ledger.interactive_command and backfills every old
+unacknowledged command before installing both command-table triggers. A BEFORE
+INSERT attempts the shared current unique index last. Visible contention returns
+fixed existing P2112 for old book preparation or P2802 for collection preparation.
+An invisible conflict under a primed SERIALIZABLE snapshot aborts40001 and the
+whole transaction retries; no stale EXISTS-only authority test. Current same-key
+replay occurs before a new claim, preserving exact historical recovery while
+another engine owns newly prepared intent. Execute and cancel retain the claim.
+Only acknowledged_at null→nonnull releases its exact principal+engine+command.
+Existing inaccessible book recovery uses that same acknowledgement path and keeps
+its immutable audit. No source/label/journal data is erased by releasing a claim.
+
+Release must delete exactly one expected reservation. If a transaction primed
+before43 cannot see the newly backfilled claim, zero deleted rows raise fixed40001
+retry_command_acknowledgement; acknowledgement cannot commit while leaving a
+permanent invisible reservation. Already acknowledged replays do not UPDATE and
+remain idempotent. Down refuses any retained reservation, including one created
+solely from an old book command; after explicit acknowledgement, empty43 down can
+preserve old acknowledged command/audit history while removing the new foundation.
+
+Reviewed PostgreSQL17 [INSERT ON CONFLICT/RETURNING](https://www.postgresql.org/docs/17/sql-insert.html),
+[unique/FK constraints](https://www.postgresql.org/docs/17/ddl-constraints.html) and
+[isolation conflict/retry](https://www.postgresql.org/docs/17/transaction-iso.html)
+relevant full sections2026-11-07. These establish unique arbitration, returned
+inserted rows and deferred references; the cross-engine principal reservation,
+fixed busy responses and acknowledgement-only release are project policy. A
+precreated mutable principal pointer was considered; a shared unique claim also
+arbitrates invisible-row insertions without modifying existing principal/history
+rows or old migration source. Actual two-winner and upgrade schedules are required
+beyond that source interpretation.
