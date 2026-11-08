@@ -27,6 +27,8 @@ UID/principal mapping stays private and never enters source/GitHub/tests.
 | Final browser review | Full84 component browser tests PASS, original assertions preserved; combined647 units PASS. Deterministic hidden-to-visible recovery focus regression fails on old source and passes fixed reviewVisible guard. New actual journey prepare assertion corrected to strict201 matching real HTTP proof; no success status weakened. |
 | Actual HTTP/SQL | Three additional real Handler/Service/restrictedPG groups PASS across all8routes, including exact one-attempt unknown prepare/execute/ack, explicit recovery/current denial/typed closure and no source/history copies. |
 
+| Canonical fixture correction |7f1fe7f frontend/Infrastructure/GitGuardian pass and four existing actual label/rule journeys pass; new onboarding fixture startup rejects ambiguous UUID/text parameter42P08 before browser execution. Explicit UUID/text and amount-text/numeric casts fix fixture typing; no product SQL semantics changed. Exact fixture proof and refreshed canonical gates required. |
+
 ## Current evidence
 
 Design accepted for implementation under owner task authority. Security-sensitive
