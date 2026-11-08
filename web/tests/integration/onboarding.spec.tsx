@@ -46,7 +46,7 @@ test("authenticated absent workspace setup and complete legacy adoption recover 
   const preparePattern = "**/v1/collection-onboarding/commands";
   await page.route(preparePattern, async (route) => {
     const response = await route.fetch();
-    expect(response.status()).toBe(200);
+    expect(response.status()).toBe(201);
     const value = await response.json();
     expect(value.state).toBe("prepared");
     preparedID = value.command_id;
