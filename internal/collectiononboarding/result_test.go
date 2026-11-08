@@ -25,7 +25,7 @@ func previewDTO(t *testing.T) map[string]any {
 }
 func commandDTO(t *testing.T) map[string]any {
 	t.Helper()
-	return map[string]any{"profile": "private-onboarding-command-v1", "command_id": commandID, "prepare_key": "same-key", "state": "committed", "preview": previewDTO(t), "result": map[string]any{"collection_item_id": candidateID, "item_generation": "3", "sources": []any{map[string]any{"source_account_id": recoveryID, "source_revision": "0", "revision": "1"}}}, "acknowledged": false}
+	return map[string]any{"profile": "private-onboarding-command-v1", "command_id": commandID, "recovery_id": recoveryID, "prepare_key": "same-key", "state": "committed", "preview": previewDTO(t), "result": map[string]any{"collection_item_id": candidateID, "item_generation": "3", "sources": []any{map[string]any{"source_account_id": recoveryID, "source_revision": "0", "revision": "1"}}}, "acknowledged": false}
 }
 
 // TestOnboardingAdoptionResponse checks the separate old source identities/new alias receipt without rewriting them.
@@ -140,5 +140,32 @@ func TestOnboardingCatalogPendingDTOs(t *testing.T) {
 	}
 	if closedJSON([]byte(`{"review":{"capabilities":[],"capabilities":[]}}`)) || closedJSON([]byte(strings.Repeat("[", 40)+"0"+strings.Repeat("]", 40))) {
 		t.Fatal("duplicate/deep response admitted")
+	}
+}
+
+// TestOnboardingStableRecoveryIdentity rejects mismatched pending ownership before payload exposure.
+func TestOnboardingStableRecoveryIdentity(t *testing.T) {
+	pending := map[string]any{"profile": "private-onboarding-pending-v1", "state": "available", "command": json.RawMessage(prepared()), "recovery_id": recoveryID}
+	if !validResult(encoded(t, pending), "pending", Request{}) {
+		t.Fatal("stable pending identity rejected")
+	}
+	pending["recovery_id"] = previewID
+	if validResult(encoded(t, pending), "pending", Request{}) {
+		t.Fatal("foreign pending recovery identity accepted")
+	}
+	c := commandDTO(t)
+	delete(c, "recovery_id")
+	if validResult(encoded(t, c), "execute", Request{Command: commandID}) {
+		t.Fatal("missing durable recovery identity accepted")
+	}
+	c = commandDTO(t)
+	c["recovery_id"] = "00000000-0000-0000-0000-000000000000"
+	if validResult(encoded(t, c), "execute", Request{Command: commandID}) {
+		t.Fatal("zero recovery identity accepted")
+	}
+	c = commandDTO(t)
+	c["acknowledged"] = true
+	if !validResult(encoded(t, c), "acknowledge", Request{Command: commandID}) {
+		t.Fatal("acknowledged closure lost stable identity")
 	}
 }

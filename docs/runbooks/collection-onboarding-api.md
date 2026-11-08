@@ -33,6 +33,16 @@ without imposing expiry checks in Go. Adoption keeps the existing42 result shape
 Go checks its immutable response envelope and leaves grant/source/consent/full-set
 validation to SQL. No financial arithmetic or provider call occurs in this package.
 
+Required stable recovery identity followup: root reviewed the lost-ack plus
+subsequent-revocation edge and froze Command.recovery_id as a required immutable
+UUID before migration47 publication. The response guard now requires it on every
+command including acknowledged replay, and available pending must echo that
+exact same ID. This lets the UI request typed payload-free closure proof after
+losing a successful acknowledgement and disclosure authority; pending:none
+alone is still insufficient. Focused missing/zero/mismatched/acknowledged identity
+regressions PASS, with all nine focused groups/race PASS1.74s and make
+check/build PASS after this followup.
+
 ## Remaining work
 
 make check/build PASS. Targeted race PASS. Full make test passes18 Node tests
