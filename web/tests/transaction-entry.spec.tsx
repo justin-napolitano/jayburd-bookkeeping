@@ -83,6 +83,7 @@ test("Transactions is a keyboard-visible primary task with explicit all-books sc
   const nav = page.getByRole("navigation", { name: "Finance tools" });
   const entry = nav.getByRole("button", { name: "Transactions", exact: true });
   await expect(entry).toBeVisible();
+  await expect(entry).toBeEnabled();
   await entry.focus();
   await page.keyboard.press("Enter");
   await expect(entry).toHaveAttribute("aria-current", "page");

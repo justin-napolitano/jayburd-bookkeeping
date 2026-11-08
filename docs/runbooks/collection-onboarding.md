@@ -27,6 +27,23 @@ UID/principal mapping stays private and never enters source/GitHub/tests.
 | Final browser review | Full84 component browser tests PASS, original assertions preserved; combined647 units PASS. Deterministic hidden-to-visible recovery focus regression fails on old source and passes fixed reviewVisible guard. New actual journey prepare assertion corrected to strict201 matching real HTTP proof; no success status weakened. |
 | Actual HTTP/SQL | Three additional real Handler/Service/restrictedPG groups PASS across all8routes, including exact one-attempt unknown prepare/execute/ack, explicit recovery/current denial/typed closure and no source/history copies. |
 
+| Canonical fixture correction |7f1fe7f frontend/Infrastructure/GitGuardian pass and four existing actual label/rule journeys pass; new onboarding fixture startup rejects ambiguous UUID/text parameter42P08 before browser execution. Explicit UUID/text and amount-text/numeric casts fix fixture typing; no product SQL semantics changed. Exact fixture proof and refreshed canonical gates required. |
+
+| Exact fixture and privilege inventory | Direct bootstrap+New+actual restrictedSQL setup/cancel/adopt/query fixture proof PASS0.27s with casts fixed, unchanged history and0journals/nativecopies/claims; added to standard onboarding runner. Existing source privilege inventory extended by exactly six reviewed47names/signatures, all helper/operator/table denial assertions retained; focused actual proof PASS0.09s, all prior denied tables/helpers/roles intact. |
+
+| Exact amount wire | Direct real fixture proves canonical legacy API amount0.1 and huge9007199254740993.01; new browser expectation aligned to that exact response. Independent SQL script still requires original stored lexeme0.10 and both original revisions, so no rounding/scale loss is hidden by the assertion. |
+
+| Keyboard readiness proof |1d7b02b CI new2onboarding component cases pass;83/84 fullCT pass. Existing transaction-entry keyboard test focused/pressed Enter before startup recovery enabled nav. Added explicit toBeEnabled state wait before focus, preserving aria-current and focus assertions. Related standalone account-label/card keyboard cases now also wait for their existing asynchronous busy state; no timeout or product change. |
+
+| Canonical connected acceptance |1d7b02b Seed42452556710 actual in-app setup/adoption step SUCCESS2026-11-08T05:58:51Z; real Next/Go/restrictedSQL lost prepare/execute/ack/remount and independent original-history postconditions pass. Existing labels/rules and browser recovery steps pass. Only frontend keyboard-readiness assertion outstanding on this head. |
+| Focused keyboard verification | Fixed transaction-entry4cases PASS locally. Related two ready-state waits align standalone async review controls; combined7case local run stopped before execution by Vite IPv6 bind EPERM. No timeout/assertion weakened or alternate listener substituted; final canonical84suite required. |
+
+| Hosted-return test readiness |9d3ba37 CI646/647 units pass; existing normal-registration test fires focus while prior begin/return-check is busy, correctly ignored by product. Test now waits Connections aria-busy=false before registration/open/each simulated return/manual check; exact pre-open0, automatic max3 and manual4 assertions remain. No provider behavior or product source changed. |
+
+| Hosted-return readiness validation | Corrected idle wait uses installed Vitest matchers; all60Connections tests PASS and complete647units PASS. Read-only audit found no other automatic window-focus/visibility return tests needing this precondition. Product source/limit/retry/consent behavior unchanged. |
+
+| Readiness helper typing |2a28a36 frontend typecheck caught Playwright-only exact option in the new RTL getByRole helper; removed it (RTL string name matches exactly already). Fresh TypeScript check and full647units PASS before next push; no product change. |
+
 ## Current evidence
 
 Design accepted for implementation under owner task authority. Security-sensitive
