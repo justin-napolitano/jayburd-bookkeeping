@@ -45,6 +45,10 @@ esac
 CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/onboarding.test ./internal/collectionlabels
 docker cp .local/onboarding.test "$proof_id:/proof/onboarding.test"
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/onboarding.test "$POSTGRES_IMAGE" -collection-label-proof -test.run '^TestOnboarding47' -test.v -test.timeout=300s
+# Prove the exact real-browser bootstrap/composed HTTP before a listener is needed.
+CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/onboarding-server.test ./internal/server
+docker cp .local/onboarding-server.test "$proof_id:/proof/onboarding-server.test"
+docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/onboarding-server.test "$POSTGRES_IMAGE" -app-proof-onboarding -test.run '^TestOnboardingBrowserFixturePostgres$' -test.v -test.timeout=60s
 # Empty latest migration must roundtrip; retained onboarding records must refuse down.
 docker exec "$proof_id" createdb -U postgres onboarding_empty -T labels_template
 for action in 'down 1' 'goto 47'; do

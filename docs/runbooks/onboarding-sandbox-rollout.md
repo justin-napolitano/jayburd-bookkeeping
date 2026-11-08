@@ -3,21 +3,27 @@
 
 ## Status and boundary
 
-Prepared operational record only. Source461 exact7f1fe7f is under canonical
-review/CI; no source merge, trusted candidate build, SQL47 managed application or
-new runtime rollout is claimed. Root PRIVATE-ONBOARDING-460 owns existing Sandbox
+Source461 exactae9dc70054a74b7b7fc86ec356e76b84039bf53a passed all five
+canonical gates (Seed42453606802, Infrastructure42453606808, GitGuardian) and
+merged950c26d9e3851a919c8ce75ba7728a4a4a314870 at2026-11-08T16:04:34Z.
+Trusted main Build42498017914 attempt1 is running; no managed47 or runtime
+rollout is claimed. Root PRIVATE-ONBOARDING-460 owns existing Sandbox
 API/web/migrator only in jayburd-bookkeeping-dev/us-central1/bookkeeping.
 User explicitly requested application tooling, no manual/ad hoc operational SQL.
 Normal restricted migrator up/status remains the reviewed deployment mechanism.
-No UID mapping, owner grant/adoption, provider fetch, consent renewal, worker
+Root renewed/reclaimed65 through19:00Z after checking the clock gap/main/claims;
+no intervening writer. No UID mapping, owner grant/adoption, provider fetch, consent renewal, worker
 deployment/execution/scheduling, new resource/IAM or Production change.
 
 ## Stage ledger
 
 | Stage | Evidence |
 | --- | --- |
-| Source preparation |461 combines own-workspace setup, complete authorized existing-connection adoption and exact shared-gate recovery.647 units/84 component browsers and12SQL+3actualHTTP groups pass; canonical actual Next/Go/SQL remains pending. |
-| Predecessor reference | Previously accepted API00024-r9d/web00024-cf5 and clean46/default-status migrator. These are historical reference, not fresh preflight acceptance. |
+| Source preparation |461 combines own-workspace setup, complete authorized existing-connection adoption and exact shared-gate recovery.647 units/84 component browsers and12SQL+3actualHTTP groups pass; canonical actual Next/Go/SQL and all old journeys passed. |
+| Predecessor reference | Previously accepted API00024-r9d/web00024-cf5 and clean46/default-status migrator. Fresh selected metadata at16:05Z matches the expected exact images/settings, Ready/sole100. |
+
+| Clean predecessor | Existing default status jayburd-dev-migrate-r48x2 completed16:08:01.478547Z, succeeded1/no failures/retries, exact old46 image/status args/restricted identity/task/timeout accepted by migration-receipt.mjs; clean46/full hashes. |
+| Recovery metadata | Fresh instance RUNNABLE PostgreSQL17/db-g1-small, backup/PITR enabled/log retention7days. Latest backup list and operation-list metadata reads fail before API execution because SDK cannot write protected local credential cache; no credential/config copy or auth widening. Browser navigation also unavailable. Owner requested only bounded read-only Cloud Shell backup row asynchronously; managed up47 waits for that verification. |
 
 ## Current evidence
 

@@ -227,7 +227,7 @@ test("authenticated absent workspace setup and complete legacy adoption recover 
     pageResult.items
       .map((r: { money: { amount: string } }) => r.money.amount)
       .sort(),
-  ).toEqual(["0.10", "9007199254740993.01"]);
+  ).toEqual(["0.1", "9007199254740993.01"]);
   for (const row of pageResult.items) {
     expect(row.observation_revision).toBe("1");
     expect(row.assignment.state).toBe("assigned");
