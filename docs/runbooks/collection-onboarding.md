@@ -38,6 +38,10 @@ UID/principal mapping stays private and never enters source/GitHub/tests.
 | Canonical connected acceptance |1d7b02b Seed42452556710 actual in-app setup/adoption step SUCCESS2026-11-08T05:58:51Z; real Next/Go/restrictedSQL lost prepare/execute/ack/remount and independent original-history postconditions pass. Existing labels/rules and browser recovery steps pass. Only frontend keyboard-readiness assertion outstanding on this head. |
 | Focused keyboard verification | Fixed transaction-entry4cases PASS locally. Related two ready-state waits align standalone async review controls; combined7case local run stopped before execution by Vite IPv6 bind EPERM. No timeout/assertion weakened or alternate listener substituted; final canonical84suite required. |
 
+| Hosted-return test readiness |9d3ba37 CI646/647 units pass; existing normal-registration test fires focus while prior begin/return-check is busy, correctly ignored by product. Test now waits Connections aria-busy=false before registration/open/each simulated return/manual check; exact pre-open0, automatic max3 and manual4 assertions remain. No provider behavior or product source changed. |
+
+| Hosted-return readiness validation | Corrected idle wait uses installed Vitest matchers; all60Connections tests PASS and complete647units PASS. Read-only audit found no other automatic window-focus/visibility return tests needing this precondition. Product source/limit/retry/consent behavior unchanged. |
+
 ## Current evidence
 
 Design accepted for implementation under owner task authority. Security-sensitive
