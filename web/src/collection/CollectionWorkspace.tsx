@@ -20,6 +20,7 @@ export function CollectionWorkspace({
   onAcknowledged,
   newWorkLocked = false,
   onRecoveryNeeded,
+  setupAvailable = false,
 }: {
   api: API;
   active: boolean;
@@ -30,6 +31,7 @@ export function CollectionWorkspace({
   onAcknowledged?: () => void;
   newWorkLocked?: boolean;
   onRecoveryNeeded?: () => void;
+  setupAvailable?: boolean;
 }) {
   const [seed, setSeed] = useState<{ api: API; value: RuleSeed } | null>(null);
   const [bootstrap, setBootstrap] = useState<CollectionBootstrap | null>(null);
@@ -113,6 +115,7 @@ export function CollectionWorkspace({
     return (
       <p role="status">Checking private transaction access and recovery…</p>
     );
+  if (state === "absent" && setupAvailable) return null;
   if (state === "absent" || state === "denied")
     return active || state === "denied" ? (
       <section aria-label="All transactions">
