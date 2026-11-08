@@ -44,7 +44,7 @@ type intent struct {
 }
 
 // Plan holds immutable validated metadata. Digest binds exact approved bytes,
-// not the identity or authority of whoever placed them on the operator filesystem.
+// not the identity or authority of whoever supplied the operator configuration.
 type Plan struct {
 	value    intent
 	deadline time.Time
@@ -81,7 +81,17 @@ func Load(path string, now time.Time) (*Plan, error) {
 		return nil, rejected
 	}
 	raw, err := io.ReadAll(io.LimitReader(f, 32769))
-	if err != nil || len(raw) > 32768 {
+	if err != nil {
+		return nil, rejected
+	}
+	return ParseApproved(raw, now)
+}
+
+// ParseApproved validates the same finite approval envelope for explicit inline
+// operator configuration. It performs no I/O; the hash binds content, not identity.
+// HTTP requests must still contain only plan_id and use independent authentication.
+func ParseApproved(raw []byte, now time.Time) (*Plan, error) {
+	if len(raw) > 32768 {
 		return nil, rejected
 	}
 	var envelope struct {

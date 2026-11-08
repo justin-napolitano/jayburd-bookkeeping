@@ -20,12 +20,16 @@ type Config struct {
 	Mode, Listen, Origin, Project, DatabaseURL, DatabaseMode, CloudSQLInstance, ProviderEnvironment string
 	CollectionEnabled                                                                               bool
 	CollectionActivationPlanFile                                                                    string
+	CollectionActivationPlanJSON                                                                    string
 }
 
 // Validate rejects ambiguous listener and origin configuration before dependencies start.
 func (c Config) Validate() error {
-	// A finite approval file restricts an existing verified actor; it grants no identity.
-	if c.CollectionActivationPlanFile != "" && (!c.CollectionEnabled || c.Mode != "managed" || c.Project != "jayburd-bookkeeping-dev" || c.ProviderEnvironment == "production") {
+	// Either finite operator delivery restricts an existing actor; neither grants identity.
+	if len(c.CollectionActivationPlanJSON) > 32768 || (c.CollectionActivationPlanFile != "" && c.CollectionActivationPlanJSON != "") {
+		return errConfiguration
+	}
+	if c.activationConfigured() && (!c.CollectionEnabled || c.Mode != "managed" || c.Project != "jayburd-bookkeeping-dev" || c.ProviderEnvironment == "production") {
 		return errConfiguration
 	}
 	if c.CollectionEnabled && c.Mode != "managed" {
@@ -69,6 +73,11 @@ func (c Config) Validate() error {
 		return errConfiguration
 	}
 	return nil
+}
+
+// activationConfigured keeps both explicit delivery profiles default absent.
+func (c Config) activationConfigured() bool {
+	return c.CollectionActivationPlanFile != "" || c.CollectionActivationPlanJSON != ""
 }
 
 // forbiddenEnvironment shares the migration/runtime credential discovery boundary.

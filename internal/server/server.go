@@ -90,7 +90,7 @@ func New(c Config, d Dependencies) (*Server, error) {
 			application.Handle("/v1/collection-recovery", labels)
 			application.Handle("/v1/collection-recovery/clear", labels)
 			application.Handle("/v3/collections/{workspace}/review/detail", labels)
-			if c.CollectionActivationPlanFile != "" {
+			if c.activationConfigured() {
 				if d.Activation == nil {
 					return nil, errConfiguration
 				}
