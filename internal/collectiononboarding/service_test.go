@@ -25,7 +25,7 @@ func setupPreview() string {
 	return `{"profile":"private-onboarding-preview-v1","preview_id":"` + previewID + `","operation":"setup","expires_at":"2026-11-08T12:00:00Z","workspace_id":null,"snapshot":"` + digest + `","review":{"capabilities":["read","acquire","classify"]}}`
 }
 func prepared() string {
-	return `{"profile":"private-onboarding-command-v1","command_id":"` + commandID + `","prepare_key":"same-key","state":"prepared","preview":` + setupPreview() + `,"result":null,"acknowledged":false}`
+	return `{"profile":"private-onboarding-command-v1","command_id":"` + commandID + `","recovery_id":"` + recoveryID + `","prepare_key":"same-key","state":"prepared","preview":` + setupPreview() + `,"result":null,"acknowledged":false}`
 }
 func committed() string {
 	return strings.Replace(strings.Replace(prepared(), `"state":"prepared"`, `"state":"committed"`, 1), `"result":null`, `"result":{"workspace_id":"`+workspaceID+`","workspace_revision":"1","capabilities":["acquire","classify","read"]}`, 1)

@@ -157,7 +157,7 @@ func validResult(raw json.RawMessage, operation string, r Request) bool {
 			var c map[string]json.RawMessage
 			_ = json.Unmarshal(v["command"], &c)
 			b, _ := flag(c["acknowledged"])
-			return !b
+			return !b && str(c["recovery_id"]) == str(v["recovery_id"])
 		}
 		return false
 	case "clear":
@@ -304,8 +304,8 @@ func validPreview(raw json.RawMessage) bool {
 	return false
 }
 func validCommand(raw json.RawMessage, id string) bool {
-	v, ok := object(raw, "profile", "command_id", "prepare_key", "state", "preview", "result", "acknowledged")
-	if !ok || str(v["profile"]) != "private-onboarding-command-v1" || !validID(str(v["command_id"])) || !keyPattern.MatchString(str(v["prepare_key"])) || id != "" && str(v["command_id"]) != id || !validPreview(v["preview"]) {
+	v, ok := object(raw, "profile", "command_id", "recovery_id", "prepare_key", "state", "preview", "result", "acknowledged")
+	if !ok || str(v["profile"]) != "private-onboarding-command-v1" || !validID(str(v["command_id"])) || !validID(str(v["recovery_id"])) || !keyPattern.MatchString(str(v["prepare_key"])) || id != "" && str(v["command_id"]) != id || !validPreview(v["preview"]) {
 		return false
 	}
 	acknowledged, ok := flag(v["acknowledged"])
