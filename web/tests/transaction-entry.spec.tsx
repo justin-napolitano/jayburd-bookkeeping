@@ -14,7 +14,8 @@ async function serveEntry(page: Page, sourceState = "ready") {
     // Private discovery is separate from this book-only read/navigation fixture.
     if (
       url.pathname === "/v1/collection" ||
-      url.pathname === "/v1/collection-recovery"
+      url.pathname === "/v1/collection-recovery" ||
+      url.pathname === "/v1/collection-onboarding/commands/pending"
     )
       return route.fulfill({ status: 404, json: { code: "not_found" } });
     if (request.method() !== "GET") mutations.push(url.pathname);
@@ -82,6 +83,7 @@ test("Transactions is a keyboard-visible primary task with explicit all-books sc
   const nav = page.getByRole("navigation", { name: "Finance tools" });
   const entry = nav.getByRole("button", { name: "Transactions", exact: true });
   await expect(entry).toBeVisible();
+  await expect(entry).toBeEnabled();
   await entry.focus();
   await page.keyboard.press("Enter");
   await expect(entry).toHaveAttribute("aria-current", "page");

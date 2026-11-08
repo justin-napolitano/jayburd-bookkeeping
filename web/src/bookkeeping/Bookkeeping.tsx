@@ -19,6 +19,7 @@ import {
   type RecoveryViewState,
 } from "../collection/CollectionRecovery";
 import { CollectionWorkspace } from "../collection/CollectionWorkspace";
+import { CollectionOnboarding } from "../collection/CollectionOnboarding";
 // UI account drafts carry strings unchanged to the authoritative setup transaction.
 type AccountDraft = {
   code: string;
@@ -91,6 +92,21 @@ export function Bookkeeping({
     null,
   );
   const [collectionLocked, setCollectionLocked] = useState(true);
+  const [onboardingLocked, setOnboardingLocked] = useState(true);
+  const [onboardingSupported, setOnboardingSupported] = useState(false);
+  const [onboardingOwnsClaim, setOnboardingOwnsClaim] = useState(false);
+  const [onboardingRefreshVersion, setOnboardingRefreshVersion] = useState(0);
+  const refreshOnboarding = useCallback(
+    () => setOnboardingRefreshVersion((v) => v + 1),
+    [],
+  );
+  const updateOnboardingState = useCallback(
+    (state: { supported: boolean; pending: boolean }) => {
+      setOnboardingSupported(state.supported);
+      setOnboardingOwnsClaim(state.pending);
+    },
+    [],
+  );
   const [opaqueRecoveryLocked, setOpaqueRecoveryLocked] = useState(true);
   const [opaqueRecoveryState, setOpaqueRecoveryState] =
     useState<RecoveryViewState>({
@@ -137,7 +153,15 @@ export function Bookkeeping({
     setOpaqueRefreshVersion((version) => version + 1);
   }, []);
   const recovery = useCommands(api, refreshPrivateRecovery);
-  const locked = recovery.locked || collectionLocked || opaqueRecoveryLocked;
+  const locked =
+    recovery.locked ||
+    collectionLocked ||
+    opaqueRecoveryLocked ||
+    onboardingLocked;
+  // Registration/ordinary command resolution makes eligible connections visible without adopting them.
+  useEffect(() => {
+    if (recovery.ready && !recovery.locked) refreshOnboarding();
+  }, [recovery.ready, recovery.locked, refreshOnboarding]);
   // Collapse presentation only after authoritative recovery confirms there is no work needing attention.
   const idleRecovery =
     !locked &&
@@ -318,15 +342,52 @@ export function Bookkeeping({
         {loading && <p role="status">Loading authorized books…</p>}
         {error && <p role="alert">{error}</p>}
       </div>
-      <CollectionRecovery
+      <div hidden={onboardingOwnsClaim}>
+        <CollectionRecovery
+          api={api}
+          refreshVersion={opaqueRefreshVersion}
+          onLockChange={setOpaqueRecoveryLocked}
+          onStateChange={updateOpaqueRecovery}
+          onAvailable={refreshScopedRecovery}
+          onCleared={() => {
+            refreshPrivateRecovery();
+            refreshOnboarding();
+            void recovery.refreshIfIdle();
+          }}
+        />
+      </div>
+      <CollectionOnboarding
         api={api}
-        refreshVersion={opaqueRefreshVersion}
-        onLockChange={setOpaqueRecoveryLocked}
-        onStateChange={updateOpaqueRecovery}
-        onAvailable={refreshScopedRecovery}
-        onCleared={() => {
+        active={tool === "All transactions"}
+        externalLocked={
+          !onboardingOwnsClaim &&
+          (recovery.locked || collectionLocked || opaqueRecoveryLocked)
+        }
+        refreshVersion={onboardingRefreshVersion}
+        onLockChange={setOnboardingLocked}
+        onStateChange={updateOnboardingState}
+        onConnections={
+          workspace?.entities.some((e) => e.books.length > 0)
+            ? () => {
+                if (!selected) {
+                  const entity = workspace.entities.find(
+                    (e) => e.books.length > 0,
+                  )!;
+                  setScope(`${entity.entity_id}/${entity.books[0].book_id}`);
+                }
+                navigate("Connections");
+              }
+            : undefined
+        }
+        onConflict={async () => {
+          refreshPrivateRecovery();
+          await recovery.refreshIfIdle();
+        }}
+        onChanged={() => {
+          setTool("All transactions");
           refreshPrivateRecovery();
           void recovery.refreshIfIdle();
+          void load();
         }}
       />
       {opaqueRecoveryResolved && opaqueReviewAllowed && (
@@ -334,9 +395,11 @@ export function Bookkeeping({
           api={api}
           active={tool === "All transactions"}
           bookLocked={recovery.locked}
+          setupAvailable={onboardingSupported}
           newWorkLocked={
             opaqueRecoveryState.state !== "none" ||
-            opaqueRecoveryState.uncertain
+            opaqueRecoveryState.uncertain ||
+            onboardingLocked
           }
           onRecoveryNeeded={refreshOpaqueRecovery}
           onLockChange={setCollectionLocked}
@@ -344,11 +407,12 @@ export function Bookkeeping({
           onPrepareConflict={() => recovery.refreshIfIdle()}
           onAcknowledged={() => {
             setTool("All transactions");
+            refreshOnboarding();
             refreshPrivateRecovery();
           }}
         />
       )}
-      {recovery.locked && (
+      {recovery.locked && !onboardingOwnsClaim && (
         <CommandPanel recovery={recovery} workspace={workspace} />
       )}
       {workspace &&

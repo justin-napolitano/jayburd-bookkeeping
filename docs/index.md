@@ -1,3 +1,5 @@
+[In-app private setup/adoption](contracts/collection-onboarding.md) and [delivery stages](runbooks/collection-onboarding.md),460: durable self-service tooling replaces routine manual SQL; implementation in progress.
+
 [Strategic tags and private recovery](contracts/collection-tags-recovery.md):450/451 versioned profile and [stages](runbooks/collection-tags-recovery.md); GitHub65 owns active dispatch.
 
 # Project context

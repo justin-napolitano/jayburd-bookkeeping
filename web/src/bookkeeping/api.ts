@@ -154,6 +154,7 @@ export function createAPI(
         path,
       ) &&
       !/^\/v[12]\/collections\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?:review\/query|labels\/preview)$/.test(path) &&
+      path !== "/v1/collection-onboarding/previews" &&
       !/^\/v3\/collections\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?:review\/(?:query|detail)|labels\/preview)$/.test(path)
     )
       throw new APIError(400, false, "read");
