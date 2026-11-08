@@ -16,6 +16,12 @@ const baseRoutes = [
   ...["execute","cancel","acknowledge"].map(action=>["POST",`${base}/label-commands/${command}/${action}`,1024]),
 ] as [string,string,number][];
 const routes: [string,string,number][] = [
+ ["GET","/v1/collection-onboarding",0],
+ ["GET","/v1/collection-onboarding/commands/pending",0],
+ ["POST","/v1/collection-onboarding/previews",8192],
+ ["POST","/v1/collection-onboarding/commands",4096],
+ ...["execute","cancel","acknowledge"].map(action=>["POST",`/v1/collection-onboarding/commands/${command}/${action}`,1024] as [string,string,number]),
+ ["POST","/v1/collection-onboarding/recovery/clear",1024],
  ...baseRoutes,
  ...baseRoutes.filter(r=>r[1].startsWith("/v1/collections/")).map(([method,path,cap])=>[method,path.replace("/v1/","/v2/"),cap] as [string,string,number]),
  ["GET","/v1/collection-recovery",0],

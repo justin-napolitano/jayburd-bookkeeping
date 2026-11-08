@@ -58,6 +58,7 @@ export type CollectionReviewProps = {
   port: CollectionPort;
   locked?: boolean;
   active?: boolean;
+  reviewVisible?: boolean;
   canClassify?: boolean;
   onLockChange?: (locked: boolean) => void;
   onAcknowledged?: (seed?: RuleSeed) => void;
@@ -105,6 +106,7 @@ function Review({
   port,
   locked = false,
   active = true,
+  reviewVisible = true,
   canClassify = true,
   onLockChange,
   onAcknowledged,
@@ -341,26 +343,28 @@ function Review({
   useEffect(() => {
     const request = focusRequest.current;
     if (!request) return;
-    if (locked) return;
-    focusRequest.current = null;
+    if (locked || !reviewVisible) return;
     if (
       request.epoch !== epoch.current ||
       request.workspace !== workspace.workspace_id ||
       denied ||
       locked
-    )
+    ) {
+      focusRequest.current = null;
       return;
-    if (
+    }
+    const target =
       request.view === "preview" &&
       preview?.workspace_id === workspace.workspace_id
-    )
-      heading.current?.focus();
-    if (
-      request.view === "command" &&
-      command?.workspace_id === workspace.workspace_id
-    )
-      savedHeading.current?.focus();
-  }, [preview, command, denied, locked, workspace.workspace_id]);
+        ? heading.current
+        : request.view === "command" &&
+            command?.workspace_id === workspace.workspace_id
+          ? savedHeading.current
+          : null;
+    if (!target?.isConnected) return;
+    target.focus();
+    if (document.activeElement === target) focusRequest.current = null;
+  }, [preview, command, denied, locked, reviewVisible, workspace.workspace_id]);
 
   // Every page request carries the exact selector and server-owned all-source snapshot.
   useEffect(() => {

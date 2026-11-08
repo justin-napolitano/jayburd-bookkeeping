@@ -19,6 +19,27 @@ function fixture() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("API client boundary", () => {
+  it("keeps onboarding preview uncertainty separate from command execution", async () => {
+    const { fetch, api } = fixture();
+    fetch.mockResolvedValue(new Response("private diagnostic", { status: 503 }));
+    await expect(
+      api.query!("/v1/collection-onboarding/previews", '{"operation":"setup"}'),
+    ).rejects.toMatchObject({
+      uncertain: true,
+      message: "Data is unavailable right now. Retry the read.",
+    });
+    expect(fetch.mock.calls[0][1]?.headers).not.toHaveProperty("Idempotency-Key");
+    await expect(
+      api.query!("/v1/collection-onboarding/commands", "{}"),
+    ).rejects.toMatchObject({ status: 400, uncertain: false });
+    await expect(
+      api.query!(
+        "/v1/collection-onboarding/commands/00000000-0000-4000-8000-000000000001/execute",
+        "{}",
+      ),
+    ).rejects.toMatchObject({ status: 400, uncertain: false });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
   it("never dispatches a mutation through the reviewed query helper", async () => {
     const { fetch, api, getToken } = fixture();
     await expect(

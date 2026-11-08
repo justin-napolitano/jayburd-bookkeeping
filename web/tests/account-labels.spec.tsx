@@ -12,6 +12,7 @@ test("account labels distinguish duplicate types with missing names and hide ide
     exact: true,
   });
   await expect(review).toBeVisible();
+  await expect(review).toBeEnabled();
   await review.focus();
   await page.keyboard.press("Enter");
   await expect(page.getByLabel("Reviewed synthetic source")).toHaveText(

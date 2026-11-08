@@ -14,6 +14,7 @@ import (
 
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionactivation"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectiononboarding"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
 )
@@ -25,6 +26,7 @@ type Dependencies struct {
 	Connections ConnectionOperations
 	Collection  collectionread.Reader
 	Labels      collectionlabels.Operations
+	Onboarding  collectiononboarding.Operations
 	Activation  *collectionactivation.Service
 	Ready       func(context.Context) error
 	Close       func()
@@ -90,6 +92,12 @@ func New(c Config, d Dependencies) (*Server, error) {
 			application.Handle("/v1/collection-recovery", labels)
 			application.Handle("/v1/collection-recovery/clear", labels)
 			application.Handle("/v3/collections/{workspace}/review/detail", labels)
+			// Self-service setup is scoped to the existing Sandbox private feature.
+			if onboardingEnabled(c) && d.Onboarding != nil {
+				onboarding := collectiononboarding.Handler(d.Auth, d.Onboarding)
+				application.Handle("/v1/collection-onboarding", onboarding)
+				application.Handle("/v1/collection-onboarding/", onboarding)
+			}
 			if c.CollectionActivationPlanFile != "" {
 				if d.Activation == nil {
 					return nil, errConfiguration

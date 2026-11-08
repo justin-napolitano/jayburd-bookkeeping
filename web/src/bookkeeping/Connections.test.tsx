@@ -1997,23 +1997,35 @@ it("normal registration checks Hosted completion only after opening and at most 
       prepareRegistration={vi.fn().mockResolvedValue(undefined)}
     />,
   );
+  const idle = () =>
+    waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: "Connections" })
+          .getAttribute("aria-busy"),
+      ).toBe("false"),
+    );
   await screen.findByText("No connected Items in this book.");
+  await idle();
   fireEvent.click(screen.getByRole("button", { name: "Register accounts" }));
   const anchor = await screen.findByRole("link", { name: "Open Plaid" });
+  await idle();
   fireEvent.focus(window);
   expect(checks).toBe(0);
   anchor.addEventListener("click", (event) => event.preventDefault());
   fireEvent.click(anchor);
   for (let n = 1; n <= 3; n++) {
+    await idle();
     await act(async () => {
       fireEvent.focus(window);
     });
     await waitFor(() => expect(checks).toBe(n));
   }
+  await idle();
   await act(async () => {
     fireEvent.focus(window);
   });
   expect(checks).toBe(3);
+  await idle();
   fireEvent.click(
     screen.getByRole("button", { name: "Check bank setup completion" }),
   );
