@@ -1,4 +1,9 @@
-[In-app private setup/adoption](contracts/collection-onboarding.md) and [delivery stages](runbooks/collection-onboarding.md),460: durable self-service tooling replaces routine manual SQL; implementation in progress.
+[In-app private setup/adoption](contracts/collection-onboarding.md),460: durable
+self-service tooling replaces routine manual SQL. Source461 and controlled
+Sandbox schema47/API/web release accepted; [deployment evidence and owner
+steps](runbooks/onboarding-sandbox-rollout.md), [independent build
+evidence](runbooks/onboarding-build-evidence.md) and [source stages](runbooks/collection-onboarding.md).
+Authenticated owner setup/adoption/private review remains453/436.
 
 [Strategic tags and private recovery](contracts/collection-tags-recovery.md):450/451 versioned profile and [stages](runbooks/collection-tags-recovery.md); GitHub65 owns active dispatch.
 
