@@ -73,6 +73,97 @@ async function previewOne(
 }
 
 describe("private collection review", () => {
+  it("keeps an inert rule draft available after a definite server preview rejection", async () => {
+    const h = await start();
+    h.port.preview = vi
+      .fn()
+      .mockRejectedValue(new CollectionFailure("rejected"));
+    await h.user.click(screen.getByText("Manage rules", { exact: true }));
+    await h.user.click(screen.getByRole("button", { name: /^Add rule$/ }));
+    await h.user.type(
+      screen.getByLabelText("Rule 1 name", { exact: true }),
+      "Fictional invalid regex",
+    );
+    await h.user.selectOptions(
+      screen.getByLabelText("Rule 1 condition 1 operator", { exact: true }),
+      "regex",
+    );
+    await h.user.type(
+      screen.getByLabelText("Rule 1 condition 1 value", { exact: true }),
+      "(",
+    );
+    await h.user.selectOptions(
+      screen.getByLabelText("Rule 1 primary topic", { exact: true }),
+      "uncategorized",
+    );
+    await h.user.click(
+      screen.getByRole("button", { name: /^Preview rule changes$/ }),
+    );
+    await screen.findByText(/Check condition syntax and output choices/);
+    expect(
+      (
+        screen.getByLabelText("Rule 1 condition 1 value", {
+          exact: true,
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("(");
+    expect(screen.getByText("1–25 of 3000 matching transactions")).toBeTruthy();
+    expect(h.calls.prepares).toHaveLength(0);
+  });
+  it("opens no rule seed before the same explicit lost acknowledgement is confirmed", async () => {
+    const h = await start();
+    await previewOne(h);
+    await h.user.click(
+      screen.getByRole("button", { name: "Save label review" }),
+    );
+    await h.user.click(
+      await screen.findByRole("button", {
+        name: "Confirm labels for 1 selected",
+      }),
+    );
+    const ack = h.port.acknowledge;
+    let lost = true;
+    h.port.acknowledge = async (identity) => {
+      const result = await ack(identity);
+      if (lost) {
+        lost = false;
+        throw new CollectionFailure("uncertain");
+      }
+      return result;
+    };
+    const acknowledged = vi.fn();
+    h.rerender(
+      <CollectionReview
+        workspace={collectionWorkspace}
+        sources={collectionSources}
+        catalog={collectionCatalog}
+        port={h.port}
+        onDenied={h.denied}
+        onAcknowledged={acknowledged}
+      />,
+    );
+    await h.user.click(
+      screen.getByRole("button", { name: /^Acknowledge and create rule$/ }),
+    );
+    await screen.findByText(/saved review outcome is unknown/);
+    expect(acknowledged).not.toHaveBeenCalled();
+    await h.user.click(
+      screen.getByRole("button", { name: /^Retry same acknowledgement$/ }),
+    );
+    await waitFor(() => expect(acknowledged).toHaveBeenCalledTimes(1));
+    expect(acknowledged.mock.calls[0][0]).toMatchObject({
+      workspace_id: collectionWorkspace.workspace_id,
+      command_id: "fictional-command",
+      source_id: "fictional-checking",
+      condition: {
+        field: "merchant",
+        operator: "exact",
+        value: "Fictional Cafe",
+      },
+      output: { kind: "topic", topic_id: "dining", tag_ids: [] },
+    });
+  });
+
   it("sends the exact tag filter and clears prior page selection", async () => {
     const h = await start();
     await h.user.click(screen.getAllByRole("checkbox")[0]);

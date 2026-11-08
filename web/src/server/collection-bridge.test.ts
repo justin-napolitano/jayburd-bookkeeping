@@ -20,6 +20,11 @@ const routes: [string,string,number][] = [
  ...baseRoutes.filter(r=>r[1].startsWith("/v1/collections/")).map(([method,path,cap])=>[method,path.replace("/v1/","/v2/"),cap] as [string,string,number]),
  ["GET","/v1/collection-recovery",0],
  ["POST","/v1/collection-recovery/clear",1024],
+ ["GET",`/v3/collections/${workspace}/taxonomy`,0],
+ ["POST",`/v3/collections/${workspace}/review/query`,8192],
+ ["POST",`/v3/collections/${workspace}/review/detail`,8192],
+ ...baseRoutes.filter(r=>r[1].includes("/label")).map(([method,path,cap])=>[method,path.replace("/v1/","/v3/"),cap] as [string,string,number]),
+ ["POST","/v1/collection-activation/adopt",1024],
 ];
 
 /** Fictional user identity and intercepted loopback transport never reach a real service. */

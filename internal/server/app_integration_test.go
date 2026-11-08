@@ -118,9 +118,10 @@ func TestAppIntegrationServer(t *testing.T) {
 	dependencies := Dependencies{Connections: connectionService, Auth: appProofAuth{}, Operations: &ledger.Service{DB: pool}, Ready: func(ctx context.Context) error { return runtimeReady(ctx, pool) }}
 	if *appProofLabels {
 		bootstrapLabelBrowser(t, setupCtx, admin, pool)
+		bootstrapRuleBrowser(t, setupCtx, admin, pool)
 		dependencies.Auth = labelBrowserAuth{}
 		dependencies.Collection = &collectionread.Service{DB: pool}
-		dependencies.Labels = &collectionlabels.Service{DB: pool}
+		dependencies.Labels = &collectionlabels.Service{DB: pool, Rules: collectionlabels.RuleProcessor{}}
 		dependencies.Ready = func(ctx context.Context) error {
 			if err := runtimeReady(ctx, pool); err != nil {
 				return err

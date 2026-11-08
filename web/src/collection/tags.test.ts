@@ -98,7 +98,13 @@ describe("independent strategic tag contract", () => {
       { ...request(), action: { kind: "uncategorized" } },
       [collectionRow()],
     );
-    const { tag_results: _results, ...base } = modern;
+    const {
+      tag_results: _results,
+      rule_results: _rules,
+      apply_count: _apply,
+      abstain_count: _abstain,
+      ...base
+    } = modern;
     const { tag_revision: _tag, ...snapshot } = base.snapshot;
     const legacy: LegacyPreview = {
       ...base,

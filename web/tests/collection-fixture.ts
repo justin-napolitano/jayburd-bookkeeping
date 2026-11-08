@@ -10,6 +10,7 @@ import {
   type PreviewRequest,
   type Query,
   type Row,
+  type ReviewRow,
   type Selector,
   type Workspace,
 } from "../src/collection/types";
@@ -20,6 +21,11 @@ export const collectionWorkspace: Workspace = {
   name: "Fictional private workspace",
 };
 export const collectionCatalog: Catalog = {
+  rules: [],
+  books: [],
+  currencies: [],
+  institution: { state: "unavailable" },
+  legal_owner: { state: "unknown" },
   taxonomy_revision: "3",
   ruleset_revision: "4",
   map_revision: "0",
@@ -61,8 +67,21 @@ export const collectionSnapshot = {
 };
 
 // These independently authored financial examples are test data, never a runtime data source.
-export function collectionRow(index = 0, changes: Partial<Row> = {}): Row {
+export function collectionRow(
+  index = 0,
+  changes: Partial<ReviewRow> = {},
+): ReviewRow {
   return {
+    rule_suggestion: {
+      status: "unclassified",
+      output: null,
+      rules: [],
+      preserved: { topic: false, tags: false },
+      will_apply: false,
+    },
+    rule_application: { state: "none" },
+    institution: { state: "unavailable" },
+    legal_owner: { state: "unknown" },
     workspace_id: collectionWorkspace.workspace_id,
     source_id: index % 2 === 0 ? "fictional-checking" : "fictional-card",
     observation_id: `fictional-observation-${index}`,
@@ -100,7 +119,7 @@ export function collectionRow(index = 0, changes: Partial<Row> = {}): Row {
 // Held quantities intentionally carry no invented zero, direction, currency or dated reference.
 export function heldCollectionRow(
   reason: "unsupported_currency" | "invalid_precision" = "unsupported_currency",
-): Row {
+): ReviewRow {
   return collectionRow(9000, {
     description: `Fictional ${reason} hold`,
     source_state: "held",
@@ -121,7 +140,7 @@ export function heldCollectionRow(
 }
 
 // Existing dated currency references may omit a numeric code; this does not invalidate known money.
-export function nullNumericCollectionRow(): Row {
+export function nullNumericCollectionRow(): ReviewRow {
   const row = collectionRow(9100, {
     description: "Fictional known currency without numeric code",
   });
@@ -135,7 +154,7 @@ export function nullNumericCollectionRow(): Row {
 }
 
 // A provider removal retains the earlier unresolved currency hold without inventing money.
-export function removedHeldCollectionRow(): Row {
+export function removedHeldCollectionRow(): ReviewRow {
   return {
     ...heldCollectionRow(),
     source_state: "removed",
@@ -153,12 +172,24 @@ export function collectionSelector(q: Query): Selector {
     search: q.search,
     topic: q.topic,
     tag: q.tag,
+    merchant: q.merchant,
+    amount: q.amount,
+    institution: q.institution,
+    legal_owner: q.legal_owner,
+    book: q.book,
+    status: q.status,
     sort: q.sort,
   };
 }
 export function collectionQuery(changes: Partial<Query> = {}): Query {
   return {
-    profile: "private-collection-review-v2",
+    merchant: { kind: "all" },
+    amount: null,
+    institution: { kind: "all" },
+    legal_owner: { kind: "all" },
+    book: { kind: "all" },
+    status: { source: "all", journal: "all" },
+    profile: "private-collection-review-v3",
     workspace_id: collectionWorkspace.workspace_id,
     source_account_id: null,
     assignment: "all",
@@ -167,7 +198,7 @@ export function collectionQuery(changes: Partial<Query> = {}): Query {
     search: "",
     topic: { kind: "all" },
     tag: { kind: "all" },
-    sort: "date_desc",
+    sort: { field: "date", order: "desc" },
     snapshot: null,
     cursor: null,
     limit: 25,
@@ -179,7 +210,7 @@ export function collectionPage(
   rows = [collectionRow()],
 ): Page {
   return {
-    profile: "private-collection-review-v2",
+    profile: "private-collection-review-v3",
     workspace_id: q.workspace_id,
     selector: collectionSelector(q),
     snapshot: q.snapshot ?? collectionSnapshot,
@@ -197,10 +228,33 @@ export function collectionPreview(
   return {
     ...request,
     preview_id: "fictional-preview",
-    profile: "private-collection-preview-v2",
+    profile: "private-collection-preview-v3",
+    rule_results:
+      request.action.kind === "rules_apply"
+        ? rows.map((row) => ({
+            ...selectionOf(row),
+            status: "unclassified" as const,
+            output: null,
+            rules: [],
+            preserved: { topic: false, tags: false },
+            will_apply: false,
+          }))
+        : [],
+    apply_count: "0",
+    abstain_count:
+      request.action.kind === "rules_apply" ? String(rows.length) : "0",
     expires_at: "2099-01-01T00:00:00Z",
     selected_count: String(request.selection.length),
-    review_rows: rows,
+    review_rows: rows.map((row) => {
+      const {
+        institution: _i,
+        legal_owner: _o,
+        rule_suggestion: _s,
+        rule_application: _a,
+        ...base
+      } = row as ReviewRow;
+      return base;
+    }),
     tag_results:
       request.action.kind !== "tags"
         ? []
@@ -239,7 +293,7 @@ export function collectionPreview(
 // This test-only fake server exposes calls for UI assertions; no application imports it.
 export function collectionFixture(
   options: {
-    rows?: Row[];
+    rows?: ReviewRow[];
     scenario?: "normal" | "lost_prepare" | "denied" | "pending";
     onCall?: (name: string) => void;
   } = {},
@@ -310,6 +364,17 @@ export function collectionFixture(
           offset + q.limit < matching.length
             ? `page:${offset + q.limit}`
             : null,
+      };
+    },
+    async detail(request) {
+      return {
+        profile: request.profile,
+        workspace_id: request.workspace_id,
+        snapshot: request.snapshot,
+        row: rows.find(
+          (row) => selectionKey(row) === selectionKey(request),
+        )! as ReviewRow,
+        links: { state: "unavailable", journals: [] },
       };
     },
     async preview(request) {

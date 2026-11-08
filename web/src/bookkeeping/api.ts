@@ -153,7 +153,8 @@ export function createAPI(
       !/^\/v1\/entities\/[^/?#]+\/books\/[^/?#]+\/(?:review-items|source-activity)\/query$/.test(
         path,
       ) &&
-      !/^\/v[12]\/collections\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?:review\/query|labels\/preview)$/.test(path)
+      !/^\/v[12]\/collections\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?:review\/query|labels\/preview)$/.test(path) &&
+      !/^\/v3\/collections\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?:review\/(?:query|detail)|labels\/preview)$/.test(path)
     )
       throw new APIError(400, false, "read");
     const response = await request(path, body, undefined, true);

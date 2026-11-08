@@ -1,6 +1,8 @@
 package categorization
 
 import (
+	"context"
+	"errors"
 	"reflect"
 	"strings"
 	"sync"
@@ -279,4 +281,55 @@ func FuzzBoundedRegex(f *testing.F) {
 			t.Fatal("nondeterministic evaluation")
 		}
 	})
+}
+
+// cancellationStep deterministically cancels at a work boundary without timing assumptions.
+type cancellationStep struct {
+	context.Context
+	remaining int
+}
+
+func (c *cancellationStep) Err() error {
+	c.remaining--
+	if c.remaining <= 0 {
+		return context.Canceled
+	}
+	return nil
+}
+
+// TestRuleContextCompatibility preserves wrappers and rejects partial work on cancellation.
+func TestRuleContextCompatibility(t *testing.T) {
+	rules := []Rule{rule("a", "dining"), rule("b", "travel")}
+	plain, e := Compile(catalog(), rules)
+	if e != nil {
+		t.Fatal(e)
+	}
+	aware, e := CompileContext(context.Background(), catalog(), rules)
+	if e != nil {
+		t.Fatal(e)
+	}
+	want, e := plain.Evaluate([]Fact{fact()})
+	if e != nil {
+		t.Fatal(e)
+	}
+	got, e := aware.EvaluateContext(context.Background(), []Fact{fact()})
+	if e != nil || !reflect.DeepEqual(got, want) {
+		t.Fatal("context changed matching")
+	}
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if engine, e := CompileContext(canceled, catalog(), rules); engine != nil || !errors.Is(e, context.Canceled) {
+		t.Fatal("compile ignored pre-cancellation")
+	}
+	if out, e := aware.EvaluateContext(canceled, []Fact{fact()}); out != nil || !errors.Is(e, context.Canceled) {
+		t.Fatal("evaluation ignored pre-cancellation")
+	}
+	if engine, e := CompileContext(&cancellationStep{Context: context.Background(), remaining: 4}, catalog(), rules); engine != nil || !errors.Is(e, context.Canceled) {
+		t.Fatal("compile returned partial engine")
+	}
+	facts := []Fact{fact(), fact()}
+	facts[1].ID = "o2"
+	if out, e := aware.EvaluateContext(&cancellationStep{Context: context.Background(), remaining: 7}, facts); out != nil || !errors.Is(e, context.Canceled) {
+		t.Fatal("evaluation returned partial results")
+	}
 }

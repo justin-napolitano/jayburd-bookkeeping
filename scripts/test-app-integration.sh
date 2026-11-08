@@ -117,10 +117,21 @@ if [[ "$labels_test" == true ]]; then
  (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-labels.config.ts)
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.book')" == 0 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.journal_entry')" == 0 ]]
- [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_observation')" == 4 ]]
- [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_revision')" == 4 ]]
- [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_label_decision')" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_observation')" == 7 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_revision')" == 7 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_label_decision')" == 2 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_tag_decision')" == 1 ]]
+ # Retain every original owner assertion; the separate rules actor adds no changes to it.
+ for proof_table in collection_observation collection_revision; do
+  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.$proof_table WHERE workspace_id=(SELECT workspace_id FROM banking.collection_workspace WHERE owner_principal_id='00000000-0000-4000-8000-000000000001')")" == 4 ]]
+ done
+ for proof_table in collection_label_decision collection_tag_decision; do
+  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.$proof_table WHERE workspace_id=(SELECT workspace_id FROM banking.collection_workspace WHERE owner_principal_id='00000000-0000-4000-8000-000000000001')")" == 1 ]]
+ done
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_observation WHERE workspace_id=(SELECT workspace_id FROM banking.collection_workspace WHERE owner_principal_id='00000000-0000-4000-8000-000000000093')")" == 3 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_revision WHERE workspace_id=(SELECT workspace_id FROM banking.collection_workspace WHERE owner_principal_id='00000000-0000-4000-8000-000000000093')")" == 3 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_rule_decision WHERE principal_id='00000000-0000-4000-8000-000000000093'")" == 2 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_label_command WHERE principal_id='00000000-0000-4000-8000-000000000093' AND state='committed' AND acknowledged_at IS NOT NULL")" == 4 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_label_command WHERE principal_id='00000000-0000-4000-8000-000000000001' AND state='committed' AND acknowledged_at IS NOT NULL")" == 4 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT state||':'||(acknowledged_at IS NOT NULL)::text FROM banking.collection_label_command WHERE principal_id='00000000-0000-4000-8000-000000000091'")" == 'cancelled:true' ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT state||':'||(acknowledged_at IS NOT NULL)::text FROM banking.collection_label_command WHERE principal_id='00000000-0000-4000-8000-000000000092'")" == 'committed:true' ]]
@@ -129,7 +140,7 @@ if [[ "$labels_test" == true ]]; then
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.collection_recovery_receipt WHERE principal_id='00000000-0000-4000-8000-000000000091'")" == 1 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.interactive_command_reservation')" == 0 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT (e.tags->0->>'name')||':'||(e.tags->0->>'status') FROM banking.collection_tag_edition e JOIN banking.collection_workspace w USING(workspace_id) WHERE w.owner_principal_id='00000000-0000-4000-8000-000000000092' AND e.tag_revision=2")" == 'Fictional hidden committed tag:active' ]]
- echo 'PASS: actual private topics/tags and payload-free recovery through Next/Go/restricted SQL; zero books/journals'
+ echo 'PASS: actual private filters/detail/topics/tags/rules and payload-free recovery through Next/Go/restricted SQL; zero books/journals'
  exit 0
 fi
 if [[ "$production_test" == true ]]; then
