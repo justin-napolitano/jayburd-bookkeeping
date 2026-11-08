@@ -73,6 +73,36 @@ denies adoption after expiry. The operator must explicitly remove the temporary
 approval configuration after its reviewed window or approve the same intent
 again; the application never renews or silently discards approval itself.
 
+### SDK argument delivery
+
+Inline JSON contains commas. Ordinary shell quoting does not prevent the SDK's
+own list parser from splitting a default-comma --args value. Use the reviewed
+custom-delimiter syntax `^DELIM^arg1DELIMarg2` for the complete argument list,
+quoting the entire SDK flag value for the selected shell so JSON quotes,
+whitespace and metacharacters remain literal. Independently verify that the
+chosen nonempty delimiter occurs nowhere in the complete approved envelope or
+any other argument; do not assume a fixed character is safe. Do not use eval or
+reparse the envelope as shell code. Alternatively use an operator-controlled
+structured --flags-file with --args represented as a YAML/JSON list, preserving
+each argument and the exact envelope bytes as one string.
+
+In either delivery, retain the full known prior container argument list and
+change only the explicitly reviewed activation argument. Do not discover, print
+or change environment/secret settings. Keep the approved envelope and argument
+projection out of public evidence; record only its reviewed digest and bounded
+operation outcome. This guidance does not authorize an SDK update or execution.
+
+Official Google Cloud CLI references reviewed 2026-11-07:
+[gcloud topic escaping](https://docs.cloud.google.com/sdk/gcloud/reference/topic/escaping),
+DESCRIPTION and basic/multi-character delimiter examples (page updated2026-05-27);
+[gcloud topic flags-file](https://docs.cloud.google.com/sdk/gcloud/reference/topic/flags-file),
+DESCRIPTION and YAML list/quoting examples; and
+[gcloud run services update](https://docs.cloud.google.com/sdk/gcloud/reference/run/services/update#--args),
+Container Flags/--args. These selected sections establish SDK parsing and list
+delivery, not application approval or hosted correctness. Requiring absent
+delimiters, exact prior arguments and digest-only evidence is this profile's
+bounded operating policy. No SDK command or managed configuration was executed.
+
 The source-only flags collection-activation-plan-file and
 collection-activation-plan (inline envelope) both default empty and are mutually
 exclusive. Composition requires the Sandbox project, managed mode, existing
