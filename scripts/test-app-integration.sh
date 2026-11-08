@@ -116,8 +116,16 @@ done
 [[ "$ready" == 1 ]] || { cat "$proof_dir/next.log"; exit 1; }
 if [[ "$onboarding_test" == true ]]; then
  (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-onboarding.config.ts)
- # This fixture begins with one legacy book/Item and no collection workspace.
- # Independent exact source/history/cursor and command checks are added with its reviewed fixture.
+ # Independent original-unit/history and one-effect command checks; no native copies.
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_workspace WHERE owner_principal_id='00000000-0000-4000-8000-000000000094'")" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.source_observation WHERE source_account_id='00000000-0000-4000-8000-000000000942'")" == 2 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT string_agg(amount_lexeme,',' ORDER BY amount) FROM banking.observation_revision WHERE observation_id IN('00000000-0000-4000-8000-000000000949','00000000-0000-4000-8000-000000000950')")" == '0.10,9007199254740993.01' ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_observation')" == 0 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.journal_entry')" == 0 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT state||':'||generation::text FROM integration.sync_item WHERE sync_item_id='00000000-0000-4000-8000-000000000943'")" == 'paused:2' ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT cursor_value FROM integration.sync_stream WHERE sync_item_id='00000000-0000-4000-8000-000000000943'")" == 'synthetic-original-cursor' ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM integration.collection_item WHERE workspace_id IS NOT NULL AND legacy_sync_item_id='00000000-0000-4000-8000-000000000943'")" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_onboarding_command WHERE principal_id='00000000-0000-4000-8000-000000000094' AND state='committed' AND acknowledged_at IS NOT NULL")" == 2 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.interactive_command_reservation')" == 0 ]]
  echo 'PASS: actual in-app private setup/adoption through Next/Go/restricted SQL'
  exit 0

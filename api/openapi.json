@@ -16590,6 +16590,11 @@
             "format": "uuid",
             "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
           },
+          "recovery_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
           "prepare_key": {
             "type": "string",
             "pattern": "^[A-Za-z0-9._:-]{1,128}$"
@@ -16636,6 +16641,7 @@
         "required": [
           "profile",
           "command_id",
+          "recovery_id",
           "prepare_key",
           "state",
           "preview",
