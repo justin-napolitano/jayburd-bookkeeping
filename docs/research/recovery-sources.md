@@ -1,5 +1,12 @@
 # Recovery and integration sources
 
+460 [in-app onboarding](../contracts/collection-onboarding.md),2026-11-08:
+re-reviewed PostgreSQL17 SECURITY DEFINER safety, Serializable isolation and
+RFC9110 sections9.2.1–2 in their official sources. They establish safe grants/search
+path, full-transaction retries and inert discovery semantics; own-workspace
+self-service policy is the owner-authorized application decision. No provider,
+identity-enrollment or accounting-conformance claim.
+
 408 [search transport/query review](../contracts/transaction-search.md),2026-11-03:
 RFC9110 URI disclosure and PG17 literal substring entries; coverage is not completeness.
 

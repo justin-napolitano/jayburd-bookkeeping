@@ -1460,6 +1460,166 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/collection-onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discover own workspace setup eligibility and complete authorized existing connections
+         * @description Authenticated already-enrolled active verified actor only; Sandbox/private-enabled. No caller identity, capability, operator plan, provider IDs or evidence. SERIALIZABLE current authority and shared principal recovery fence. Inert discovery; explicit review/prepare/execute/terminal acknowledgement. No provider fetch, consent renewal, acquisition resume or journal mutation. No queries, encoding or header idempotency keys; closed duplicate/unknown JSON; no-store; response max1MiB. See docs/contracts/collection-onboarding.md.
+         */
+        get: operations["getPrivateOnboarding"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collection-onboarding/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review server-resolved private setup or complete existing connection adoption
+         * @description Authenticated already-enrolled active verified actor only; Sandbox/private-enabled. No caller identity, capability, operator plan, provider IDs or evidence. SERIALIZABLE current authority and shared principal recovery fence. Inert discovery; explicit review/prepare/execute/terminal acknowledgement. No provider fetch, consent renewal, acquisition resume or journal mutation. No queries, encoding or header idempotency keys; closed duplicate/unknown JSON; no-store; response max1MiB. See docs/contracts/collection-onboarding.md.
+         */
+        post: operations["previewPrivateOnboarding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collection-onboarding/commands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save immutable reviewed onboarding command on shared principal gate
+         * @description Authenticated already-enrolled active verified actor only; Sandbox/private-enabled. No caller identity, capability, operator plan, provider IDs or evidence. SERIALIZABLE current authority and shared principal recovery fence. Inert discovery; explicit review/prepare/execute/terminal acknowledgement. No provider fetch, consent renewal, acquisition resume or journal mutation. No queries, encoding or header idempotency keys; closed duplicate/unknown JSON; no-store; response max1MiB. See docs/contracts/collection-onboarding.md.
+         */
+        post: operations["preparePrivateOnboarding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collection-onboarding/commands/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discover durable onboarding recovery before a workspace exists
+         * @description Authenticated already-enrolled active verified actor only; Sandbox/private-enabled. No caller identity, capability, operator plan, provider IDs or evidence. SERIALIZABLE current authority and shared principal recovery fence. Inert discovery; explicit review/prepare/execute/terminal acknowledgement. No provider fetch, consent renewal, acquisition resume or journal mutation. No queries, encoding or header idempotency keys; closed duplicate/unknown JSON; no-store; response max1MiB. See docs/contracts/collection-onboarding.md.
+         */
+        get: operations["pendingPrivateOnboarding"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collection-onboarding/commands/{command_id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute exact saved onboarding command
+         * @description Authenticated already-enrolled active verified actor only; Sandbox/private-enabled. No caller identity, capability, operator plan, provider IDs or evidence. SERIALIZABLE current authority and shared principal recovery fence. Inert discovery; explicit review/prepare/execute/terminal acknowledgement. No provider fetch, consent renewal, acquisition resume or journal mutation. No queries, encoding or header idempotency keys; closed duplicate/unknown JSON; no-store; response max1MiB. See docs/contracts/collection-onboarding.md.
+         */
+        post: operations["executePrivateOnboarding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collection-onboarding/commands/{command_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel exact saved onboarding command
+         * @description Authenticated already-enrolled active verified actor only; Sandbox/private-enabled. No caller identity, capability, operator plan, provider IDs or evidence. SERIALIZABLE current authority and shared principal recovery fence. Inert discovery; explicit review/prepare/execute/terminal acknowledgement. No provider fetch, consent renewal, acquisition resume or journal mutation. No queries, encoding or header idempotency keys; closed duplicate/unknown JSON; no-store; response max1MiB. See docs/contracts/collection-onboarding.md.
+         */
+        post: operations["cancelPrivateOnboarding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collection-onboarding/commands/{command_id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acknowledge exact saved onboarding command
+         * @description Authenticated already-enrolled active verified actor only; Sandbox/private-enabled. No caller identity, capability, operator plan, provider IDs or evidence. SERIALIZABLE current authority and shared principal recovery fence. Inert discovery; explicit review/prepare/execute/terminal acknowledgement. No provider fetch, consent renewal, acquisition resume or journal mutation. No queries, encoding or header idempotency keys; closed duplicate/unknown JSON; no-store; response max1MiB. See docs/contracts/collection-onboarding.md.
+         */
+        post: operations["acknowledgePrivateOnboarding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/collection-onboarding/recovery/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close only an exact owned inaccessible onboarding recovery identity
+         * @description Authenticated already-enrolled active verified actor only; Sandbox/private-enabled. No caller identity, capability, operator plan, provider IDs or evidence. SERIALIZABLE current authority and shared principal recovery fence. Inert discovery; explicit review/prepare/execute/terminal acknowledgement. No provider fetch, consent renewal, acquisition resume or journal mutation. No queries, encoding or header idempotency keys; closed duplicate/unknown JSON; no-store; response max1MiB. See docs/contracts/collection-onboarding.md.
+         */
+        post: operations["clearInaccessiblePrivateOnboarding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3738,6 +3898,145 @@ export interface components {
             workspace_id: string;
             command: components["schemas"]["PrivateLabelCommandV3"] | null;
         };
+        PrivateOnboardingSource: {
+            /** Format: uuid */
+            source_id: string;
+            display_name: string;
+        };
+        PrivateOnboardingCandidate: {
+            /** Format: uuid */
+            candidate_id: string;
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            entity_name: string;
+            book_name: string;
+            snapshot: string;
+            sources: components["schemas"]["PrivateOnboardingSource"][];
+        };
+        PrivateOnboardingWorkspace: {
+            /** @constant */
+            state: "absent";
+        } | {
+            /** @constant */
+            state: "unavailable";
+        } | {
+            /** @constant */
+            state: "ready";
+            /** Format: uuid */
+            workspace_id: string;
+            authority_revision: string;
+            capabilities: ("read" | "acquire" | "classify")[];
+        };
+        PrivateOnboardingCatalog: {
+            /** @constant */
+            profile: "private-onboarding-catalog-v1";
+            workspace: components["schemas"]["PrivateOnboardingWorkspace"];
+            can_setup: boolean;
+            can_adopt: boolean;
+            candidates: components["schemas"]["PrivateOnboardingCandidate"][];
+        };
+        PrivateOnboardingPreviewRequest: {
+            /** @constant */
+            operation: "setup";
+        } | {
+            /** @constant */
+            operation: "adopt";
+            /** Format: uuid */
+            candidate_id: string;
+            snapshot: string;
+        };
+        PrivateOnboardingSetupReview: {
+            capabilities: ("read" | "acquire" | "classify")[];
+        };
+        PrivateOnboardingAdoptReview: {
+            /** Format: uuid */
+            candidate_id: string;
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            entity_name: string;
+            book_name: string;
+            snapshot: string;
+            sources: components["schemas"]["PrivateOnboardingSource"][];
+            expected_generation: string;
+            /** @constant */
+            impact: "pause_legacy_acquisition";
+        };
+        PrivateOnboardingPreview: {
+            /** @constant */
+            profile: "private-onboarding-preview-v1";
+            /** Format: uuid */
+            preview_id: string;
+            /** @enum {unknown} */
+            operation: "setup" | "adopt";
+            /** Format: date-time */
+            expires_at: string;
+            workspace_id: string | null;
+            snapshot: string;
+            review: components["schemas"]["PrivateOnboardingSetupReview"] | components["schemas"]["PrivateOnboardingAdoptReview"];
+        };
+        PrivateOnboardingPrepareRequest: {
+            /** Format: uuid */
+            preview_id: string;
+            prepare_key: string;
+        };
+        PrivateOnboardingSetupResult: {
+            /** Format: uuid */
+            workspace_id: string;
+            workspace_revision: string;
+            capabilities: ("read" | "acquire" | "classify")[];
+        };
+        PrivateOnboardingAdoptResult: {
+            /** Format: uuid */
+            collection_item_id: string;
+            item_generation: string;
+            sources: {
+                /** Format: uuid */
+                source_account_id: string;
+                /** @constant */
+                source_revision: "0";
+                /** @constant */
+                revision: "1";
+            }[];
+        };
+        PrivateOnboardingCommand: {
+            /** @constant */
+            profile: "private-onboarding-command-v1";
+            /** Format: uuid */
+            command_id: string;
+            prepare_key: string;
+            /** @enum {unknown} */
+            state: "prepared" | "committed" | "cancelled";
+            preview: components["schemas"]["PrivateOnboardingPreview"];
+            result: null | components["schemas"]["PrivateOnboardingSetupResult"] | components["schemas"]["PrivateOnboardingAdoptResult"] | {
+                /** @constant */
+                cancelled: true;
+            };
+            acknowledged: boolean;
+        };
+        PrivateOnboardingPending: {
+            /** @constant */
+            profile: "private-onboarding-pending-v1";
+            /** @enum {unknown} */
+            state: "none" | "available" | "inaccessible" | "blocked";
+            command: null | components["schemas"]["PrivateOnboardingCommand"];
+            recovery_id: null | string;
+        };
+        PrivateOnboardingClearRequest: {
+            /** Format: uuid */
+            recovery_id: string;
+        };
+        PrivateOnboardingClear: {
+            /** @constant */
+            profile: "private-onboarding-clear-v1";
+            /** Format: uuid */
+            recovery_id: string;
+            cleared: boolean;
+        };
+        PrivateOnboardingEmptyRequest: Record<string, never>;
     };
     responses: {
         /** @description Malformed request or missing required header. */
@@ -6625,6 +6924,276 @@ export interface operations {
                 };
             };
             /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPrivateOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized closed onboarding result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateOnboardingCatalog"];
+                };
+            };
+            /** @description Fixed RFC9457 failure, no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    previewPrivateOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateOnboardingPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized closed onboarding result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateOnboardingPreview"];
+                };
+            };
+            /** @description Fixed RFC9457 failure, no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    preparePrivateOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateOnboardingPrepareRequest"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized closed onboarding result */
+            201: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateOnboardingCommand"];
+                };
+            };
+            /** @description Fixed RFC9457 failure, no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    pendingPrivateOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized closed onboarding result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateOnboardingPending"];
+                };
+            };
+            /** @description Fixed RFC9457 failure, no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    executePrivateOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                command_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateOnboardingEmptyRequest"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized closed onboarding result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateOnboardingCommand"];
+                };
+            };
+            /** @description Fixed RFC9457 failure, no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    cancelPrivateOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                command_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateOnboardingEmptyRequest"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized closed onboarding result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateOnboardingCommand"];
+                };
+            };
+            /** @description Fixed RFC9457 failure, no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    acknowledgePrivateOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                command_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateOnboardingEmptyRequest"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized closed onboarding result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateOnboardingCommand"];
+                };
+            };
+            /** @description Fixed RFC9457 failure, no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    clearInaccessiblePrivateOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateOnboardingClearRequest"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized closed onboarding result */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateOnboardingClear"];
+                };
+            };
+            /** @description Fixed RFC9457 failure, no private diagnostics */
             default: {
                 headers: {
                     [name: string]: unknown;

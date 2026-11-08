@@ -121,3 +121,8 @@ func poolConfig(raw string) (*pgxpool.Config, error) {
 	cfg.ConnConfig.RuntimeParams = map[string]string{"application_name": "jayburd-api", "statement_timeout": "5000", "lock_timeout": "4000", "idle_in_transaction_session_timeout": "5000", "search_path": "pg_catalog"}
 	return cfg, nil
 }
+
+// onboardingEnabled confines the reviewed self-service policy to Sandbox private workflows.
+func onboardingEnabled(c Config) bool {
+	return c.Mode == "managed" && c.CollectionEnabled && c.Project == "jayburd-bookkeeping-dev" && c.ProviderEnvironment != "production"
+}

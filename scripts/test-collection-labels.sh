@@ -46,7 +46,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .l
 docker cp .local/labels.test "$proof_id:/proof/labels.test"
 # Preserve every existing43 proof, including compatible activation tests. New44,
 #45 and46 groups require their own pinned-schema runners rather than this43 template.
-legacy_tests=$(docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/labels.test "$POSTGRES_IMAGE" -test.list '^Test' | grep '^Test' | grep -vE '^Test(TagRec|Independent|Query45|Rule46|Rules46)' | paste -sd '|' -)
+legacy_tests=$(docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/labels.test "$POSTGRES_IMAGE" -test.list '^Test' | grep '^Test' | grep -vE '^Test(TagRec|Independent|Query45|Rule46|Rules46|Onboarding47)' | paste -sd '|' -)
 [[ -n "$legacy_tests" ]] || { echo 'FAIL: no legacy label proof groups found.' >&2; exit 1; }
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/labels.test "$POSTGRES_IMAGE" -collection-label-proof -test.run "^($legacy_tests)$" -test.v -test.timeout=240s
 # Exercise actual42->43 backfill of old pending work on a separate synthetic database.
