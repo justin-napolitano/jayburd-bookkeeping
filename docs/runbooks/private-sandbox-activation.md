@@ -27,6 +27,7 @@ credential/financial-record read or live activation.
 | Shared parser | Load retains existing file/inode/symlink/size guards and delegates to ParseApproved. Added inline/file exact-intent parity and strict rejection tests, including caller-owned byte mutation, duplicate/case-alias/unknown fields, hash mismatch, malformed/oversized/expired/foreign-project approvals. |
 | Composition handoff | Root explicitly reassigned Config/main/Managed/server wiring to this isolated lane. Added default-empty CollectionActivationPlanJSON/-collection-activation-plan, shared Sandbox/private-enabled scope and file/inline mutual exclusion, predependency32768-byte cap, parser selection and configured-adapter mount guard. No plan DTO/SQL/HTTP-body/recovery/adoption UI change. |
 | Inline validation | Focused go test -race activation/server PASS, including valid JSON exactly32768 bytes versus32769, file/inline exact-intent parity, source-buffer independence, strict envelope rejection, shared scope, mutual exclusion, UTF8 byte bounds and default-absent/configured route. make check/build PASS. Full make test attempted after wiring:18 release tests and non-listening packages PASS; unchanged acquisition/webhookhost/workerhost/workerruntime tests cannot bind local sockets in the sandbox. No skips or tracked dependency/toolchain change. |
+| SDK delivery review | Root independently approved5827864 code; identified default --args comma splitting of inline JSON. Reviewed official gcloud topic escaping DESCRIPTION/multi-character examples, flags-file YAML list examples and services update/--args on2026-11-07. Added contract operator guidance for a delimiter absent from the entire envelope/all arguments plus shell quoting, or a structured argument list; preserve all known old arguments, no environment retrieval/change, no plan values in public evidence, digest only. Documentation only; no SDK wrapper or cloud execution. |
 
 ## Current evidence
 
@@ -57,6 +58,14 @@ migrator, grant API owner/provision rights or invent an impersonated actor. The
 returned workspace then becomes an explicit adoption-plan target. Independently
 review its hash and every selected entity/book/Item/source UUID, generation,
 display name, evidence, key and expiry before enabling the source-only plan flag.
+For inline delivery, follow the contract's
+[SDK argument delivery](../contracts/private-sandbox-activation.md#sdk-argument-delivery):
+default comma splitting corrupts JSON even when shell quoted. Review the complete
+known prior argument list; use a checked-absent custom delimiter and correct
+shell quoting, or a structured flags-file list. Preserve exact approved bytes
+and every unrelated old argument. Do not retrieve/change environment settings or
+publish plan values; publish only the reviewed digest and bounded outcome. These
+source instructions are not managed execution evidence or authorization.
 
 ## PR handoff
 
