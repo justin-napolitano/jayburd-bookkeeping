@@ -1,0 +1,205 @@
+/* A single guided panel keeps review scope beside its explicit next action. */
+.panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 52rem;
+  margin-inline: auto;
+  padding: clamp(1rem, 3vw, 2rem);
+  color: var(--ink, #202124);
+  background: var(--paper, #fff);
+  border: 1px solid var(--line, #dce0e3);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.header {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.header h2 {
+  margin: 0;
+  font-size: clamp(1.4rem, 3vw, 1.8rem);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.header p,
+.hint {
+  color: var(--muted, #555b63);
+  line-height: 1.6;
+  max-width: 68ch;
+}
+.header p {
+  margin: 0.5rem 0 0;
+}
+.progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0;
+  gap: 0.75rem;
+}
+.progress li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--muted, #555b63);
+  border-bottom: 2px solid var(--line, #dce0e3);
+  padding-bottom: 0.75rem;
+}
+.progress li[aria-current="step"] {
+  color: var(--ink, #202124);
+  border-bottom-color: var(--accent, #286044);
+  font-weight: 700;
+}
+.stepNumber {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.85rem;
+}
+.progress [aria-current="step"] .stepNumber,
+.progress [data-complete] .stepNumber {
+  color: #fff;
+  background: var(--accent, #286044);
+  border-color: var(--accent, #286044);
+}
+.review h3,
+.notice h3 {
+  margin: 0 0 0.5rem;
+}
+.review p {
+  line-height: 1.6;
+}
+.connectionName {
+  font-weight: 600;
+}
+.accounts {
+  padding-left: 1.3rem;
+  margin-block: 0.75rem 1rem;
+}
+.accounts li {
+  padding-block: 0.2rem;
+}
+.notice {
+  padding: 1rem;
+  border-left: 3px solid var(--accent, #286044);
+  background: #f2f6f4;
+  line-height: 1.6;
+}
+.notice strong {
+  display: block;
+}
+.notice p {
+  margin-block: 0.5rem;
+}
+.alert {
+  padding: 0.8rem 1rem;
+  border-left: 3px solid #a33228;
+  background: #fff4f2;
+  line-height: 1.6;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 1.25rem;
+}
+.panel button {
+  max-width: 100%;
+  min-height: 44px;
+  white-space: normal;
+  line-height: 1.4;
+}
+.actions button {
+  margin: 0;
+}
+.panel .secondary {
+  color: var(--ink, #202124);
+  background: transparent;
+  border: 1px solid #83938d;
+}
+.panel .checkSaved {
+  display: block;
+  margin: 1.5rem 0 0;
+  padding: 0.5rem 0;
+  color: var(--muted, #555b63);
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  font-weight: 400;
+}
+.confirmation {
+  border-top: 1px solid var(--line, #dce0e3);
+  padding-top: 1rem;
+  margin-top: 1.25rem;
+}
+.result {
+  font-weight: 600;
+  line-height: 1.6;
+}
+.connections {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.connections li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--line, #dce0e3);
+}
+.connections li > div {
+  min-width: 0;
+}
+.connections span {
+  display: block;
+  color: var(--muted, #555b63);
+  margin-top: 0.25rem;
+}
+.connections button {
+  margin: 0;
+}
+.panel :focus-visible,
+.disclosure > summary:focus-visible {
+  outline: 3px solid var(--accent, #286044);
+  outline-offset: 3px;
+}
+.disclosure > summary {
+  min-height: 44px;
+  padding-block: 0.75rem;
+  cursor: pointer;
+}
+@media (max-width: 480px) {
+  .panel {
+    border-radius: 8px;
+  }
+  .progress {
+    gap: 0.4rem;
+  }
+  .progress li {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+  }
+  .stepNumber {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  .actions {
+    align-items: stretch;
+  }
+  .actions button,
+  .connections button {
+    width: 100%;
+  }
+}

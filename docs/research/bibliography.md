@@ -296,7 +296,7 @@ migration evidence to the approved image and workload identity.
 The first application adds three source registers: [server composition](server-sources.md)
 for bounded HTTP, workload identity and PostgreSQL pooling;
 [browser authentication](browser-auth-sources.md) for memory-only sign-in and
-TOTP enrollment/challenge and explicit email verification through hosted action links and the isolated local rehearsal (BA04); and [frontend/RE2JS](frontend-sources.md) for
+TOTP enrollment/challenge and explicit email verification through hosted action links and the isolated local rehearsal (BA04); and [frontend/RE2JS/UI flow](frontend-sources.md) for
 Next.js patch advisories/React/browser tests. The [integration source notes](app-integration-sources.md)
 record generated OpenAPI types, Node LTS and CI choices. Read their stated review
 depth and limits; offline tests do not verify live provider configuration.

@@ -92,6 +92,47 @@ async function saveSetup() {
   await screen.findByRole("button", { name: "Create private workspace" });
 }
 describe("private onboarding authority and recovery", () => {
+  it("shows guided progress without advancing saved work or acknowledging the result", async () => {
+    const f = fixture();
+    const { changed } = mount(f.request);
+    await screen.findByRole("button", { name: "Set up private transactions" });
+    const currentStep = () =>
+      screen
+        .getByRole("list", { name: "Setup progress" })
+        .querySelector('[aria-current="step"]')?.textContent;
+    expect(currentStep()).toBe("1Review");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set up private transactions" }),
+    );
+    await screen.findByRole("button", { name: "Save setup review" });
+    expect(currentStep()).toBe("1Review");
+    expect(f.saved).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save setup review" }),
+    );
+    await screen.findByRole("button", { name: "Create private workspace" });
+    expect(currentStep()).toBe("2Confirm");
+    expect(f.saved?.state).toBe("prepared");
+    expect(
+      f.request.mock.calls.some(([path]) => path.endsWith("/execute")),
+    ).toBe(false);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create private workspace" }),
+    );
+    await screen.findByRole("heading", {
+      name: "Your private workspace is ready",
+    });
+    expect(currentStep()).toBe("3Done");
+    expect(f.saved?.acknowledged).toBe(false);
+    expect(changed).not.toHaveBeenCalled();
+    expect(
+      f.request.mock.calls.some(([path]) => path.endsWith("/acknowledge")),
+    ).toBe(false);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Acknowledge setup result" }),
+    );
+    await waitFor(() => expect(changed).toHaveBeenCalledTimes(1));
+  });
   it("uses only explicit setup/save/execute/ack and refreshes real discovery", async () => {
     const f = fixture(),
       { changed, lock } = mount(f.request);
@@ -126,6 +167,31 @@ describe("private onboarding authority and recovery", () => {
     );
     expect(Object.keys(body).sort()).toEqual(["prepare_key", "preview_id"]);
     expect(f.request.mock.calls.every((c) => c.length < 3)).toBe(true);
+  });
+  it("labels a cancelled review accurately and keeps acknowledgement explicit", async () => {
+    const f = fixture();
+    const { changed, lock } = mount(f.request);
+    await saveSetup();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Cancel saved setup review" }),
+    );
+    await screen.findByRole("heading", { name: "Setup review cancelled" });
+    expect(
+      screen.queryByRole("heading", {
+        name: "Your private workspace is ready",
+      }),
+    ).toBeNull();
+    expect(f.saved?.state).toBe("cancelled");
+    expect(f.saved?.acknowledged).toBe(false);
+    expect(changed).not.toHaveBeenCalled();
+    expect(lock).toHaveBeenLastCalledWith(true);
+    expect(
+      f.request.mock.calls.some(([path]) => path.endsWith("/execute")),
+    ).toBe(false);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Acknowledge setup result" }),
+    );
+    await waitFor(() => expect(changed).toHaveBeenCalledTimes(1));
   });
   it("reviews the complete authorized connection and discloses the acquisition pause", async () => {
     const f = fixture(true);

@@ -1,3 +1,4 @@
+import { financeNavItem } from "./finance-navigation";
 import { expect, test } from "@playwright/experimental-ct-react";
 import { Harness } from "./Harness";
 import type { LabelCommand } from "../src/collection/types";
@@ -173,9 +174,7 @@ for (const restored of ["same", "other"] as const) {
       await page
         .getByRole("button", { name: "Acknowledge result", exact: true })
         .click();
-      await expect(
-        page.getByRole("button", { name: "All transactions", exact: true }),
-      ).toBeDisabled();
+      await expect(financeNavItem(page, "Transactions")).toBeDisabled();
       await expect(
         page.getByRole("button", {
           name: "Retry clearing the same private review",
@@ -196,9 +195,7 @@ for (const restored of ["same", "other"] as const) {
       })
       .click();
     if (restored === "same")
-      await expect(
-        page.getByRole("button", { name: "All transactions", exact: true }),
-      ).toBeEnabled();
+      await expect(financeNavItem(page, "Transactions")).toBeEnabled();
     else {
       await expect(saved).toBeVisible();
       expect(executions).toBe(0);

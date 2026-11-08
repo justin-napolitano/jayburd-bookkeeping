@@ -73,6 +73,62 @@ async function previewOne(
 }
 
 describe("private collection review", () => {
+  it("distinguishes unapplied filters and resets the complete server selector and selection", async () => {
+    const h = await start({ rows: [collectionRow(), collectionRow(1)] });
+    await h.user.click(screen.getAllByRole("checkbox")[0]);
+    await h.user.type(
+      screen.getByRole("searchbox", { name: "Search transactions" }),
+      "Fictional",
+    );
+    await h.user.selectOptions(
+      screen.getByLabelText("Account", { exact: true }),
+      "fictional-checking",
+    );
+    expect(
+      screen.getByText("Filters changed. Apply to update transactions."),
+    ).toBeTruthy();
+    expect(h.calls.queries).toHaveLength(1);
+    await h.user.click(screen.getByRole("button", { name: "Apply filters" }));
+    await screen.findByText("2 filters applied");
+    expect(h.calls.queries.at(-1)?.source_account_id).toBe(
+      "fictional-checking",
+    );
+    await h.user.click(screen.getAllByRole("checkbox")[0]);
+    await h.user.click(screen.getByRole("button", { name: "Reset filters" }));
+    await screen.findByText("Showing all authorized transactions");
+    expect(h.calls.queries.at(-1)).toEqual({
+      ...collectionQuery(),
+      snapshot: null,
+      cursor: null,
+    });
+    expect(screen.getByText("0 selected on this page")).toBeTruthy();
+    expect(
+      screen.queryByRole("group", { name: "Selected transaction actions" }),
+    ).toBeNull();
+    expect(h.calls.previews).toHaveLength(0);
+    expect(h.calls.prepares).toHaveLength(0);
+  });
+
+  it("shows contextual actions only for selected rows and restores focus when clearing them", async () => {
+    const h = await start({ rows: [collectionRow(), collectionRow(1)] });
+    expect(
+      screen.queryByLabelText("Label selected transactions", { exact: true }),
+    ).toBeNull();
+    const row = screen.getByRole("button", {
+      name: "Fictional purchase 1",
+    });
+    await h.user.click(screen.getAllByRole("checkbox")[0]);
+    expect(
+      screen.getByRole("group", { name: "Selected transaction actions" }),
+    ).toBeTruthy();
+    await h.user.click(screen.getByRole("button", { name: "Clear selection" }));
+    expect(
+      screen.queryByRole("group", { name: "Selected transaction actions" }),
+    ).toBeNull();
+    expect(document.activeElement).toBe(row);
+    expect(h.calls.previews).toHaveLength(0);
+  });
+
   it("keeps an inert rule draft available after a definite server preview rejection", async () => {
     const h = await start();
     h.port.preview = vi
