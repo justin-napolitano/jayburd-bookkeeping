@@ -32,7 +32,10 @@ func Handler(auth ledger.Authenticator, operations Operations) http.Handler {
 	} {
 		mux.HandleFunc(pattern, endpoint(auth, operations, operation))
 		mux.HandleFunc(strings.Replace(pattern, "/v1/", "/v2/", 1), endpoint(auth, operations, "v2_"+operation))
+		mux.HandleFunc(strings.Replace(pattern, "/v1/", "/v3/", 1), endpoint(auth, operations, "v3_"+operation))
 	}
+	// Detail is additive; historic command profiles keep their own exact routes.
+	mux.HandleFunc("POST /v3/collections/{workspace}/review/detail", endpoint(auth, operations, "v3_detail"))
 	mux.HandleFunc("GET /v1/collection-recovery", endpoint(auth, operations, "recovery"))
 	mux.HandleFunc("POST /v1/collection-recovery/clear", endpoint(auth, operations, "clear_recovery"))
 	return mux
@@ -41,7 +44,10 @@ func Handler(auth ledger.Authenticator, operations Operations) http.Handler {
 // endpoint authenticates before parsing a private selector and never accepts caller identity.
 func endpoint(auth ledger.Authenticator, operations Operations, operation string) http.HandlerFunc {
 	version := 1
-	if strings.HasPrefix(operation, "v2_") {
+	if strings.HasPrefix(operation, "v3_") {
+		version = 3
+		operation = strings.TrimPrefix(operation, "v3_")
+	} else if strings.HasPrefix(operation, "v2_") {
 		version = 2
 		operation = strings.TrimPrefix(operation, "v2_")
 	}
@@ -114,6 +120,13 @@ func endpoint(auth ledger.Authenticator, operations Operations, operation string
 			body, err = operations.Catalog(r.Context(), request)
 		case "query":
 			body, err = operations.Query(r.Context(), request)
+		case "detail":
+			reader, ok := operations.(DetailOperations)
+			if !ok {
+				fail(503, "temporarily_unavailable")
+				return
+			}
+			body, err = reader.Detail(r.Context(), request)
 		case "preview":
 			body, err = operations.Preview(r.Context(), request)
 		case "prepare":
@@ -164,7 +177,7 @@ func validID(value string) bool {
 // bodyLimit bounds transport memory without reproducing SQL object/selection validation.
 func bodyLimit(operation string) int64 {
 	switch operation {
-	case "query":
+	case "query", "detail":
 		return 8192
 	case "preview":
 		return 524288

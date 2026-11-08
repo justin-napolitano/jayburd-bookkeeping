@@ -18,6 +18,63 @@ test("private topics and strategic tags recover committed responses without book
   await expect(
     page.getByText("Fictional euro purchase", { exact: true }),
   ).toBeVisible();
+  // Exercise actual current SQL filtering and detail, not an injected component port.
+  await page.getByText("Book, topic and date filters", { exact: true }).click();
+  await page
+    .getByLabel("Merchant match", { exact: true })
+    .selectOption("exact");
+  await page
+    .getByLabel("Merchant text", { exact: true })
+    .fill("Fictional Cafe");
+  await page
+    .getByLabel("Original currency for amount filter", { exact: true })
+    .selectOption("00000000-0000-4000-8000-000000000002");
+  await page
+    .getByLabel("Minimum original amount", { exact: true })
+    .fill("0.10");
+  await page
+    .getByLabel("Maximum original amount", { exact: true })
+    .fill("0.10");
+  await page
+    .getByRole("button", { name: "Apply filters", exact: true })
+    .click();
+  await expect(
+    page.getByRole("list", { name: "Transaction rows" }).getByRole("listitem"),
+  ).toHaveCount(1);
+  await expect(
+    page.getByText("Fictional euro purchase", { exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Fictional cafe purchase", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Transaction detail", exact: true }),
+  ).toBeFocused();
+  await expect(
+    page.getByText("This source is unassigned to a book.", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Institution unavailable. Legal owner unknown.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Back to transactions", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Fictional cafe purchase", exact: true }),
+  ).toBeFocused();
+  await page.getByText("Book, topic and date filters", { exact: true }).click();
+  await page.getByLabel("Merchant match", { exact: true }).selectOption("all");
+  await page
+    .getByLabel("Original currency for amount filter", { exact: true })
+    .selectOption("");
+  await page
+    .getByRole("button", { name: "Apply filters", exact: true })
+    .click();
+  await expect(
+    page.getByRole("list", { name: "Transaction rows" }).getByRole("listitem"),
+  ).toHaveCount(4);
   const headers = {
     Authorization: "Bearer synthetic.browser.proof",
     Origin: new URL(page.url()).origin,
@@ -66,7 +123,7 @@ test("private topics and strategic tags recover committed responses without book
   ).toBeVisible();
   let taxonomyExecutions = 0;
   await page.route(
-    "**/v2/collections/*/label-commands/*/execute",
+    "**/v3/collections/*/label-commands/*/execute",
     async (route) => {
       const response = await route.fetch();
       expect(response.status()).toBe(200);
@@ -80,7 +137,7 @@ test("private topics and strategic tags recover committed responses without book
     .click();
   await expect.poll(() => taxonomyExecutions).toBe(1);
   await component.unmount();
-  await page.unroute("**/v2/collections/*/label-commands/*/execute");
+  await page.unroute("**/v3/collections/*/label-commands/*/execute");
   component = await mount(<IntegrationHarness />);
   await expect(
     page.getByText("Topics updated. No journal was created.", { exact: true }),
@@ -107,7 +164,7 @@ test("private topics and strategic tags recover committed responses without book
     .click();
   let labelExecutions = 0;
   await page.route(
-    "**/v2/collections/*/label-commands/*/execute",
+    "**/v3/collections/*/label-commands/*/execute",
     async (route) => {
       const response = await route.fetch();
       expect(response.status()).toBe(200);
@@ -123,7 +180,7 @@ test("private topics and strategic tags recover committed responses without book
     .click();
   await expect.poll(() => labelExecutions).toBe(1);
   await component.unmount();
-  await page.unroute("**/v2/collections/*/label-commands/*/execute");
+  await page.unroute("**/v3/collections/*/label-commands/*/execute");
   component = await mount(<IntegrationHarness />);
   await expect(
     page.getByText("Labels applied. No journal was created.", { exact: true }),
@@ -184,7 +241,7 @@ test("private topics and strategic tags recover committed responses without book
     .click();
   let tagExecutions = 0;
   await page.route(
-    "**/v2/collections/*/label-commands/*/execute",
+    "**/v3/collections/*/label-commands/*/execute",
     async (route) => {
       const response = await route.fetch();
       expect(response.status()).toBe(200);
@@ -206,7 +263,7 @@ test("private topics and strategic tags recover committed responses without book
     .click();
   await expect.poll(() => tagExecutions).toBe(1);
   await component.unmount();
-  await page.unroute("**/v2/collections/*/label-commands/*/execute");
+  await page.unroute("**/v3/collections/*/label-commands/*/execute");
   component = await mount(<IntegrationHarness />);
   await expect(
     page.getByText("Tags applied. No journal was created.", { exact: true }),

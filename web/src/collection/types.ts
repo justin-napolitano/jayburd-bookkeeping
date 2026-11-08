@@ -1,3 +1,13 @@
+import {
+  canonicalRules,
+  validRuleCatalog,
+  validRuleSuggestion,
+  validRuleApplication,
+  type RuleDefinition,
+  type RuleResult,
+  type RuleSuggestion,
+  type RuleApplication,
+} from "./rules";
 // Scope comes from the future authorized service; its shape grants no capability.
 export type Workspace = {
   workspace_id: string;
@@ -17,7 +27,26 @@ export type Tag = {
   name: string;
   status: "active" | "retired";
 };
+export type BookChoice = {
+  entity_id: string;
+  book_id: string;
+  name: string;
+  entity_name: string;
+};
+export type CurrencyChoice = {
+  currency_version_id: string;
+  code: string;
+  numeric_code: string | null;
+  minor_unit: number;
+  valid_from: string;
+  valid_to: string | null;
+};
 export type Catalog = {
+  rules: RuleDefinition[];
+  books: BookChoice[];
+  currencies: CurrencyChoice[];
+  institution: { state: "unavailable" };
+  legal_owner: { state: "unknown" };
   taxonomy_revision: string;
   ruleset_revision: string;
   map_revision: string;
@@ -42,6 +71,8 @@ export type TopicFilter =
   | { kind: "uncategorized" }
   | { kind: "topic"; topic_id: string };
 export type LabelAction =
+  | { kind: "rule_catalog"; rules: RuleDefinition[] }
+  | { kind: "rules_apply" }
   | { kind: "topic"; topic_id: string }
   | { kind: "uncategorized" }
   | { kind: "taxonomy"; topics: Topic[] }
@@ -55,7 +86,47 @@ export type TagFilter =
   | { kind: "all" }
   | { kind: "untagged" }
   | { kind: "tag"; tag_id: string };
+export type MerchantFilter =
+  | { kind: "all" | "missing" }
+  | { kind: "exact" | "contains"; value: string };
+export type AmountFilter = null | {
+  currency_version_id: string;
+  minimum: string | null;
+  maximum: string | null;
+  direction: "all" | "inflow" | "outflow" | "zero";
+};
+export type BookFilter =
+  | { kind: "all" | "unassigned" | "unavailable" }
+  | { kind: "book"; entity_id: string; book_id: string };
+export type SortField =
+  | "date"
+  | "account"
+  | "description"
+  | "merchant"
+  | "amount"
+  | "currency"
+  | "book"
+  | "source_state"
+  | "journal_state"
+  | "topic"
+  | "tags"
+  | "institution"
+  | "legal_owner";
 export type Selector = {
+  merchant: MerchantFilter;
+  amount: AmountFilter;
+  institution: { kind: "all" | "unavailable" };
+  legal_owner: { kind: "all" | "unknown" };
+  book: BookFilter;
+  status: {
+    source: "all" | "booked" | "pending" | "removed" | "held";
+    journal:
+      | "all"
+      | "unposted"
+      | "posted"
+      | "correction_required"
+      | "unavailable";
+  };
   source_account_id: string | null;
   assignment: "all" | "assigned" | "unassigned";
   starts_on: string | null;
@@ -63,10 +134,10 @@ export type Selector = {
   search: string;
   topic: TopicFilter;
   tag: TagFilter;
-  sort: "date_desc" | "date_asc";
+  sort: { field: SortField; order: "asc" | "desc" };
 };
 export type Query = Selector & {
-  profile: "private-collection-review-v2";
+  profile: "private-collection-review-v3";
   workspace_id: string;
   snapshot: Snapshot | null;
   cursor: string | null;
@@ -132,14 +203,40 @@ export type Row = Selection & {
       };
 };
 export type LegacyRow = Omit<Row, "owner_tags">;
+export type ReviewRow = Row & {
+  institution: { state: "unavailable" };
+  legal_owner: { state: "unknown" };
+  rule_suggestion: RuleSuggestion;
+  rule_application: RuleApplication;
+};
+export type DetailRequest = Selection & {
+  profile: "private-collection-detail-v1";
+  snapshot: Snapshot;
+};
+export type JournalAnchor = {
+  entity_id: string;
+  book_id: string;
+  journal_id: string;
+  source_revision: string;
+};
+export type SourceDetail = {
+  profile: "private-collection-detail-v1";
+  workspace_id: string;
+  snapshot: Snapshot;
+  row: ReviewRow;
+  links: {
+    state: "available" | "unassigned" | "unavailable";
+    journals: JournalAnchor[];
+  };
+};
 export type Page = {
-  profile: "private-collection-review-v2";
+  profile: "private-collection-review-v3";
   workspace_id: string;
   selector: Selector;
   snapshot: Snapshot;
   matching_count: string;
   start_index: string;
-  items: Row[];
+  items: ReviewRow[];
   next_cursor: string | null;
   partial: boolean;
 };
@@ -150,7 +247,12 @@ export type PreviewRequest = {
   action: LabelAction;
 };
 // Review rows let restored commands show the exact persisted intent before explicit execution.
-export type Preview = PreviewRequest & {
+export type ManualLabelAction = Exclude<
+  LabelAction,
+  { kind: "rule_catalog" | "rules_apply" }
+>;
+export type V2Preview = Omit<PreviewRequest, "action"> & {
+  action: ManualLabelAction;
   profile: "private-collection-preview-v2";
   preview_id: string;
   expires_at: string;
@@ -158,17 +260,28 @@ export type Preview = PreviewRequest & {
   review_rows: Row[];
   tag_results: TagResult[];
 };
+export type Preview = PreviewRequest & {
+  profile: "private-collection-preview-v3";
+  preview_id: string;
+  expires_at: string;
+  selected_count: string;
+  review_rows: Row[];
+  tag_results: TagResult[];
+  rule_results: RuleResult[];
+  apply_count: string;
+  abstain_count: string;
+};
 export type TagResult = Selection & { tags: Tag[] };
 export type LegacyPreview = Omit<
-  Preview,
+  V2Preview,
   "profile" | "snapshot" | "review_rows" | "tag_results" | "action"
 > & {
   profile: "private-collection-preview-v1";
   snapshot: LegacySnapshot;
   review_rows: LegacyRow[];
-  action: Exclude<LabelAction, { kind: "tags" | "tag_catalog" }>;
+  action: Exclude<ManualLabelAction, { kind: "tags" | "tag_catalog" }>;
 };
-export type StoredPreview = Preview | LegacyPreview;
+export type StoredPreview = Preview | V2Preview | LegacyPreview;
 export type LabelCommand = {
   workspace_id: string;
   command_id: string;
@@ -181,6 +294,7 @@ export type CommandIdentity = { workspace_id: string; command_id: string };
 // This injected port declares future service behavior; it supplies no fetch, auth bypass or store.
 export type CollectionPort = {
   query: (query: Query) => Promise<Page>;
+  detail: (request: DetailRequest) => Promise<SourceDetail>;
   preview: (request: PreviewRequest) => Promise<Preview>;
   prepare: (request: {
     workspace_id: string;
@@ -268,16 +382,18 @@ export function sameAction(a: LabelAction, b: LabelAction): boolean {
                 : 0,
           ),
         }
-      : action.kind === "tag_catalog"
-        ? {
-            ...action,
-            tags: [...action.tags].sort((a, b) =>
-              a.tag_id.localeCompare(b.tag_id),
-            ),
-          }
-        : action.kind === "tags"
-          ? { ...action, tag_ids: [...action.tag_ids].sort() }
-          : action;
+      : action.kind === "rule_catalog"
+        ? { ...action, rules: canonicalRules(action.rules) }
+        : action.kind === "tag_catalog"
+          ? {
+              ...action,
+              tags: [...action.tags].sort((a, b) =>
+                a.tag_id.localeCompare(b.tag_id),
+              ),
+            }
+          : action.kind === "tags"
+            ? { ...action, tag_ids: [...action.tag_ids].sort() }
+            : action;
   return canonical(normalize(a)) === canonical(normalize(b));
 }
 // Bounded complete editions retain history; semantic hierarchy checks are repeated by SQL.
@@ -356,21 +472,31 @@ export function validTags(value: unknown): value is Tag[] {
     value.filter((tag) => tag.status === "active").length <= 500
   );
 }
-function validAction(value: unknown, legacy = false): value is LabelAction {
+function validAction(
+  value: unknown,
+  version: 1 | 2 | 3 = 3,
+): value is LabelAction {
   return (
     object(value) &&
-    ((value.kind === "uncategorized" && Object.keys(value).length === 1) ||
+    ((version === 3 &&
+      value.kind === "rule_catalog" &&
+      Object.keys(value).length === 2 &&
+      validRuleCatalog(value.rules)) ||
+      (version === 3 &&
+        value.kind === "rules_apply" &&
+        Object.keys(value).length === 1) ||
+      (value.kind === "uncategorized" && Object.keys(value).length === 1) ||
       (value.kind === "topic" &&
         Object.keys(value).length === 2 &&
         opaque(value.topic_id)) ||
       (value.kind === "taxonomy" &&
         Object.keys(value).length === 2 &&
         validTopics(value.topics)) ||
-      (!legacy &&
+      (version >= 2 &&
         value.kind === "tag_catalog" &&
         Object.keys(value).length === 2 &&
         validTags(value.tags)) ||
-      (!legacy &&
+      (version >= 2 &&
         value.kind === "tags" &&
         Object.keys(value).length === 3 &&
         ["add", "remove", "replace"].includes(String(value.operation)) &&
@@ -583,7 +709,13 @@ export function sameSelector(a: Selector, b: Selector): boolean {
     a.tag.kind === b.tag.kind &&
     (a.tag.kind !== "tag" ||
       (b.tag.kind === "tag" && a.tag.tag_id === b.tag.tag_id)) &&
-    a.sort === b.sort
+    canonical(a.merchant) === canonical(b.merchant) &&
+    canonical(a.amount) === canonical(b.amount) &&
+    canonical(a.institution) === canonical(b.institution) &&
+    canonical(a.legal_owner) === canonical(b.legal_owner) &&
+    canonical(a.book) === canonical(b.book) &&
+    canonical(a.status) === canonical(b.status) &&
+    canonical(a.sort) === canonical(b.sort)
   );
 }
 // Reject a mismatched or oversized safe projection before any private row reaches rendering.
@@ -614,7 +746,10 @@ export function validPage(
     value.items.length > query.limit ||
     !value.items.every(
       (row) =>
-        validRow(row, workspace.workspace_id) &&
+        validReviewRow(row, workspace.workspace_id) &&
+        row.rule_suggestion.rules.every(
+          (rule) => rule.rule_revision === catalog.ruleset_revision,
+        ) &&
         (query.source_account_id === null ||
           row.source_id === query.source_account_id),
     ) ||
@@ -647,44 +782,54 @@ function validStoredPreview(
   request:
     | PreviewRequest
     | Pick<LegacyPreview, "workspace_id" | "snapshot" | "selection" | "action">,
-  legacy = false,
+  version: 1 | 2 | 3 = 3,
 ): value is StoredPreview {
+  const legacy = version === 1;
   return (
     object(value) &&
     request.selection.length <= 100 &&
-    value.profile ===
-      (legacy
-        ? "private-collection-preview-v1"
-        : "private-collection-preview-v2") &&
+    value.profile === `private-collection-preview-v${version}` &&
     value.workspace_id === request.workspace_id &&
     opaque(value.preview_id) &&
     text(value.expires_at, 40) &&
     Number.isFinite(Date.parse(value.expires_at)) &&
     decimal(value.selected_count) &&
     value.selected_count === String(request.selection.length) &&
-    (["taxonomy", "tag_catalog"].includes(request.action.kind)
+    (["taxonomy", "tag_catalog", "rule_catalog"].includes(request.action.kind)
       ? request.selection.length === 0
       : request.selection.length >= 1) &&
     validSnapshot(value.snapshot, legacy) &&
     sameSnapshot(value.snapshot, request.snapshot) &&
-    validAction(value.action, legacy) &&
+    validAction(value.action, version) &&
     sameAction(value.action, request.action) &&
     Array.isArray(value.selection) &&
     uniqueSelection(value.selection, request.workspace_id) &&
     sameSelection(value.selection, request.selection) &&
     Array.isArray(value.review_rows) &&
-    value.review_rows.every((row) =>
-      validRow(row, request.workspace_id, legacy),
+    value.review_rows.every(
+      (row) =>
+        validRow(row, request.workspace_id, legacy) &&
+        ![
+          "institution",
+          "legal_owner",
+          "rule_suggestion",
+          "rule_application",
+        ].some((key) => Object.hasOwn(row, key)),
     ) &&
     uniqueSelection(value.review_rows, request.workspace_id) &&
     sameSelection(value.review_rows, request.selection) &&
     (legacy
       ? !Object.hasOwn(value, "tag_results")
-      : validTagResults(value as unknown as Preview))
+      : validTagResults(value as unknown as Preview | V2Preview)) &&
+    (version === 3
+      ? validRuleResults(value as unknown as Preview)
+      : !Object.hasOwn(value, "rule_results") &&
+        !Object.hasOwn(value, "apply_count") &&
+        !Object.hasOwn(value, "abstain_count"))
   );
 }
 // SQL supplies exact resulting sets; validate their bounded identities and agreement with reviewed set intent.
-function validTagResults(preview: Preview): boolean {
+function validTagResults(preview: Preview | V2Preview): boolean {
   if (!Array.isArray(preview.tag_results)) return false;
   if (preview.action.kind !== "tags") return preview.tag_results.length === 0;
   if (
@@ -750,16 +895,22 @@ export function validCommand(
     !["prepared", "committed", "cancelled"].includes(String(value.state)) ||
     typeof value.acknowledged !== "boolean" ||
     (value.state === "prepared" && value.acknowledged) ||
-    !object(value.preview) ||
-    !validSnapshot(
-      value.preview.snapshot,
-      value.preview.profile === "private-collection-preview-v1",
-    ) ||
+    !object(value.preview)
+  )
+    return false;
+  const version =
+    value.preview.profile === "private-collection-preview-v1"
+      ? 1
+      : value.preview.profile === "private-collection-preview-v2"
+        ? 2
+        : value.preview.profile === "private-collection-preview-v3"
+          ? 3
+          : null;
+  if (
+    !version ||
+    !validSnapshot(value.preview.snapshot, version === 1) ||
     !Array.isArray(value.preview.selection) ||
-    !validAction(
-      value.preview.action,
-      value.preview.profile === "private-collection-preview-v1",
-    )
+    !validAction(value.preview.action, version)
   )
     return false;
   return validStoredPreview(
@@ -770,7 +921,7 @@ export function validCommand(
       selection: value.preview.selection as Selection[],
       action: value.preview.action,
     },
-    value.preview.profile === "private-collection-preview-v1",
+    version,
   );
 }
 // Stable structural equality rejects changed saved review values without depending on JSON key order.
@@ -804,9 +955,131 @@ export function samePreview(a: StoredPreview, b: StoredPreview): boolean {
     canonical(a.action) === canonical(b.action) &&
     sameSelection(a.selection, b.selection) &&
     canonical(rows(a)) === canonical(rows(b)) &&
-    (a.profile === "private-collection-preview-v2"
-      ? b.profile === "private-collection-preview-v2" &&
-        canonical(a.tag_results) === canonical(b.tag_results)
-      : b.profile === "private-collection-preview-v1")
+    (a.profile === "private-collection-preview-v3"
+      ? b.profile === "private-collection-preview-v3" &&
+        canonical(a.tag_results) === canonical(b.tag_results) &&
+        canonical(a.rule_results) === canonical(b.rule_results) &&
+        a.apply_count === b.apply_count &&
+        a.abstain_count === b.abstain_count
+      : a.profile === "private-collection-preview-v2"
+        ? b.profile === "private-collection-preview-v2" &&
+          canonical(a.tag_results) === canonical(b.tag_results)
+        : b.profile === "private-collection-preview-v1")
+  );
+}
+
+// New read metadata never fabricates an institution or legal owner from account/book text.
+export function validReviewRow(
+  value: unknown,
+  workspace: string,
+): value is ReviewRow {
+  return (
+    validRow(value, workspace) &&
+    object((value as ReviewRow).institution) &&
+    (value as ReviewRow).institution.state === "unavailable" &&
+    object((value as ReviewRow).legal_owner) &&
+    (value as ReviewRow).legal_owner.state === "unknown" &&
+    validRuleSuggestion((value as ReviewRow).rule_suggestion, true) &&
+    validRuleApplication((value as ReviewRow).rule_application)
+  );
+}
+// Echo every immutable selector/pin and keep historical journal anchors distinct from current source revisions.
+export function validSourceDetail(
+  value: unknown,
+  request: DetailRequest,
+): value is SourceDetail {
+  if (
+    !object(value) ||
+    value.profile !== request.profile ||
+    value.workspace_id !== request.workspace_id ||
+    !validSnapshot(value.snapshot) ||
+    !sameSnapshot(value.snapshot, request.snapshot) ||
+    !validReviewRow(value.row, request.workspace_id) ||
+    !value.row.rule_suggestion.rules.every(
+      (rule) => rule.rule_revision === request.snapshot.ruleset_revision,
+    ) ||
+    !sameSelection([value.row], [request]) ||
+    !object(value.links) ||
+    !["available", "unassigned", "unavailable"].includes(
+      String(value.links.state),
+    ) ||
+    !Array.isArray(value.links.journals) ||
+    value.links.journals.length > 100 ||
+    (value.links.state !== "available" && value.links.journals.length !== 0)
+  )
+    return false;
+  if (
+    value.links.state === "available"
+      ? value.row.assignment.state !== "assigned"
+      : value.links.state === "unassigned"
+        ? value.row.assignment.state !== "unassigned"
+        : value.row.assignment.state !== "unavailable"
+  )
+    return false;
+  if (
+    (value.links.state === "unavailable") !==
+    (value.row.journal_state === "unavailable")
+  )
+    return false;
+  const detailRow = value.row;
+  const ids = new Set<string>();
+  return value.links.journals.every((anchor) => {
+    if (
+      !object(anchor) ||
+      !tagID(anchor.entity_id) ||
+      !tagID(anchor.book_id) ||
+      !tagID(anchor.journal_id) ||
+      !decimal(anchor.source_revision) ||
+      anchor.source_revision === "0" ||
+      detailRow.assignment.state !== "assigned" ||
+      !detailRow.assignment.books.some(
+        (book) => book.book_id === anchor.book_id,
+      )
+    )
+      return false;
+    const key = JSON.stringify([
+      anchor.entity_id,
+      anchor.book_id,
+      anchor.journal_id,
+    ]);
+    if (ids.has(key)) return false;
+    ids.add(key);
+    return true;
+  });
+}
+
+// Preview counts are checked only against the exact selected rows, never inferred from a current query page.
+function validRuleResults(preview: Preview): boolean {
+  if (
+    !Array.isArray(preview.rule_results) ||
+    !decimal(preview.apply_count) ||
+    !decimal(preview.abstain_count)
+  )
+    return false;
+  if (preview.action.kind !== "rules_apply")
+    return (
+      preview.rule_results.length === 0 &&
+      preview.apply_count === "0" &&
+      preview.abstain_count === "0"
+    );
+  if (
+    !preview.rule_results.every(
+      (result) =>
+        validSelection(result, preview.workspace_id) &&
+        validRuleSuggestion(result) &&
+        result.rules.every(
+          (rule) => rule.rule_revision === preview.snapshot.ruleset_revision,
+        ),
+    ) ||
+    !uniqueSelection(preview.rule_results, preview.workspace_id) ||
+    !sameSelection(preview.rule_results, preview.selection)
+  )
+    return false;
+  const applies = BigInt(
+    preview.rule_results.filter((result) => result.will_apply).length,
+  );
+  return (
+    BigInt(preview.apply_count) === applies &&
+    BigInt(preview.abstain_count) === BigInt(preview.selection.length) - applies
   );
 }

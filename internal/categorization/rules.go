@@ -3,6 +3,7 @@
 package categorization
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"regexp/syntax"
@@ -90,6 +91,14 @@ type Engine struct {
 
 // Compile validates finite work, scope, active outputs and the complete closed rule language.
 func Compile(c Catalog, rules []Rule) (*Engine, error) {
+	return CompileContext(context.Background(), c, rules)
+}
+
+// CompileContext uses the same bounded compiler and cooperatively honors cancellation.
+func CompileContext(ctx context.Context, c Catalog, rules []Rule) (*Engine, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if !validScope(c.Scope) || !identifier(c.TaxonomyRevision) || !identifier(c.RulesRevision) ||
 		len(rules) > 100 || !validIDs(c.Topics, 500) || !validIDs(c.Tags, 500) {
 		return nil, ErrInput
@@ -99,6 +108,9 @@ func Compile(c Catalog, rules []Rule) (*Engine, error) {
 	e := &Engine{catalog: c}
 	seen := map[string]bool{}
 	for _, r := range rules {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if r.Scope != c.Scope || !identifier(r.ID) || !identifier(r.Revision) || seen[r.ID] ||
 			(r.Account != "" && !identifier(r.Account)) || r.Priority < -1000000 || r.Priority > 1000000 ||
 			len(r.Conditions) < 1 || len(r.Conditions) > 8 {
@@ -113,6 +125,9 @@ func Compile(c Catalog, rules []Rule) (*Engine, error) {
 		r.Conditions = slices.Clone(r.Conditions)
 		cr := compiledRule{rule: r}
 		for _, cond := range r.Conditions {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
 			cc, rank, ok := compileCondition(cond)
 			if !ok {
 				return nil, ErrInput
@@ -124,16 +139,30 @@ func Compile(c Catalog, rules []Rule) (*Engine, error) {
 		}
 		e.rules = append(e.rules, cr)
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	return e, nil
 }
 
 // Evaluate rejects the whole batch on invalid input; it never expands the explicit selection.
 func (e *Engine) Evaluate(facts []Fact) ([]Result, error) {
+	return e.EvaluateContext(context.Background(), facts)
+}
+
+// EvaluateContext preserves matching semantics and stops between bounded matches.
+func (e *Engine) EvaluateContext(ctx context.Context, facts []Fact) ([]Result, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if e == nil || len(facts) > 100 {
 		return nil, ErrInput
 	}
 	seen := map[string]bool{}
 	for _, f := range facts {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if f.Scope != e.catalog.Scope || !identifier(f.ID) || !identifier(f.Revision) || seen[f.ID] ||
 			!identifier(f.Account) || !identifier(f.CurrencyVersion) || !date(f.Date) ||
 			(f.Direction != "inflow" && f.Direction != "outflow") || !text(f.Description) ||
@@ -156,31 +185,44 @@ func (e *Engine) Evaluate(facts []Fact) ([]Result, error) {
 	}
 	results := make([]Result, 0, len(facts))
 	for _, f := range facts {
-		results = append(results, e.evaluate(f))
+		r, err := e.evaluate(ctx, f)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	return results, nil
 }
 
 // evaluate ranks scope before priority and specificity; tied disagreement always abstains.
-func (e *Engine) evaluate(f Fact) Result {
+func (e *Engine) evaluate(ctx context.Context, f Fact) (Result, error) {
 	r := Result{ID: f.ID, Revision: f.Revision, TaxonomyRevision: e.catalog.TaxonomyRevision, RulesRevision: e.catalog.RulesRevision, Status: "unclassified"}
 	if o := f.Override; o != nil {
 		if o.SourceRevision != f.Revision || o.TaxonomyRevision != e.catalog.TaxonomyRevision {
 			r.Status = "stale_override"
-			return r
+			return r, nil
 		}
 		out, _ := normalize(o.Output, e.catalog)
 		r.Output = &out
 		r.Status = "override"
-		return r
+		return r, nil
 	}
 	var winners []compiledRule
 	for _, rule := range e.rules {
+		if err := ctx.Err(); err != nil {
+			return Result{}, err
+		}
 		if rule.rule.Account != "" && rule.rule.Account != f.Account {
 			continue
 		}
 		matched := true
 		for _, cond := range rule.conditions {
+			if err := ctx.Err(); err != nil {
+				return Result{}, err
+			}
 			if !cond.matches(f) {
 				matched = false
 				break
@@ -200,7 +242,7 @@ func (e *Engine) evaluate(f Fact) Result {
 		}
 	}
 	if len(winners) == 0 {
-		return r
+		return r, nil
 	}
 	slices.SortFunc(winners, func(a, b compiledRule) int { return strings.Compare(a.rule.ID, b.rule.ID) })
 	out := copyOutput(winners[0].rule.Output)
@@ -214,7 +256,7 @@ func (e *Engine) evaluate(f Fact) Result {
 	if r.Status != "conflict" {
 		r.Output = &out
 	}
-	return r
+	return r, nil
 }
 
 // compileCondition checks syntax and expanded instruction work before regexp compilation.

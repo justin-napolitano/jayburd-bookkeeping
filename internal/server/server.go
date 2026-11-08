@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionactivation"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
@@ -24,6 +25,7 @@ type Dependencies struct {
 	Connections ConnectionOperations
 	Collection  collectionread.Reader
 	Labels      collectionlabels.Operations
+	Activation  *collectionactivation.Service
 	Ready       func(context.Context) error
 	Close       func()
 }
@@ -83,9 +85,17 @@ func New(c Config, d Dependencies) (*Server, error) {
 			for _, suffix := range []string{"taxonomy", "review/query", "labels/preview", "label-commands", "label-commands/pending", "label-commands/{command}/execute", "label-commands/{command}/cancel", "label-commands/{command}/acknowledge"} {
 				application.Handle("/v1/collections/{workspace}/"+suffix, labels)
 				application.Handle("/v2/collections/{workspace}/"+suffix, labels)
+				application.Handle("/v3/collections/{workspace}/"+suffix, labels)
 			}
 			application.Handle("/v1/collection-recovery", labels)
 			application.Handle("/v1/collection-recovery/clear", labels)
+			application.Handle("/v3/collections/{workspace}/review/detail", labels)
+			if c.CollectionActivationPlanFile != "" {
+				if d.Activation == nil {
+					return nil, errConfiguration
+				}
+				application.Handle("/v1/collection-activation/adopt", collectionactivation.Handler(d.Auth, d.Activation))
+			}
 		}
 		if d.Connections != nil {
 			mountConnections(application, d.Auth, d.Connections)
@@ -96,6 +106,7 @@ func New(c Config, d Dependencies) (*Server, error) {
 		}
 		mux.Handle("/v1/", h)
 		mux.Handle("/v2/", h)
+		mux.Handle("/v3/", h)
 	}
 	// Concurrency bounds cap authenticated provider work and queued database pressure.
 	slots := make(chan struct{}, 32)

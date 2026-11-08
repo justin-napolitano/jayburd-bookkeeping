@@ -45,6 +45,7 @@ func main() {
 	databaseMode := flag.String("database-mode", "url", "url or cloudsql IAM connector")
 	instance := flag.String("cloud-sql-instance", "", "explicit project:region:instance identifier")
 	collectionEnabled := flag.Bool("collection-read-enabled", false, "explicit reviewed private source and label workflows after matching migration and grant provisioning")
+	activationPlan := flag.String("collection-activation-plan-file", "", "explicit finite approved Sandbox adoption metadata file; absent disables adoption")
 	flag.Parse()
 	if enrollment.Enabled {
 		enrollment.ProjectID = *project
@@ -55,6 +56,7 @@ func main() {
 	}
 	c := server.Config{Mode: *mode, Listen: *listen, Origin: *origin, Project: *project, DatabaseMode: *databaseMode, CloudSQLInstance: *instance, ProviderEnvironment: enrollment.Environment}
 	c.CollectionEnabled = *collectionEnabled
+	c.CollectionActivationPlanFile = *activationPlan
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	var d server.Dependencies
