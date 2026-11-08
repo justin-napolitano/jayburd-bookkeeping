@@ -301,10 +301,7 @@ Next.js patch advisories/React/browser tests. The [integration source notes](app
 record generated OpenAPI types, Node LTS and CI choices. Read their stated review
 depth and limits; offline tests do not verify live provider configuration.
 
-[Recovery and application integration](recovery-sources.md) reviews PostgreSQL
-transaction/lock behavior, OWASP browser-storage guidance and Playwright real
-response interception. It supports durable reviewed commands and synthetic
-browser/API/database proofs; it does not establish live identity or accounting approval.
+[Recovery](recovery-sources.md)/[onboarding460](../contracts/collection-onboarding.md): PG17 isolation/SECDEF, RFC9110§9.2.1–2 re-reviewed2026-11-08; durable review/confirm/recovery proofs, no live identity or accounting approval.
 
 The [contract-design source notes](contract-sources.md) add C01 (PostgreSQL
 schemas/locking), C02 (OpenAPI 3.1.1), C03 (RFC 9457 HTTP problems) and C04

@@ -127,7 +127,11 @@ labels-integration:
 tags-recovery-test:
 	bash scripts/test-tags-recovery.sh
 
-.PHONY: collection-query-test private-activation-test collection-rules-test
+.PHONY: collection-query-test private-activation-test collection-rules-test collection-onboarding-test onboarding-integration
+collection-onboarding-test:
+	bash scripts/test-collection-onboarding.sh
+onboarding-integration:
+	bash scripts/test-app-integration.sh --onboarding
 collection-query-test:
 	bash scripts/test-collection-query.sh
 private-activation-test:

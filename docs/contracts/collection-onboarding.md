@@ -65,14 +65,14 @@ Routes under /v1/collection-onboarding, all authenticated/no-store:
   Return Preview profile private-onboarding-preview-v1, preview_id, operation,
   expires_at, workspace_id null|UUID, snapshot, review object. Setup review is
   {capabilities:[read,acquire,classify]}; adopt review contains candidate fields
-  plus expected_generation and impact pause_legacy_acquisition. SQL agent freezes
-  final reviewed response fields in this file before publishing implementation.
+  plus expected_generation and impact pause_legacy_acquisition. Adopt review is exactly the catalog candidate fields plus expected_generation
+  (positive decimal string) and impact=pause_legacy_acquisition.
 - POST /commands: exact {preview_id,prepare_key}; return Command.
 - GET /commands/pending: global Pending, works before workspace exists.
 - POST /commands/{command_id}/execute, /cancel, /acknowledge: exact {}.
 - POST /recovery/clear: exact {recovery_id}, inaccessible own onboarding only.
 
-Command profile private-onboarding-command-v1: command_id, state
+Command profile private-onboarding-command-v1: command_id, prepare_key (exact saved key), state
 prepared|committed|cancelled, preview, result nullable, acknowledged boolean.
 Setup result retains existing workspace_id/workspace_revision/capabilities;
 adoption result retains42 collection_item_id/item_generation/sources.
@@ -121,7 +121,8 @@ CREATE FUNCTION, Writing SECURITY DEFINER Functions Safely (database-sources S12
 and Transaction Isolation, Serializable Isolation Level establish safe search_path,
 explicit function grants and whole-transaction retries. RFC9110 safe-method and
 idempotency distinctions (recovery-sources) support inert discovery and durable
-same-intent retries. Existing source registers/relevant sections are the source
+same-intent retries. Re-reviewed2026-11-08 the official PG17 SECURITY DEFINER safety section in full,
+Serializable section and RFC9110 sections9.2.1–2. Existing source registers/relevant sections are the source
 record; this own-workspace self-service policy and fixed capabilities are a new
 owner-authorized project decision, not a claim that PostgreSQL grants user rights.
 Alternative manual SQL leaves the observed onboarding gap; runtime owner membership
@@ -143,7 +144,7 @@ are required; no organizational security certification is claimed.
 
 Acceptance: fresh existing enrolled actor without workspace through actual
 Next/Go/restricted SQL setup/review/prepare/execute/ack; eligible legacy adoption
-with original facts/journal anchors intact; no writes on GET/preview/prepare;
+with original facts/journal anchors intact; no workspace/adoption/journal effects on GET/preview/prepare;
 setup-vs-book-vs-label-vs-adoption races and primed stale snapshots; foreign/disabled/
 revoked/book/source/consent/generation/complete-set/busy denials; lost prepare,
 execute and ack plus remount/exact replay; stale clear cannot close newer claim;

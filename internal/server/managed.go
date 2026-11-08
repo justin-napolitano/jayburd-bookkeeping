@@ -11,6 +11,7 @@ import (
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/clouddb"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionactivation"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectiononboarding"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/identity"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
@@ -114,6 +115,9 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 	if c.CollectionEnabled && collectionReady(start, pool) != nil {
 		return fail()
 	}
+	if onboardingEnabled(c) && onboardingReady(start, pool) != nil {
+		return fail()
+	}
 	svc := &ledger.Service{DB: pool}
 	app, err := firebase.NewApp(start, &firebase.Config{ProjectID: c.Project}, option.WithTokenSource(google.ComputeTokenSource("default", "https://www.googleapis.com/auth/cloud-platform")))
 	if err != nil {
@@ -132,13 +136,21 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 			return err
 		}
 		if c.CollectionEnabled {
-			return collectionReady(ctx, pool)
+			if err := collectionReady(ctx, pool); err != nil {
+				return err
+			}
+		}
+		if onboardingEnabled(c) {
+			return onboardingReady(ctx, pool)
 		}
 		return nil
 	}, Close: closeAll}
 	if c.CollectionEnabled {
 		d.Collection = &collectionread.Service{DB: pool}
 		d.Labels = &collectionlabels.Service{DB: pool, Rules: collectionlabels.RuleProcessor{}}
+	}
+	if onboardingEnabled(c) {
+		d.Onboarding = &collectiononboarding.Service{DB: pool}
 	}
 	if c.CollectionActivationPlanFile != "" {
 		plan, err := collectionactivation.Load(c.CollectionActivationPlanFile, time.Now())
@@ -191,6 +203,27 @@ func collectionReady(ctx context.Context, pool *pgxpool.Pool) error {
 	 ]) AS f(signature) WHERE to_regprocedure(f.signature) IS NULL
 	 OR NOT has_function_privilege(current_user,to_regprocedure(f.signature),'EXECUTE'))
 	 AND NOT has_function_privilege(current_user,'banking.provision_collection_owner(uuid,text,text)','EXECUTE')`).Scan(&safe)
+	if err != nil || !safe {
+		return errors.New("dependencies unavailable")
+	}
+	return nil
+}
+
+// onboardingReady requires the exact narrow entrypoints while retaining no general owner capability.
+func onboardingReady(ctx context.Context, pool *pgxpool.Pool) error {
+	var safe bool
+	err := pool.QueryRow(ctx, `SELECT
+ NOT EXISTS(SELECT FROM unnest(ARRAY[
+ 'banking.get_collection_onboarding(uuid)',
+ 'banking.preview_collection_onboarding(uuid,text)',
+ 'banking.prepare_collection_onboarding(uuid,text)',
+ 'banking.pending_collection_onboarding(uuid)',
+ 'banking.transition_collection_onboarding(uuid,uuid,text,text)',
+ 'banking.clear_collection_onboarding(uuid,text)'
+ ]) AS f(signature) WHERE to_regprocedure(f.signature) IS NULL
+ OR NOT has_function_privilege(current_user,to_regprocedure(f.signature),'EXECUTE'))
+ AND NOT has_function_privilege(current_user,'banking.provision_collection_owner(uuid,text,text)','EXECUTE')
+ AND NOT pg_has_role(current_user,'bookkeeping_owner','MEMBER')`).Scan(&safe)
 	if err != nil || !safe {
 		return errors.New("dependencies unavailable")
 	}

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectiononboarding"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionread"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/connections"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ingestion/staging"
@@ -27,6 +28,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/ledger"
 )
+
+// appProofOnboarding selects a disposable synthetic fixture, never a managed authentication bypass.
+var appProofOnboarding = flag.Bool("app-proof-onboarding", false, "prove in-app setup/adoption without an existing private workspace")
 
 var appProofMarker = flag.String("app-proof-marker", "", "public per-invocation synthetic readiness marker")
 
@@ -49,6 +53,9 @@ func (appProofAuth) Authenticate(_ context.Context, token string) (string, error
 func TestAppIntegrationServer(t *testing.T) {
 	if !*appProof {
 		t.Skip("disposable browser runner only")
+	}
+	if *appProofOnboarding && (*appProofLabels || *appProofDemo || *appProofConnections || *appProofProduction) {
+		t.Fatal("exclusive onboarding proof mode")
 	}
 	if *appProofProduction && !*appProofConnections {
 		t.Fatal("Production fixture requires explicit connection proof mode")
@@ -111,7 +118,7 @@ func TestAppIntegrationServer(t *testing.T) {
 		connectionFixture = bootstrapConnectionBrowser(t, ctx, admin, pool)
 		connectionService = connectionFixture.service
 	}
-	if !*appProofConnections && !*appProofDemo && !*appProofLabels {
+	if !*appProofConnections && !*appProofDemo && !*appProofLabels && !*appProofOnboarding {
 		connectionService = expiredEnrollmentProof(t, ctx, pool)
 	}
 	config := Config{Mode: "managed", Listen: "0.0.0.0:8080", Origin: "http://localhost:39083", Project: "synthetic-browser-proof", DatabaseURL: "synthetic-injected-test-pool", CollectionEnabled: *appProofLabels}
@@ -127,6 +134,24 @@ func TestAppIntegrationServer(t *testing.T) {
 				return err
 			}
 			return collectionReady(ctx, pool)
+		}
+	}
+	if *appProofOnboarding {
+		bootstrapOnboardingBrowser(t, setupCtx, admin, pool)
+		config.Project = "jayburd-bookkeeping-dev"
+		config.CollectionEnabled = true
+		dependencies.Auth = onboardingBrowserAuth{}
+		dependencies.Collection = &collectionread.Service{DB: pool}
+		dependencies.Labels = &collectionlabels.Service{DB: pool, Rules: collectionlabels.RuleProcessor{}}
+		dependencies.Onboarding = &collectiononboarding.Service{DB: pool}
+		dependencies.Ready = func(ctx context.Context) error {
+			if err := runtimeReady(ctx, pool); err != nil {
+				return err
+			}
+			if err := collectionReady(ctx, pool); err != nil {
+				return err
+			}
+			return onboardingReady(ctx, pool)
 		}
 	}
 	app, err := New(config, dependencies)

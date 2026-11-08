@@ -19,6 +19,11 @@ UID/principal mapping stays private and never enters source/GitHub/tests.
 | Profile | Root froze collection-onboarding contract: bounded own-workspace setup and explicit authorized existing connection adoption, typed third global reservation arm, durable review/confirm/ack and payload-free recovery |
 | Delegation | Three isolated lanes SQL47, Go transport, mounted UI/actual composed journey; root owns shared composition/OpenAPI/integration/publication/cloud |
 
+| Composition | Root added Sandbox/private-enabled adapter mount and strict SQL readiness, OpenAPI/generated types and explicit preview transport allowlist; bounded command mutations remain outside query helper |
+| Review corrections | Required exact prepare_key echo; typed cross-engine recovery receipt closure and auth-error normalization under SQL review; sibling busy locks must not deadlock own onboarding recovery |
+
+| Root focused gates | Server Sandbox/auth/origin composition and Go API tests PASS; API query/Next bridge focused53+expanded private-route tests PASS; OpenAPI type generation/check and TypeScript check PASS; make check/build PASS using installedGo1.26.5/external exact-dependency modfile, trackedGo1.26.10 unchanged |
+
 ## Current evidence
 
 Design accepted for implementation under owner task authority. Security-sensitive

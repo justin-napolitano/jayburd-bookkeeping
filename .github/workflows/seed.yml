@@ -64,6 +64,8 @@ jobs:
         run: make private-activation-test
       - name: Private rule service and atomic reviewed application proof
         run: make collection-rules-test
+      - name: Recoverable self-service private onboarding and adoption proof
+        run: make collection-onboarding-test
       - name: Fenced synthetic provider publication proof
         run: make sync-state-test
       - name: Scoped synthetic connection lifecycle proof
@@ -163,6 +165,8 @@ jobs:
         run: npx --no-install playwright install --with-deps chromium
       - name: Prove private topics and labels through browser and restricted SQL
         run: make labels-integration
+      - name: Prove in-app private workspace setup and existing connection adoption
+        run: make onboarding-integration
       - name: Prove browser recovery through real API and PostgreSQL
         run: make app-integration
       - name: Prove synthetic connection through source posting
