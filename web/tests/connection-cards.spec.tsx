@@ -26,6 +26,7 @@ for (const width of [1440, 390]) {
       name: "Review transactions for Bank account 1",
     });
     await expect(review).toHaveText("Transactions");
+    await expect(review).toBeEnabled();
     await review.focus();
     await page.keyboard.press("Enter");
     await expect(page.getByLabel("Reviewed synthetic source")).toHaveText(

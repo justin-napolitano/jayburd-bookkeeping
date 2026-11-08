@@ -33,6 +33,11 @@ UID/principal mapping stays private and never enters source/GitHub/tests.
 
 | Exact amount wire | Direct real fixture proves canonical legacy API amount0.1 and huge9007199254740993.01; new browser expectation aligned to that exact response. Independent SQL script still requires original stored lexeme0.10 and both original revisions, so no rounding/scale loss is hidden by the assertion. |
 
+| Keyboard readiness proof |1d7b02b CI new2onboarding component cases pass;83/84 fullCT pass. Existing transaction-entry keyboard test focused/pressed Enter before startup recovery enabled nav. Added explicit toBeEnabled state wait before focus, preserving aria-current and focus assertions. Related standalone account-label/card keyboard cases now also wait for their existing asynchronous busy state; no timeout or product change. |
+
+| Canonical connected acceptance |1d7b02b Seed42452556710 actual in-app setup/adoption step SUCCESS2026-11-08T05:58:51Z; real Next/Go/restrictedSQL lost prepare/execute/ack/remount and independent original-history postconditions pass. Existing labels/rules and browser recovery steps pass. Only frontend keyboard-readiness assertion outstanding on this head. |
+| Focused keyboard verification | Fixed transaction-entry4cases PASS locally. Related two ready-state waits align standalone async review controls; combined7case local run stopped before execution by Vite IPv6 bind EPERM. No timeout/assertion weakened or alternate listener substituted; final canonical84suite required. |
+
 ## Current evidence
 
 Design accepted for implementation under owner task authority. Security-sensitive
