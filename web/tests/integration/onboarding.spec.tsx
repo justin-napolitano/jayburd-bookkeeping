@@ -1,3 +1,4 @@
+import { chooseFinanceTool, financeNavItem } from "../finance-navigation";
 import { expect, test } from "@playwright/experimental-ct-react";
 import { OnboardingHarness } from "./OnboardingHarness";
 
@@ -24,9 +25,7 @@ test("authenticated absent workspace setup and complete legacy adoption recover 
   expect(initial.can_setup).toBe(true);
   expect(initial.can_adopt).toBe(false);
   expect(initial.candidates).toEqual([]);
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await chooseFinanceTool(page, "Transactions");
   await page
     .getByRole("button", { name: "Set up private transactions", exact: true })
     .click();
@@ -59,9 +58,7 @@ test("authenticated absent workspace setup and complete legacy adoption recover 
     .getByRole("button", { name: "Save setup review", exact: true })
     .click();
   await expect.poll(() => lostPrepare).toBe(1);
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Transactions")).toBeDisabled();
   await component.unmount();
   await page.unroute(preparePattern);
   component = await mount(<OnboardingHarness />);
@@ -109,9 +106,7 @@ test("authenticated absent workspace setup and complete legacy adoption recover 
   expect((await get("/v1/collection-onboarding/commands/pending")).state).toBe(
     "none",
   );
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Transactions")).toBeDisabled();
   await page
     .getByRole("button", {
       name: "Retry acknowledging setup result",
@@ -189,9 +184,10 @@ test("authenticated absent workspace setup and complete legacy adoption recover 
       exact: true,
     }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+  await expect(financeNavItem(page, "Transactions")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   const workspace = (await get("/v1/collection")).workspace_id;
   const response = await page.request.post(
     new URL(`/v3/collections/${workspace}/review/query`, page.url()).href,

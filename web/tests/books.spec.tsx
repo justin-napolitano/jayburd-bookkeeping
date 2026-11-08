@@ -1,3 +1,8 @@
+import {
+  chooseFinanceTool,
+  financeNavItem,
+  openFinanceMenu,
+} from "./finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import { Harness } from "./Harness";
 const book = {
@@ -196,8 +201,7 @@ async function mockCommands(page: Page, empty = false) {
 // Use accessible controls and exact decimal strings to prepare a split journal.
 async function fillJournal(page: Page) {
   await page.getByLabel("Entity and book").selectOption("e1/b1");
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "New journal", exact: true }).click();
+  await chooseFinanceTool(page, "New journal");
   await page
     .getByRole("combobox", { name: "Policy", exact: true })
     .selectOption("p1");
@@ -243,9 +247,7 @@ test("split review retains registration identity and discovers lost execution an
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
   expect(server.executions).toBe(1);
   await page.getByRole("button", { name: "Acknowledge result" }).click();
-  await expect(
-    page.getByRole("button", { name: "Transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
   await expect(page.getByLabel("Entity and book")).toBeEnabled();
   expect(server.executions).toBe(1);
 });
@@ -307,9 +309,7 @@ test("setup registers review then executes and explicitly acknowledges", async (
     page.getByText("Book creation confirmed", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Acknowledge result" }).click();
-  await expect(
-    page.getByRole("button", { name: "Transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
 });
 test("Sandbox starter prepares the bounded reviewed setup without manual fields", async ({
   mount,
@@ -377,8 +377,7 @@ test("denied entity switch clears previous financial values", async ({
   await mockCommands(page);
   await mount(<Harness />);
   await page.getByLabel("Entity and book").selectOption("e1/b1");
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Accounts", exact: true }).click();
+  await chooseFinanceTool(page, "Chart of accounts");
   await page.getByRole("button", { name: "Load trial balance" }).click();
   await expect(page.getByRole("table")).toBeVisible();
   await expect(
@@ -446,9 +445,7 @@ test("explicitly clears inaccessible saved work before first-book setup", async 
   await expect(
     page.getByRole("button", { name: "Review Sandbox starter book" }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
 });
 
 test("successful acknowledgement followed by failed discovery keeps new work locked", async ({
@@ -468,10 +465,8 @@ test("successful acknowledgement followed by failed discovery keeps new work loc
   await page.getByRole("button", { name: "Acknowledge result" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
-  await page.getByText("Tools", { exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "New journal", exact: true }),
-  ).toBeDisabled();
+  await openFinanceMenu(page);
+  await expect(financeNavItem(page, "New journal")).toBeDisabled();
 });
 
 // Product navigation follows one pinned account to its journal and back without a fake transaction feed.
@@ -583,8 +578,7 @@ test("book workspace balances, account activity and journal remain scoped on des
   });
   await mount(<Harness />);
   await page.getByLabel("Entity and book").selectOption("e1/b1");
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Accounts", exact: true }).click();
+  await chooseFinanceTool(page, "Chart of accounts");
   await expect(
     page.getByRole("heading", { name: "Account balances", exact: true }),
   ).toBeVisible();
@@ -614,11 +608,11 @@ test("book workspace balances, account activity and journal remain scoped on des
   await page
     .getByRole("button", { name: "Close journal detail", exact: true })
     .click();
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Accounts", exact: true }).focus();
+  await openFinanceMenu(page);
+  await financeNavItem(page, "Chart of accounts").focus();
   await page.keyboard.press("Enter");
   await expect(
-    page.getByRole("heading", { name: "Accounts", exact: true }),
+    page.getByRole("heading", { name: "Chart of accounts", exact: true }),
   ).toBeFocused();
   await expect(page.getByLabel("Through date", { exact: true })).toHaveValue(
     "2026-01-31",
@@ -633,6 +627,7 @@ test("book workspace balances, account activity and journal remain scoped on des
   await page.addStyleTag({
     content: ".book-nav button { font-family: monospace; }",
   });
+  await openFinanceMenu(page);
   await expect(
     page.getByRole("navigation", { name: "Finance tools" }),
   ).toBeVisible();
@@ -686,8 +681,6 @@ test("recovers an import safely until statement preview UI is available", async 
   await page.getByRole("button", { name: "Cancel saved command" }).click();
   await expect(page.getByText(/Cancellation confirmed/)).toBeVisible();
   await page.getByRole("button", { name: "Acknowledge result" }).click();
-  await expect(
-    page.getByRole("button", { name: "Transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
   expect(state.executions).toBe(0);
 });

@@ -1,3 +1,7 @@
+[Frontend flow review](runbooks/frontend-flow.md),467–471: responsive navigation,
+guided setup and compact transaction controls; source and synthetic review are
+implemented, owner visual acceptance pending. Existing deployed UI remains separate.
+
 [In-app private setup/adoption](contracts/collection-onboarding.md),460: durable
 self-service tooling replaces routine manual SQL. Source461 and controlled
 Sandbox schema47/API/web release accepted; [deployment evidence and owner

@@ -332,7 +332,13 @@ export function BookWorkspace({
           ? "Ledger"
           : view === "Money overview"
             ? "Overview"
-            : view}
+            : activeView && view === "Review transactions"
+              ? "Imported activity"
+              : activeView && view === "Connections"
+                ? "Accounts"
+                : activeView && view === "Accounts"
+                  ? "Chart of accounts"
+                  : view}
       </h1>
       {view === "Money overview" && (
         <ActivityOverview

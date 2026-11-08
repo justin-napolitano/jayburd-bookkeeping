@@ -1,3 +1,4 @@
+import { financeNavItem } from "./finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import type { Page } from "playwright-core";
 import { ReportsHarness } from "./ReportsHarness";
@@ -107,9 +108,7 @@ test("only idle recovery moves to Settings while its read controls remain availa
 }, info) => {
   const writes = await servePolish(page);
   await mount(<Harness />);
-  await expect(
-    page.getByRole("button", { name: "Transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
   await expect(
     page.getByRole("button", { name: "Check saved command" }),
   ).toBeHidden();
@@ -119,9 +118,7 @@ test("only idle recovery moves to Settings while its read controls remain availa
   ).toBeVisible();
   await expect(page.getByText("Book setup", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Check saved command" }).click();
-  await expect(
-    page.getByRole("button", { name: "Transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
   await page.getByText("Settings", { exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Check saved command" }),
@@ -145,9 +142,7 @@ for (const pending of ["prepared", "denied"] as const) {
       exact: true,
     });
     await expect(attention).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Transactions", exact: true }),
-    ).toBeDisabled();
+    await expect(financeNavItem(page, "Imported activity")).toBeDisabled();
     await expect(
       page.getByRole("button", { name: "Check saved command" }),
     ).toBeVisible();

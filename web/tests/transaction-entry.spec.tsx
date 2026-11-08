@@ -1,3 +1,8 @@
+import {
+  chooseFinanceTool,
+  financeNavItem,
+  openFinanceMenu,
+} from "./finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import type { Page } from "playwright-core";
 import { Harness } from "./Harness";
@@ -80,15 +85,15 @@ test("Transactions is a keyboard-visible primary task with explicit all-books sc
 }, info) => {
   const state = await serveEntry(page);
   await mount(<Harness />);
-  const nav = page.getByRole("navigation", { name: "Finance tools" });
-  const entry = nav.getByRole("button", { name: "Transactions", exact: true });
+  await openFinanceMenu(page);
+  const entry = financeNavItem(page, "Imported activity");
   await expect(entry).toBeVisible();
   await expect(entry).toBeEnabled();
   await entry.focus();
   await page.keyboard.press("Enter");
   await expect(entry).toHaveAttribute("aria-current", "page");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Review transactions" }),
+    page.getByRole("heading", { level: 1, name: "Imported activity" }),
   ).toBeFocused();
   await expect(page.getByLabel("Entity and book")).toHaveValue("");
   expect(state.reads).toEqual([]);
@@ -107,7 +112,7 @@ test("Transactions is a keyboard-visible primary task with explicit all-books sc
       path.startsWith("/v1/entities/personal/books/personal-household/"),
     ),
   ).toBe(true);
-  await page.getByRole("button", { name: "Position", exact: true }).click();
+  await chooseFinanceTool(page, "Position");
   await expect(
     page.getByText(
       "These are posted ledger balances. Imported bank transactions are reviewed separately.",
@@ -121,6 +126,7 @@ test("Transactions is a keyboard-visible primary task with explicit all-books sc
   );
   await expect(page.getByLabel("Source account")).toBeEnabled();
   await page.setViewportSize({ width: 390, height: 844 });
+  await openFinanceMenu(page);
   await expect(entry).toBeInViewport();
   await entry.focus();
   await expect(entry).toBeFocused();
@@ -134,7 +140,7 @@ test("Transactions is a keyboard-visible primary task with explicit all-books sc
     fullPage: true,
   });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("button", { name: "Position", exact: true }).click();
+  await chooseFinanceTool(page, "Position");
   await expect(
     page
       .locator(".position-book-row")
@@ -158,9 +164,7 @@ for (const sourceState of ["empty", "unavailable", "denied"]) {
     await page
       .getByLabel("Entity and book")
       .selectOption("personal/personal-household");
-    await page
-      .getByRole("button", { name: "Transactions", exact: true })
-      .click();
+    await chooseFinanceTool(page, "Imported activity");
     if (sourceState === "empty")
       await expect(
         page.getByText("No source accounts are available in this book."),

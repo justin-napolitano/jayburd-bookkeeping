@@ -1,3 +1,4 @@
+import { chooseFinanceTool, financeNavItem } from "./finance-navigation";
 import { expect, test } from "@playwright/experimental-ct-react";
 import { Harness } from "./Harness";
 import {
@@ -75,9 +76,7 @@ test("mobile composed setup recovers its own claim while sibling engines report 
     return route.fulfill({ status: 404, json: { code: "not_found" } });
   });
   let component = await mount(<Harness />);
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await chooseFinanceTool(page, "Transactions");
   const setup = page.getByRole("button", {
     name: "Set up private transactions",
     exact: true,
@@ -114,9 +113,7 @@ test("mobile composed setup recovers its own claim while sibling engines report 
       { exact: true },
     ),
   ).toBeHidden();
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Transactions")).toBeDisabled();
   await page
     .getByRole("button", { name: "Create private workspace", exact: true })
     .click();
@@ -126,9 +123,7 @@ test("mobile composed setup recovers its own claim while sibling engines report 
   await page
     .getByRole("button", { name: "Acknowledge setup result", exact: true })
     .click();
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Transactions")).toBeEnabled();
   await expect(
     page.getByRole("button", {
       name: "Review connection for Fictional records",
@@ -204,18 +199,12 @@ test("ordinary book acknowledgement refreshes the onboarding reservation and eli
     return route.fulfill({ status: 404, json: { code: "not_found" } });
   });
   await mount(<Harness />);
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Transactions")).toBeDisabled();
   await page
     .getByRole("button", { name: "Acknowledge result", exact: true })
     .click();
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeEnabled();
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await expect(financeNavItem(page, "Transactions")).toBeEnabled();
+  await chooseFinanceTool(page, "Transactions");
   await expect(
     page.getByRole("button", {
       name: "Review connection for Fictional records",

@@ -125,11 +125,26 @@ jobs:
         run: make web-test
       - name: Build the unconfigured application
         run: make web-build
+      - name: Build isolated fictional frontend review
+        id: frontend-review
+        run: npm --prefix web run review:build
       - name: Install Chromium for synthetic browser proof
         working-directory: web
         run: npx --no-install playwright install --with-deps chromium
       - name: Exercise synthetic browser journeys
         run: make web-browser
+      - name: Retain fictional frontend review and responsive screenshots
+        if: ${{ always() && steps.frontend-review.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-review-${{ github.sha }}
+          path: |
+            .local/frontend-review/jayburd-frontend-review.html
+            web/test-results/**/frontend*.png
+          retention-days: 7
+          if-no-files-found: error
+          # Only the exact fictional HTML above is selected from the hidden build directory.
+          include-hidden-files: true
       - name: Prove isolated identity rehearsal with intercepted synthetic responses
         run: make identity-rehearsal-test
       - name: Test image receipt integrity

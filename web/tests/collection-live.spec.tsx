@@ -1,3 +1,4 @@
+import { chooseFinanceTool, financeNavItem } from "./finance-navigation";
 import { expect, test } from "@playwright/experimental-ct-react";
 import type { Page } from "playwright-core";
 import type { DurableCommand } from "../src/bookkeeping/types";
@@ -309,9 +310,7 @@ test("real client opens private transactions without books, pages3000 and recove
 }) => {
   const state = await serve(page, "lost_prepare");
   await mount(<Harness />);
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await chooseFinanceTool(page, "Transactions");
   await expect(
     page.getByText("1–25 of 3000 matching transactions"),
   ).toBeVisible();
@@ -337,9 +336,7 @@ test("real client opens private transactions without books, pages3000 and recove
   await expect(
     page.getByRole("heading", { name: "Review 1 selected transactions" }),
   ).toBeFocused();
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Overview")).toBeDisabled();
   await page.getByRole("button", { name: "Save label review" }).click();
   await expect(
     page.getByRole("region", { name: "All transactions" }).getByRole("alert"),
@@ -357,9 +354,7 @@ test("real client opens private transactions without books, pages3000 and recove
   ).toBeVisible();
   expect(state.acknowledgements).toBe(0);
   await page.getByRole("button", { name: "Acknowledge result" }).click();
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Overview")).toBeEnabled();
   const preview = state.requests.find((request) =>
     request.path.endsWith("/labels/preview"),
   )!.body as Preview;
@@ -390,24 +385,25 @@ test("pending taxonomy recovery gates book tools, preserves old edition on remou
   await expect(
     page.getByRole("heading", { name: "Saved topic review" }),
   ).toBeFocused();
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).not.toHaveAttribute("aria-current", "page");
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Overview")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(financeNavItem(page, "Transactions")).not.toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(financeNavItem(page, "Transactions")).toBeDisabled();
   await page.getByRole("button", { name: "Confirm topic changes" }).click();
   await expect(
     page.getByText("Topics updated. No journal was created."),
   ).toBeVisible();
   expect(state.taxonomy).toBe("4");
   expect(state.acknowledgements).toBe(0);
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+  await expect(financeNavItem(page, "Overview")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await component.unmount();
   await mount(<Harness />);
   await expect(
@@ -418,19 +414,16 @@ test("pending taxonomy recovery gates book tools, preserves old edition on remou
   ).toBeVisible();
   expect(state.executions).toBe(1);
   await page.getByRole("button", { name: "Acknowledge result" }).click();
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Transactions")).toBeEnabled();
   // A confirmed explicit acknowledgement returns to its private task without another navigation click.
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+  await expect(financeNavItem(page, "Transactions")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await expect(
     page.getByText("1–25 of 3000 matching transactions"),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await chooseFinanceTool(page, "Transactions");
   await page.getByText("Manage topics", { exact: true }).click();
   await expect(page.getByLabel("Topic 1 name")).toHaveValue("Meals");
   expect(state.acknowledgements).toBe(1);
@@ -447,19 +440,16 @@ test("unknown private discovery keeps new work disabled until explicit successfu
       .getByRole("region", { name: "Private transaction recovery" })
       .getByRole("alert"),
   ).toContainText("Private transaction recovery is unavailable");
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeDisabled();
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+  await expect(financeNavItem(page, "Transactions")).toBeDisabled();
+  await expect(financeNavItem(page, "Overview")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   state.discoveryFails = false;
   await page
     .getByRole("button", { name: "Retry private transaction recovery" })
     .click();
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Transactions")).toBeEnabled();
   expect(state.executions).toBe(0);
 });
 
@@ -490,18 +480,21 @@ test("a failed private acknowledgement keeps Overview until a confirmed same-ide
   await expect(
     page.getByRole("region", { name: "All transactions" }).getByRole("alert"),
   ).toContainText("outcome is unknown");
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).not.toHaveAttribute("aria-current", "page");
+  await expect(financeNavItem(page, "Overview")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(financeNavItem(page, "Transactions")).not.toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await page
     .getByRole("button", { name: "Retry same acknowledgement" })
     .click();
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+  await expect(financeNavItem(page, "Transactions")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await expect(
     page.getByText("1–25 of 3000 matching transactions"),
   ).toBeVisible();
@@ -516,12 +509,11 @@ test("book recovery uncertainty prevents private mutation and navigation", async
 }) => {
   const state = await serve(page, "book_unknown");
   await mount(<Harness />);
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeDisabled();
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+  await expect(financeNavItem(page, "Transactions")).toBeDisabled();
+  await expect(financeNavItem(page, "Overview")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await expect(
     page.getByRole("region", { name: "Saved command" }).getByRole("alert"),
   ).toContainText("Data is unavailable");
@@ -540,9 +532,7 @@ test("empty taxonomy creates stable topic intent through explicit preview and ac
   state.topics = [];
   state.taxonomy = "1";
   await mount(<Harness />);
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await chooseFinanceTool(page, "Transactions");
   await expect(
     page.getByRole("heading", { name: "All transactions", exact: true }),
   ).toBeFocused();
@@ -584,6 +574,7 @@ test("empty taxonomy creates stable topic intent through explicit preview and ac
   await expect(
     page.getByText("1–25 of 3000 matching transactions"),
   ).toBeVisible();
+  await page.getByRole("checkbox").first().check();
   await expect(
     page
       .getByLabel("Label selected transactions", { exact: true })
@@ -604,9 +595,7 @@ test("read-only discovery still checks pending work and never enables private cl
   const state = await serve(page);
   state.capabilities = ["read"];
   await mount(<Harness />);
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await chooseFinanceTool(page, "Transactions");
   await expect(
     page.getByText("1–25 of 3000 matching transactions"),
   ).toBeVisible();
@@ -614,9 +603,24 @@ test("read-only discovery still checks pending work and never enables private cl
     page.getByText("Topics are read-only with your current access."),
   ).toBeVisible();
   await expect(page.getByRole("checkbox").first()).toBeDisabled();
+  await expect(page.getByRole("checkbox")).toHaveCount(25);
+  for (const checkbox of await page.getByRole("checkbox").all()) {
+    await expect(checkbox).toBeDisabled();
+  }
   await expect(
     page.getByLabel("Label selected transactions", { exact: true }),
-  ).toBeDisabled();
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("group", {
+      name: "Selected transaction actions",
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", {
+      name: /^(Preview labels|Preview rules|Apply rules)/,
+    }),
+  ).toHaveCount(0);
   await expect(page.getByText("Manage topics", { exact: true })).toHaveCount(0);
   expect(
     state.requests.some((request) =>
@@ -632,9 +636,7 @@ test("revoked read clears retained rows and keeps other work gated until explici
 }) => {
   const state = await serve(page);
   await mount(<Harness />);
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await chooseFinanceTool(page, "Transactions");
   await expect(
     page.getByText("Fictional purchase 1", { exact: true }),
   ).toBeVisible();
@@ -646,9 +648,7 @@ test("revoked read clears retained rows and keeps other work gated until explici
   await expect(
     page.getByText("Fictional purchase 1", { exact: true }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Overview")).toBeDisabled();
   state.denyQueries = false;
   await page
     .getByRole("button", { name: "Retry private transaction access" })
@@ -656,9 +656,7 @@ test("revoked read clears retained rows and keeps other work gated until explici
   await expect(
     page.getByText("Fictional purchase 1", { exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Overview")).toBeEnabled();
 });
 
 test("a definite private prepare conflict discovers the other context's ledger command", async ({
@@ -667,9 +665,7 @@ test("a definite private prepare conflict discovers the other context's ledger c
 }) => {
   const state = await serve(page, "private_prepare_conflict");
   await mount(<Harness />);
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await chooseFinanceTool(page, "Transactions");
   await page.getByRole("checkbox").first().check();
   await page
     .getByLabel("Label selected transactions", { exact: true })
@@ -688,9 +684,7 @@ test("a definite private prepare conflict discovers the other context's ledger c
   await expect(
     saved.getByRole("button", { name: "Create book", exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Overview")).toBeDisabled();
   expect(
     state.requests.filter((request) => request.path === "/v1/commands/pending")
       .length,
@@ -714,9 +708,7 @@ test("a definite ledger prepare conflict discovers the other context's private c
 }) => {
   const state = await serve(page, "book_prepare_conflict");
   await mount(<Harness />);
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Transactions")).toBeEnabled();
   await page
     .getByRole("button", { name: "Review Sandbox starter book", exact: true })
     .click();
@@ -726,9 +718,7 @@ test("a definite ledger prepare conflict discovers the other context's private c
   await expect(
     page.getByText("Other context private winner", { exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Overview")).toBeDisabled();
   await expect(
     page.getByRole("button", { name: "Retry registration", exact: true }),
   ).toHaveCount(0);

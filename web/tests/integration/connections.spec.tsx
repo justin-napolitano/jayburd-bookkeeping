@@ -1,3 +1,4 @@
+import { chooseFinanceTool } from "../finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import { ConnectionsHarness } from "./ConnectionsHarness";
 const scope =
@@ -10,8 +11,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   page.setDefaultTimeout(10000);
   let component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await chooseFinanceTool(page, "Accounts");
   const connect = page.getByRole("button", {
     name: "Register accounts",
     exact: true,
@@ -23,8 +23,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await chooseFinanceTool(page, "Accounts");
   await page.route("**/connection-attempts/*/abandon", async (route) => {
     const response = await route.fetch();
     expect(response.ok()).toBe(true);
@@ -85,8 +84,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await chooseFinanceTool(page, "Accounts");
   await page
     .getByRole("button", { name: "Check bank setup status", exact: true })
     .click();
@@ -97,8 +95,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await chooseFinanceTool(page, "Accounts");
   await expect(
     page.getByRole("button", { name: "Register accounts", exact: true }),
   ).toBeDisabled();
@@ -306,7 +303,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     drill.items.map((row: { amount: string }) => row.amount).sort(),
   ).toEqual(["0.1", "0.2"]);
   // The daily Overview renders that same real Next→Go→SQL projection without posting.
-  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await chooseFinanceTool(page, "Overview");
   await page
     .getByRole("combobox", { name: "Bank account", exact: true })
     .selectOption(firstSource.source_account_id);
@@ -385,8 +382,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     .getByRole("button", { name: "Acknowledge result", exact: true })
     .click();
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Accounts", exact: true }).click();
+  await chooseFinanceTool(page, "Chart of accounts");
   await expect(page.locator("tfoot td")).toHaveText(["0.10", "0.10"]);
   const replay = await acquire();
   expect(replay.ok()).toBe(true);
@@ -396,8 +392,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     removal_count: 1,
     journal_count: "1",
   });
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await chooseFinanceTool(page, "Accounts");
   await page
     .getByRole("button", {
       name: "Review transactions for Bank account 1",

@@ -473,6 +473,28 @@ function Review({
       cursor: null,
     });
   };
+  // Reset follows the ordinary new-query path, clearing stale selection and pins.
+  const resetFilters = () => {
+    setDraft(initial);
+    setSelector(initial);
+    read({
+      ...initial,
+      profile: "private-collection-review-v3",
+      workspace_id: workspace.workspace_id,
+      limit: 25,
+      snapshot: null,
+      cursor: null,
+    });
+  };
+  const appliedFilters = Object.keys(initial).filter(
+    (key) =>
+      JSON.stringify(selector[key as keyof Selector]) !==
+      JSON.stringify(initial[key as keyof Selector]),
+  ).length;
+  const filtersChanged = JSON.stringify(draft) !== JSON.stringify(selector);
+  const hasFilters =
+    appliedFilters > 0 || JSON.stringify(draft) !== JSON.stringify(initial);
+
   const select = (row: Row, checked: boolean) => {
     setPreview(null);
     prepareKey.current = null;
@@ -679,7 +701,29 @@ function Review({
   };
 
   const selectionControls = (
-    <div className={styles.selectionControls}>
+    <div
+      className={styles.selectionControls}
+      role="group"
+      aria-label="Selected transaction actions"
+    >
+      <div className={styles.selectionHeading}>
+        <strong>{selected.length} selected</strong>
+        <button
+          type="button"
+          className="secondary"
+          disabled={blocked || !!preview || reading}
+          onClick={() => {
+            const first = selected[0];
+            setSelected([]);
+            if (first)
+              rowButtons.current
+                .get(selectionKey(first))
+                ?.focus({ preventScroll: true });
+          }}
+        >
+          Clear selection
+        </button>
+      </div>
       <div className={styles.actions}>
         <label>
           <span id={topicChoiceLabel}>Label selected transactions</span>
@@ -796,6 +840,18 @@ function Review({
         <form className={styles.filters} onSubmit={applyFilters}>
           <fieldset disabled={blocked || reading || !!preview}>
             <div className={styles.primaryFilters}>
+              <label className={styles.searchFilter}>
+                Search transactions
+                <input
+                  type="search"
+                  placeholder="Search imported descriptions"
+                  maxLength={200}
+                  value={draft.search}
+                  onChange={(event) =>
+                    setDraft({ ...draft, search: event.target.value })
+                  }
+                />
+              </label>
               <label>
                 Account
                 <select
@@ -815,21 +871,17 @@ function Review({
                   ))}
                 </select>
               </label>
-              <label>
-                Search transactions
-                <input
-                  type="search"
-                  maxLength={200}
-                  value={draft.search}
-                  onChange={(event) =>
-                    setDraft({ ...draft, search: event.target.value })
-                  }
-                />
-              </label>
               <button type="submit">Apply filters</button>
             </div>
             <details className={styles.moreFilters}>
-              <summary>Book, topic and date filters</summary>
+              <summary aria-label="More filters">
+                <span className={styles.filterDisclosureTitle}>
+                  More filters
+                </span>
+                <span className={styles.filterDisclosureHint}>
+                  Book, topic and date filters
+                </span>
+              </summary>
               <div className={styles.advancedFilters}>
                 <label>
                   <span id={tagFilterLabel}>Tag filter</span>
@@ -956,6 +1008,24 @@ function Review({
                 />
               </div>
             </details>
+            <div className={styles.filterStatus}>
+              <p aria-live="polite">
+                {filtersChanged
+                  ? "Filters changed. Apply to update transactions."
+                  : appliedFilters
+                    ? `${appliedFilters} ${appliedFilters === 1 ? "filter" : "filters"} applied`
+                    : "Showing all authorized transactions"}
+              </p>
+              {hasFilters && (
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={resetFilters}
+                >
+                  Reset filters
+                </button>
+              )}
+            </div>
           </fieldset>
         </form>
       )}
@@ -1150,7 +1220,11 @@ function Review({
             Original imported activity. Topics help organize transactions;
             journal state is shown separately.
           </p>
-          {!selected.length && selectionControls}
+          {!selected.length && canClassify && (
+            <p className={styles.selectionHint}>
+              Select transactions to preview topics, tags or rules.
+            </p>
+          )}
           <div className={styles.paging}>
             <button
               className="secondary"

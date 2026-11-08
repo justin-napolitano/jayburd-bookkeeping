@@ -1,0 +1,54 @@
+.preview-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  padding: 0.65rem 1.25rem;
+  background: #edf4ef;
+  border-bottom: 1px solid #c4d5c9;
+  font-size: 0.85rem;
+}
+.preview-banner > span {
+  flex: 1 1 18rem;
+}
+.preview-banner button {
+  color: #286044;
+  background: transparent;
+  padding: 0.4rem 0.65rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.preview-context {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  color: #555b63;
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+.preview-accounts h1 {
+  font-size: 1.7rem;
+  font-weight: 650;
+}
+.preview-accounts ul {
+  list-style: none;
+  padding: 0;
+}
+.preview-accounts li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-top: 1px solid #dce0e3;
+}
+.preview-accounts li p {
+  margin: 0.25rem 0 0;
+  color: #555b63;
+}
+.preview-note {
+  color: #555b63;
+  max-width: 65ch;
+}

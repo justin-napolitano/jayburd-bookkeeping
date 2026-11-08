@@ -448,3 +448,128 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Search/account controls shrink before long names or larger type can overflow. */
+.primaryFilters {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) auto;
+  gap: 0.5rem 0.75rem;
+}
+.primaryFilters > button {
+  margin-block: 0.35rem;
+}
+.filters fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+.filters input,
+.filters select {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.moreFilters > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+  padding: 0;
+  cursor: pointer;
+}
+.filterDisclosureTitle,
+.filterDisclosureHint {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.filterDisclosureTitle {
+  font-weight: 600;
+}
+.filterDisclosureTitle::before {
+  content: "+";
+  width: 1rem;
+  margin-right: 0.25rem;
+}
+.moreFilters[open] .filterDisclosureTitle::before {
+  content: "−";
+}
+.filterDisclosureHint {
+  color: var(--muted, #555b63);
+  font-size: 0.8rem;
+}
+.moreFilters[open] .advancedFilters {
+  padding-block: 0.25rem 0.75rem;
+}
+.filterStatus,
+.selectionHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+.filterStatus p {
+  margin: 0;
+  color: var(--muted, #555b63);
+  font-size: 0.9rem;
+}
+.filterStatus button,
+.selectionHeading button {
+  margin: 0;
+}
+.filterStatus {
+  min-height: 32px;
+  padding-bottom: 0.25rem;
+}
+.selectionControls {
+  background: var(--paper, #fff);
+  border: 1px solid var(--line, #dce0e3);
+  border-left: 3px solid var(--accent, #286044);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+.selectionControls .actions {
+  border: 0;
+  padding-top: 0.35rem;
+}
+.selectionControls > button {
+  margin-block: 0.5rem;
+}
+.selectionHeading {
+  border-bottom: 1px solid var(--line, #dce0e3);
+  padding-bottom: 0.4rem;
+}
+.selectionHint {
+  color: var(--muted, #555b63);
+  font-size: 0.9rem;
+}
+.heading > div,
+.heading p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 720px) {
+  .primaryFilters {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .primaryFilters .searchFilter {
+    grid-column: 1 / -1;
+  }
+  .primaryFilters > button {
+    grid-column: auto;
+  }
+}
+@media (max-width: 600px) {
+  .filterDisclosureHint {
+    font-size: 0.75rem;
+  }
+  .moreFilters > summary {
+    gap: 0 0.5rem;
+  }
+  .selectionControls {
+    padding: 0.4rem 0.6rem;
+  }
+  .selectionControls .actions label {
+    min-width: 0;
+  }
+}

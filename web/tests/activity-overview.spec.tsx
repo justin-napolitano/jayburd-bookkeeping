@@ -1,3 +1,4 @@
+import { financeNavItem } from "./finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import { ActivityOverviewHarness } from "./ActivityOverviewHarness";
 import {
@@ -130,9 +131,10 @@ test("Overview is the daily default and hands the same source to Transactions", 
   await expect(
     page.getByRole("heading", { name: "Overview", exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Overview", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+  await expect(financeNavItem(page, "Overview")).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await page.getByRole("button", { name: "Personal", exact: true }).click();
   await expect(
     page.getByText("9,007,199,254,740,993.01", { exact: true }),

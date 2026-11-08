@@ -1,3 +1,4 @@
+import { chooseFinanceTool } from "../finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import { IntegrationHarness } from "./Harness";
 
@@ -70,7 +71,7 @@ test("expired enrollment preserves real setup and journal recovery without provi
   await page
     .getByLabel("Entity and book")
     .selectOption({ label: "Synthetic browser LLC / Operating" });
-  await page.getByRole("button", { name: "Position", exact: true }).click();
+  await chooseFinanceTool(page, "Position");
   await expect(page.locator(".position-equity")).toHaveText("0.00");
   const [entity, book] = (
     await page.getByLabel("Entity and book").inputValue()
@@ -128,8 +129,7 @@ test("expired enrollment preserves real setup and journal recovery without provi
     },
   );
   expect(deniedEnrollment.status()).toBe(503);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "New journal", exact: true }).click();
+  await chooseFinanceTool(page, "New journal");
   await page.getByLabel("Accounting date", { exact: true }).fill("2026-01-15");
   await page
     .getByRole("combobox", { name: "Policy", exact: true })
@@ -178,10 +178,9 @@ test("expired enrollment preserves real setup and journal recovery without provi
   await page
     .getByLabel("Entity and book")
     .selectOption({ label: "Synthetic browser LLC / Operating" });
-  await page.getByRole("button", { name: "Position", exact: true }).click();
+  await chooseFinanceTool(page, "Position");
   await expect(page.locator(".position-equity")).toHaveText("125.50");
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Accounts", exact: true }).click();
+  await chooseFinanceTool(page, "Chart of accounts");
   // Select the preserved trial-balance control, not the new report date field.
   await page.getByLabel("Through date", { exact: true }).fill("2026-01-31");
   await page
@@ -195,7 +194,7 @@ test("expired enrollment preserves real setup and journal recovery without provi
     page.locator("tbody tr").filter({ hasText: "3000" }),
   ).toContainText("125.5");
   // Read the actual committed journal through every new report screen without adding posts.
-  await page.getByRole("button", { name: "Reports", exact: true }).click();
+  await chooseFinanceTool(page, "Reports");
   const reports = page.getByRole("region", { name: "Financial reports" });
   await reports
     .getByLabel("Report through date (inclusive)")
