@@ -67,6 +67,22 @@ units and journal contracts remain intact. Existing database/identity/recovery
 sources and the root onboarding contract supply the design basis; no new external
 standard or accounting policy is introduced.
 
+### HTTP transport checkpoint
+
+TestOnboarding47HTTPSetupLifecycle, TestOnboarding47HTTPAdoptionAndRecovery
+(prepared/committed) and TestOnboarding47HTTPFramingAndUnknownCommit pass through
+actual collectiononboarding.Handler/Service and the restricted PostgreSQL pool,
+using request recorders without host listeners. All eight routes accept actual
+SQL profiles, including prepare201, stable recovery identity, cancel/ack and
+historical acknowledged prepare. Closed malformed/duplicate/actor bodies,
+authentication-before-diagnostics, foreign denial and current source/book
+revocation use fixed opaque Problem responses. Actual commits followed by
+injected lost prepare/execute/ack replies produce503 with exactly one transaction
+attempt; only explicit same-intent replay discovers receipts. Lost acknowledgement
+plus current revocation permits the exact payload-free closure receipt. Legacy
+history hashes stay unchanged; no connection remains acquired. This test adds no
+fake financial responses or alternate business implementation.
+
 ## Remaining work
 
 Root integration owns actual HTTP/UI composition, all historical CI gates and
