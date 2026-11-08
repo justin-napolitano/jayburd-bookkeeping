@@ -29,6 +29,10 @@ UID/principal mapping stays private and never enters source/GitHub/tests.
 
 | Canonical fixture correction |7f1fe7f frontend/Infrastructure/GitGuardian pass and four existing actual label/rule journeys pass; new onboarding fixture startup rejects ambiguous UUID/text parameter42P08 before browser execution. Explicit UUID/text and amount-text/numeric casts fix fixture typing; no product SQL semantics changed. Exact fixture proof and refreshed canonical gates required. |
 
+| Exact fixture and privilege inventory | Direct bootstrap+New+actual restrictedSQL setup/cancel/adopt/query fixture proof PASS0.27s with casts fixed, unchanged history and0journals/nativecopies/claims; added to standard onboarding runner. Existing source privilege inventory extended by exactly six reviewed47names/signatures, all helper/operator/table denial assertions retained; focused actual proof PASS0.09s, all prior denied tables/helpers/roles intact. |
+
+| Exact amount wire | Direct real fixture proves canonical legacy API amount0.1 and huge9007199254740993.01; new browser expectation aligned to that exact response. Independent SQL script still requires original stored lexeme0.10 and both original revisions, so no rounding/scale loss is hidden by the assertion. |
+
 ## Current evidence
 
 Design accepted for implementation under owner task authority. Security-sensitive

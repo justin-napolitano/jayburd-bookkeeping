@@ -83,6 +83,19 @@ plus current revocation permits the exact payload-free closure receipt. Legacy
 history hashes stay unchanged; no connection remains acquired. This test adds no
 fake financial responses or alternate business implementation.
 
+### Exact application fixture checkpoint
+
+TestOnboardingBrowserFixturePostgres passes (0.27 seconds) on the owned isolated
+PostgreSQL47 fixture with explicit -app-proof-onboarding. It calls the exact
+bootstrapOnboardingBrowser source after the explicit UUID/text and text/numeric
+parameter casts, then all runtime/private/onboarding readiness grant gates and
+New with the real Sandbox composition. Request recorders drive cancel/ack,
+setup/execute/ack, complete candidate discovery, adopt/execute/ack and v3 review.
+Both original amounts (0.1 and9007199254740993.01) remain exact; source history
+hash is unchanged, with zero journals/native copies/pending claims. The proof
+closes its restricted pool/admin connection and drops only its own cloned DB.
+No listener, inherited DSN, alternate auth path or product SQL change is used.
+
 ## Remaining work
 
 Root integration owns actual HTTP/UI composition, all historical CI gates and
