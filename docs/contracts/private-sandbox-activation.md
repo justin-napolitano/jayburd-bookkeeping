@@ -53,8 +53,31 @@ load. Duplicate/unknown/case-alias fields, trailing JSON and invalid IDs deny.
 The operator must independently review the hash and every target field; a
 self-consistent hash alone does not approve a plan.
 
-The source-only flag collection-activation-plan-file defaults absent. Root
-composition requires the Sandbox project and existing CollectionEnabled setting.
+ParseApproved(raw, now) provides the exact same32KiB envelope/hash/expiry checks
+for optional inline operator configuration, without filesystem or network I/O.
+Load retains its regular-file/symlink/inode/size guards and delegates only its
+validated file bytes to this shared parser. Neither delivery can supply a user
+identity or extend approval. Root composition must reject simultaneous file and
+inline configuration and retain the same Sandbox+CollectionEnabled gates.
+
+Inline approval metadata in service command arguments is visible to authorized
+project operators. Only opaque reviewed target UUIDs, idempotency/evidence
+identifiers, generation/deadline and explicitly owner-approved safe aliases may
+be delivered this way. Never put issuer subjects, UIDs, email, tokens,
+credentials, provider IDs or source facts in it. Hash verification establishes
+integrity/content binding, not operator authentication; trusted deployment
+configuration is the approval boundary. This source path needs no new mount,
+resource or IAM grant, but its availability does not authorize a managed update.
+An expired configured plan is rejected at startup; an already running service
+denies adoption after expiry. The operator must explicitly remove the temporary
+approval configuration after its reviewed window or approve the same intent
+again; the application never renews or silently discards approval itself.
+
+The source-only flags collection-activation-plan-file and
+collection-activation-plan (inline envelope) both default empty and are mutually
+exclusive. Composition requires the Sandbox project, managed mode, existing
+CollectionEnabled setting and a non-Production provider environment. The inline
+configuration has the same32768-byte limit before dependency construction.
 NewService uses only an existing restricted pool. Requests have1024-byte bodies;
 responses are bounded32768 bytes and contain profile
 private-sandbox-activation-result-v1, plan_id and result. Result is the exact

@@ -140,8 +140,13 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 		d.Collection = &collectionread.Service{DB: pool}
 		d.Labels = &collectionlabels.Service{DB: pool, Rules: collectionlabels.RuleProcessor{}}
 	}
-	if c.CollectionActivationPlanFile != "" {
-		plan, err := collectionactivation.Load(c.CollectionActivationPlanFile, time.Now())
+	if c.activationConfigured() {
+		var plan *collectionactivation.Plan
+		if c.CollectionActivationPlanJSON != "" {
+			plan, err = collectionactivation.ParseApproved([]byte(c.CollectionActivationPlanJSON), time.Now())
+		} else {
+			plan, err = collectionactivation.Load(c.CollectionActivationPlanFile, time.Now())
+		}
 		if err != nil {
 			return fail()
 		}
