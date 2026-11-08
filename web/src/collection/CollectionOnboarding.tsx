@@ -67,6 +67,7 @@ export function CollectionOnboarding({
   owner.current = api;
   const acceptedAPI = useRef<API | null>(null),
     epoch = useRef(0),
+    pendingEpoch = useRef<number | null>(null),
     running = useRef(false),
     known = useRef(false);
   const callbacks = useRef({
@@ -104,6 +105,7 @@ export function CollectionOnboarding({
   const current = (n: number) => epoch.current === n && owner.current === api;
   const discover = useCallback(async () => {
     const n = ++epoch.current;
+    pendingEpoch.current = n;
     setReady(false);
     setBusy(true);
     setError("");
@@ -218,13 +220,17 @@ export function CollectionOnboarding({
         );
       }
     } finally {
-      if (current(n)) setBusy(false);
+      if (current(n)) {
+        pendingEpoch.current = null;
+        setBusy(false);
+      }
     }
     // Current callbacks and intent refs do not restart discovery on each state update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, client]);
   useLayoutEffect(() => {
     epoch.current++;
+    pendingEpoch.current = null;
     acceptedAPI.current = null;
     running.current = false;
     known.current = false;
@@ -250,6 +256,8 @@ export function CollectionOnboarding({
     if (!running.current) void discover();
   }, [discover, refreshVersion]);
   const loadCatalog = useCallback(async () => {
+    // Recovery discovery must finish before a same-render catalog refresh can own its epoch.
+    if (pendingEpoch.current === epoch.current) return;
     const n = ++epoch.current;
     setBusy(true);
     setCatalog(null);
@@ -277,7 +285,8 @@ export function CollectionOnboarding({
       !saved.current &&
       !clearID.current &&
       !preview &&
-      !running.current
+      !running.current &&
+      pendingEpoch.current !== epoch.current
     )
       void loadCatalog();
   }, [active, ready, supported, pending, refreshVersion, loadCatalog]);

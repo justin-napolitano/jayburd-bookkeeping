@@ -472,6 +472,104 @@ describe("private onboarding authority and recovery", () => {
     expect(document.body.textContent).not.toContain("Fictional records");
     expect(lock).toHaveBeenLastCalledWith(false);
   });
+  it("keeps an active idle catalog behind the current pending refresh before unlocking setup", async () => {
+    let pendingReads = 0;
+    let finish!: (value: unknown) => void;
+    const request = vi.fn(async (path: string) => {
+      if (path.endsWith("/pending")) {
+        if (++pendingReads === 1) return onboardingPending();
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      }
+      if (path === root) return onboardingCatalog();
+      throw Error("unexpected synthetic request");
+    });
+    const { view, lock } = mount(request);
+    await screen.findByRole("button", { name: "Set up private transactions" });
+    await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
+    expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+      1,
+    );
+    view.rerender(
+      <CollectionOnboarding
+        api={request as unknown as API}
+        active
+        externalLocked={false}
+        onLockChange={lock}
+        refreshVersion={1}
+      />,
+    );
+    await waitFor(() => expect(pendingReads).toBe(2));
+    try {
+      expect(lock).toHaveBeenLastCalledWith(true);
+      // A stale ready render must not issue a competing catalog read or supersede this pending response.
+      expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+        1,
+      );
+    } finally {
+      await act(async () => finish(onboardingPending()));
+    }
+    await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
+    expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+      2,
+    );
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Set up private transactions",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+  });
+  it("checks pending before catalog when becoming active and refreshing in the same commit", async () => {
+    let pendingReads = 0;
+    let finish!: (value: unknown) => void;
+    const request = vi.fn(async (path: string) => {
+      if (path.endsWith("/pending")) {
+        if (++pendingReads === 1) return onboardingPending();
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      }
+      if (path === root) return onboardingCatalog();
+      throw Error("unexpected synthetic request");
+    });
+    const { view, lock } = mount(request, { active: false });
+    await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
+    expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+      0,
+    );
+    view.rerender(
+      <CollectionOnboarding
+        api={request as unknown as API}
+        active
+        externalLocked={false}
+        onLockChange={lock}
+        refreshVersion={1}
+      />,
+    );
+    await waitFor(() => expect(pendingReads).toBe(2));
+    try {
+      expect(lock).toHaveBeenLastCalledWith(true);
+      expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+        0,
+      );
+    } finally {
+      await act(async () => finish(onboardingPending()));
+    }
+    await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
+    expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+      1,
+    );
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Set up private transactions",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+  });
   it("resolves lost acknowledgement after revocation only through exact closure, never a newer claim", async () => {
     const a = commitOnboarding(onboardingCommand()),
       b = onboardingCommand(onboardingPreview(true), "fictional-other");
