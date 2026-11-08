@@ -2000,7 +2000,7 @@ it("normal registration checks Hosted completion only after opening and at most 
   const idle = () =>
     waitFor(() =>
       expect(
-        screen.getByRole("region", { name: "Connections", exact: true })
+        screen.getByRole("region", { name: "Connections" })
           .getAttribute("aria-busy"),
       ).toBe("false"),
     );

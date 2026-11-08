@@ -42,6 +42,8 @@ UID/principal mapping stays private and never enters source/GitHub/tests.
 
 | Hosted-return readiness validation | Corrected idle wait uses installed Vitest matchers; all60Connections tests PASS and complete647units PASS. Read-only audit found no other automatic window-focus/visibility return tests needing this precondition. Product source/limit/retry/consent behavior unchanged. |
 
+| Readiness helper typing |2a28a36 frontend typecheck caught Playwright-only exact option in the new RTL getByRole helper; removed it (RTL string name matches exactly already). Fresh TypeScript check and full647units PASS before next push; no product change. |
+
 ## Current evidence
 
 Design accepted for implementation under owner task authority. Security-sensitive
