@@ -62,10 +62,10 @@ func bootstrapOnboardingBrowser(t *testing.T, ctx context.Context, admin *pgx.Co
 	for i, amount := range []string{"0.10", "9007199254740993.01"} {
 		observation := []string{"00000000-0000-4000-8000-000000000949", "00000000-0000-4000-8000-000000000950"}[i]
 		description := []string{"Fictional adopted cafe purchase", "Fictional adopted exact large quantity"}[i]
-		if _, err = tx.Exec(ctx, `INSERT INTO banking.source_observation(entity_id,book_id,observation_id,source_account_id,namespace_id,external_entry_id)VALUES($1,$2,$3,$4,'00000000-0000-4000-8000-000000000947',$3::text)`, onboardingBrowserEntity, onboardingBrowserBook, observation, onboardingBrowserSource); err != nil {
+		if _, err = tx.Exec(ctx, `INSERT INTO banking.source_observation(entity_id,book_id,observation_id,source_account_id,namespace_id,external_entry_id)VALUES($1,$2,$3::uuid,$4,'00000000-0000-4000-8000-000000000947',$3::uuid::text)`, onboardingBrowserEntity, onboardingBrowserBook, observation, onboardingBrowserSource); err != nil {
 			t.Fatal("synthetic onboarding observation rejected", err)
 		}
-		if _, err = tx.Exec(ctx, `INSERT INTO banking.observation_revision(entity_id,book_id,observation_id,revision,source_state,booked_date,currency_version_id,direction,amount_lexeme,amount,description,canonical_fields)VALUES($1,$2,$3,1,'booked','2026-10-01','00000000-0000-4000-8000-000000000002','outflow',$4,$4::numeric,$5,'{}')`, onboardingBrowserEntity, onboardingBrowserBook, observation, amount, description); err != nil {
+		if _, err = tx.Exec(ctx, `INSERT INTO banking.observation_revision(entity_id,book_id,observation_id,revision,source_state,booked_date,currency_version_id,direction,amount_lexeme,amount,description,canonical_fields)VALUES($1,$2,$3,1,'booked','2026-10-01','00000000-0000-4000-8000-000000000002','outflow',$4::text,$4::text::numeric,$5,'{}')`, onboardingBrowserEntity, onboardingBrowserBook, observation, amount, description); err != nil {
 			t.Fatal("synthetic onboarding original revision rejected", err)
 		}
 	}
