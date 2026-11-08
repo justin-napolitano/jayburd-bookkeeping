@@ -149,6 +149,7 @@ export function CollectionWorkspace({
         canClassify={bootstrap.canClassify}
         locked={bookLocked}
         active={active}
+        reviewVisible={active || sessionLocked}
         onLockChange={setSessionLocked}
         newWorkLocked={newWorkLocked}
         onAcknowledged={(ruleSeed) => {

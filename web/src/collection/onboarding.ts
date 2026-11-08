@@ -166,7 +166,8 @@ export function validOnboardingCatalog(v: unknown): v is OnboardingCatalog {
       ]) ||
       !id(w.workspace_id) ||
       !rev(w.authority_revision) ||
-      !caps(w.capabilities)
+      !caps(w.capabilities) ||
+      !w.capabilities.includes("read")
     )
       return false;
   } else if (
@@ -178,6 +179,7 @@ export function validOnboardingCatalog(v: unknown): v is OnboardingCatalog {
     (!v.can_setup || w.state === "absent") &&
     (!v.can_adopt ||
       (w.state === "ready" &&
+        v.candidates.length > 0 &&
         (w.capabilities as string[]).includes("read") &&
         (w.capabilities as string[]).includes("acquire"))) &&
     (v.can_adopt || v.candidates.length === 0)

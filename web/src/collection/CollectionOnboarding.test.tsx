@@ -333,6 +333,146 @@ describe("private onboarding authority and recovery", () => {
     expect(document.body.textContent).not.toContain("Fictional records");
     await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
   });
+  it("never turns later404 into feature absence after a supported empty pending read", async () => {
+    const request = vi.fn().mockResolvedValue(onboardingPending());
+    const { view, lock } = mount(request, { active: false });
+    await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
+    request.mockRejectedValue(new APIError(404, false, "read"));
+    view.rerender(
+      <CollectionOnboarding
+        api={request as unknown as API}
+        active={false}
+        externalLocked={false}
+        onLockChange={lock}
+        refreshVersion={1}
+      />,
+    );
+    await screen.findByRole("alert");
+    expect(lock).toHaveBeenLastCalledWith(true);
+  });
+  it("a rejected digest sends no prepare and releases busy so the review can be retried", async () => {
+    const f = fixture();
+    mount(f.request);
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Set up private transactions",
+      }),
+    );
+    const digest = vi
+      .spyOn(crypto.subtle, "digest")
+      .mockRejectedValueOnce(new Error("synthetic digest failure"));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save setup review" }),
+    );
+    await screen.findByText(/could not be pinned safely/);
+    expect(
+      f.request.mock.calls.filter(([p]) => p === root + "/commands"),
+    ).toHaveLength(0);
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Save setup review",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+    digest.mockRestore();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save setup review" }),
+    );
+    await screen.findByRole("button", { name: "Create private workspace" });
+  });
+  it("a newer pending refresh releases a slow superseded catalog after navigation away", async () => {
+    let finish!: (value: unknown) => void;
+    const request = vi.fn(async (p: string) =>
+      p.endsWith("/pending")
+        ? onboardingPending()
+        : new Promise((resolve) => {
+            finish = resolve;
+          }),
+    );
+    const { view, lock } = mount(request);
+    await waitFor(() => expect(finish).toBeTypeOf("function"));
+    view.rerender(
+      <CollectionOnboarding
+        api={request as unknown as API}
+        active={false}
+        externalLocked={false}
+        onLockChange={lock}
+        refreshVersion={1}
+      />,
+    );
+    await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
+    await act(async () => finish(onboardingCatalog(true)));
+    expect(document.body.textContent).not.toContain("Fictional records");
+    expect(lock).toHaveBeenLastCalledWith(false);
+  });
+  it("resolves lost acknowledgement after revocation only through exact closure, never a newer claim", async () => {
+    const a = commitOnboarding(onboardingCommand()),
+      b = onboardingCommand(onboardingPreview(true), "fictional-other");
+    b.command_id = "81000000-0000-4000-8000-000000000090";
+    b.recovery_id = "81000000-0000-4000-8000-000000000091";
+    if (b.preview.operation === "adopt")
+      b.preview.review.book_name = "Fictional later hidden connection";
+    let pending = onboardingPending(a),
+      ack = 0,
+      clears = 0;
+    const ids: string[] = [];
+    const request = vi.fn(async (p: string, body?: string) => {
+      if (p.endsWith("/pending")) return pending;
+      if (p.endsWith("/acknowledge")) {
+        if (++ack === 1) {
+          pending = onboardingPending();
+          throw new APIError(503, true);
+        }
+        throw new APIError(404, false);
+      }
+      if (p.endsWith("/clear")) {
+        ids.push(JSON.parse(body!).recovery_id);
+        pending = onboardingPending(b);
+        pending.recovery_id = b.recovery_id;
+        if (++clears === 1) throw new APIError(503, true);
+        return {
+          profile: "private-onboarding-clear-v1",
+          recovery_id: a.recovery_id,
+          cleared: true,
+        };
+      }
+      throw Error("unexpected synthetic route");
+    });
+    const { changed, lock } = mount(request, { active: false });
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Acknowledge setup result" }),
+    );
+    await screen.findByRole("alert");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Acknowledge setup result" }),
+    );
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Resolve exact setup recovery",
+      }),
+    );
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Check saved private setup" }),
+    );
+    expect(document.body.textContent).not.toContain(
+      "Fictional later hidden connection",
+    );
+    expect(changed).not.toHaveBeenCalled();
+    expect(lock).toHaveBeenLastCalledWith(true);
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Retry clearing the same setup review",
+      }),
+    );
+    await screen.findByText("Fictional later hidden connection", {
+      exact: false,
+    });
+    expect(ids).toEqual([a.recovery_id, a.recovery_id]);
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(lock).toHaveBeenLastCalledWith(true);
+    expect(pending.command?.command_id).toBe(b.command_id);
+  });
 });
 describe("closed onboarding wire", () => {
   it("accepts SQL microsecond timestamps, explicit cancellation and newly allocated adoption aliases", () => {
@@ -371,6 +511,15 @@ describe("closed onboarding wire", () => {
     c.can_adopt = false;
     c.candidates = [];
     expect(validOnboardingCatalog(c)).toBe(true);
+    expect(
+      validOnboardingCatalog({ ...onboardingCatalog(true), candidates: [] }),
+    ).toBe(false);
+    const unreadable = onboardingCatalog(true);
+    if (unreadable.workspace.state === "ready")
+      unreadable.workspace.capabilities = ["classify"];
+    unreadable.can_adopt = false;
+    unreadable.candidates = [];
+    expect(validOnboardingCatalog(unreadable)).toBe(false);
     const p = onboardingPreview();
     p.review = { capabilities: ["read", "read", "classify"] };
     expect(validOnboardingPreview(p)).toBe(false);

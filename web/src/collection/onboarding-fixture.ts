@@ -110,5 +110,5 @@ export const onboardingPending = (
   profile: "private-onboarding-pending-v1",
   state: command ? "available" : "none",
   command,
-  recovery_id: command ? onboardingIDs.recovery : null,
+  recovery_id: command ? command.recovery_id : null,
 });

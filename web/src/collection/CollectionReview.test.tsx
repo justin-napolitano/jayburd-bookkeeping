@@ -289,6 +289,42 @@ describe("private collection review", () => {
       screen.getByRole("heading", { name: "Review 1 selected transactions" }),
     );
   });
+  it("retains saved-review focus until its parent wrapper has committed visible", async () => {
+    const f = collectionFixture({ scenario: "pending" });
+    const props = {
+      workspace: collectionWorkspace,
+      sources: collectionSources,
+      catalog: collectionCatalog,
+      port: f.port,
+      onDenied: vi.fn(),
+      active: false,
+    };
+    const view = render(
+      <div hidden>
+        <CollectionReview {...props} reviewVisible={false} />
+      </div>,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", {
+          name: "Saved label review",
+          hidden: true,
+        }),
+      ).toBeTruthy(),
+    );
+    const title = screen.getByRole("heading", {
+      name: "Saved label review",
+      hidden: true,
+    });
+    expect(document.activeElement).not.toBe(title);
+    view.rerender(
+      <div>
+        <CollectionReview {...props} reviewVisible />
+      </div>,
+    );
+    await waitFor(() => expect(document.activeElement).toBe(title));
+    expect(f.calls.execute).toBe(0);
+  });
   it("renders a missing stored numeric currency code without inventing one or holding valid money", async () => {
     await start({ rows: [nullNumericCollectionRow()] });
     expect(screen.getByText("12.50 USD")).toBeTruthy();

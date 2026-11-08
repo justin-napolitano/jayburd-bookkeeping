@@ -14,7 +14,8 @@ async function serveEntry(page: Page, sourceState = "ready") {
     // Private discovery is separate from this book-only read/navigation fixture.
     if (
       url.pathname === "/v1/collection" ||
-      url.pathname === "/v1/collection-recovery"
+      url.pathname === "/v1/collection-recovery" ||
+      url.pathname === "/v1/collection-onboarding/commands/pending"
     )
       return route.fulfill({ status: 404, json: { code: "not_found" } });
     if (request.method() !== "GET") mutations.push(url.pathname);
