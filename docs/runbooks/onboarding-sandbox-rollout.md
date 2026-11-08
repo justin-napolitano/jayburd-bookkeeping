@@ -21,10 +21,8 @@ deployment/execution/scheduling, new resource/IAM or Production change.
 | --- | --- |
 | Source preparation |461 combines own-workspace setup, complete authorized existing-connection adoption and exact shared-gate recovery.647 units/84 component browsers and12SQL+3actualHTTP groups pass; canonical actual Next/Go/SQL and all old journeys passed. |
 | Predecessor reference | Previously accepted API00024-r9d/web00024-cf5 and clean46/default-status migrator. Fresh selected metadata at16:05Z matches the expected exact images/settings, Ready/sole100. |
-
 | Clean predecessor | Existing default status jayburd-dev-migrate-r48x2 completed16:08:01.478547Z, succeeded1/no failures/retries, exact old46 image/status args/restricted identity/task/timeout accepted by migration-receipt.mjs; clean46/full hashes. |
-| Recovery metadata | Fresh instance RUNNABLE PostgreSQL17/db-g1-small, backup/PITR enabled/log retention7days. Latest backup list and operation-list metadata reads fail before API execution because SDK cannot write protected local credential cache; no credential/config copy or auth widening. Browser navigation also unavailable. Owner requested only bounded read-only Cloud Shell backup row asynchronously; managed up47 waits for that verification. |
-
+| Recovery metadata | Fresh instance RUNNABLE PostgreSQL17/db-g1-small, backup/PITR enabled/log retention7days. Owner supplied the requested bounded Cloud Shell backup metadata: ID1794117600000, SUCCESSFUL, completed2026-11-08T06:29:22.678Z. This resolves the local SDK cache/browser metadata-read blocker without credential/config copying, auth widening or SQL. Successful backup metadata is not a restore rehearsal. |
 ## Current evidence
 
 Source [PR461](https://github.com/justin-napolitano/jayburd-bookkeeping/pull/461),
@@ -38,8 +36,7 @@ setup/adoption and review privately after deployment.
 
 ## Remaining work
 
-Require exact-head all-green canonical checks and independent source review,
-merge461, then trusted owner/main build with all four independently recomputed
+Source merge and canonical checks are complete. Require trusted owner/main build with all four independently recomputed
 runtime/scan/SBOM/provenance receipts and zero HIGH/CRITICAL. Recheck existing
 healthy revisions/configuration, backup/PITR metadata and clean46/full hashes.
 Update existing migrator image only; one explicit up47 and separate default
