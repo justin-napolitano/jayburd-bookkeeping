@@ -4007,6 +4007,8 @@ export interface components {
             profile: "private-onboarding-command-v1";
             /** Format: uuid */
             command_id: string;
+            /** Format: uuid */
+            recovery_id: string;
             prepare_key: string;
             /** @enum {unknown} */
             state: "prepared" | "committed" | "cancelled";

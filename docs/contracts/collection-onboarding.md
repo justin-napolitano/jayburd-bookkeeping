@@ -72,7 +72,8 @@ Routes under /v1/collection-onboarding, all authenticated/no-store:
 - POST /commands/{command_id}/execute, /cancel, /acknowledge: exact {}.
 - POST /recovery/clear: exact {recovery_id}, inaccessible own onboarding only.
 
-Command profile private-onboarding-command-v1: command_id, prepare_key (exact saved key), state
+Command profile private-onboarding-command-v1: command_id, recovery_id (stable exact claim/closure UUID),
+prepare_key (exact saved key), state
 prepared|committed|cancelled, preview, result nullable, acknowledged boolean.
 Setup result retains existing workspace_id/workspace_revision/capabilities;
 adoption result retains42 collection_item_id/item_generation/sources.
@@ -82,7 +83,11 @@ engine owns the gate and discloses no payload; never treat it as none or clear i
 through onboarding. Inaccessible clear returns profile
 private-onboarding-clear-v1, recovery_id, cleared boolean and writes durable
 exact closure; stale retry cannot release a newer command. Ordinary terminal ack
-also closes its exact claim. Reads use SERIALIZABLE fence to prevent stale-none
+also closes its exact claim. The command persists/echoes its own immutable
+recovery_id before transitions, and the reservation uses that exact identity.
+Pending available must match envelope and command recovery IDs. If an actual ack
+reply is lost and authority is revoked before replay, the retained opaque ID can
+prove its typed durable closure through clear without exposing saved payload. Reads use SERIALIZABLE fence to prevent stale-none
 discovery/admission. Other engines retain their historical wire semantics and
 recognize busy onboarding without decoding unsupported payloads.
 

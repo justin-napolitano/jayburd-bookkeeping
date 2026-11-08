@@ -65,6 +65,39 @@ func TestRuntimeReadiness(t *testing.T) {
 			}
 		})
 	}
+
+	// Every new onboarding grant is required; general owner provisioning must remain unavailable.
+	if err = onboardingReady(ctx, pool); err != nil {
+		t.Fatal("matching onboarding runtime not ready", err)
+	}
+	for _, signature := range []string{"get_collection_onboarding(uuid)", "preview_collection_onboarding(uuid,text)", "prepare_collection_onboarding(uuid,text)", "pending_collection_onboarding(uuid)", "transition_collection_onboarding(uuid,uuid,text,text)", "clear_collection_onboarding(uuid,text)"} {
+		t.Run("onboarding_"+signature, func(t *testing.T) {
+			if _, err = setup.Exec(ctx, "REVOKE EXECUTE ON FUNCTION banking."+signature+" FROM bookkeeping_api"); err != nil {
+				t.Fatal(err)
+			}
+			if onboardingReady(ctx, pool) == nil {
+				t.Fatal("missing onboarding grant reported ready")
+			}
+			if _, err = setup.Exec(ctx, "GRANT EXECUTE ON FUNCTION banking."+signature+" TO bookkeeping_api"); err != nil {
+				t.Fatal(err)
+			}
+			if err = onboardingReady(ctx, pool); err != nil {
+				t.Fatal("restored onboarding runtime not ready", err)
+			}
+		})
+	}
+	if _, err = setup.Exec(ctx, "GRANT EXECUTE ON FUNCTION banking.provision_collection_owner(uuid,text,text) TO bookkeeping_api"); err != nil {
+		t.Fatal(err)
+	}
+	if onboardingReady(ctx, pool) == nil {
+		t.Fatal("general owner provisioning accepted by onboarding readiness")
+	}
+	if _, err = setup.Exec(ctx, "REVOKE EXECUTE ON FUNCTION banking.provision_collection_owner(uuid,text,text) FROM bookkeeping_api"); err != nil {
+		t.Fatal(err)
+	}
+	if err = onboardingReady(ctx, pool); err != nil {
+		t.Fatal("restricted onboarding runtime not restored", err)
+	}
 	for _, tc := range []struct{ name, grant, revoke string }{
 		{"table_read", "GRANT SELECT ON ledger.principal TO synthetic_server", "REVOKE SELECT ON ledger.principal FROM synthetic_server"},
 		{"enrollment", "GRANT EXECUTE ON FUNCTION ledger.enroll_principal(text,text) TO synthetic_server", "REVOKE EXECUTE ON FUNCTION ledger.enroll_principal(text,text) FROM synthetic_server"},
