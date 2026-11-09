@@ -55,3 +55,19 @@ the new artifact policy unit fixtures and the integration-tag ledger fixtures.
 Renamed the new fixture constant to artifactPolicyCommandID; no runtime behavior,
 assertion, migration or financial fixture changed. Explicit integration-tag
 compilation is required alongside the ordinary ledger package checks.
+
+## Canonical transport diagnostic proof correction
+
+Exact cd2bc01 application job128906578798 passed private topics/labels and
+onboarding/adoption, then exposed a QA-layer mismatch in app.spec.tsx153.
+Authenticated unlinked requests correctly returned422, but the test expected the
+Go diagnostic code through Next. The existing bridge deliberately replaces
+upstream error diagnostics with the exact fixed object
+`{type:"about:blank",title:"Request unavailable",status:422}`. The corrected
+actual-browser test asserts that whole object plus422. Authenticated Go public
+handler tests still require artifact_required and zero posting SQL. No bridge
+allowlist, diagnostic exposure, policy, SQL or source proof assertion changed.
+Source0.10 report/demo acceptance had not run before this failure and remains a
+required exact-head canonical gate. Local TypeScript, Playwright discovery,
+formatting and diff checks validate this narrow correction; local listener
+restrictions still prevent claiming a composed pass.
