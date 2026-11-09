@@ -194,3 +194,28 @@ it("denied balance clears values and notifies scope owner rather than rendering 
   expect(screen.queryByRole("table")).toBeNull();
   expect(screen.getByRole("alert").textContent).toContain("unavailable");
 });
+
+it("keeps scope, currency and exact balances without developer provenance", async () => {
+  const api = vi
+    .fn()
+    .mockResolvedValue(balance("2026-01-31")) as unknown as API;
+  const view = render(
+    <BookWorkspace
+      entity={entity}
+      book={book}
+      currencies={currencies}
+      api={api}
+      locked={false}
+      denied={vi.fn()}
+    />,
+  );
+  await screen.findAllByText("9007199254740993.01");
+  expect(screen.getByRole("heading", { name: "Operating" })).toBeTruthy();
+  expect(screen.getByText("Amounts in USD")).toBeTruthy();
+  expect(screen.queryByText("Book details")).toBeNull();
+  expect(view.container.textContent).not.toContain("Workspace revision");
+  expect(view.container.textContent).not.toContain("Snapshot");
+  expect(api).toHaveBeenCalledWith(
+    "/v1/entities/e/books/b/trial-balance?through_date=2026-01-31",
+  );
+});

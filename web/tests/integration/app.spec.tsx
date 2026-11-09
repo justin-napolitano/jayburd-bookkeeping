@@ -63,7 +63,27 @@ test("expired enrollment preserves book setup recovery and rejects unlinked post
   await expect(
     page.getByText("Book creation confirmed", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(lostSetup, { exact: true })).toBeVisible();
+  // Recovery proves its exact identity through the real authorized response;
+  // a customer must not need the transport command UUID to continue.
+  const recovered = await page.request.get(
+    new URL("/v1/commands/pending", page.url()).href,
+    {
+      headers: {
+        Authorization: "Bearer synthetic.browser.proof",
+        Origin: new URL(page.url()).origin,
+      },
+    },
+  );
+  expect(recovered.status()).toBe(200);
+  expect(await recovered.json()).toMatchObject({
+    command: {
+      command_id: lostSetup,
+      operation: "setup",
+      state: "committed",
+      acknowledged: false,
+    },
+  });
+  await expect(page.getByText(lostSetup, { exact: true })).toHaveCount(0);
   expect(setupExecutions).toBe(1);
   await page
     .getByRole("button", { name: "Acknowledge result", exact: true })

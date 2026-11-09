@@ -107,6 +107,22 @@ function props(api: API, defaultDiscovery = true): ConnectionsProps {
     onReview: vi.fn(),
   };
 }
+// Recovery tests select an authoritative discovered attempt instead of a raw-ID inspector.
+function discoveredProps(api: API): ConnectionsProps {
+  return props(
+    (async (path, body, key) =>
+      path.includes("/connection-attempts?")
+        ? {
+            items: [
+              { ...attempt, expired_unclaimed: false, binding_expired: false },
+            ],
+            next_cursor: null,
+            unfinished_count: "1",
+          }
+        : api(path, body, key)) as API,
+    false,
+  );
+}
 // Deferred replies expose stale renders and post-unmount effects deterministically.
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -122,11 +138,11 @@ it("TestConnectionsScopeAndRecovery distinguishes missing deployment from empty"
     .mockRejectedValue(new APIError(404, false)) as unknown as API;
   render(<Connections {...props(api)} />);
   await screen.findByRole("alert");
-  expect(screen.queryByText("No connected Items in this book.")).toBeNull();
+  expect(screen.queryByText("No bank accounts connected yet.")).toBeNull();
   expect(
     (
       screen.getByRole("button", {
-        name: "Connect account",
+        name: "Connect bank",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
@@ -166,8 +182,8 @@ it("TestConnectionsScopeAndRecovery does not execute Link after scope locks", as
     },
   };
   const view = render(<Connections {...p} />);
-  await screen.findByText("No connected Items in this book.");
-  fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+  await screen.findByText("No bank accounts connected yet.");
+  fireEvent.click(screen.getByRole("button", { name: "Connect bank" }));
   await waitFor(() => expect(p.link.open).toHaveBeenCalledOnce());
   view.rerender(<Connections {...p} locked />);
   expect(signal?.aborted).toBe(true);
@@ -218,11 +234,13 @@ it("TestConnectionsScopeAndRecovery inspects unknown exchange without retry", as
       link={{ open: async () => ({ publicToken: "synthetic-public" }) }}
     />,
   );
-  await screen.findByText("No connected Items in this book.");
-  fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+  await screen.findByText("No bank accounts connected yet.");
+  fireEvent.click(screen.getByRole("button", { name: "Connect bank" }));
   await screen.findByRole("alert");
-  fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
-  await screen.findByText("Historical attempt status: exchange claimed");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Check this bank setup" }),
+  );
+  await screen.findByText("Setup status: Confirming bank connection");
   expect(executes).toBe(1);
   expect(
     screen.queryByRole("button", { name: "Try connecting again" }),
@@ -234,16 +252,13 @@ it("TestConnectionsScopeAndRecovery rejects mismatched attempt identity", async 
       ? { items: [] }
       : { ...attempt, entity_id: id(99) },
   ) as unknown as API;
-  render(<Connections {...props(api)} link={{ open: vi.fn() }} />);
-  await screen.findByText("No connected Items in this book.");
-  fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
-    target: { value: id(5) },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
+  render(<Connections {...discoveredProps(api)} link={{ open: vi.fn() }} />);
+  await screen.findByText("No bank accounts connected yet.");
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Review bank setup" }),
+  );
   await screen.findByRole("alert");
-  expect(
-    screen.queryByText("Historical attempt status: link ready"),
-  ).toBeNull();
+  expect(screen.queryByText("Setup status: Waiting for bank setup")).toBeNull();
 });
 it("TestConnectionsScopeAndRecovery ignores StrictMode's obsolete initial read", async () => {
   const old = deferred<unknown>();
@@ -256,7 +271,7 @@ it("TestConnectionsScopeAndRecovery ignores StrictMode's obsolete initial read",
       <Connections {...props(api)} />
     </StrictMode>,
   );
-  await screen.findByText("No connected Items in this book.");
+  await screen.findByText("No bank accounts connected yet.");
   old.resolve(listing);
   await Promise.resolve();
   expect(screen.queryByText("Bank connection 1")).toBeNull();
@@ -297,8 +312,8 @@ it("TestConnectionsEnrollmentBinding explicitly maps verified account and opens 
     link: { open: vi.fn(async () => ({ publicToken: "synthetic-public" })) },
   };
   render(<Connections {...p} />);
-  await screen.findByText("No connected Items in this book.");
-  const start = screen.getByRole("button", { name: "Connect account" });
+  await screen.findByText("No bank accounts connected yet.");
+  const start = screen.getByRole("button", { name: "Connect bank" });
   fireEvent.click(start);
   fireEvent.click(start);
   await screen.findByRole("group", {
@@ -319,7 +334,7 @@ it("TestConnectionsEnrollmentBinding explicitly maps verified account and opens 
   fireEvent.click(
     screen.getByRole("button", { name: "Confirm selected bindings" }),
   );
-  await screen.findByText("Historical attempt status: active");
+  await screen.findByText("Setup status: Connected");
   expect(bindings).toEqual({
     consent_grants: true,
     bindings: [
@@ -415,12 +430,11 @@ it("TestConnectionsAutomaticBinding proposes distinct accounts for every support
     }
     throw Error("unexpected");
   }) as unknown as API;
-  render(<Connections {...props(api)} />);
-  await screen.findByText("No connected Items in this book.");
-  fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
-    target: { value: attempt.attempt_id },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
+  render(<Connections {...discoveredProps(api)} />);
+  await screen.findByText("No bank accounts connected yet.");
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Review bank setup" }),
+  );
   await screen.findByRole("group", {
     name: "Review verified account bindings",
   });
@@ -519,12 +533,11 @@ it("TestConnectionsSkippedMapping clears all skipped proposals before confirming
     }
     throw Error("unexpected");
   }) as unknown as API;
-  render(<Connections {...props(api)} />);
-  await screen.findByText("No connected Items in this book.");
-  fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
-    target: { value: attempt.attempt_id },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
+  render(<Connections {...discoveredProps(api)} />);
+  await screen.findByText("No bank accounts connected yet.");
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Review bank setup" }),
+  );
   await screen.findByRole("group", {
     name: "Review verified account bindings",
   });
@@ -604,13 +617,13 @@ it("TestConnectionsScopeAndRecovery blocks new enrollment after unknown Begin", 
     throw new APIError(0, true);
   }) as unknown as API;
   render(<Connections {...props(api)} link={{ open: vi.fn() }} />);
-  await screen.findByText("No connected Items in this book.");
-  fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+  await screen.findByText("No bank accounts connected yet.");
+  fireEvent.click(screen.getByRole("button", { name: "Connect bank" }));
   await screen.findByRole("alert");
   expect(
     (
       screen.getByRole("button", {
-        name: "Connect account",
+        name: "Connect bank",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
@@ -632,15 +645,12 @@ it("TestConnectionsScopeAndRecovery reconciles known recorded credential only", 
       manifest,
     };
   }) as unknown as API;
-  render(<Connections {...props(api)} link={{ open: vi.fn() }} />);
-  await screen.findByText("No connected Items in this book.");
-  fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
-    target: { value: id(5) },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
-  await screen.findByText(
-    "Historical attempt status: credential recovery required",
+  render(<Connections {...discoveredProps(api)} link={{ open: vi.fn() }} />);
+  await screen.findByText("No bank accounts connected yet.");
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Review bank setup" }),
   );
+  await screen.findByText("Setup status: Bank setup needs attention");
   fireEvent.click(screen.getByRole("button", { name: "Try connecting again" }));
   await screen.findByRole("group", {
     name: "Review verified account bindings",
@@ -698,14 +708,11 @@ it.each([true, false])(
       return recovered;
     }) as unknown as API;
     render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
-    await screen.findByText("Unfinished attempts: 1");
-    fireEvent.change(screen.getByLabelText("Known connection attempt ID"), {
-      target: { value: attempt.attempt_id },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Inspect attempt" }));
-    await screen.findByText(
-      "Historical attempt status: credential recovery required",
+    await screen.findByText("Unfinished bank setups: 1");
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Review bank setup" }),
     );
+    await screen.findByText("Setup status: Bank setup needs attention");
     fireEvent.click(
       screen.getByRole("button", {
         name: retry ? "Try connecting again" : "Cancel setup",
@@ -721,7 +728,9 @@ it.each([true, false])(
         .mocked(api)
         .mock.calls.filter(([path]) => path.endsWith("/connection-attempts")),
     ).toHaveLength(retry ? 1 : 0);
-    expect(screen.getByText("Unfinished attempts: 0")).toBeTruthy();
+    expect(
+      screen.queryByRole("region", { name: "Unfinished connections" }),
+    ).toBeNull();
     expect(
       vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/reconcile")),
     ).toHaveLength(1);
@@ -780,13 +789,15 @@ it("cancels binding review with explicit confirmation and then starts over", asy
   render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: `Review attempt ${attempt.attempt_id}`,
+      name: "Review bank setup",
     }),
   );
   fireEvent.click(
     await screen.findByRole("button", { name: "Cancel setup and start over" }),
   );
-  expect(screen.getByText(/Remove this unbound Plaid Item/)).toBeTruthy();
+  expect(
+    screen.getByText(/Remove this unfinished bank connection/),
+  ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Confirm cancellation" }));
   await screen.findByRole("link", { name: "Open Plaid" });
   expect(abandoned).toBe(true);
@@ -816,7 +827,7 @@ it("TestConnectionsScopeAndRecovery clears confirmed disconnect rejection", asyn
   expect(
     (
       screen.getByRole("button", {
-        name: "Refresh connections",
+        name: "Refresh",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(false);
@@ -829,7 +840,7 @@ it("TestConnectionsScopeAndRecovery rejects malformed list state", async () => {
   render(<Connections {...props(api)} />);
   await screen.findByRole("alert");
   expect(screen.queryByText("Bank connection 1")).toBeNull();
-  expect(screen.queryByText("No connected Items in this book.")).toBeNull();
+  expect(screen.queryByText("No bank accounts connected yet.")).toBeNull();
 });
 
 const status = {
@@ -874,23 +885,19 @@ it("TestConnectionsScopeAndRecovery discovers unfinished attempts after reload",
   ) as unknown as API;
   const p = { ...props(api, false), link: { open: vi.fn() } };
   const first = render(<Connections {...p} />);
-  await screen.findByText("Unfinished attempts: 1");
+  await screen.findByText("Unfinished bank setups: 1");
   first.unmount();
   render(<Connections {...p} />);
-  await screen.findByText("Unfinished attempts: 1");
+  await screen.findByText("Unfinished bank setups: 1");
   expect(
     (
       screen.getByRole("button", {
-        name: "Connect account",
+        name: "Connect bank",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
-  fireEvent.click(
-    screen.getByRole("button", { name: `Review attempt ${id(5)}` }),
-  );
-  await screen.findByText(
-    "Historical attempt status: credential recovery required",
-  );
+  fireEvent.click(screen.getByRole("button", { name: "Review bank setup" }));
+  await screen.findByText("Setup status: Bank setup needs attention");
   expect(p.link.open).not.toHaveBeenCalled();
   expect(localStorage.length + sessionStorage.length).toBe(0);
 });
@@ -903,7 +910,7 @@ it("TestConnectionsDiscovery waits for complete authenticated result and rejects
   expect(
     (
       screen.getByRole("button", {
-        name: "Connect account",
+        name: "Connect bank",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
@@ -912,7 +919,7 @@ it("TestConnectionsDiscovery waits for complete authenticated result and rejects
   expect(
     (
       screen.getByRole("button", {
-        name: "Connect account",
+        name: "Connect bank",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
@@ -932,22 +939,24 @@ it("TestConnectionsDiscovery shows expired unclaimed without replay and paginate
     return attempt;
   }) as unknown as API;
   render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
-  await screen.findByText("Unfinished attempts: 0");
+  await screen.findByRole("button", { name: "Review bank setup" });
   expect(
     (
       screen.getByRole("button", {
-        name: "Connect account",
+        name: "Connect bank",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Review bank setup" }));
+  await screen.findByText(/This bank setup expired before it completed/);
   fireEvent.click(
-    screen.getByRole("button", { name: `Review attempt ${id(5)}` }),
+    screen.getByRole("button", { name: "Check earlier bank setups" }),
   );
-  await screen.findByText(/Expired before claim\. This attempt cannot/);
-  fireEvent.click(
-    screen.getByRole("button", { name: "Older connection attempts" }),
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("region", { name: "Unfinished connections" }),
+    ).toBeNull(),
   );
-  await screen.findByText("No attempts on this page.");
   expect(vi.mocked(api).mock.calls.some(([p]) => p.endsWith("execute"))).toBe(
     false,
   );
@@ -977,15 +986,17 @@ it.each([
         name: "View sync status for Bank account 1",
       }),
     );
-    await screen.findByText(/Sync stopped after a failure/);
-    expect(screen.queryByText(/Sync work is queued/)).toBeNull();
+    await screen.findByText(/Sync needs attention/);
+    expect(screen.queryByText(/Sync is queued/)).toBeNull();
     expect(
-      screen.getByText(`Data validation: ${diagnostic.replaceAll("_", " ")}.`),
+      screen.getByText(
+        "Some transactions could not be imported. Your posted entries have not changed.",
+      ),
     ).toBeTruthy();
   },
 );
 
-it("TestConnectionsStreamStatus shows exact generations and honest unknown timestamps", async () => {
+it("TestConnectionsStreamStatus shows honest import state without technical generations", async () => {
   const api = vi.fn(async (path: string) =>
     path.endsWith("/status") ? status : listing,
   ) as unknown as API;
@@ -995,14 +1006,13 @@ it("TestConnectionsStreamStatus shows exact generations and honest unknown times
       name: "View sync status for Bank account 1",
     }),
   );
-  await screen.findByText(
-    "Requested generation 9007199254740993; completed generation 0.",
-  );
+  await screen.findByText("Last import: No completed import yet");
+  expect(screen.queryByText(/9007199254740993/)).toBeNull();
+  expect(screen.getByText("Import not completed yet")).toBeTruthy();
+  expect(screen.queryByText(/Last provider update/)).toBeNull();
   expect(
-    screen.getByText("Last complete publication: None recorded"),
+    screen.getByText(/Imported transactions still need review/),
   ).toBeTruthy();
-  expect(screen.getByText(/Last provider update: Unknown/)).toBeTruthy();
-  expect(screen.getByText(/Acquisition does not post journals/)).toBeTruthy();
 });
 it("TestConnectionsStreamStatus confirms one account and resolves unknown request unchanged", async () => {
   const mutations: unknown[][] = [];
@@ -1040,11 +1050,7 @@ it("TestConnectionsStreamStatus confirms one account and resolves unknown reques
     expected_stream_revision: "3",
   });
   // A replayed historical receipt must not overwrite the fresh status read.
-  expect(
-    screen.getByText(
-      "Requested generation 9007199254740993; completed generation 0.",
-    ),
-  ).toBeTruthy();
+  expect(screen.getByText("Account sync is active.")).toBeTruthy();
 });
 it("TestConnectionsStreamStatus rejects wrong stream and suppresses response after lock", async () => {
   const reply = deferred<unknown>();
@@ -1158,7 +1164,7 @@ it("TestConnectionsStreamStatus revocation clears discovery and blocks new enrol
   expect(
     (
       screen.getByRole("button", {
-        name: "Connect account",
+        name: "Connect bank",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
@@ -1183,14 +1189,14 @@ it("TestConnectionsDiscovery permits fresh enrollment after expired binding insp
   ) as unknown as API;
   render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
   fireEvent.click(
-    await screen.findByRole("button", { name: `Review attempt ${id(5)}` }),
+    await screen.findByRole("button", { name: "Review bank setup" }),
   );
-  await screen.findByText(/Binding review expired; start a fresh connection/);
+  await screen.findByText(/Account selection expired/);
   await waitFor(() =>
     expect(
       (
         screen.getByRole("button", {
-          name: "Connect account",
+          name: "Connect bank",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(false),
@@ -1220,13 +1226,13 @@ it("TestConnectionsDiscovery keeps expired unknown claimed work blocking enrollm
   ) as unknown as API;
   render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
   fireEvent.click(
-    await screen.findByRole("button", { name: `Review attempt ${id(5)}` }),
+    await screen.findByRole("button", { name: "Review bank setup" }),
   );
-  await screen.findByText("Historical attempt status: exchange claimed");
+  await screen.findByText("Setup status: Confirming bank connection");
   expect(
     (
       screen.getByRole("button", {
-        name: "Connect account",
+        name: "Connect bank",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
@@ -1254,8 +1260,8 @@ it("Hosted completion stays pending, then exposes verified binding review", asyn
   }) as unknown as API;
   const link = { open: vi.fn() };
   render(<Connections {...props(api)} link={link} />);
-  await screen.findByText("No connected Items in this book.");
-  fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+  await screen.findByText("No bank accounts connected yet.");
+  fireEvent.click(screen.getByRole("button", { name: "Connect bank" }));
   const anchor = await screen.findByRole("link", {
     name: "Open Plaid",
   });
@@ -1289,11 +1295,11 @@ it("expires Hosted navigation while preserving explicit completion recovery", as
     };
   }) as unknown as API;
   render(<Connections {...props(api)} link={{ open: vi.fn() }} />);
-  await screen.findByText("No connected Items in this book.");
+  await screen.findByText("No bank accounts connected yet.");
   vi.useFakeTimers();
   try {
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+      fireEvent.click(screen.getByRole("button", { name: "Connect bank" }));
     });
     expect(screen.getByRole("link", { name: "Open Plaid" })).toBeTruthy();
     await act(async () => {
@@ -1309,7 +1315,7 @@ it("expires Hosted navigation while preserving explicit completion recovery", as
       ).disabled,
     ).toBe(false);
     expect(
-      screen.getByText(`Setup recovery ends: ${attempt.expires_at}`),
+      screen.getByRole("button", { name: "Check bank setup completion" }),
     ).toBeTruthy();
     expect(
       vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/complete")),
@@ -1348,7 +1354,7 @@ it("ends expired setup recovery after authoritative conflict inspection", async 
   render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: `Review attempt ${attempt.attempt_id}`,
+      name: "Review bank setup",
     }),
   );
   fireEvent.click(
@@ -1363,7 +1369,7 @@ it("ends expired setup recovery after authoritative conflict inspection", async 
   expect(
     (
       screen.getByRole("button", {
-        name: "Connect account",
+        name: "Connect bank",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(false);
@@ -1398,7 +1404,7 @@ it("checks a discovered Hosted attempt after reload without a browser token", as
   render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: `Review attempt ${attempt.attempt_id}`,
+      name: "Review bank setup",
     }),
   );
   fireEvent.click(
@@ -1454,13 +1460,13 @@ it.each(["same tab", "after reload"])(
     render(<Connections {...props(api, false)} link={link} />);
     if (scenario === "same tab") {
       fireEvent.click(
-        await screen.findByRole("button", { name: "Connect account" }),
+        await screen.findByRole("button", { name: "Connect bank" }),
       );
       await screen.findByRole("link", { name: "Open Plaid" });
     } else {
       fireEvent.click(
         await screen.findByRole("button", {
-          name: `Review attempt ${attempt.attempt_id}`,
+          name: "Review bank setup",
         }),
       );
     }
@@ -1512,7 +1518,7 @@ it.each(["binding_review", "active", "credential_pending"])(
     render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
     fireEvent.click(
       await screen.findByRole("button", {
-        name: `Review attempt ${attempt.attempt_id}`,
+        name: "Review bank setup",
       }),
     );
     fireEvent.click(
@@ -1521,7 +1527,7 @@ it.each(["binding_review", "active", "credential_pending"])(
       }),
     );
     await screen.findByText(
-      `Historical attempt status: ${state.replaceAll("_", " ")}`,
+      `Setup status: ${state === "binding_review" ? "Choose your accounts" : state === "active" ? "Connected" : "Confirming bank connection"}`,
     );
     expect(screen.queryByText(/If you exited Plaid/)).toBeNull();
     expect(
@@ -1562,7 +1568,7 @@ it.each(["denied", "scope changed"])(
     const view = render(<Connections {...initial} link={{ open: vi.fn() }} />);
     fireEvent.click(
       await screen.findByRole("button", {
-        name: `Review attempt ${attempt.attempt_id}`,
+        name: "Review bank setup",
       }),
     );
     fireEvent.click(
@@ -1582,7 +1588,7 @@ it.each(["denied", "scope changed"])(
     }
     expect(screen.queryByText(/If you exited Plaid/)).toBeNull();
     expect(
-      screen.queryByText("Historical attempt status: link ready"),
+      screen.queryByText("Setup status: Waiting for bank setup"),
     ).toBeNull();
     expect(
       vi
@@ -1615,8 +1621,8 @@ it.each(["unsafe URL", "uncertain reply", "scope change", "cancel"])(
     }) as unknown as API;
     const p = { ...props(api), link: { open: vi.fn() } };
     const view = render(<Connections {...p} />);
-    await screen.findByText("No connected Items in this book.");
-    fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+    await screen.findByText("No bank accounts connected yet.");
+    fireEvent.click(screen.getByRole("button", { name: "Connect bank" }));
     if (scenario === "unsafe URL") await screen.findByRole("alert");
     else {
       await screen.findByRole("link", { name: "Open Plaid" });
@@ -1663,14 +1669,14 @@ it("does not restart after an uncertain reconciliation", async () => {
   render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: `Review attempt ${attempt.attempt_id}`,
+      name: "Review bank setup",
     }),
   );
   fireEvent.click(
     await screen.findByRole("button", { name: "Try connecting again" }),
   );
   await screen.findByText(/This operation could not be confirmed/);
-  expect(screen.getByText("Unfinished attempts: 1")).toBeTruthy();
+  expect(screen.getByText("Unfinished bank setups: 1")).toBeTruthy();
   expect(
     vi.mocked(api).mock.calls.filter(([path]) => path.endsWith("/abandon")),
   ).toHaveLength(0);
@@ -1708,7 +1714,7 @@ it("stops retry when the stored-credential guard rejects abandonment", async () 
   render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: `Review attempt ${attempt.attempt_id}`,
+      name: "Review bank setup",
     }),
   );
   fireEvent.click(
@@ -1744,9 +1750,9 @@ it("keeps durable recovery discovery when connection listing fails", async () =>
   }) as unknown as API;
   render(<Connections {...props(api, false)} />);
   await screen.findByRole("button", {
-    name: `Review attempt ${attempt.attempt_id}`,
+    name: "Review bank setup",
   });
-  expect(screen.getByText("Unfinished attempts: 1")).toBeTruthy();
+  expect(screen.getByText("Unfinished bank setups: 1")).toBeTruthy();
   expect(screen.queryByText(/Attempt discovery unavailable/)).toBeNull();
 });
 
@@ -1770,16 +1776,16 @@ it("keeps the selected Connections scope after an attempt-only denial", async ()
   render(<Connections {...props(api, false)} denied={denied} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: `Review attempt ${attempt.attempt_id}`,
+      name: "Review bank setup",
     }),
   );
-  await screen.findByText(/This attempt is unavailable/);
-  expect(screen.getByText("Unfinished attempts: 1")).toBeTruthy();
+  await screen.findByText(/This bank setup is unavailable/);
+  expect(screen.getByText("Unfinished bank setups: 1")).toBeTruthy();
   expect(denied).not.toHaveBeenCalled();
   expect(
     (
       screen.getByRole("button", {
-        name: "Connect account",
+        name: "Connect bank",
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
@@ -1807,11 +1813,11 @@ it("clears the scope when attempt and discovery access are both denied", async (
   render(<Connections {...props(api, false)} denied={denied} />);
   fireEvent.click(
     await screen.findByRole("button", {
-      name: `Review attempt ${attempt.attempt_id}`,
+      name: "Review bank setup",
     }),
   );
   await waitFor(() => expect(denied).toHaveBeenCalledOnce());
-  expect(screen.queryByText("Unfinished attempts: 1")).toBeNull();
+  expect(screen.queryByText("Unfinished bank setups: 1")).toBeNull();
 });
 
 // A committed exchange may return 409 during storage; recovery uses GET only.
@@ -1834,15 +1840,17 @@ it("inspects the exact Hosted attempt after conflict without repeating exchange"
     };
   }) as unknown as API;
   render(<Connections {...props(api)} link={{ open: vi.fn() }} />);
-  await screen.findByText("No connected Items in this book.");
-  fireEvent.click(screen.getByRole("button", { name: "Connect account" }));
+  await screen.findByText("No bank accounts connected yet.");
+  fireEvent.click(screen.getByRole("button", { name: "Connect bank" }));
   await screen.findByRole("link", { name: "Open Plaid" });
   fireEvent.click(
     screen.getByRole("button", { name: "Check bank setup completion" }),
   );
-  await screen.findByText(/Bank setup needs credential recovery/);
+  await screen.findByText(
+    "Bank setup needs attention. Review it below before connecting another bank.",
+  );
   expect(
-    screen.getByText("Historical attempt status: credential recovery required"),
+    screen.getByText("Setup status: Bank setup needs attention"),
   ).toBeTruthy();
   expect(
     screen.queryByRole("button", { name: "Check bank setup completion" }),
@@ -1906,7 +1914,7 @@ it.each([false, true])(
         expect(
           (
             screen.getByRole("button", {
-              name: "Connect account",
+              name: "Connect bank",
             }) as HTMLButtonElement
           ).disabled,
         ).toBe(false),
@@ -2000,13 +2008,14 @@ it("normal registration checks Hosted completion only after opening and at most 
   const idle = () =>
     waitFor(() =>
       expect(
-        screen.getByRole("region", { name: "Connections" })
+        screen
+          .getByRole("region", { name: "Connections" })
           .getAttribute("aria-busy"),
       ).toBe("false"),
     );
-  await screen.findByText("No connected Items in this book.");
+  await screen.findByText("No bank accounts connected yet.");
   await idle();
-  fireEvent.click(screen.getByRole("button", { name: "Register accounts" }));
+  fireEvent.click(screen.getByRole("button", { name: "Connect bank" }));
   const anchor = await screen.findByRole("link", { name: "Open Plaid" });
   await idle();
   fireEvent.focus(window);
@@ -2098,3 +2107,179 @@ it("normal selection keeps optional advanced initial mapping separate and resets
   expect(checkbox.checked).toBe(false);
   expect(prepare).not.toHaveBeenCalled();
 });
+
+// Customer account management never exposes implementation identifiers, even after disclosure.
+it("shows connected accounts without technical inspectors or idle recovery history", async () => {
+  const api = vi.fn(async (path: string) =>
+    path.includes("/connection-attempts?")
+      ? {
+          items: [
+            {
+              ...attempt,
+              state: "active",
+              expired_unclaimed: false,
+              binding_expired: false,
+            },
+          ],
+          unfinished_count: "0",
+          next_cursor: null,
+        }
+      : listing,
+  ) as unknown as API;
+  render(<Connections {...props(api, false)} />);
+  fireEvent.click(await screen.findByText("Manage Bank account 1"));
+  expect(
+    screen.getByRole("button", { name: "Disconnect Bank account 1" }),
+  ).toBeTruthy();
+  expect(screen.queryByLabelText("Known connection attempt ID")).toBeNull();
+  expect(
+    screen.queryByText(
+      /Technical|Provider Item|Provider account ID|Attempt ID/,
+    ),
+  ).toBeNull();
+  expect(screen.queryByText("synthetic-item")).toBeNull();
+  expect(screen.queryByText("synthetic-account")).toBeNull();
+  expect(screen.queryByText(attempt.attempt_id)).toBeNull();
+  expect(
+    screen.queryByRole("region", { name: "Unfinished connections" }),
+  ).toBeNull();
+  expect(
+    vi.mocked(api).mock.calls.every(([, body]) => body === undefined),
+  ).toBe(true);
+});
+
+// Terminal history on the first page cannot hide an unfinished setup on an earlier page.
+it("keeps earlier discovery reachable without rendering a permanent recovery inventory", async () => {
+  const api = vi.fn(async (path: string) => {
+    if (path.endsWith("/connections")) return { items: [] };
+    if (path.includes("before="))
+      return {
+        items: [
+          {
+            ...attempt,
+            state: "exchange_claimed",
+            expired_unclaimed: false,
+            binding_expired: false,
+          },
+        ],
+        unfinished_count: "1",
+        next_cursor: null,
+      };
+    if (path.includes("/connection-attempts?"))
+      return {
+        items: [
+          {
+            ...attempt,
+            attempt_id: id(10),
+            state: "abandoned",
+            expired_unclaimed: false,
+            binding_expired: false,
+          },
+        ],
+        unfinished_count: "1",
+        next_cursor: id(10),
+      };
+    return { ...attempt, state: "exchange_claimed" };
+  }) as unknown as API;
+  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Check earlier bank setups" }),
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Review bank setup" }),
+  );
+  await screen.findByText("Setup status: Confirming bank connection");
+  expect(
+    vi
+      .mocked(api)
+      .mock.calls.some(([path]) =>
+        path.endsWith(`/connection-attempts/${attempt.attempt_id}`),
+      ),
+  ).toBe(true);
+  expect(
+    vi.mocked(api).mock.calls.every(([, body]) => body === undefined),
+  ).toBe(true);
+  expect(
+    (screen.getByRole("button", { name: "Connect bank" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(true);
+});
+
+// A cursor is pagination metadata, not evidence that completed history needs customer recovery.
+it("hides terminal-only history with a cursor when the global unfinished count is zero", async () => {
+  const api = vi.fn(async (path: string) =>
+    path.includes("/connection-attempts?")
+      ? {
+          items: [
+            {
+              ...attempt,
+              state: "active",
+              expired_unclaimed: false,
+              binding_expired: false,
+            },
+          ],
+          unfinished_count: "0",
+          next_cursor: id(10),
+        }
+      : listing,
+  ) as unknown as API;
+  render(<Connections {...props(api, false)} link={{ open: vi.fn() }} />);
+  await screen.findByText("Bank connection 1");
+  expect(
+    screen.queryByRole("region", { name: "Unfinished connections" }),
+  ).toBeNull();
+  expect(screen.queryByText("Finish connecting your bank")).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Check earlier bank setups" }),
+  ).toBeNull();
+  expect(
+    (screen.getByRole("button", { name: "Connect bank" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
+  expect(
+    vi.mocked(api).mock.calls.every(([, body]) => body === undefined),
+  ).toBe(true);
+});
+
+// Customer status distinguishes queued work from active work without promising retry timing.
+it.each([
+  ["retry_wait", true, false, "Sync is waiting to retry."],
+  [
+    "ready",
+    true,
+    false,
+    "Sync is queued. New transactions are not confirmed yet.",
+  ],
+  [
+    "running",
+    true,
+    true,
+    "Sync is in progress. New transactions are not confirmed yet.",
+  ],
+] as const)(
+  "describes %s sync without unsupported timing",
+  async (delivery_state, queued, lease_active, message) => {
+    const api = vi.fn(async (path: string) =>
+      path.endsWith("/status")
+        ? { ...status, delivery_state, queued, lease_active }
+        : listing,
+    ) as unknown as API;
+    render(<Connections {...props(api)} />);
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "View sync status for Bank account 1",
+      }),
+    );
+    await screen.findByText(message);
+    expect(screen.queryByText(/shortly/)).toBeNull();
+    expect(
+      screen.getByText("Last import: No completed import yet"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/An import does not confirm complete bank history/),
+    ).toBeTruthy();
+    expect(
+      vi.mocked(api).mock.calls.every(([, body]) => body === undefined),
+    ).toBe(true);
+  },
+);

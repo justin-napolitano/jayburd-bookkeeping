@@ -24,9 +24,7 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
       },
     });
   await connections();
-  await page
-    .getByRole("button", { name: "Register accounts", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Connect bank", exact: true }).click();
   await page
     .getByRole("button", { name: "Check bank setup completion" })
     .click();
@@ -90,7 +88,7 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
   await page
     .getByRole("button", { name: "Confirm pause", exact: true })
     .click();
-  await expect(status).toContainText("Account acquisition: paused");
+  await expect(status).toContainText("Account sync is paused.");
   expect((await trigger("/__proof/denied")).ok()).toBe(true);
   await page
     .getByRole("button", { name: "Resume account sync", exact: true })

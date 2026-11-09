@@ -14,7 +14,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page.getByLabel("Entity and book").selectOption(scope);
   await chooseFinanceTool(page, "Accounts");
   const connect = page.getByRole("button", {
-    name: "Register accounts",
+    name: "Connect bank",
     exact: true,
   });
   // Cancel after reload through the real API/SQL boundary, including a lost reply.
@@ -98,7 +98,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page.getByLabel("Entity and book").selectOption(scope);
   await chooseFinanceTool(page, "Accounts");
   await expect(
-    page.getByRole("button", { name: "Register accounts", exact: true }),
+    page.getByRole("button", { name: "Connect bank", exact: true }),
   ).toBeDisabled();
   await page
     .getByRole("button", { name: "Resume account selection", exact: true })
@@ -171,22 +171,22 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     })
     .click();
   const status = page.getByRole("region", { name: "Account sync status" });
-  await expect(status).toContainText("None recorded");
-  await expect(status).toContainText("Unknown");
+  await expect(status).toContainText("No completed import yet");
+  await expect(status).toContainText("Import not completed yet");
   await page
     .getByRole("button", { name: "Pause account sync", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Confirm pause", exact: true })
     .click();
-  await expect(status).toContainText("Account acquisition: paused");
+  await expect(status).toContainText("Account sync is paused.");
   await page
     .getByRole("button", { name: "Resume account sync", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Confirm resume", exact: true })
     .click();
-  await expect(status).toContainText("Account acquisition: active");
+  await expect(status).toContainText("Account sync is active.");
   // Resolve an unknown manual-control commit with the original request and key.
   let operationDropped = false;
   let firstKey = "";
@@ -215,8 +215,8 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page
     .getByRole("button", { name: "Resolve saved request", exact: true })
     .click();
-  await expect(status).toContainText("Sync work is queued");
-  await expect(status).toContainText("None recorded");
+  await expect(status).toContainText("Sync is queued");
+  await expect(status).toContainText("No completed import yet");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: info.outputPath("connections-mobile.png"),

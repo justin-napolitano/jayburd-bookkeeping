@@ -6,6 +6,7 @@ export async function openFinanceMenu(page: Page) {
   if (await menu.isVisible()) await menu.click();
 }
 
+// Customer labels (including Review accounting) identify existing authorized tools.
 // Hidden destinations remain inspectable for current-page and recovery-lock assertions.
 export function financeNavItem(page: Page, name: string) {
   return page

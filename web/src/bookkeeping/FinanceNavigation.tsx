@@ -9,7 +9,7 @@ const daily: { tool: FinanceTool; label: string }[] = [
   { tool: "Connections", label: "Accounts" },
 ];
 const bookkeeping: { tool: FinanceTool; label: string }[] = [
-  { tool: "Review transactions", label: "Imported activity" },
+  { tool: "Review transactions", label: "Review accounting" },
   { tool: "Account activity", label: "Posted entries" },
   { tool: "Position", label: "Position" },
   { tool: "Reports", label: "Reports" },
@@ -96,20 +96,20 @@ export function FinanceNavigation({
         <nav aria-label="Finance tools" className={styles.navigation}>
           <div role="group" aria-labelledby={dailyID} className={styles.group}>
             <p id={dailyID} className={styles.groupTitle}>
-              Daily
+              Banking
             </p>
             {destinations(daily)}
           </div>
           <div role="group" aria-labelledby={bookID} className={styles.group}>
             <p id={bookID} className={styles.groupTitle}>
-              Bookkeeping
+              Accounting
             </p>
             {destinations(bookkeeping)}
           </div>
         </nav>
         {locked && (
           <p className={styles.lockNotice}>
-            Checking or resolving saved work. Navigation is temporarily paused.
+            Finish or recover your saved changes to continue.
           </p>
         )}
         <div className={styles.utilities}>
@@ -121,7 +121,7 @@ export function FinanceNavigation({
               onRefresh();
             }}
           >
-            Refresh workspace
+            Refresh books
           </button>
           {onSignOut && (
             <button

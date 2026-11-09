@@ -86,14 +86,14 @@ test("Transactions is a keyboard-visible primary task with explicit all-books sc
   const state = await serveEntry(page);
   await mount(<Harness />);
   await openFinanceMenu(page);
-  const entry = financeNavItem(page, "Imported activity");
+  const entry = financeNavItem(page, "Review accounting");
   await expect(entry).toBeVisible();
   await expect(entry).toBeEnabled();
   await entry.focus();
   await page.keyboard.press("Enter");
   await expect(entry).toHaveAttribute("aria-current", "page");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Imported activity" }),
+    page.getByRole("heading", { level: 1, name: "Review accounting" }),
   ).toBeFocused();
   await expect(page.getByLabel("Entity and book")).toHaveValue("");
   expect(state.reads).toEqual([]);
@@ -164,7 +164,7 @@ for (const sourceState of ["empty", "unavailable", "denied"]) {
     await page
       .getByLabel("Entity and book")
       .selectOption("personal/personal-household");
-    await chooseFinanceTool(page, "Imported activity");
+    await chooseFinanceTool(page, "Review accounting");
     if (sourceState === "empty")
       await expect(
         page.getByText("No source accounts are available in this book."),
