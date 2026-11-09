@@ -40,6 +40,16 @@ const book = {
       active_from: "2026-01-01",
       active_to: null,
     },
+    {
+      account_id: "a3",
+      code: "5000",
+      name: "Supplies",
+      category: "expense",
+      normal_side: "debit",
+      monetary: false,
+      active_from: "2026-01-01",
+      active_to: null,
+    },
   ],
 };
 const workspace = {
@@ -72,7 +82,83 @@ const workspace = {
 };
 
 import type { Page } from "playwright-core";
-import type { DurableCommand, RegisterCommand } from "../src/bookkeeping/types";
+import type {
+  DurableCommand,
+  RegisterCommand,
+  Journal,
+} from "../src/bookkeeping/types";
+import type { components } from "../src/lib/api.generated";
+// Fixed retained-source draft and historical manual receipt; neither is an editable entry form.
+const reviewedPosting: components["schemas"]["PostJournal"] = {
+  expected_revision: "0",
+  policy_id: "p1",
+  accounting_date: "2026-01-10",
+  description: "Synthetic split",
+  lines: [
+    {
+      account_id: "a3",
+      side: "debit",
+      transaction_currency: "USD",
+      transaction_amount: "50.00",
+      functional_amount: "50.00",
+      valuation_basis: "identity",
+    },
+    {
+      account_id: "a2",
+      side: "debit",
+      transaction_currency: "USD",
+      transaction_amount: "50.00",
+      functional_amount: "50.00",
+      valuation_basis: "identity",
+    },
+    {
+      account_id: "a1",
+      side: "credit",
+      transaction_currency: "USD",
+      transaction_amount: "100.00",
+      functional_amount: "100.00",
+      valuation_basis: "identity",
+    },
+  ],
+};
+const historicalJournal: Journal = {
+  entity_id: "e1",
+  book_id: "b1",
+  journal_id: "journal1",
+  period_id: "period1",
+  policy_id: "p1",
+  book_revision: "1",
+  accounting_date: reviewedPosting.accounting_date,
+  description: reviewedPosting.description,
+  functional_currency: "USD",
+  functional_currency_version_id: "c1",
+  kind: "manual",
+  posted_at: "2026-01-10T00:00:00Z",
+  posted_by: "fictional-owner",
+  reason: null,
+  reverses_journal_id: null,
+  lines: reviewedPosting.lines.map((line, index) => ({
+    ...line,
+    line_number: index + 1,
+    transaction_currency_version_id: "c1",
+  })),
+};
+function legacyManual(
+  state: DurableCommand["state"] = "prepared",
+): DurableCommand {
+  return {
+    command_id: "legacy-command",
+    entity_id: "e1",
+    book_id: "b1",
+    operation: "post",
+    state,
+    body: structuredClone(reviewedPosting),
+    result: state === "committed" ? historicalJournal : null,
+    acknowledged: false,
+    created_at: "2026-01-10T00:00:00Z",
+  };
+}
+
 // This stateful synthetic server models only the command transport contract, never accounting rules.
 async function mockCommands(page: Page, empty = false) {
   const state: {
@@ -139,9 +225,21 @@ async function mockCommands(page: Page, empty = false) {
         ...state.command!,
         state: "committed",
         result:
-          state.command!.operation === "post"
-            ? ({ journal_id: "journal1", book_revision: "1" } as never)
-            : ({ entity_id: "entity1", book_id: "book1" } as never),
+          state.command!.operation === "source_post"
+            ? {
+                review_id: "r1",
+                draft_id: "d1",
+                journal_id: "journal1",
+                entity_id: "e1",
+                book_id: "b1",
+                book_revision: "1",
+                review_revision: "2",
+                source_revision: "1",
+                journal: historicalJournal,
+              }
+            : state.command!.operation === "post"
+              ? historicalJournal
+              : ({ entity_id: "entity1", book_id: "book1" } as never),
       };
       if (state.executeLost) {
         state.executeLost = false;
@@ -198,31 +296,110 @@ async function mockCommands(page: Page, empty = false) {
   });
   return state;
 }
-// Use accessible controls and exact decimal strings to prepare a split journal.
-async function fillJournal(page: Page) {
+// The only editable choice is accounting treatment of an existing retained observation.
+async function prepareSourcePosting(page: Page) {
+  const draftRequests: unknown[] = [];
+  const row = {
+    review_id: "r1",
+    description: "Synthetic retained statement purchase",
+    booked_date: "2026-01-10",
+    amount: "100.00",
+    currency: "USD",
+    currency_version_id: "c1",
+    direction: "outflow",
+    state: "needs_review",
+    review_revision: "1",
+    draft_id: null,
+    journal_id: null,
+  };
+  await page.route("**/v1/entities/e1/books/b1/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const reply = (json: unknown) => route.fulfill({ json });
+    if (path.endsWith("/sources"))
+      return reply({
+        items: [
+          {
+            source_account_id: "s1",
+            display_name: "Fictional retained statement",
+            currency: "USD",
+            state: "active",
+          },
+        ],
+      });
+    if (path.endsWith("/categories"))
+      return reply({
+        review_id: "r1",
+        source_account_id: "s1",
+        book_revision: "0",
+        policy_id: "p1",
+        accounting_date: row.booked_date,
+        source_currency: "USD",
+        functional_currency: "USD",
+        fx_required: false,
+        accounts: [
+          {
+            account_id: "a3",
+            code: "5000",
+            name: "Supplies",
+            category: "expense",
+            normal_side: "debit",
+            monetary: false,
+          },
+        ],
+      });
+    if (path.endsWith("/drafts")) {
+      draftRequests.push(route.request().postDataJSON());
+      return reply({
+        draft_id: "d1",
+        review_id: "r1",
+        review_revision: "2",
+        source_revision: "1",
+        binding_revision: "1",
+        book_revision: "0",
+        posting_body: reviewedPosting,
+      });
+    }
+    if (path.endsWith("/review-items"))
+      return reply({
+        source_account_id: "s1",
+        source_revision: "1",
+        sort: "date",
+        order: "desc",
+        matching_count: "1",
+        start_index: "1",
+        items: [row],
+        next_cursor: null,
+      });
+    if (path.endsWith("/review-items/r1"))
+      return reply({
+        ...row,
+        source_account_id: "s1",
+        source_revision: "1",
+        binding_revision: "1",
+        book_revision: "0",
+        ledger_account_id: "a1",
+        blockers: [],
+        draft: null,
+      });
+    return route.fallback();
+  });
+  await chooseFinanceTool(page, "Imported activity");
   await page.getByLabel("Entity and book").selectOption("e1/b1");
-  await chooseFinanceTool(page, "New journal");
+  await page.getByLabel("Source account").selectOption("s1");
   await page
-    .getByRole("combobox", { name: "Policy", exact: true })
-    .selectOption("p1");
-  await page.getByLabel("Description", { exact: true }).fill("Synthetic split");
-  await page.getByRole("button", { name: "Add split line" }).click();
-  for (let i = 1; i <= 3; i++) {
-    await page
-      .getByLabel(`Line ${i} account`, { exact: true })
-      .selectOption(i === 2 ? "a2" : "a1");
-    await page
-      .getByLabel(`Line ${i} original amount`, { exact: true })
-      .fill(i === 2 ? "100.00" : "50.00");
-    await page
-      .getByLabel(`Line ${i} functional amount`, { exact: true })
-      .fill(i === 2 ? "100.00" : "50.00");
-  }
-  await page
-    .getByRole("button", { name: "Review journal", exact: true })
+    .getByRole("button", {
+      name: "Review Synthetic retained statement purchase",
+    })
     .click();
+  await page.getByLabel("Category account").selectOption("a3");
+  await page.getByRole("button", { name: "Create reviewed draft" }).click();
+  await expect(
+    page.getByRole("table", { name: "Exact proposed journal lines" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Review posting command" }).click();
+  return draftRequests;
 }
-test("split review retains registration identity and discovers lost execution and acknowledgement", async ({
+test("retained-source draft keeps exact registration identity and recovers lost posting and acknowledgement", async ({
   mount,
   page,
 }) => {
@@ -231,7 +408,8 @@ test("split review retains registration identity and discovers lost execution an
   server.executeLost = true;
   server.ackLost = true;
   await mount(<Harness />);
-  await fillJournal(page);
+  const drafts = await prepareSourcePosting(page);
+  expect(drafts).toHaveLength(1);
   await page.getByRole("button", { name: "Retry registration" }).click();
   await expect(
     page.getByText("Saved for review.", { exact: false }),
@@ -239,7 +417,13 @@ test("split review retains registration identity and discovers lost execution an
   expect(server.registrations).toHaveLength(2);
   expect(server.registrations[0]).toEqual(server.registrations[1]);
   expect(server.executions).toBe(0);
-  expect(JSON.parse(server.registrations[0].body!).body.lines).toHaveLength(3);
+  expect(JSON.parse(server.registrations[0].body!).operation).toBe(
+    "source_post",
+  );
+  expect(JSON.parse(server.registrations[0].body!).body.review_id).toBe("r1");
+  expect(
+    JSON.parse(server.registrations[0].body!).body.posting_body.lines,
+  ).toEqual(reviewedPosting.lines);
   await page.getByRole("button", { name: "Post journal", exact: true }).click();
   await expect(
     page.getByText("Posting confirmed", { exact: true }),
@@ -257,8 +441,8 @@ test("remount recovers prepared work and a commit winning cancellation stays com
 }) => {
   const server = await mockCommands(page);
   server.cancelRace = true;
+  server.command = legacyManual();
   const component = await mount(<Harness />);
-  await fillJournal(page);
   await expect(
     page.getByText("Saved for review.", { exact: false }),
   ).toBeVisible();
@@ -268,7 +452,10 @@ test("remount recovers prepared work and a commit winning cancellation stays com
     page.getByText("Saved for review.", { exact: false }),
   ).toBeVisible();
   expect(server.executions).toBe(0);
-  expect(server.registrations).toHaveLength(1);
+  expect(server.registrations).toHaveLength(0);
+  await expect(
+    page.getByRole("button", { name: "Post journal", exact: true }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Cancel saved command" }).click();
   await expect(
     page.getByText("Posting confirmed", { exact: true }),
@@ -277,6 +464,45 @@ test("remount recovers prepared work and a commit winning cancellation stays com
     page.getByText("Cancellation confirmed.", { exact: false }),
   ).toHaveCount(0);
 });
+for (const width of [390, 1440]) {
+  test(`artifact-backed posting has no blank journal form and legacy work can cancel safely at ${width}px`, async ({
+    mount,
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const server = await mockCommands(page);
+    server.command = legacyManual();
+    await mount(<Harness />);
+    await expect(
+      page.getByText(/This saved manual request cannot be posted/),
+    ).toBeVisible();
+    await expect(financeNavItem(page, "New journal")).toHaveCount(0);
+    await expect(financeNavItem(page, "Documents")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Post journal", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByLabel(/Line [0-9]+ (original|functional) amount/),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Add split line", includeHidden: true }),
+    ).toHaveCount(0);
+    expect(server.command?.body).toEqual(reviewedPosting);
+    await expect(
+      page
+        .getByRole("table", { name: "Journal lines for review" })
+        .getByRole("row"),
+    ).toHaveCount(4);
+    await page.getByRole("button", { name: "Cancel saved command" }).click();
+    await expect(page.getByText(/Cancellation confirmed/)).toBeVisible();
+    expect(server.executions).toBe(0);
+    expect(server.registrations).toHaveLength(0);
+    await page.getByRole("button", { name: "Acknowledge result" }).click();
+    await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
+    expect(server.executions).toBe(0);
+    expect(server.command).toBeNull();
+  });
+}
 test("setup registers review then executes and explicitly acknowledges", async ({
   mount,
   page,
@@ -396,9 +622,9 @@ test("denied recovery blocks new work and clears a previously visible command", 
   mount,
   page,
 }) => {
-  await mockCommands(page);
+  const server = await mockCommands(page);
+  server.command = legacyManual();
   await mount(<Harness />);
-  await fillJournal(page);
   await expect(
     page.getByText("Synthetic split", { exact: true }),
   ).toBeVisible();
@@ -452,10 +678,9 @@ test("successful acknowledgement followed by failed discovery keeps new work loc
   mount,
   page,
 }) => {
-  await mockCommands(page);
+  const server = await mockCommands(page);
+  server.command = legacyManual("committed");
   await mount(<Harness />);
-  await fillJournal(page);
-  await page.getByRole("button", { name: "Post journal", exact: true }).click();
   await expect(
     page.getByText("Posting confirmed", { exact: true }),
   ).toBeVisible();
@@ -466,7 +691,8 @@ test("successful acknowledgement followed by failed discovery keeps new work loc
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
   await openFinanceMenu(page);
-  await expect(financeNavItem(page, "New journal")).toBeDisabled();
+  await expect(financeNavItem(page, "New journal")).toHaveCount(0);
+  await expect(financeNavItem(page, "Posted entries")).toBeDisabled();
 });
 
 // Product navigation follows one pinned account to its journal and back without a fake transaction feed.

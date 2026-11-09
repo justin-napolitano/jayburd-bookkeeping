@@ -10,10 +10,9 @@ const daily: { tool: FinanceTool; label: string }[] = [
 ];
 const bookkeeping: { tool: FinanceTool; label: string }[] = [
   { tool: "Review transactions", label: "Imported activity" },
-  { tool: "Account activity", label: "Ledger" },
+  { tool: "Account activity", label: "Posted entries" },
   { tool: "Position", label: "Position" },
   { tool: "Reports", label: "Reports" },
-  { tool: "New journal", label: "New journal" },
   { tool: "Accounts", label: "Chart of accounts" },
 ];
 

@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CommandPanel } from "./CommandPanel";
 import type { useCommands } from "./commands";
-import type { DurableCommand } from "./types";
+import type { DurableCommand, Journal } from "./types";
 import {
   savedRegistration,
   registrationWorkspace,
@@ -88,6 +88,101 @@ function recovery(command: DurableCommand): ReturnType<typeof useCommands> {
     refreshIfIdle: vi.fn(),
   };
 }
+
+// Historical manual work remains readable, but it cannot authorize a new application posting.
+const legacyManual: DurableCommand = {
+  ...savedImport,
+  operation: "post",
+  body: {
+    expected_revision: "0",
+    policy_id: "00000000-0000-4000-8000-000000000022",
+    accounting_date: "2026-01-02",
+    description: "Fictional legacy manual request",
+    lines: [
+      {
+        account_id: "00000000-0000-4000-8000-000000000023",
+        side: "debit",
+        transaction_currency: "USD",
+        transaction_amount: "9007199254740993.01",
+        functional_amount: "9007199254740993.01",
+        valuation_basis: "identity",
+      },
+      {
+        account_id: "00000000-0000-4000-8000-000000000024",
+        side: "credit",
+        transaction_currency: "USD",
+        transaction_amount: "9007199254740993.01",
+        functional_amount: "9007199254740993.01",
+        valuation_basis: "identity",
+      },
+    ],
+  },
+};
+const legacyJournal: Journal = {
+  entity_id: legacyManual.entity_id!,
+  book_id: legacyManual.book_id!,
+  journal_id: "00000000-0000-4000-8000-000000000025",
+  period_id: "00000000-0000-4000-8000-000000000026",
+  policy_id: "00000000-0000-4000-8000-000000000022",
+  book_revision: "1",
+  functional_currency: "USD",
+  functional_currency_version_id: "00000000-0000-4000-8000-000000000027",
+  accounting_date: "2026-01-02",
+  description: "Fictional legacy manual request",
+  kind: "manual",
+  posted_at: "2026-01-02T00:00:00Z",
+  posted_by: "00000000-0000-4000-8000-000000000028",
+  reason: null,
+  reverses_journal_id: null,
+  lines:
+    "lines" in legacyManual.body
+      ? legacyManual.body.lines.map((line, index) => ({
+          ...line,
+          line_number: index + 1,
+          transaction_currency_version_id:
+            "00000000-0000-4000-8000-000000000027",
+        }))
+      : [],
+};
+
+it("blocks prepared legacy manual posting with an evidence explanation and a safe cancellation", () => {
+  const r = recovery(legacyManual);
+  render(<CommandPanel recovery={r} workspace={null} />);
+  expect(
+    screen.getByText(/This saved manual request cannot be posted/),
+  ).toBeTruthy();
+  expect(
+    screen.getByText(
+      /Accounting entries must start from an imported transaction/,
+    ),
+  ).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Post journal" })).toBeNull();
+  expect(screen.queryByText(/Source-linked journal/)).toBeNull();
+  expect(screen.getAllByText(/9007199254740993.01/).length).toBeGreaterThan(0);
+  expect(r.transition).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel saved command" }));
+  expect(r.transition).toHaveBeenCalledExactlyOnceWith("cancel");
+});
+
+it.each(["committed", "cancelled"] as const)(
+  "retains %s legacy manual history and requires explicit acknowledgement",
+  (state) => {
+    const r = recovery({
+      ...legacyManual,
+      state,
+      result: state === "committed" ? legacyJournal : null,
+    });
+    render(<CommandPanel recovery={r} workspace={null} />);
+    expect(screen.getByText("Fictional legacy manual request")).toBeTruthy();
+    expect(screen.getAllByText(/9007199254740993.01/).length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.queryByRole("button", { name: "Post journal" })).toBeNull();
+    expect(r.transition).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Acknowledge result" }));
+    expect(r.transition).toHaveBeenCalledExactlyOnceWith("acknowledge");
+  },
+);
 
 describe("saved import recovery", () => {
   it("does not execute during render or permit confirmation without a preview", () => {

@@ -40,12 +40,13 @@ describe("responsive finance navigation", () => {
         .map((button) => button.textContent),
     ).toEqual([
       "Imported activity",
-      "Ledger",
+      "Posted entries",
       "Position",
       "Reports",
-      "New journal",
       "Chart of accounts",
     ]);
+    expect(screen.queryByRole("button", { name: "New journal" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Documents" })).toBeNull();
     await userEvent.click(
       within(daily).getByRole("button", { name: "Transactions" }),
     );
@@ -99,7 +100,7 @@ describe("responsive finance navigation", () => {
     menu.focus();
     await userEvent.keyboard("{Enter}");
     expect(menu.getAttribute("aria-expanded")).toBe("true");
-    const ledger = screen.getByRole("button", { name: "Ledger" });
+    const ledger = screen.getByRole("button", { name: "Posted entries" });
     ledger.focus();
     await userEvent.keyboard("{Enter}");
     expect(props.onNavigate).toHaveBeenCalledWith("Account activity");

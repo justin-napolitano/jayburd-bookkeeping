@@ -1,3 +1,9 @@
+[Artifact-backed accounting](contracts/artifact-backed-accounting.md),473–477:
+owner requires retained evidence for new application entries. [Delivery](runbooks/artifact-backed-accounting.md)
+closes unsupported manual UI/API paths; source-linked bank posting remains.
+Receipt/invoice ingestion, event matching and artifact-linked corrections are476;
+no placeholder Documents feature or full document-support claim.
+
 [Frontend flow review](runbooks/frontend-flow.md),467–471: responsive navigation,
 guided setup and compact transaction controls; source and synthetic review are
 implemented, owner visual acceptance pending. Existing deployed UI remains separate.
