@@ -1,5 +1,41 @@
 # Posting policy and boundary sources
 
+## P08 — Owner artifact policy and existing atomic source linkage (2026-11-08)
+
+Owner decision473 is the source of the no-manual-entry product requirement;
+it is not attributed to an ISO or accounting-standard paragraph. Reviewed actual
+repository contracts source-review-sql.md/command-recovery.md and implementation
+000011_source_review.up.sql, banking.source_post_authorize/execute_source_post:
+the owned retained review/draft/revision tuple is checked before accounting, and
+journal+source link+projection+receipt share one transaction. This establishes
+an implemented mechanism to test, not independent correctness evidence.
+
+Reviewed [ISO21378:2019 public abstract/metadata](https://www.iso.org/standard/70823.html):
+audit-data collection/accounting data-element semantics are relevant to later
+artifact/export mapping. No paid normative text or field-level conformity is
+claimed. Reviewed [ISO20022 FAQ, About/Compliance](https://www.iso20022.org/faq):
+message adoption depends on a specific usage profile. Current internal command
+restriction introduces no new registered financial exchange message; existing
+ISO4217 original-unit handling is unchanged. Document ingestion has its own
+unresolved mapping/access/retention gate and is not advertised as implemented.
+
+Chosen boundary: public application Handler always requires evidence-aware
+registration/execution; retired direct manual/reversal routes return a fixed
+authenticated rejection. Prepared legacy manual execution checks current pending
+inside the same serializable transaction. Hiding only the button is inadequate.
+Low-level accounting primitives remain isolated proof/library operations; this
+does not claim database-wide privileged-operator constraints without a migration.
+Historical command receipt read/replay and cancel/ack safety remain explicit;
+manual registration replay is retired. No API profile can select a legacy mode.
+
+Threat/acceptance review: forged manual requests and legacy command IDs must not
+reach posting; source_post must retain current SQL authorization, exact immutable
+draft and unique original-source link; malformed/unknown policy output fails
+closed; unknown commit never retries or claims success. Named HTTP/transaction,
+unit/browser and actual source-linked integration evidence is ART01–ART05 in the
+[artifact contract](../contracts/artifact-backed-accounting.md). Documents and
+economic-event matching/corrections remain476 until end-to-end proof exists.
+
 Reviewed 2026-10-11. These extend the [bibliography](bibliography.md),
 [database sources](database-sources.md) and [contract sources](contract-sources.md).
 The normative project choices are in [ADR 0005](../decisions/0005-development-accounting-policy.md)

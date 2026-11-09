@@ -2,8 +2,8 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Jayburd Ledger Contract",
-    "version": "0.10.0-review",
-    "description": "Implemented ledger, reporting and source review contract. Synthetic development policy only; no live-use approval. SQL owns semantics. Internal operations are not registered ISO financial messages.",
+    "version": "0.11.0-artifact-review",
+    "description": "Implemented ledger, reporting and source review contract. Synthetic development policy only; no live-use approval. SQL owns semantics. Internal operations are not registered ISO financial messages. Public application posting requires retained source evidence; standalone manual entry is unsupported.",
     "contact": {
       "name": "Jayburd contract review",
       "url": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/2"
@@ -573,37 +573,12 @@
       ],
       "post": {
         "operationId": "postJournal",
-        "summary": "Post one balanced manual journal",
+        "summary": "Reject unsupported standalone entry",
         "tags": [
           "Ledger"
         ],
         "x-required-permission": "post",
         "responses": {
-          "201": {
-            "description": "Committed result.",
-            "headers": {
-              "Cache-Control": {
-                "schema": {
-                  "type": "string",
-                  "const": "no-store"
-                },
-                "description": "Financial responses are not cacheable."
-              },
-              "Idempotent-Replay": {
-                "schema": {
-                  "type": "boolean"
-                },
-                "description": "True when returning an existing successful receipt; false for first execution."
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Journal"
-                }
-              }
-            }
-          },
           "400": {
             "$ref": "#/components/responses/Problem400"
           },
@@ -642,21 +617,9 @@
             }
           }
         },
-        "parameters": [
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "pattern": "^[A-Za-z0-9._:-]+$"
-            }
-          }
-        ],
+        "parameters": [],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
@@ -723,7 +686,9 @@
             }
           }
         },
-        "x-implementation-stage": "first-posting-proof"
+        "x-implementation-stage": "first-posting-proof",
+        "deprecated": true,
+        "description": "Authenticated application requests return 422 artifact_required without posting SQL. Start from a retained imported source and its reviewed source_post command. Artifact-linked document corrections require a separate implemented workflow. Historical entries remain readable."
       }
     },
     "/v1/entities/{entity_id}/books/{book_id}/journals/{journal_id}": {
@@ -856,37 +821,12 @@
       ],
       "post": {
         "operationId": "reverseJournal",
-        "summary": "Post an exact linked reversal",
+        "summary": "Reject unsupported standalone reversal",
         "tags": [
           "Ledger"
         ],
         "x-required-permission": "post",
         "responses": {
-          "201": {
-            "description": "Committed result.",
-            "headers": {
-              "Cache-Control": {
-                "schema": {
-                  "type": "string",
-                  "const": "no-store"
-                },
-                "description": "Financial responses are not cacheable."
-              },
-              "Idempotent-Replay": {
-                "schema": {
-                  "type": "boolean"
-                },
-                "description": "True when returning an existing successful receipt; false for first execution."
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Journal"
-                }
-              }
-            }
-          },
           "400": {
             "$ref": "#/components/responses/Problem400"
           },
@@ -925,21 +865,9 @@
             }
           }
         },
-        "parameters": [
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "pattern": "^[A-Za-z0-9._:-]+$"
-            }
-          }
-        ],
+        "parameters": [],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
@@ -948,7 +876,9 @@
             }
           }
         },
-        "x-implementation-stage": "first-posting-proof"
+        "x-implementation-stage": "first-posting-proof",
+        "deprecated": true,
+        "description": "Authenticated application requests return 422 artifact_required without posting SQL. Start from a retained imported source and its reviewed source_post command. Artifact-linked document corrections require a separate implemented workflow. Historical entries remain readable."
       }
     },
     "/v1/entities/{entity_id}/books/{book_id}/periods/{period_id}/close": {
@@ -1339,7 +1269,7 @@
       "post": {
         "operationId": "registerCommand",
         "summary": "Store an immutable reviewed command without executing it",
-        "description": "Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. One unacknowledged command per principal. Same registration key and content replay; changed content or other pending work conflicts.",
+        "description": "Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. One unacknowledged command per principal. Same registration key and content replay; changed content or other pending work conflicts. Public registration rejects manual post with 422 artifact_required; source_post must reference the exact retained source review/draft. Setup and import do not post journals.",
         "tags": [
           "Ledger"
         ],
@@ -1361,7 +1291,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterCommand"
+                "$ref": "#/components/schemas/ArtifactRegisterCommand"
               }
             }
           }
@@ -1571,7 +1501,7 @@
       "post": {
         "operationId": "executeCommand",
         "summary": "Execute the stored immutable command or replay its result",
-        "description": "Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. Uses stored command identity and immutable body; repeating this transition cannot authorize a different operation.",
+        "description": "Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. Uses stored command identity and immutable body; repeating this transition cannot authorize a different operation. A prepared legacy manual post returns 422 artifact_required. Current pending identity is checked within the same serializable transaction as execution; historical committed command receipts, cancellation and acknowledgement remain under current authority.",
         "tags": [
           "Ledger"
         ],
@@ -7837,7 +7767,8 @@
               "body"
             ]
           }
-        ]
+        ],
+        "description": "Legacy command vocabulary retained for historical decoding and isolated accounting primitive proof. Public registration uses ArtifactRegisterCommand; new manual post commands are unsupported."
       },
       "DurableCommand": {
         "type": "object",
@@ -16735,6 +16666,90 @@
         "additionalProperties": false,
         "properties": {},
         "required": []
+      },
+      "ArtifactRegisterCommand": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation",
+              "entity_id",
+              "book_id",
+              "body"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "const": "setup"
+              },
+              "entity_id": {
+                "type": "null"
+              },
+              "book_id": {
+                "type": "null"
+              },
+              "body": {
+                "$ref": "#/components/schemas/SetupRequest"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation",
+              "entity_id",
+              "book_id",
+              "body"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "const": "import"
+              },
+              "entity_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "book_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "body": {
+                "$ref": "#/components/schemas/ImportCommandBody"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "operation": {
+                "type": "string",
+                "const": "source_post"
+              },
+              "entity_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "book_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "body": {
+                "$ref": "#/components/schemas/SourcePostCommandBody"
+              }
+            },
+            "required": [
+              "operation",
+              "entity_id",
+              "book_id",
+              "body"
+            ]
+          }
+        ],
+        "description": "New public application commands: setup, import and source_post only. A post command without retained source evidence is rejected with 422 artifact_required."
       }
     },
     "responses": {

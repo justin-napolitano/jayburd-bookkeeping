@@ -31,6 +31,14 @@ No source-provider calls or cloud mutation from default local/CI commands.
 
 ## Architecture
 
+Owner decision473: all new application accounting entries require retained
+supporting evidence. Follow [artifact-backed accounting](docs/contracts/artifact-backed-accounting.md).
+Do not expose a blank manual journal, generic post command or unbound reversal.
+Current supported posting starts from imported bank/statement source review;
+document ingestion/matching/corrections need their own implemented evidence flow.
+Preserve history and safe legacy cancellation/acknowledgement. Isolated ledger
+primitive proofs are not an alternative user workflow or configurable public API.
+
 Go owns the backend; PostgreSQL owns durable ledger state. Next.js/TypeScript
 owns the frontend. Follow `docs/runbooks/first-app.md` for its evidence and limits.
 Interactive setup/post recovery follows `docs/contracts/command-recovery.md`:

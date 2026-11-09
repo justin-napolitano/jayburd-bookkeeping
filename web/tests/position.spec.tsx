@@ -1,3 +1,4 @@
+import { chooseFinanceTool, financeNavItem } from "./finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import type { Page } from "playwright-core";
 import { Harness } from "./Harness";
@@ -68,7 +69,7 @@ test("all books renders exact separate position rows and scoped tools", async ({
   await page.setViewportSize({ width: 1440, height: 900 });
   const requests = await prepare(page);
   await mount(<Harness />);
-  await page.getByRole("button", { name: "Position", exact: true }).click();
+  await chooseFinanceTool(page, "Position");
   const table = page.locator(".position-table");
   await expect(table.locator(".position-book-row")).toHaveCount(5);
   await expect(page.getByLabel("Entity and book")).toHaveValue("");
@@ -106,17 +107,19 @@ test("all books renders exact separate position rows and scoped tools", async ({
   await page.getByLabel("Entity and book").selectOption("");
   await expect(table.locator(".position-book-row")).toHaveCount(5);
 
-  await page.getByRole("button", { name: "Ledger", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Ledger" })).toBeVisible();
+  await chooseFinanceTool(page, "Posted entries");
+  await expect(
+    page.getByRole("heading", { name: "Posted entries" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Household" }).click();
   await expect(page.getByLabel("Entity and book")).toHaveValue(
     "personal/personal-household",
   );
   await expect(page.locator(".book-workspace .view-title")).toBeVisible();
   await expect(page.locator(".book-workspace .view-title")).toHaveText(
-    "Ledger",
+    "Posted entries",
   );
-  await page.getByRole("button", { name: "Reports", exact: true }).click();
+  await chooseFinanceTool(page, "Reports");
   await expect(
     page.getByRole("region", { name: "Financial reports" }),
   ).toBeVisible();
@@ -131,7 +134,7 @@ test("date edits clear old values and one denied book leaves the rest readable",
   await servePosition(page, "holdings-europe");
   await mount(<Harness />);
   const table = page.locator(".position-table");
-  await page.getByRole("button", { name: "Position", exact: true }).click();
+  await chooseFinanceTool(page, "Position");
   await expect(table.getByRole("cell", { name: "22,900.00" })).toBeVisible();
   await expect(table.getByText("Access unavailable")).toBeVisible();
   await page.getByLabel("As of date").fill("2026-10-20");
@@ -170,7 +173,7 @@ test("ordinary Ledger navigation does not reuse an already refreshed Position ha
     });
   });
   await mount(<Harness />);
-  await page.getByRole("button", { name: "Position", exact: true }).click();
+  await chooseFinanceTool(page, "Position");
   await expect(
     page.locator(".position-equity").filter({ hasText: "8,000.00" }),
   ).toBeVisible();
@@ -185,11 +188,11 @@ test("ordinary Ledger navigation does not reuse an already refreshed Position ha
   await page.getByText("Report details", { exact: true }).click();
   await expect(page.getByText(/Snapshot 13/)).toBeVisible();
   expect(queries[1].has("snapshot_revision")).toBe(false);
-  await page.getByRole("button", { name: "Position", exact: true }).click();
+  await chooseFinanceTool(page, "Position");
   await expect(
     page.getByRole("button", { name: "Reserve", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Ledger", exact: true }).click();
+  await chooseFinanceTool(page, "Posted entries");
   await page
     .getByLabel("Report account")
     .selectOption("account-studio-reserve");
@@ -206,7 +209,7 @@ test("mobile Position keeps every amount visible without sideways scrolling", as
   await page.setViewportSize({ width: 390, height: 844 });
   await prepare(page);
   await mount(<Harness />);
-  await page.getByRole("button", { name: "Position", exact: true }).click();
+  await chooseFinanceTool(page, "Position");
   await expect(page.locator(".position-book-row")).toHaveCount(5);
   await page.screenshot({
     path: testInfo.outputPath("position-mobile.png"),
@@ -241,17 +244,8 @@ test("a recovered command locks the default Overview, scope and Position navigat
   for (const button of await page.locator(".tool-book-picker button").all())
     await expect(button).toBeDisabled();
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
-  await expect(
-    page.getByRole("button", { name: "Transactions", exact: true }),
-  ).toBeDisabled();
-  await expect(
-    page.getByRole("button", {
-      name: "Position",
-      exact: true,
-    }),
-  ).toBeDisabled();
-  await expect(
-    page.getByRole("button", { name: "Ledger", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Imported activity")).toBeDisabled();
+  await expect(financeNavItem(page, "Position")).toBeDisabled();
+  await expect(financeNavItem(page, "Posted entries")).toBeDisabled();
   expect(requests).toHaveLength(0);
 });

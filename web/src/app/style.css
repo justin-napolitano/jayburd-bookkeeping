@@ -606,9 +606,6 @@ section[aria-label="Connections"] select {
   max-width: 1440px;
   padding: 0 0 1rem;
 }
-.finance-workspace {
-  min-width: 0;
-}
 .finance-bar {
   display: flex;
   align-items: center;
@@ -713,19 +710,19 @@ section[aria-label="Connections"] select {
   display: none;
 }
 .finance-notices,
-.finance-workspace > .book-workspace,
+.finance-main > .book-workspace,
 .tool-book-picker {
   margin: 1.5rem 4rem;
 }
-.finance-workspace > .book-workspace .book-context {
+.finance-main > .book-workspace .book-context {
   border-bottom: 1px solid var(--line);
   margin-bottom: 1.5rem;
 }
-.finance-workspace > .book-workspace .view-title {
+.finance-main > .book-workspace .view-title {
   font-size: 1.6rem;
   margin: 1.5rem 0;
 }
-.finance-workspace > .book-workspace section {
+.finance-main > .book-workspace section {
   padding: 1rem 0;
   border: 0;
 }
@@ -879,14 +876,14 @@ section[aria-label="Connections"] select {
 .position-comparison label {
   max-width: 240px;
 }
-.finance-workspace > .command-idle {
+.finance-main > .command-idle {
   margin: 1rem 4rem;
   padding: 0.6rem 0;
   border: 0;
   border-top: 1px solid var(--line);
   color: var(--muted);
 }
-.finance-workspace > .command-attention {
+.finance-main > .command-attention {
   margin: 1rem 4rem;
 }
 .setup-shelf {
@@ -1055,10 +1052,10 @@ section[aria-label="Connections"] select {
     font-size: 0.95rem;
   }
   .finance-notices,
-  .finance-workspace > .book-workspace,
+  .finance-main > .book-workspace,
   .tool-book-picker,
-  .finance-workspace > .command-idle,
-  .finance-workspace > .command-attention,
+  .finance-main > .command-idle,
+  .finance-main > .command-attention,
   .setup-shelf,
   .app-shell > footer {
     margin-left: 1.2rem;
@@ -1203,7 +1200,7 @@ section[aria-label="Connections"] select {
 .review-detail h3 {
   margin-top: 0;
 }
-.finance-workspace
+.finance-main
   > .book-workspace:has(.transaction-review)
   .book-context-compact {
   margin-bottom: 0.75rem;
@@ -1216,10 +1213,10 @@ section[aria-label="Connections"] select {
   font-size: 1rem;
   margin: 0;
 }
-.finance-workspace > .book-workspace:has(.transaction-review) .view-title {
+.finance-main > .book-workspace:has(.transaction-review) .view-title {
   margin: 0.75rem 0 0;
 }
-.finance-workspace > .book-workspace .transaction-review {
+.finance-main > .book-workspace .transaction-review {
   padding-top: 0.5rem;
 }
 .review-pagination {
@@ -1410,4 +1407,70 @@ section[aria-label="Connections"] select {
   .activity-money { gap: 1rem; }
   .activity-money > div { min-width: 7.5rem; }
   .activity-money dd { font-size: 1.4rem; }
+}
+
+/* Responsive application frame owns outer spacing after the navigation refresh. */
+.finance-workspace {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr);
+  align-items: start;
+  min-height: 100dvh;
+}
+.finance-main {
+  min-width: 0;
+  padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 3rem;
+}
+.finance-context {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.5rem;
+}
+.finance-context:empty {
+  display: none;
+}
+.finance-main > .book-workspace,
+.finance-main > .command-idle,
+.finance-main > .command-attention {
+  min-width: 0;
+  margin: 0 0 1.5rem;
+}
+.finance-main > .book-workspace section {
+  padding: 1rem 0;
+  border: 0;
+}
+.finance-main .finance-notices,
+.finance-main .tool-book-picker,
+.finance-main .setup-shelf {
+  margin: 1rem 0;
+}
+/* Shared action variants wrap labels; a secondary action never competes with confirmation. */
+.finance-main button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.finance-main button.secondary {
+  color: var(--accent);
+  background: var(--paper);
+  border-color: #b5c8bd;
+}
+.finance-main button:disabled {
+  cursor: not-allowed;
+}
+.finance-main .position-view {
+  padding: 0;
+}
+@media (max-width: 959px) {
+  .finance-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .finance-main {
+    padding: 1rem clamp(0.75rem, 3vw, 1.5rem) 2rem;
+  }
 }

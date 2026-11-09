@@ -397,6 +397,11 @@ describe("private topic editing and shared command recovery", () => {
     await userEvent.click(screen.getByText("Manage topics"));
     expect(screen.getByText("Dining · Retired (history only)")).toBeTruthy();
     expect(screen.queryByLabelText("Topic 1 name")).toBeNull();
+    await userEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Select Fictional purchase 1 on 2026-10-01 from Fictional checking",
+      }),
+    );
     const label = screen.getByLabelText("Label selected transactions");
     expect(
       [...label.querySelectorAll("option")].map((option) => option.value),

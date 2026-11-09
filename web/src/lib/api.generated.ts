@@ -96,7 +96,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Post one balanced manual journal */
+        /**
+         * Reject unsupported standalone entry
+         * @deprecated
+         * @description Authenticated application requests return 422 artifact_required without posting SQL. Start from a retained imported source and its reviewed source_post command. Artifact-linked document corrections require a separate implemented workflow. Historical entries remain readable.
+         */
         post: operations["postJournal"];
         delete?: never;
         options?: never;
@@ -138,7 +142,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Post an exact linked reversal */
+        /**
+         * Reject unsupported standalone reversal
+         * @deprecated
+         * @description Authenticated application requests return 422 artifact_required without posting SQL. Start from a retained imported source and its reviewed source_post command. Artifact-linked document corrections require a separate implemented workflow. Historical entries remain readable.
+         */
         post: operations["reverseJournal"];
         delete?: never;
         options?: never;
@@ -243,7 +251,7 @@ export interface paths {
         put?: never;
         /**
          * Store an immutable reviewed command without executing it
-         * @description Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. One unacknowledged command per principal. Same registration key and content replay; changed content or other pending work conflicts.
+         * @description Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. One unacknowledged command per principal. Same registration key and content replay; changed content or other pending work conflicts. Public registration rejects manual post with 422 artifact_required; source_post must reference the exact retained source review/draft. Setup and import do not post journals.
          */
         post: operations["registerCommand"];
         delete?: never;
@@ -303,7 +311,7 @@ export interface paths {
         put?: never;
         /**
          * Execute the stored immutable command or replay its result
-         * @description Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. Uses stored command identity and immutable body; repeating this transition cannot authorize a different operation.
+         * @description Current identity and scoped permissions are rechecked. Internal recovery control, not an ISO20022 message. See command-recovery.md. Uses stored command identity and immutable body; repeating this transition cannot authorize a different operation. A prepared legacy manual post returns 422 artifact_required. Current pending identity is checked within the same serializable transaction as execution; historical committed command receipts, cancellation and acknowledgement remain under current authority.
          */
         post: operations["executeCommand"];
         delete?: never;
@@ -2029,6 +2037,7 @@ export interface components {
             /** @constant */
             development_policy: "dev-accrual-usd-v1";
         };
+        /** @description Legacy command vocabulary retained for historical decoding and isolated accounting primitive proof. Public registration uses ArtifactRegisterCommand; new manual post commands are unsupported. */
         RegisterCommand: {
             /** @constant */
             operation: "setup";
@@ -4039,6 +4048,30 @@ export interface components {
             cleared: boolean;
         };
         PrivateOnboardingEmptyRequest: Record<string, never>;
+        /** @description New public application commands: setup, import and source_post only. A post command without retained source evidence is rejected with 422 artifact_required. */
+        ArtifactRegisterCommand: {
+            /** @constant */
+            operation: "setup";
+            entity_id: null;
+            book_id: null;
+            body: components["schemas"]["SetupRequest"];
+        } | {
+            /** @constant */
+            operation: "import";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            body: components["schemas"]["ImportCommandBody"];
+        } | {
+            /** @constant */
+            operation: "source_post";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            body: components["schemas"]["SourcePostCommandBody"];
+        };
     };
     responses: {
         /** @description Malformed request or missing required header. */
@@ -4299,34 +4332,19 @@ export interface operations {
     postJournal: {
         parameters: {
             query?: never;
-            header: {
-                "Idempotency-Key": string;
-            };
+            header?: never;
             path: {
                 entity_id: string;
                 book_id: string;
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["PostJournal"];
             };
         };
         responses: {
-            /** @description Committed result. */
-            201: {
-                headers: {
-                    /** @description Financial responses are not cacheable. */
-                    "Cache-Control"?: "no-store";
-                    /** @description True when returning an existing successful receipt; false for first execution. */
-                    "Idempotent-Replay"?: boolean;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Journal"];
-                };
-            };
             400: components["responses"]["Problem400"];
             401: components["responses"]["Problem401"];
             403: components["responses"]["Problem403"];
@@ -4394,9 +4412,7 @@ export interface operations {
     reverseJournal: {
         parameters: {
             query?: never;
-            header: {
-                "Idempotency-Key": string;
-            };
+            header?: never;
             path: {
                 entity_id: string;
                 book_id: string;
@@ -4404,25 +4420,12 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["ReverseJournal"];
             };
         };
         responses: {
-            /** @description Committed result. */
-            201: {
-                headers: {
-                    /** @description Financial responses are not cacheable. */
-                    "Cache-Control"?: "no-store";
-                    /** @description True when returning an existing successful receipt; false for first execution. */
-                    "Idempotent-Replay"?: boolean;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Journal"];
-                };
-            };
             400: components["responses"]["Problem400"];
             401: components["responses"]["Problem401"];
             403: components["responses"]["Problem403"];
@@ -4636,7 +4639,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterCommand"];
+                "application/json": components["schemas"]["ArtifactRegisterCommand"];
             };
         };
         responses: {

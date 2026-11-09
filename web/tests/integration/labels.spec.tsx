@@ -1,3 +1,4 @@
+import { chooseFinanceTool, financeNavItem } from "../finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import { IntegrationHarness } from "./Harness";
 import { RecoveryHarness } from "./RecoveryHarness";
@@ -9,9 +10,7 @@ test("private topics and strategic tags recover committed responses without book
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   let component = await mount(<IntegrationHarness />);
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await chooseFinanceTool(page, "Transactions");
   await expect(
     page.getByText("Fictional cafe purchase", { exact: true }),
   ).toBeVisible();
@@ -358,10 +357,7 @@ test("inaccessible prepared private work retains the same clear identity after r
   await expect(
     page.getByRole("heading", { name: "Saved private work", exact: true }),
   ).toBeVisible();
-  const navigation = page.getByRole("button", {
-    name: "All transactions",
-    exact: true,
-  });
+  const navigation = financeNavItem(page, "Transactions");
   await expect(navigation).toBeDisabled();
   await expect(
     page.getByText("Fictional hidden prepared tag", { exact: true }),
@@ -473,9 +469,7 @@ test("inaccessible committed private work is acknowledged without revealing its 
   await expect(
     page.getByText("Fictional hidden committed tag", { exact: true }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeDisabled();
+  await expect(financeNavItem(page, "Transactions")).toBeDisabled();
   let cleared = 0;
   await page.route("**/v1/collection-recovery/clear", async (route) => {
     const request = route.request().postDataJSON();
@@ -500,9 +494,7 @@ test("inaccessible committed private work is acknowledged without revealing its 
     })
     .click();
   await expect.poll(() => cleared).toBe(1);
-  await expect(
-    page.getByRole("button", { name: "All transactions", exact: true }),
-  ).toBeEnabled();
+  await expect(financeNavItem(page, "Transactions")).toBeEnabled();
   await expect(
     page.getByText("Fictional hidden committed tag", { exact: true }),
   ).toHaveCount(0);

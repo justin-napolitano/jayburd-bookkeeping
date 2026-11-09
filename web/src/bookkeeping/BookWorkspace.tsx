@@ -1,11 +1,5 @@
 "use client";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { APIError, type API } from "./api";
 import {
   Connections,
@@ -31,7 +25,6 @@ export type BookView =
   | "Accounts"
   | "Account activity"
   | "Reports"
-  | "New journal"
   | "Review transactions"
   | "Connections";
 const views: BookView[] = [
@@ -39,7 +32,6 @@ const views: BookView[] = [
   "Accounts",
   "Account activity",
   "Reports",
-  "New journal",
   "Review transactions",
   "Connections",
 ];
@@ -68,7 +60,6 @@ export function BookWorkspace({
   api,
   locked,
   denied,
-  children,
   prepare,
   connectionLink,
   prepareRegistration,
@@ -87,7 +78,6 @@ export function BookWorkspace({
   api: API;
   locked: boolean;
   denied: () => void;
-  children: ReactNode;
   prepare?: (command: RegisterCommand) => void;
   connectionLink?: ConnectionLink;
   prepareRegistration?: ConnectionsProps["prepareRegistration"];
@@ -322,17 +312,31 @@ export function BookWorkspace({
               disabled={locked}
               onClick={() => navigate(name)}
             >
-              {name}
+              {name === "Account activity"
+                ? "Posted entries"
+                : name === "Review transactions"
+                  ? "Imported activity"
+                  : name === "Connections"
+                    ? "Accounts"
+                    : name === "Accounts"
+                      ? "Chart of accounts"
+                      : name}
             </button>
           ))}
         </nav>
       )}
       <h1 ref={heading} tabIndex={-1} className="view-title">
         {view === "Account activity"
-          ? "Ledger"
+          ? "Posted entries"
           : view === "Money overview"
             ? "Overview"
-            : view}
+            : activeView && view === "Review transactions"
+              ? "Imported activity"
+              : activeView && view === "Connections"
+                ? "Accounts"
+                : activeView && view === "Accounts"
+                  ? "Chart of accounts"
+                  : view}
       </h1>
       {view === "Money overview" && (
         <ActivityOverview
@@ -496,7 +500,6 @@ export function BookWorkspace({
           denied={denied}
         />
       )}
-      <div hidden={view !== "New journal"}>{children}</div>
     </div>
   );
 }

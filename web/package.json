@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
+    "review:dev": "vite --config review/vite.config.ts",
+    "review:build": "vite build --config review/vite.config.ts && node ../scripts/build-frontend-review.mjs",
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1",
     "check": "next typegen && tsc --noEmit",

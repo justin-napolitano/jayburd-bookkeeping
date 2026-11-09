@@ -1,3 +1,4 @@
+import { chooseFinanceTool } from "../finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import { RulesHarness } from "./RulesHarness";
 
@@ -45,9 +46,7 @@ test("private rules preserve manual fields, abstain on conflicts and recover an 
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   let component = await mount(<RulesHarness />);
-  await page
-    .getByRole("button", { name: "All transactions", exact: true })
-    .click();
+  await chooseFinanceTool(page, "Transactions");
   await expect(
     page.getByRole("button", {
       name: "Fictional rule cafe purchase",

@@ -27,35 +27,41 @@ type Operations interface {
 	TrialBalance(context.Context, Command) (Result, error)
 }
 
-// Handler exposes only the reviewed operations; callers explicitly supply verified
-// identity and database adapters. Server composition owns listener policy.
+// Handler always requires retained artifacts for new application postings; callers
+// supply verified identity and database adapters, never a policy bypass.
 func Handler(auth Authenticator, ops Operations) http.Handler {
+	return newHandler(auth, ops, true)
+}
+
+// newHandler keeps the primitive HTTP proof private; application composition always uses Handler.
+func newHandler(auth Authenticator, ops Operations, artifactOnly bool) http.Handler {
+	route := func(op string) http.HandlerFunc { return endpoint(auth, ops, op, artifactOnly) }
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /v1/commands", endpoint(auth, ops, "command_register"))
-	mux.HandleFunc("GET /v1/commands/pending", endpoint(auth, ops, "command_pending"))
-	mux.HandleFunc("POST /v1/commands/pending/clear", endpoint(auth, ops, "command_clear"))
-	mux.HandleFunc("POST /v1/commands/{command}/execute", endpoint(auth, ops, "command_execute"))
-	mux.HandleFunc("POST /v1/commands/{command}/cancel", endpoint(auth, ops, "command_cancel"))
-	mux.HandleFunc("POST /v1/commands/{command}/acknowledge", endpoint(auth, ops, "command_acknowledge"))
-	mux.HandleFunc("GET /v1/workspace", endpoint(auth, ops, "workspace"))
-	mux.HandleFunc("POST /v1/setup", endpoint(auth, ops, "setup"))
+	mux.HandleFunc("POST /v1/commands", route("command_register"))
+	mux.HandleFunc("GET /v1/commands/pending", route("command_pending"))
+	mux.HandleFunc("POST /v1/commands/pending/clear", route("command_clear"))
+	mux.HandleFunc("POST /v1/commands/{command}/execute", route("command_execute"))
+	mux.HandleFunc("POST /v1/commands/{command}/cancel", route("command_cancel"))
+	mux.HandleFunc("POST /v1/commands/{command}/acknowledge", route("command_acknowledge"))
+	mux.HandleFunc("GET /v1/workspace", route("workspace"))
+	mux.HandleFunc("POST /v1/setup", route("setup"))
 	base := "/v1/entities/{entity}/books/{book}"
-	mux.HandleFunc("GET "+base+"/sources", endpoint(auth, ops, "review_sources"))
-	mux.HandleFunc("GET "+base+"/review-items", endpoint(auth, ops, "review_list"))
-	mux.HandleFunc("POST "+base+"/review-items/query", endpoint(auth, ops, "review_query"))
-	mux.HandleFunc("POST "+base+"/source-activity/query", endpoint(auth, ops, "review_activity"))
-	mux.HandleFunc("GET "+base+"/review-items/{review}", endpoint(auth, ops, "review_detail"))
-	mux.HandleFunc("GET "+base+"/review-items/{review}/categories", endpoint(auth, ops, "review_categories"))
-	mux.HandleFunc("POST "+base+"/review-items/{review}/drafts", endpoint(auth, ops, "review_draft"))
-	mux.HandleFunc("POST "+base+"/journals", endpoint(auth, ops, "post"))
-	mux.HandleFunc("POST "+base+"/journals/{journal}/reversals", endpoint(auth, ops, "reverse"))
-	mux.HandleFunc("GET "+base+"/journals/{journal}", endpoint(auth, ops, "journal"))
-	mux.HandleFunc("GET "+base+"/trial-balance", endpoint(auth, ops, "balance"))
+	mux.HandleFunc("GET "+base+"/sources", route("review_sources"))
+	mux.HandleFunc("GET "+base+"/review-items", route("review_list"))
+	mux.HandleFunc("POST "+base+"/review-items/query", route("review_query"))
+	mux.HandleFunc("POST "+base+"/source-activity/query", route("review_activity"))
+	mux.HandleFunc("GET "+base+"/review-items/{review}", route("review_detail"))
+	mux.HandleFunc("GET "+base+"/review-items/{review}/categories", route("review_categories"))
+	mux.HandleFunc("POST "+base+"/review-items/{review}/drafts", route("review_draft"))
+	mux.HandleFunc("POST "+base+"/journals", route("post"))
+	mux.HandleFunc("POST "+base+"/journals/{journal}/reversals", route("reverse"))
+	mux.HandleFunc("GET "+base+"/journals/{journal}", route("journal"))
+	mux.HandleFunc("GET "+base+"/trial-balance", route("balance"))
 	for _, kind := range []string{"trial-balance", "general-ledger", "balance-sheet", "profit-and-loss"} {
-		mux.HandleFunc("GET "+base+"/reports/"+kind, endpoint(auth, ops, "report_"+kind))
-		mux.HandleFunc("GET "+base+"/reports/"+kind+"/export.csv", endpoint(auth, ops, "export_"+kind))
+		mux.HandleFunc("GET "+base+"/reports/"+kind, route("report_"+kind))
+		mux.HandleFunc("GET "+base+"/reports/"+kind+"/export.csv", route("export_"+kind))
 	}
-	mux.HandleFunc("GET "+base+"/reports/general-ledger/journals/{journal}", endpoint(auth, ops, "drill_journal"))
+	mux.HandleFunc("GET "+base+"/reports/general-ledger/journals/{journal}", route("drill_journal"))
 	return mux
 }
 
@@ -86,7 +92,7 @@ func problem(w http.ResponseWriter, id string, f *Failure) {
 }
 
 // endpoint authenticates before data access and preserves raw request JSON for SQL.
-func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
+func endpoint(auth Authenticator, ops Operations, op string, artifactOnly bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		id := requestID()
@@ -99,6 +105,10 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 		actor, err := auth.Authenticate(r.Context(), strings.TrimPrefix(headers[0], "Bearer "))
 		if err != nil || actor == "" {
 			fail(401, "unauthenticated")
+			return
+		}
+		if artifactOnly && (op == "post" || op == "reverse") {
+			fail(422, "artifact_required")
 			return
 		}
 		c := Command{Actor: actor, Entity: r.PathValue("entity"), Book: r.PathValue("book"), Journal: r.PathValue("journal"), ReviewID: r.PathValue("review"), CommandID: r.PathValue("command"), Request: id}
@@ -159,6 +169,17 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 				return
 			}
 			c.Body = q[0]
+		}
+		if artifactOnly && op == "command_register" {
+			manual, invalid := manualPostRegistration(c.Body)
+			if invalid != nil {
+				fail(400, "invalid_request")
+				return
+			}
+			if manual {
+				fail(422, "artifact_required")
+				return
+			}
 		}
 		var result Result
 		isExport := strings.HasPrefix(op, "export_")
@@ -241,6 +262,17 @@ func endpoint(auth Authenticator, ops Operations, op string) http.HandlerFunc {
 			if op == "command_pending" && (r.ContentLength > 0 || len(r.TransferEncoding) > 0) {
 				fail(400, "invalid_request")
 				return
+			}
+			if artifactOnly && (op == "command_register" || op == "command_execute") {
+				artifacts, ok := ops.(interface {
+					ArtifactRecovery(context.Context, Command, string) (Result, error)
+				})
+				if !ok {
+					fail(503, "temporarily_unavailable")
+					return
+				}
+				result, err = artifacts.ArtifactRecovery(r.Context(), c, strings.TrimPrefix(op, "command_"))
+				break
 			}
 			recovery, ok := ops.(interface {
 				Recovery(context.Context, Command, string) (Result, error)

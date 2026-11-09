@@ -1,3 +1,4 @@
+import { chooseFinanceTool } from "../finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import { ConnectionsHarness } from "./ConnectionsHarness";
 const scope =
@@ -12,10 +13,7 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
   let component = await mount(<ConnectionsHarness />);
   const connections = async () => {
     await page.getByLabel("Entity and book").selectOption(scope);
-    await page.getByText("Tools", { exact: true }).click();
-    await page
-      .getByRole("button", { name: "Connections", exact: true })
-      .click();
+    await chooseFinanceTool(page, "Accounts");
   };
   const trigger = (path: string) =>
     page.request.post(new URL(path, page.url()).href, {
@@ -181,8 +179,7 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
     .getByRole("button", { name: "Acknowledge result", exact: true })
     .click();
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Accounts", exact: true }).click();
+  await chooseFinanceTool(page, "Chart of accounts");
   await expect(page.locator("tfoot td")).toHaveText(["0.10", "0.10"]);
   expect(await (await trigger("/__proof/history")).json()).toMatchObject({
     fetch_count: 3,

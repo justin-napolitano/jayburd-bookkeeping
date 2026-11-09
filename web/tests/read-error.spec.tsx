@@ -1,3 +1,4 @@
+import { financeNavItem } from "./finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
 import { Harness } from "./Harness";
 import { positionWorkspace } from "./position-fixture";
@@ -30,9 +31,7 @@ for (const failure of ["network", "503", "invalid JSON"] as const) {
     await expect(page.getByRole("alert")).toHaveText(
       "Data is unavailable right now. Retry the read.",
     );
-    await expect(
-      page.getByRole("button", { name: "Transactions", exact: true }),
-    ).toBeDisabled();
+    await expect(financeNavItem(page, "Imported activity")).toBeDisabled();
     await expect(
       page.getByRole("button", { name: "Clear inaccessible saved command" }),
     ).toHaveCount(0);
@@ -40,9 +39,7 @@ for (const failure of ["network", "503", "invalid JSON"] as const) {
     expect(writes).toEqual([]);
     recovered = true;
     await page.getByRole("button", { name: "Check saved command" }).click();
-    await expect(
-      page.getByRole("button", { name: "Transactions", exact: true }),
-    ).toBeEnabled();
+    await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
     expect(reads).toBe(2);
     expect(writes).toEqual([]);
   });
