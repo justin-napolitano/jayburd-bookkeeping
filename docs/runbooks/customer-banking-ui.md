@@ -1,6 +1,12 @@
 <!-- stage-runbook: true -->
 # Customer banking experience — 479
 
+Current delivery: source480 merged after all five checks; trusted main build
+42561705439 passed complete independent image acceptance. The existing Sandbox
+[web-only release](customer-ui-web-release.md) is accepted on web00027-6jn,
+retaining API00026 artifact enforcement. This source-stage ledger preserves its
+original boundaries/corrections; owner visual review and476 remain separate.
+
 ## Status and boundary
 
 Owner screenshot and explicit request authorize removing debugging features and
