@@ -33,66 +33,74 @@ export function CommandPanel({
             currency.currency_version_id === binding.currency_version_id,
         ),
       ));
+  // Idle recovery still runs in the owning hook; it needs no permanent customer inventory.
+  if (
+    !c &&
+    !r.registration &&
+    r.ready &&
+    !r.error &&
+    !r.accessDenied &&
+    !r.busy
+  )
+    return null;
   return (
     <section
-      className={
-        !c && !r.registration && r.ready && !r.error
-          ? "command-idle"
-          : "command-attention"
-      }
+      className="command-attention saved-work"
+      aria-busy={r.busy}
       aria-labelledby="command-title"
     >
-      <h2 id="command-title">Saved command</h2>
-      {!r.ready && (
-        <p role="status">Checking saved work before enabling new entries…</p>
+      <h2 id="command-title">Saved work</h2>
+      {!r.ready && !r.error && !r.accessDenied && (
+        <p role="status">Checking for unfinished work…</p>
       )}
       {r.error && <p role="alert">{r.error}</p>}
       {r.accessDenied && (
         <>
           <p>
-            Older saved work no longer has an accessible book. Clearing it does
-            not post, reverse, or reveal any accounting data.
+            This saved work is no longer available with your current access.
+            Clearing it does not apply or reverse any changes.
           </p>
           <button disabled={r.busy} onClick={() => void r.clearInaccessible()}>
-            Clear inaccessible saved command
+            Clear unavailable saved work
           </button>
         </>
       )}
       {r.busy && (
-        <p role="status">Waiting for the authoritative command result…</p>
+        <p role="status">
+          Waiting for confirmation. Please keep this page open…
+        </p>
       )}
-      {!c && !r.registration && r.ready && !r.error && (
-        <p>No unacknowledged command. New work is available.</p>
-      )}
-      <button disabled={r.busy} onClick={() => void r.reload()}>
-        Check saved command
+      <button
+        className="secondary"
+        disabled={r.busy}
+        onClick={() => void r.reload()}
+      >
+        Check saved work
       </button>
       {r.registration && !c && (
         <>
           <p>
-            Registration is unconfirmed. Retry this same registration to
-            discover its durable result. No new entry is enabled.
+            Saving is unconfirmed. Retry this same request to check whether it
+            was saved. Other changes remain paused.
           </p>
           <button disabled={r.busy} onClick={r.retryRegistration}>
-            Retry registration
+            Retry saving review
           </button>
         </>
       )}
       {c && body && (
         <>
-          <p>
-            Command <code>{c.command_id}</code> · {c.state}
-          </p>
           {c.operation !== "setup" && (
             <p>
-              Target: {entity?.name ?? c.entity_id} / {book?.name ?? c.book_id}
+              Book: {entity?.name ?? "Entity name unavailable"} /{" "}
+              {book?.name ?? "Book name unavailable"}
             </p>
           )}
           {c.state === "prepared" && (
             <p>
-              Saved for review. Last confirmed state: prepared. Another tab may
-              have advanced it; the server rechecks before confirmation or
-              cancellation.
+              Last checked: ready for your confirmation. Review the details
+              below. Changes made in another tab will be checked again before
+              confirming or cancelling.
             </p>
           )}
           {c.state === "prepared" && c.operation === "post" && (
@@ -114,32 +122,29 @@ export function CommandPanel({
                       : "Book creation confirmed"}
               </h3>
               <p>
-                The committed result remains saved until you acknowledge it.
-                Acknowledging never reverses or changes the books.
+                Your result is saved. Acknowledge it to finish this review and
+                continue. Acknowledging does not change your books.
               </p>
               {c.result && "journal_id" in c.result && (
-                <p>
-                  Journal {c.result.journal_id} · revision{" "}
-                  {c.result.book_revision}
-                </p>
+                <p>Posted entry reference: {c.result.journal_id}</p>
               )}
             </div>
           )}
           {c.state === "cancelled" && (
             <p role="status">
-              Cancellation confirmed. This command did not execute. Acknowledge
-              before preparing new work.
+              Cancellation confirmed. No changes were applied by this review.
+              Acknowledge the result before starting new work.
             </p>
           )}
           {c.operation === "source_post" && "review_id" in c.body && (
             <p>
-              Source-linked journal · Review item {c.body.review_id}. Posting
-              and its source link commit together.
+              Based on the imported transaction you reviewed. When posted, the
+              entry and its source reference are saved together.
             </p>
           )}
           {"batch_id" in body ? (
             <>
-              <p>Statement import · preview revision {body.preview_revision}</p>
+              <h3>Saved statement import</h3>
               <p>
                 This workspace does not yet display the statement preview.
                 Confirm imports only in a client that shows the reviewed rows.
@@ -206,14 +211,13 @@ export function CommandPanel({
               </p>
               <p>
                 Functional currency:{" "}
-                {policy?.functional_currency ?? "See saved policy metadata"} ·
-                Policy {body.policy_id}
+                {policy?.functional_currency ?? "Currency name unavailable"}
               </p>
               <div className="table-scroll">
                 <table>
                   <caption>
                     {c.state === "committed"
-                      ? "Committed journal request"
+                      ? "Posted entry details"
                       : "Journal lines for review"}
                   </caption>
                   <thead>
@@ -257,7 +261,8 @@ export function CommandPanel({
                           {line.rate_observation_id && (
                             <small>
                               {" "}
-                              · Rate observation {line.rate_observation_id}
+                              · Exchange rate reference{" "}
+                              {line.rate_observation_id}
                             </small>
                           )}
                         </td>
@@ -286,12 +291,6 @@ export function CommandPanel({
               </ul>
             </>
           )}
-          <details>
-            <summary>Exact saved request and result</summary>
-            <pre>
-              {JSON.stringify({ body: c.body, result: c.result }, null, 2)}
-            </pre>
-          </details>
           {c.state === "prepared" ? (
             <>
               {c.operation !== "post" && (
@@ -317,7 +316,7 @@ export function CommandPanel({
                 disabled={r.busy || !r.ready}
                 onClick={() => void r.transition("cancel")}
               >
-                Cancel saved command
+                Cancel saved review
               </button>
             </>
           ) : (

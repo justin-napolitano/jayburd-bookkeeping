@@ -24,9 +24,7 @@ test("TestProductionProfileJourney: one binding, history, recovery and authorize
       },
     });
   await connections();
-  await page
-    .getByRole("button", { name: "Register accounts", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Connect bank", exact: true }).click();
   await page
     .getByRole("button", { name: "Check bank setup completion" })
     .click();

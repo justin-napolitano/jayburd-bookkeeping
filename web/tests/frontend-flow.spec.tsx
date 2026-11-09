@@ -22,7 +22,7 @@ for (const width of [390, 768, 1024, 1280, 1440]) {
     for (const label of [
       "Transactions",
       "Accounts",
-      "Imported activity",
+      "Review accounting",
       "Posted entries",
     ]) {
       const control = nav.getByRole("button", { name: label, exact: true });

@@ -27,7 +27,7 @@ test("loads 3000 transactions and explicitly posts one source-linked journal", a
   });
   await chooseFinanceTool(page, "Chart of accounts");
   await expect(page.locator("tfoot td")).toHaveText(["0.00", "0.00"]);
-  await chooseFinanceTool(page, "Imported activity");
+  await chooseFinanceTool(page, "Review accounting");
   const source = page.getByRole("combobox", {
     name: "Source account",
     exact: true,
@@ -110,7 +110,7 @@ test("loads 3000 transactions and explicitly posts one source-linked journal", a
   await expect(page.locator("tfoot td")).toHaveText(
     isInflow ? ["100.01", "100.01"] : ["25.02", "25.02"],
   );
-  await chooseFinanceTool(page, "Imported activity");
+  await chooseFinanceTool(page, "Review accounting");
   await page
     .getByRole("combobox", { name: "Source account", exact: true })
     .selectOption({ index: 1 });

@@ -383,7 +383,7 @@ async function prepareSourcePosting(page: Page) {
       });
     return route.fallback();
   });
-  await chooseFinanceTool(page, "Imported activity");
+  await chooseFinanceTool(page, "Review accounting");
   await page.getByLabel("Entity and book").selectOption("e1/b1");
   await page.getByLabel("Source account").selectOption("s1");
   await page
@@ -410,9 +410,11 @@ test("retained-source draft keeps exact registration identity and recovers lost 
   await mount(<Harness />);
   const drafts = await prepareSourcePosting(page);
   expect(drafts).toHaveLength(1);
-  await page.getByRole("button", { name: "Retry registration" }).click();
+  await page.getByRole("button", { name: "Retry saving review" }).click();
   await expect(
-    page.getByText("Saved for review.", { exact: false }),
+    page.getByText("Last checked: ready for your confirmation.", {
+      exact: false,
+    }),
   ).toBeVisible();
   expect(server.registrations).toHaveLength(2);
   expect(server.registrations[0]).toEqual(server.registrations[1]);
@@ -431,7 +433,7 @@ test("retained-source draft keeps exact registration identity and recovers lost 
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
   expect(server.executions).toBe(1);
   await page.getByRole("button", { name: "Acknowledge result" }).click();
-  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
+  await expect(financeNavItem(page, "Review accounting")).toBeEnabled();
   await expect(page.getByLabel("Entity and book")).toBeEnabled();
   expect(server.executions).toBe(1);
 });
@@ -444,19 +446,23 @@ test("remount recovers prepared work and a commit winning cancellation stays com
   server.command = legacyManual();
   const component = await mount(<Harness />);
   await expect(
-    page.getByText("Saved for review.", { exact: false }),
+    page.getByText("Last checked: ready for your confirmation.", {
+      exact: false,
+    }),
   ).toBeVisible();
   await component.unmount();
   await mount(<Harness />);
   await expect(
-    page.getByText("Saved for review.", { exact: false }),
+    page.getByText("Last checked: ready for your confirmation.", {
+      exact: false,
+    }),
   ).toBeVisible();
   expect(server.executions).toBe(0);
   expect(server.registrations).toHaveLength(0);
   await expect(
     page.getByRole("button", { name: "Post journal", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "Cancel saved command" }).click();
+  await page.getByRole("button", { name: "Cancel saved review" }).click();
   await expect(
     page.getByText("Posting confirmed", { exact: true }),
   ).toBeVisible();
@@ -493,12 +499,12 @@ for (const width of [390, 1440]) {
         .getByRole("table", { name: "Journal lines for review" })
         .getByRole("row"),
     ).toHaveCount(4);
-    await page.getByRole("button", { name: "Cancel saved command" }).click();
+    await page.getByRole("button", { name: "Cancel saved review" }).click();
     await expect(page.getByText(/Cancellation confirmed/)).toBeVisible();
     expect(server.executions).toBe(0);
     expect(server.registrations).toHaveLength(0);
     await page.getByRole("button", { name: "Acknowledge result" }).click();
-    await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
+    await expect(financeNavItem(page, "Review accounting")).toBeEnabled();
     expect(server.executions).toBe(0);
     expect(server.command).toBeNull();
   });
@@ -535,7 +541,7 @@ test("setup registers review then executes and explicitly acknowledges", async (
     page.getByText("Book creation confirmed", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Acknowledge result" }).click();
-  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
+  await expect(financeNavItem(page, "Review accounting")).toBeEnabled();
 });
 test("Sandbox starter prepares the bounded reviewed setup without manual fields", async ({
   mount,
@@ -631,7 +637,7 @@ test("denied recovery blocks new work and clears a previously visible command", 
   await page.route("**/v1/commands/pending", (route) =>
     route.fulfill({ status: 404, json: { code: "not_found" } }),
   );
-  await page.getByRole("button", { name: "Check saved command" }).click();
+  await page.getByRole("button", { name: "Check saved work" }).click();
   await expect(page.getByRole("alert")).toContainText("access was denied");
   await expect(page.getByText("Synthetic split", { exact: true })).toHaveCount(
     0,
@@ -660,18 +666,18 @@ test("explicitly clears inaccessible saved work before first-book setup", async 
   });
   await mount(<Harness />);
   await expect(
-    page.getByRole("button", { name: "Clear inaccessible saved command" }),
+    page.getByRole("button", { name: "Clear unavailable saved work" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Review Sandbox starter book" }),
   ).toHaveCount(0);
   await page
-    .getByRole("button", { name: "Clear inaccessible saved command" })
+    .getByRole("button", { name: "Clear unavailable saved work" })
     .click();
   await expect(
     page.getByRole("button", { name: "Review Sandbox starter book" }),
   ).toBeVisible();
-  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
+  await expect(financeNavItem(page, "Review accounting")).toBeEnabled();
 });
 
 test("successful acknowledgement followed by failed discovery keeps new work locked", async ({
@@ -904,9 +910,9 @@ test("recovers an import safely until statement preview UI is available", async 
     page.getByRole("button", { name: "Review import in originating client" }),
   ).toBeDisabled();
   expect(state.executions).toBe(0);
-  await page.getByRole("button", { name: "Cancel saved command" }).click();
+  await page.getByRole("button", { name: "Cancel saved review" }).click();
   await expect(page.getByText(/Cancellation confirmed/)).toBeVisible();
   await page.getByRole("button", { name: "Acknowledge result" }).click();
-  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
+  await expect(financeNavItem(page, "Review accounting")).toBeEnabled();
   expect(state.executions).toBe(0);
 });

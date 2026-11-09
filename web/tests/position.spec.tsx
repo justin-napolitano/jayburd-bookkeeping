@@ -235,7 +235,9 @@ test("a recovered command locks the default Overview, scope and Position navigat
   const requests = await servePosition(page, "", true);
   await mount(<Harness />);
   await expect(
-    page.getByText("Saved for review.", { exact: false }),
+    page.getByText("Last checked: ready for your confirmation.", {
+      exact: false,
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Overview", exact: true }),
@@ -244,7 +246,7 @@ test("a recovered command locks the default Overview, scope and Position navigat
   for (const button of await page.locator(".tool-book-picker button").all())
     await expect(button).toBeDisabled();
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
-  await expect(financeNavItem(page, "Imported activity")).toBeDisabled();
+  await expect(financeNavItem(page, "Review accounting")).toBeDisabled();
   await expect(financeNavItem(page, "Position")).toBeDisabled();
   await expect(financeNavItem(page, "Posted entries")).toBeDisabled();
   expect(requests).toHaveLength(0);

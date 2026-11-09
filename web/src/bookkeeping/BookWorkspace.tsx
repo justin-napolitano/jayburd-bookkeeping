@@ -253,10 +253,6 @@ export function BookWorkspace({
               "Currency unavailable for this date"}{" "}
             functional
           </p>
-          <details className="book-provenance">
-            <summary>Book details</summary>
-            <p>Workspace revision {book.book_revision}</p>
-          </details>
         </div>
         {!(
           activeView &&
@@ -315,7 +311,7 @@ export function BookWorkspace({
               {name === "Account activity"
                 ? "Posted entries"
                 : name === "Review transactions"
-                  ? "Imported activity"
+                  ? "Review accounting"
                   : name === "Connections"
                     ? "Accounts"
                     : name === "Accounts"
@@ -331,7 +327,7 @@ export function BookWorkspace({
           : view === "Money overview"
             ? "Overview"
             : activeView && view === "Review transactions"
-              ? "Imported activity"
+              ? "Review accounting"
               : activeView && view === "Connections"
                 ? "Accounts"
                 : activeView && view === "Accounts"
@@ -384,10 +380,8 @@ export function BookWorkspace({
           )}
           {report && (
             <>
-              <p className="report-stamp">
-                {report.functional_currency} · Snapshot{" "}
-                {report.snapshot_revision} · {book.accounts.length} configured
-                accounts
+              <p className="balance-currency">
+                Amounts in {report.functional_currency}
               </p>
               <div className="table-scroll">
                 <table>

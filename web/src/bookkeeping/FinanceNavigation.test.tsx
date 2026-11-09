@@ -27,8 +27,8 @@ describe("responsive finance navigation", () => {
   it("gives private and book tools distinct names without changing their receiving identities", async () => {
     const props = defaults();
     render(<FinanceNavigation {...props} />);
-    const daily = screen.getByRole("group", { name: "Daily" });
-    const books = screen.getByRole("group", { name: "Bookkeeping" });
+    const daily = screen.getByRole("group", { name: "Banking" });
+    const books = screen.getByRole("group", { name: "Accounting" });
     expect(
       within(daily)
         .getAllByRole("button")
@@ -39,7 +39,7 @@ describe("responsive finance navigation", () => {
         .getAllByRole("button")
         .map((button) => button.textContent),
     ).toEqual([
-      "Imported activity",
+      "Review accounting",
       "Posted entries",
       "Position",
       "Reports",
@@ -54,7 +54,7 @@ describe("responsive finance navigation", () => {
       within(daily).getByRole("button", { name: "Accounts" }),
     );
     await userEvent.click(
-      within(books).getByRole("button", { name: "Imported activity" }),
+      within(books).getByRole("button", { name: "Review accounting" }),
     );
     await userEvent.click(
       within(books).getByRole("button", { name: "Chart of accounts" }),
@@ -77,7 +77,7 @@ describe("responsive finance navigation", () => {
     view.rerender(<FinanceNavigation {...props} tool="Review transactions" />);
     expect(
       screen
-        .getByRole("button", { name: "Imported activity" })
+        .getByRole("button", { name: "Review accounting" })
         .getAttribute("aria-current"),
     ).toBe("page");
     expect(
@@ -126,7 +126,7 @@ describe("responsive finance navigation", () => {
       expect((button as HTMLButtonElement).disabled).toBe(true);
       fireEvent.click(button);
     }
-    const refresh = screen.getByRole("button", { name: "Refresh workspace" });
+    const refresh = screen.getByRole("button", { name: "Refresh books" });
     expect((refresh as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(refresh);
     expect(props.onNavigate).not.toHaveBeenCalled();
@@ -145,7 +145,7 @@ describe("responsive finance navigation", () => {
     expect(
       (
         screen.getByRole("button", {
-          name: "Refresh workspace",
+          name: "Refresh books",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);

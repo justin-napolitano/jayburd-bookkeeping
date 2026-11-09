@@ -11,10 +11,12 @@ async function servePolish(
   pending: "idle" | "prepared" | "denied" = "idle",
 ) {
   const writes: string[] = [];
+  const reads: string[] = [];
   await page.clock.install({ time: new Date("2026-10-21T15:00:00Z") });
   await page.route("**/v1/**", async (route) => {
     const url = new URL(route.request().url());
     if (route.request().method() !== "GET") writes.push(url.pathname);
+    else reads.push(url.pathname);
     if (url.pathname === "/v1/workspace")
       return route.fulfill({ json: positionWorkspace });
     if (url.pathname === "/v1/commands/pending") {
@@ -56,7 +58,7 @@ async function servePolish(
       });
     return route.fulfill({ status: 404, json: { code: "not_found" } });
   });
-  return writes;
+  return { writes, reads };
 }
 
 test("report comparison is an inline keyboard target and initial state explains explicit reading", async ({
@@ -102,58 +104,89 @@ test("report comparison is an inline keyboard target and initial state explains 
   }
 });
 
-test("only idle recovery moves to Settings while its read controls remain available", async ({
+test("idle discovery leaves no debug inventory and sends no mutations", async ({
   mount,
   page,
 }, info) => {
-  const writes = await servePolish(page);
+  const { writes, reads } = await servePolish(page);
   await mount(<Harness />);
-  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
+  await expect(financeNavItem(page, "Review accounting")).toBeEnabled();
   await expect(
-    page.getByRole("button", { name: "Check saved command" }),
-  ).toBeHidden();
-  await page.getByText("Settings", { exact: true }).click();
+    page.getByRole("region", { name: "Saved work", exact: true }),
+  ).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Check saved command" }),
-  ).toBeVisible();
-  await expect(page.getByText("Book setup", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Check saved command" }).click();
-  await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
-  await page.getByText("Settings", { exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Check saved command" }),
-  ).toBeHidden();
+    page.getByRole("button", { name: "Check saved work", exact: true }),
+  ).toHaveCount(0);
+  expect(reads).toContain("/v1/commands/pending");
+  expect(writes).toEqual([]);
   await page.screenshot({
-    path: info.outputPath("idle-settings-collapsed.png"),
+    path: info.outputPath("idle-customer-workspace.png"),
     fullPage: true,
   });
-  expect(writes).toEqual([]);
 });
 
 for (const pending of ["prepared", "denied"] as const) {
-  test(`${pending} saved work remains visible outside Settings and never unlocks navigation`, async ({
+  test(`${pending} saved work remains contextual and never unlocks navigation`, async ({
     mount,
     page,
-  }) => {
-    const writes = await servePolish(page, pending);
+  }, info) => {
+    const { writes } = await servePolish(page, pending);
     await mount(<Harness />);
     const attention = page.getByRole("region", {
-      name: "Saved command",
+      name: "Saved work",
       exact: true,
     });
     await expect(attention).toBeVisible();
-    await expect(financeNavItem(page, "Imported activity")).toBeDisabled();
+    await expect(financeNavItem(page, "Review accounting")).toBeDisabled();
     await expect(
-      page.getByRole("button", { name: "Check saved command" }),
+      page.getByRole("button", { name: "Check saved work" }),
     ).toBeVisible();
-    if (pending === "prepared")
+    if (pending === "prepared") {
       await expect(
-        page.getByText("Saved for review.", { exact: false }),
+        attention.getByText(/Last checked: ready for your confirmation/),
       ).toBeVisible();
-    else
       await expect(
-        page.getByRole("button", { name: "Clear inaccessible saved command" }),
+        attention.getByRole("button", {
+          name: "Cancel saved review",
+          exact: true,
+        }),
+      ).toBeEnabled();
+      await expect(
+        page.getByText("fictional-prepared-import", { exact: true }),
+      ).toHaveCount(0);
+      await expect(attention.locator("pre")).toHaveCount(0);
+    } else {
+      await expect(
+        page.getByRole("button", { name: "Clear unavailable saved work" }),
       ).toBeVisible();
+      await expect(
+        attention.getByText("Checking for unfinished work…", { exact: true }),
+      ).toHaveCount(0);
+    }
+    for (const width of [390, 768, 1024, 1280, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      const exit = attention.getByRole("button", {
+        name:
+          pending === "prepared"
+            ? "Cancel saved review"
+            : "Clear unavailable saved work",
+        exact: true,
+      });
+      await expect(exit).toBeVisible();
+      const box = (await exit.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      await page.screenshot({
+        path: info.outputPath(`saved-work-${pending}-${width}.png`),
+        fullPage: true,
+      });
+    }
     expect(writes).toEqual([]);
   });
 }

@@ -1,5 +1,27 @@
 # Frontend source review
 
+## Customer banking cleanup — 2026-11-09,479
+
+Owner screenshot and explicit feedback identify the remaining technical
+inspectors, raw-ID lookup, permanent recovery inventory and competing green
+actions as customer-flow clutter. Reuse the selected flow/accessibility sources
+below as historical design guidance, not as a new current competitor audit.
+The owner request supersedes the earlier choice to merely collapse inspectors.
+
+Choose compact account rows with one Connect bank action and quieter refresh,
+transaction navigation and management. Remove technical display and arbitrary-ID
+input, while retaining scoped discovery and all actionable interrupted/expired/
+unknown recovery. Exact internal IDs, revisions and request keys do not change.
+Currency code/date/precision and meaningful posted-entry references remain;
+routine UUID display does not help users review financial treatment. Tag result
+labels come from the exact saved review selection, not guessed merchant data.
+
+No financial wire, schema, currency meaning or posting rule changes; existing
+standards applicability remains unchanged. Compare rendered fictional five-width
+screens and preserve source/replay/authorization/report/CSV/drill assertions.
+The contract and stage evidence are in
+[customer banking UI](../runbooks/customer-banking-ui.md).
+
 ## Responsive flow references — 2026-11-08,467–471
 
 Owner approved implementing the navigation/setup/transaction-control plan for
@@ -32,7 +54,7 @@ accessibility, live bookkeeping or deployed acceptance from source/build success
 
 ## Decision
 
-Use the repository-selected Next.js/TypeScript stack for manual bookkeeping. Browser
+Use the repository-selected Next.js/TypeScript stack for artifact-backed bookkeeping. Browser
 code renders exact decimal strings and sends reviewed requests; SQL remains the
 accounting authority. This is an implementation decision for #9, reviewed 2026-10-11.
 

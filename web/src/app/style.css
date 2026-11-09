@@ -1,8 +1,8 @@
 :root {
   color-scheme: light;
-  --ink: #202124;
-  --muted: #555b63;
-  --line: #dce0e3;
+  --ink: #1f2933;
+  --muted: #647067;
+  --line: #dce3df;
   --paper: #fff;
   --accent: #286044;
   --negative: #9b3e38;
@@ -1455,7 +1455,7 @@ section[aria-label="Connections"] select {
   overflow-wrap: anywhere;
   line-height: 1.4;
 }
-.finance-main button.secondary {
+button.secondary {
   color: var(--accent);
   background: var(--paper);
   border-color: #b5c8bd;
@@ -1472,5 +1472,167 @@ section[aria-label="Connections"] select {
   }
   .finance-main {
     padding: 1rem clamp(0.75rem, 3vw, 1.5rem) 2rem;
+  }
+}
+
+/* Customer banking surfaces use compact rows and one clear action hierarchy. */
+.application-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  border-top: 1px solid var(--line);
+}
+.login-brand {
+  color: var(--accent);
+  font-size: 1.4rem;
+  font-weight: 750;
+  letter-spacing: -0.045em;
+}
+.connections-header,
+.connection-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+.connections-header {
+  padding: 0 0 1.25rem;
+  margin: 0 0 1.25rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+.connections-header h2,
+.connection-heading h3 {
+  margin: 0;
+}
+.connections-header p {
+  max-width: 68ch;
+  color: var(--muted);
+  margin: 0.4rem 0 0;
+}
+.connections-header-actions,
+.connection-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.connections-header-actions button,
+.connection-heading-actions button,
+.connected-account-actions button {
+  margin: 0;
+}
+.connections-header-actions button.secondary,
+.connected-account-actions button:last-child {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+}
+.connection-card > button {
+  color: var(--accent);
+  background: var(--paper);
+  border-color: #b5c8bd;
+  font-weight: 500;
+}
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #d4e2d9;
+  border-radius: 1rem;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #315741;
+  background: #f0f6f2;
+}
+section[aria-label="Connections"] .connection-card {
+  padding: 1.25rem;
+  margin: 0 0 1rem;
+  border-color: var(--line);
+  border-radius: 0.5rem;
+  background: var(--paper);
+}
+.connection-heading {
+  padding-bottom: 0.75rem;
+}
+.connected-account {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) auto auto;
+  align-items: center;
+  column-gap: 1rem;
+}
+.connected-account-heading {
+  grid-column: 1;
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+.connected-account-heading h4 {
+  font-size: 1rem;
+  font-weight: 650;
+  margin: 0;
+}
+.connected-account-heading p {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.connected-account > .registration-secondary {
+  grid-column: 1;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.connected-account-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.account-management {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  margin: 0;
+}
+.account-management[open] {
+  grid-column: 1 / -1;
+  grid-row: auto;
+  margin-top: 0.4rem;
+}
+.account-management > summary {
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding-block: 0.45rem;
+}
+.connection-recovery-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.connection-recovery-item {
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--line);
+}
+@media (max-width: 800px) {
+  .connected-account {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .account-management {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+}
+@media (max-width: 600px) {
+  .connections-header-actions {
+    width: 100%;
+  }
+  .connected-account {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.5rem;
+  }
+  .connected-account-actions {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  section[aria-label="Connections"] .connection-card {
+    padding: 1rem;
   }
 }

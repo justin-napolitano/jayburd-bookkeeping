@@ -14,9 +14,12 @@ function AuthenticatedApplication() {
     <main className={auth.phase === "signed-in" ? "app-shell" : undefined}>
       {auth.phase !== "signed-in" && (
         <header>
-          <p className="eyebrow">JAYBURD / BOOKKEEPING</p>
+          <p className="login-brand">Jayburd</p>
           <h1>Your books, with a clear record.</h1>
-          <p>Manual entries. Explicit review. Immutable posted journals.</p>
+          <p>
+            Connect your accounts, review activity and keep every entry linked
+            to its evidence.
+          </p>
         </header>
       )}
       {auth.phase === "signed-in" ? (
@@ -32,9 +35,9 @@ function AuthenticatedApplication() {
       ) : (
         <LoginPanel />
       )}
-      <footer>
-        Development bookkeeping · Bank setup requires configured Sandbox access
-        · Live-use accounting policy approval remains required.
+      <footer className="application-footer">
+        <span>Jayburd</span>
+        <span>Accounting preview</span>
       </footer>
     </main>
   );
