@@ -91,7 +91,9 @@ if [[ "$demo" == true ]]; then
  [[ "$ready" == 1 ]] || { echo 'Synthetic review UI not ready' >&2; exit 1; }
  if [[ "$demo_test" == true ]]; then
   (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-demo.config.ts)
-  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.journal_entry j JOIN ledger.entity e USING(entity_id) WHERE e.name LIKE 'Volume Lab %'")" == 1000 ]]
+  # Manual FlowViewer/VolumeViewer are internal primitive proofs, not demo actions.
+  # Imported 3,000 observations still produce exactly one explicit linked posting.
+  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.journal_entry j JOIN ledger.entity e USING(entity_id) WHERE e.name LIKE 'Volume Lab %'")" == 0 ]]
   [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.source_observation')" == 3000 ]]
   [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.review_posting')" == 1 ]]
   [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.journal_entry j JOIN ledger.entity e USING(entity_id) WHERE e.name='Fictional Harbor Design LLC'")" == 1 ]]
@@ -181,11 +183,13 @@ if [[ "$connections_test" == true ]]; then
  exit 0
 fi
 # The ordinary auth provider remains unconfigured; only the test component injects a fictional token.
+# Default journey executes/acknowledges setup only and rejects every unlinked post.
+# Nonzero report/replay/export acceptance lives in the source-linked connection journey.
 (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-integration.config.ts)
-[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.journal_entry')" == 1 ]]
+[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.journal_entry')" == 0 ]]
 [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM integration.operation_receipt')" == 1 ]]
-[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.interactive_command WHERE state='committed' AND acknowledged_at IS NOT NULL")" == 2 ]]
-[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM audit.command_action WHERE action='execute'")" == 2 ]]
-[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM integration.outbox_message')" == 1 ]]
+[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.interactive_command WHERE state='committed' AND acknowledged_at IS NOT NULL")" == 1 ]]
+[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM audit.command_action WHERE action='execute'")" == 1 ]]
+[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM integration.outbox_message')" == 0 ]]
 echo 'PASS: browser → production Next API bridge → Go HTTP → real synthetic PostgreSQL'
 echo 'LIMIT: identity is a test-only fixture; no provider, MFA, cloud or live-use approval proven'

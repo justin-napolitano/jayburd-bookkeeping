@@ -2,6 +2,13 @@
 
 ## Status and authority
 
+Current owner policy473 supersedes manual application entry below: public
+posting requires [retained source evidence](artifact-backed-accounting.md).
+Direct journal/reversal routes are retired and authenticated requests return
+422 artifact_required. New durable post commands and execution of prepared
+legacy manual commands are rejected. Source-backed posting, reads, safe
+cancellation/acknowledgement and historical committed command receipts remain.
+
 OpenAPI 3.1.1 implementation-review contract: [machine-readable definition](../../api/openapi.json).
 An HTTP adapter and [bounded server composition](server.md) are implemented;
 default health-only mode mounts no bookkeeping routes. No deployed verifier or
@@ -24,16 +31,17 @@ The UI uses the [durable command contract](command-recovery.md): register with
 execute, cancel or acknowledge via `POST /v1/commands/{command_id}/{action}`.
 These transitions use the command ID and empty object body; only registration
 requires an `Idempotency-Key`. Current read/post authority applies on recovery.
-Legacy direct endpoints below retain their independent replay obligations.
+Historical primitive replay obligations remain in the isolated ledger proof;
+they do not re-enable retired public application routes.
 Authentication is
 bearer-token transport; issuer/audience binding, MFA and revocation follow the identity/setup contract;
 the actual GCP project remains a deployment decision. No actor ID is accepted from request JSON.
 
 | Method and suffix | Permission | Result |
 | --- | --- | --- |
-| POST `/journals` | post | 201 committed manual identity/spot journal |
+| POST `/journals` | authenticated | 422 artifact_required; start from retained source review |
 | GET `/journals/{journal_id}` | read | 200 immutable journal with valuation provenance |
-| POST `/journals/{journal_id}/reversals` | post | 201 exact linked reversal; no client-generated replacement lines |
+| POST `/journals/{journal_id}/reversals` | authenticated | 422 artifact_required until artifact-linked correction support |
 | POST `/periods/{period_id}/close` | close | 200 closed period; fails without valid reviewed evidence |
 | GET `/trial-balance?through_date=YYYY-MM-DD` | read | 200 cumulative debit/credit balances through date, policy currency and snapshot revision |
 

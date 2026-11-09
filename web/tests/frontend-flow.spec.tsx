@@ -23,7 +23,7 @@ for (const width of [390, 768, 1024, 1280, 1440]) {
       "Transactions",
       "Accounts",
       "Imported activity",
-      "Ledger",
+      "Posted entries",
     ]) {
       const control = nav.getByRole("button", { name: label, exact: true });
       await expect(control).toBeVisible();

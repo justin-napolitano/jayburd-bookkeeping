@@ -265,7 +265,7 @@ accounting generator, with pins, review depth, rights and observed limitations.
 The [posting policy source notes](posting-sources.md) add P01 accrual mechanics
 and the US GAAP authority gap, P02 numeric rounding, P03 restricted functions and
 P04 strict JSON/replay handling, P05 pinned pgx transactions, P06 reference
-serialization and P07 provider corrections (2026-10-25 selections).
+serialization, P07 provider corrections and P08 artifact policy (selected sources).
 
 The [identity source notes](identity-sources.md) add I01–I07: managed ID-token
 verification, revocation, TOTP MFA, Firebase dependency maintenance and go-jose RSA JWK patch review.

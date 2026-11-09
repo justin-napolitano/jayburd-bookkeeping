@@ -95,6 +95,13 @@ export function CommandPanel({
               cancellation.
             </p>
           )}
+          {c.state === "prepared" && c.operation === "post" && (
+            <p role="status">
+              Accounting entries must start from an imported transaction or
+              retained statement row. This saved manual request cannot be
+              posted. Cancel it to return to source review.
+            </p>
+          )}
           {c.state === "committed" && (
             <div role="status">
               <h3>
@@ -287,23 +294,25 @@ export function CommandPanel({
           </details>
           {c.state === "prepared" ? (
             <>
-              <button
-                disabled={
-                  r.busy ||
-                  !r.ready ||
-                  c.operation === "import" ||
-                  !registrationReady
-                }
-                onClick={() => void r.transition("execute")}
-              >
-                {c.operation === "post" || c.operation === "source_post"
-                  ? "Post journal"
-                  : c.operation === "import"
-                    ? "Review import in originating client"
-                    : c.operation === "register_accounts"
-                      ? "Register selected accounts"
-                      : "Create book"}
-              </button>
+              {c.operation !== "post" && (
+                <button
+                  disabled={
+                    r.busy ||
+                    !r.ready ||
+                    c.operation === "import" ||
+                    !registrationReady
+                  }
+                  onClick={() => void r.transition("execute")}
+                >
+                  {c.operation === "source_post"
+                    ? "Post journal"
+                    : c.operation === "import"
+                      ? "Review import in originating client"
+                      : c.operation === "register_accounts"
+                        ? "Register selected accounts"
+                        : "Create book"}
+                </button>
+              )}
               <button
                 disabled={r.busy || !r.ready}
                 onClick={() => void r.transition("cancel")}

@@ -54,7 +54,8 @@ func (s *Service) Workspace(ctx context.Context, c Command) (Result, error) {
 	return s.execute(ctx, c, "workspace")
 }
 
-// Recovery runs only the explicit interactive command lifecycle, never a worker.
+// Recovery is the internal command primitive, never a worker. Public registration
+// and execution use ArtifactRecovery; safe terminal actions retain this lifecycle.
 func (s *Service) Recovery(ctx context.Context, c Command, action string) (Result, error) {
 	switch action {
 	case "register", "pending", "clear", "execute", "cancel", "acknowledge":
@@ -62,6 +63,48 @@ func (s *Service) Recovery(ctx context.Context, c Command, action string) (Resul
 		return Result{}, &Failure{400, "invalid_request"}
 	}
 	return s.execute(ctx, c, "command_"+action)
+}
+
+// ArtifactRecovery enforces the application evidence policy without changing the internal primitive.
+// Registration preserves the original JSON; execution authorizes and inspects pending work in its transaction.
+func (s *Service) ArtifactRecovery(ctx context.Context, c Command, action string) (Result, error) {
+	switch action {
+	case "register":
+		manual, err := manualPostRegistration(c.Body)
+		if err != nil {
+			return Result{}, &Failure{400, "invalid_request"}
+		}
+		if manual {
+			return Result{}, &Failure{422, "artifact_required"}
+		}
+		return s.execute(ctx, c, "command_register")
+	case "execute":
+		return s.execute(ctx, c, "artifact_command_execute")
+	default:
+		return s.Recovery(ctx, c, action)
+	}
+}
+
+// manualPostRegistration closes the application operation profile; SQL still validates the untouched envelope.
+func manualPostRegistration(raw string) (bool, error) {
+	var v map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &v); err != nil {
+		return false, err
+	}
+	var operation string
+	if value, ok := v["operation"]; ok {
+		if err := json.Unmarshal(value, &operation); err != nil {
+			return false, err
+		}
+	}
+	switch operation {
+	case "post":
+		return true, nil
+	case "setup", "import", "source_post", "register_accounts":
+		return false, nil
+	default:
+		return false, errors.New("unsupported application command")
+	}
 }
 
 // Setup creates a new development entity/book bundle without accepting an actor
@@ -94,6 +137,10 @@ func (e *Failure) Error() string { return e.Code }
 
 // failure maps database errors without retaining identifiers, SQL or raw payloads.
 func failure(err error) *Failure {
+	var policy *Failure
+	if errors.As(err, &policy) && ((policy.Status == 422 && policy.Code == "artifact_required") || (policy.Status == 503 && policy.Code == "temporarily_unavailable")) {
+		return &Failure{policy.Status, policy.Code}
+	}
 	var p *pgconn.PgError
 	if errors.As(err, &p) {
 		codes := map[string]Failure{
@@ -134,12 +181,12 @@ func retryable(err error) bool {
 	return errors.As(err, &p) && (p.Code == "40001" || p.Code == "40P01")
 }
 
-// Post submits a manual identity/spot journal to the SQL authority.
+// Post retains the internal synthetic accounting primitive; the public Handler rejects manual posting.
 func (s *Service) Post(ctx context.Context, c Command) (Result, error) {
 	return s.execute(ctx, c, "post")
 }
 
-// Reverse copies historical values in SQL; callers cannot supply replacement lines.
+// Reverse retains the internal correction primitive; the public Handler requires a future artifact-linked flow.
 func (s *Service) Reverse(ctx context.Context, c Command) (Result, error) {
 	return s.execute(ctx, c, "reverse")
 }
@@ -207,6 +254,19 @@ func (s *Service) attempt(ctx context.Context, c Command, op string, iso pgx.TxI
 	_, err = tx.Exec(ctx, "select set_config('statement_timeout',$1,true),set_config('lock_timeout',$1,true)", (time.Duration(remaining) * time.Millisecond).String())
 	if err != nil {
 		return Result{}, err, false
+	}
+	if op == "artifact_command_execute" {
+		var pending json.RawMessage
+		var canonicalID string
+		// PostgreSQL canonicalizes every accepted UUID spelling before matching the current command.
+		err = tx.QueryRow(ctx, "select ledger.pending_command($1), $2::uuid::text", c.Actor, c.CommandID).Scan(&pending, &canonicalID)
+		if err != nil {
+			return Result{}, err, false
+		}
+		if err = artifactPending(pending, canonicalID); err != nil {
+			return Result{}, err, false
+		}
+		op = "command_execute"
 	}
 	var r Result
 	switch op {
@@ -276,4 +336,33 @@ func (s *Service) attempt(ctx context.Context, c Command, op string, iso pgx.TxI
 		return Result{}, err, unknown
 	}
 	return r, nil, false
+}
+
+// artifactPending fails closed on malformed authority output and blocks only matching prepared manual work.
+// Historical committed receipts still pass to transition_command for its current authorization and replay checks.
+func artifactPending(raw json.RawMessage, requested string) error {
+	var envelope map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &envelope); err != nil || len(envelope) != 1 || envelope["command"] == nil {
+		return &Failure{503, "temporarily_unavailable"}
+	}
+	if string(envelope["command"]) == "null" {
+		return nil
+	}
+	var c struct {
+		ID        string `json:"command_id"`
+		Operation string `json:"operation"`
+		State     string `json:"state"`
+	}
+	if err := json.Unmarshal(envelope["command"], &c); err != nil || c.ID == "" || c.Operation == "" || (c.State != "prepared" && c.State != "committed" && c.State != "cancelled") {
+		return &Failure{503, "temporarily_unavailable"}
+	}
+	switch c.Operation {
+	case "post", "setup", "import", "source_post", "register_accounts":
+	default:
+		return &Failure{503, "temporarily_unavailable"}
+	}
+	if c.ID == requested && c.Operation == "post" && c.State == "prepared" {
+		return &Failure{422, "artifact_required"}
+	}
+	return nil
 }

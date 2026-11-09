@@ -91,9 +91,7 @@ it("preserves explicit connection handoffs but clears them on generic Review nav
     onViewChange: vi.fn(),
   };
   const view = render(
-    <BookWorkspace {...props} activeView="Connections" navigationKey={0}>
-      <p>Manual form</p>
-    </BookWorkspace>,
+    <BookWorkspace {...props} activeView="Connections" navigationKey={0} />,
   );
   fireEvent.click(screen.getByRole("button", { name: "Review source A" }));
   view.rerender(
@@ -101,24 +99,18 @@ it("preserves explicit connection handoffs but clears them on generic Review nav
       {...props}
       activeView="Review transactions"
       navigationKey={0}
-    >
-      <p>Manual form</p>
-    </BookWorkspace>,
+    />,
   );
   expect(screen.getByText("Source: source-a")).toBeDefined();
   view.rerender(
-    <BookWorkspace {...props} activeView="Reports" navigationKey={1}>
-      <p>Manual form</p>
-    </BookWorkspace>,
+    <BookWorkspace {...props} activeView="Reports" navigationKey={1} />,
   );
   view.rerender(
     <BookWorkspace
       {...props}
       activeView="Review transactions"
       navigationKey={2}
-    >
-      <p>Manual form</p>
-    </BookWorkspace>,
+    />,
   );
   await screen.findByText("Source: Choose source");
 });
@@ -137,9 +129,7 @@ it("initial balances use explicit book date and ignore superseded responses", as
       api={api}
       locked={false}
       denied={vi.fn()}
-    >
-      <p>Manual form</p>
-    </BookWorkspace>,
+    />,
   );
   expect(
     (screen.getByLabelText("Through date") as HTMLInputElement).value,
@@ -168,19 +158,22 @@ it("recovery lock disables scope and navigation without fetching balances", () =
       api={api}
       locked={true}
       denied={vi.fn()}
-    >
-      <p>Manual form</p>
-    </BookWorkspace>,
+    />,
   );
   expect(api).not.toHaveBeenCalled();
   expect(
-    (screen.getByRole("button", { name: "New journal" }) as HTMLButtonElement)
-      .disabled,
+    (
+      screen.getByRole("button", {
+        name: "Posted entries",
+      }) as HTMLButtonElement
+    ).disabled,
   ).toBe(true);
   expect(
     (screen.getByLabelText("Through date") as HTMLInputElement).disabled,
   ).toBe(true);
   expect(screen.queryByRole("table")).toBeNull();
+  expect(screen.queryByRole("button", { name: "New journal" })).toBeNull();
+  expect(screen.queryByText("Manual form")).toBeNull();
 });
 it("denied balance clears values and notifies scope owner rather than rendering zeros", async () => {
   const denied = vi.fn();
@@ -195,9 +188,7 @@ it("denied balance clears values and notifies scope owner rather than rendering 
       api={api}
       locked={false}
       denied={denied}
-    >
-      <p>Manual form</p>
-    </BookWorkspace>,
+    />,
   );
   await waitFor(() => expect(denied).toHaveBeenCalledOnce());
   expect(screen.queryByRole("table")).toBeNull();

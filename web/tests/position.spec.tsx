@@ -107,15 +107,17 @@ test("all books renders exact separate position rows and scoped tools", async ({
   await page.getByLabel("Entity and book").selectOption("");
   await expect(table.locator(".position-book-row")).toHaveCount(5);
 
-  await chooseFinanceTool(page, "Ledger");
-  await expect(page.getByRole("heading", { name: "Ledger" })).toBeVisible();
+  await chooseFinanceTool(page, "Posted entries");
+  await expect(
+    page.getByRole("heading", { name: "Posted entries" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Household" }).click();
   await expect(page.getByLabel("Entity and book")).toHaveValue(
     "personal/personal-household",
   );
   await expect(page.locator(".book-workspace .view-title")).toBeVisible();
   await expect(page.locator(".book-workspace .view-title")).toHaveText(
-    "Ledger",
+    "Posted entries",
   );
   await chooseFinanceTool(page, "Reports");
   await expect(
@@ -190,7 +192,7 @@ test("ordinary Ledger navigation does not reuse an already refreshed Position ha
   await expect(
     page.getByRole("button", { name: "Reserve", exact: true }),
   ).toBeVisible();
-  await chooseFinanceTool(page, "Ledger");
+  await chooseFinanceTool(page, "Posted entries");
   await page
     .getByLabel("Report account")
     .selectOption("account-studio-reserve");
@@ -244,6 +246,6 @@ test("a recovered command locks the default Overview, scope and Position navigat
   await expect(page.getByLabel("Entity and book")).toBeDisabled();
   await expect(financeNavItem(page, "Imported activity")).toBeDisabled();
   await expect(financeNavItem(page, "Position")).toBeDisabled();
-  await expect(financeNavItem(page, "Ledger")).toBeDisabled();
+  await expect(financeNavItem(page, "Posted entries")).toBeDisabled();
   expect(requests).toHaveLength(0);
 });
