@@ -45,7 +45,7 @@ it("keeps an unreviewable recovered registration cancellable without enabling ex
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "Cancel saved command" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel saved review" }));
   expect(r.transition).toHaveBeenCalledWith("cancel");
 });
 
@@ -88,6 +88,61 @@ function recovery(command: DurableCommand): ReturnType<typeof useCommands> {
     refreshIfIdle: vi.fn(),
   };
 }
+
+it("renders no idle recovery inventory while preserving the owning recovery hook", () => {
+  const r = { ...recovery(savedImport), command: null, locked: false };
+  const view = render(<CommandPanel recovery={r} workspace={null} />);
+  expect(view.container.textContent).toBe("");
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(r.reload).not.toHaveBeenCalled();
+  expect(r.transition).not.toHaveBeenCalled();
+});
+
+it("keeps checking and inaccessible recovery visible with an explicit safe exit", () => {
+  const r = { ...recovery(savedImport), command: null, ready: false };
+  const view = render(<CommandPanel recovery={r} workspace={null} />);
+  expect(screen.getByRole("region", { name: "Saved work" })).toBeTruthy();
+  expect(screen.getByRole("status").textContent).toContain(
+    "Checking for unfinished work",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Check saved work" }));
+  expect(r.reload).toHaveBeenCalledExactlyOnceWith();
+  view.rerender(
+    <CommandPanel
+      recovery={{
+        ...r,
+        accessDenied: true,
+        error: "This scope is unavailable or access was denied.",
+      }}
+      workspace={null}
+    />,
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Clear unavailable saved work" }),
+  );
+  expect(r.clearInaccessible).toHaveBeenCalledExactlyOnceWith();
+  expect(r.transition).not.toHaveBeenCalled();
+});
+
+it("keeps unknown saving contextual and retries only the original registration", () => {
+  const r = {
+    ...recovery(savedImport),
+    command: null,
+    registration: {
+      key: "fictional-unconfirmed-key",
+      body: "fictional-immutable-body",
+    },
+    error: "The outcome is unknown. Retry this unchanged request.",
+  };
+  render(<CommandPanel recovery={r} workspace={null} />);
+  expect(screen.getByRole("alert")).toBeTruthy();
+  expect(document.body.textContent).not.toContain(r.registration.key);
+  expect(document.body.textContent).not.toContain(r.registration.body);
+  expect(r.retryRegistration).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Retry saving review" }));
+  expect(r.retryRegistration).toHaveBeenCalledTimes(1);
+  expect(r.transition).not.toHaveBeenCalled();
+});
 
 // Historical manual work remains readable, but it cannot authorize a new application posting.
 const legacyManual: DurableCommand = {
@@ -160,7 +215,7 @@ it("blocks prepared legacy manual posting with an evidence explanation and a saf
   expect(screen.queryByText(/Source-linked journal/)).toBeNull();
   expect(screen.getAllByText(/9007199254740993.01/).length).toBeGreaterThan(0);
   expect(r.transition).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Cancel saved command" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel saved review" }));
   expect(r.transition).toHaveBeenCalledExactlyOnceWith("cancel");
 });
 
@@ -184,6 +239,25 @@ it.each(["committed", "cancelled"] as const)(
   },
 );
 
+it("removes command diagnostics while retaining the immutable posted receipt and exact financial lines", () => {
+  const r = recovery({
+    ...legacyManual,
+    state: "committed",
+    result: legacyJournal,
+  });
+  const view = render(<CommandPanel recovery={r} workspace={null} />);
+  expect(view.container.querySelector("pre")).toBeNull();
+  expect(document.body.textContent).not.toContain(legacyManual.command_id);
+  expect(document.body.textContent).not.toContain("prepared");
+  expect(document.body.textContent).not.toContain("committed");
+  expect(screen.queryByText("Exact saved request and result")).toBeNull();
+  expect(screen.getByText(/Posted entry reference:/).textContent).toContain(
+    legacyJournal.journal_id,
+  );
+  expect(screen.getAllByText(/9007199254740993.01/).length).toBeGreaterThan(0);
+  expect(r.transition).not.toHaveBeenCalled();
+});
+
 describe("saved import recovery", () => {
   it("does not execute during render or permit confirmation without a preview", () => {
     const r = recovery(savedImport);
@@ -195,7 +269,7 @@ describe("saved import recovery", () => {
     fireEvent.click(confirm);
     expect(r.transition).not.toHaveBeenCalled();
     fireEvent.click(
-      screen.getByRole("button", { name: "Cancel saved command" }),
+      screen.getByRole("button", { name: "Cancel saved review" }),
     );
     expect(r.transition).toHaveBeenCalledExactlyOnceWith("cancel");
   });

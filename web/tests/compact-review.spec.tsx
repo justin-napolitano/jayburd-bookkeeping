@@ -124,10 +124,10 @@ test("390px transaction entry shows the first row and every action without ledge
   await page
     .getByLabel("Entity and book")
     .selectOption("personal/personal-household");
-  await chooseFinanceTool(page, "Imported activity");
+  await chooseFinanceTool(page, "Review accounting");
   await expect(page.getByLabel("Source account")).toHaveValue("checking");
   await expect(
-    page.getByRole("heading", { name: "Imported activity", exact: true }),
+    page.getByRole("heading", { name: "Review accounting", exact: true }),
   ).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByLabel("Activity starts on")).toHaveCount(0);
@@ -203,7 +203,7 @@ test("manual source preference survives ordinary Position navigation but never a
   await page
     .getByLabel("Entity and book")
     .selectOption("personal/personal-household");
-  await chooseFinanceTool(page, "Imported activity");
+  await chooseFinanceTool(page, "Review accounting");
   await expect(page.getByLabel("Source account")).toBeEnabled();
   await expect(page.getByLabel("Source account")).toHaveValue("");
   await page.getByLabel("Source account").selectOption("savings");
@@ -214,7 +214,7 @@ test("manual source preference survives ordinary Position navigation but never a
     }),
   ).toBeVisible();
   await chooseFinanceTool(page, "Position");
-  await chooseFinanceTool(page, "Imported activity");
+  await chooseFinanceTool(page, "Review accounting");
   await expect(page.getByLabel("Source account")).toHaveValue("savings");
   await page
     .getByLabel("Entity and book")

@@ -105,7 +105,7 @@ test("mobile composed setup recovers its own claim while sibling engines report 
     page.getByRole("button", { name: "Create private workspace", exact: true }),
   ).toBeEnabled();
   await expect(
-    page.getByRole("heading", { name: "Saved command", exact: true }),
+    page.getByRole("heading", { name: "Saved work", exact: true }),
   ).toBeHidden();
   await expect(
     page.getByText(

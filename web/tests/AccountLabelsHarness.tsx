@@ -69,8 +69,14 @@ const api = (async (path: string) => {
 // The review handoff remains an immutable source ID even though its button has a readable label.
 export function AccountLabelsHarness({
   multiple = false,
+  recoverable = false,
+  longBookName = false,
+  recoveryOnEarlierPage = false,
 }: {
   multiple?: boolean;
+  recoverable?: boolean;
+  longBookName?: boolean;
+  recoveryOnEarlierPage?: boolean;
 }) {
   const [source, setSource] = useState("");
   const [mutations, setMutations] = useState(0);
@@ -79,6 +85,17 @@ export function AccountLabelsHarness({
     () =>
       (async (path: string, body?: string, key?: string) => {
         if (body !== undefined) setMutations((value) => value + 1);
+        if (recoverable && path.includes("/connection-attempts?")) {
+          if (recoveryOnEarlierPage && !path.includes("before="))
+            return { items: [], next_cursor: id(10), unfinished_count: "1" };
+          return {
+            items: [
+              { ...fixture, expired_unclaimed: false, binding_expired: false },
+            ],
+            next_cursor: null,
+            unfinished_count: "1",
+          };
+        }
         const value = await api(path, body, key);
         if (multiple && path.endsWith("/connections")) {
           const listing = value as { items: { accounts: object[] }[] };
@@ -100,14 +117,21 @@ export function AccountLabelsHarness({
         }
         return value;
       }) as API,
-    [multiple],
+    [multiple, recoverable, recoveryOnEarlierPage],
   );
   return (
     <>
       <Connections
         api={trackedAPI}
         entity={registrationWorkspace.entities[0]}
-        book={registrationWorkspace.entities[0].books[0]}
+        book={
+          longBookName
+            ? {
+                ...registrationWorkspace.entities[0].books[0],
+                name: "Fictional operating records with a deliberately long business and account context",
+              }
+            : registrationWorkspace.entities[0].books[0]
+        }
         currencies={registrationWorkspace.currencies}
         locked={false}
         denied={() => {

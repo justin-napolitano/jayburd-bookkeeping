@@ -107,8 +107,8 @@ export function CollectionDetail({
           </p>
           {detail.row.money.state === "available" && (
             <p>
-              Currency reference {detail.row.money.currency_version_id}, valid
-              from {detail.row.money.valid_from}
+              Currency {detail.row.money.currency}, valid from{" "}
+              {detail.row.money.valid_from}
               {detail.row.money.valid_to
                 ? ` until ${detail.row.money.valid_to} (exclusive)`
                 : ""}

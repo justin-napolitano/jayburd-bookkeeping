@@ -31,15 +31,15 @@ for (const failure of ["network", "503", "invalid JSON"] as const) {
     await expect(page.getByRole("alert")).toHaveText(
       "Data is unavailable right now. Retry the read.",
     );
-    await expect(financeNavItem(page, "Imported activity")).toBeDisabled();
+    await expect(financeNavItem(page, "Review accounting")).toBeDisabled();
     await expect(
-      page.getByRole("button", { name: "Clear inaccessible saved command" }),
+      page.getByRole("button", { name: "Clear unavailable saved work" }),
     ).toHaveCount(0);
     expect(reads).toBe(1);
     expect(writes).toEqual([]);
     recovered = true;
-    await page.getByRole("button", { name: "Check saved command" }).click();
-    await expect(financeNavItem(page, "Imported activity")).toBeEnabled();
+    await page.getByRole("button", { name: "Check saved work" }).click();
+    await expect(financeNavItem(page, "Review accounting")).toBeEnabled();
     expect(reads).toBe(2);
     expect(writes).toEqual([]);
   });
