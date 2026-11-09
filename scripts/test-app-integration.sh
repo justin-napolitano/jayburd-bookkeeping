@@ -187,7 +187,9 @@ fi
 # Nonzero report/replay/export acceptance lives in the source-linked connection journey.
 (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-integration.config.ts)
 [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.journal_entry')" == 0 ]]
-[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM integration.operation_receipt')" == 1 ]]
+# SQL3 owns setup receipts; SQL2 posting alone owns operation receipts/outbox.
+[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM integration.operation_receipt')" == 0 ]]
+[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.setup_receipt')" == 1 ]]
 [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.interactive_command WHERE state='committed' AND acknowledged_at IS NOT NULL")" == 1 ]]
 [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM audit.command_action WHERE action='execute'")" == 1 ]]
 [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM integration.outbox_message')" == 0 ]]
