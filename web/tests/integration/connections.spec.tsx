@@ -179,14 +179,14 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page
     .getByRole("button", { name: "Confirm pause", exact: true })
     .click();
-  await expect(status).toContainText("Account acquisition: paused");
+  await expect(status).toContainText("Account sync is paused.");
   await page
     .getByRole("button", { name: "Resume account sync", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Confirm resume", exact: true })
     .click();
-  await expect(status).toContainText("Account acquisition: active");
+  await expect(status).toContainText("Account sync is active.");
   // Resolve an unknown manual-control commit with the original request and key.
   let operationDropped = false;
   let firstKey = "";
