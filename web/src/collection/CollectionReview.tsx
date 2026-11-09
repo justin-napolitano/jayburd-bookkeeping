@@ -1204,7 +1204,7 @@ function Review({
                       </p>
                       <p>
                         {row.money.state === "available"
-                          ? `Original currency reference: ${row.money.currency_version_id}; ${row.money.numeric_code === null ? "numeric code not supplied" : row.money.numeric_code}; valid from ${row.money.valid_from}${row.money.valid_to ? ` until ${row.money.valid_to}` : ""}.`
+                          ? `Original currency: ${row.money.currency}; ${row.money.numeric_code === null ? "numeric code not supplied" : row.money.numeric_code}; valid from ${row.money.valid_from}${row.money.valid_to ? ` until ${row.money.valid_to}` : ""}.`
                           : `Money unavailable: ${row.money.reason.replaceAll("_", " ")}.`}
                       </p>
                     </details>
@@ -1304,7 +1304,10 @@ function Review({
                 />
               )}
               {preview.action.kind === "tags" && (
-                <TagResults rows={preview.tag_results} />
+                <TagResults
+                  rows={preview.tag_results}
+                  reviewRows={preview.review_rows}
+                />
               )}
             </>
           )}
@@ -1395,7 +1398,10 @@ function Review({
                 )}
               {command.preview.profile !== "private-collection-preview-v1" &&
                 command.preview.action.kind === "tags" && (
-                  <TagResults rows={command.preview.tag_results} />
+                  <TagResults
+                    rows={command.preview.tag_results}
+                    reviewRows={command.preview.review_rows}
+                  />
                 )}
             </>
           )}
@@ -1552,12 +1558,25 @@ function MoneyLabel({ row }: { row: Row | LegacyRow }) {
   );
 }
 
-function TagResults({ rows }: { rows: TagResult[] }) {
+// Name each result from its exact retained selection; IDs stay internal to the mapping.
+function TagResults({
+  rows,
+  reviewRows,
+}: {
+  rows: TagResult[];
+  reviewRows: (Row | LegacyRow)[];
+}) {
+  const descriptions = new Map(
+    reviewRows.map((row) => [
+      selectionKey(row),
+      `${row.booked_date} · ${row.account_name} · ${row.description}`,
+    ]),
+  );
   return (
     <ul aria-label="Resulting strategic tags" className={styles.reviewRows}>
       {rows.map((row) => (
         <li key={selectionKey(row)}>
-          {row.source_id} · {row.observation_id}:{" "}
+          {descriptions.get(selectionKey(row)) ?? "Transaction unavailable"}:{" "}
           {row.tags
             .map(
               (tag) =>

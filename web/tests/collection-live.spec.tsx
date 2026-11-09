@@ -515,7 +515,7 @@ test("book recovery uncertainty prevents private mutation and navigation", async
     "page",
   );
   await expect(
-    page.getByRole("region", { name: "Saved command" }).getByRole("alert"),
+    page.getByRole("region", { name: "Saved work" }).getByRole("alert"),
   ).toContainText("Data is unavailable");
   expect(
     state.requests.some((request) => request.path.endsWith("/review/query")),
@@ -675,7 +675,7 @@ test("a definite private prepare conflict discovers the other context's ledger c
     .click();
   await page.getByRole("button", { name: "Save label review" }).click();
   const saved = page.getByRole("region", {
-    name: "Saved command",
+    name: "Saved work",
     exact: true,
   });
   await expect(
@@ -720,7 +720,7 @@ test("a definite ledger prepare conflict discovers the other context's private c
   ).toBeVisible();
   await expect(financeNavItem(page, "Overview")).toBeDisabled();
   await expect(
-    page.getByRole("button", { name: "Retry registration", exact: true }),
+    page.getByRole("button", { name: "Retry saving review", exact: true }),
   ).toHaveCount(0);
   expect(
     state.requests.filter((request) => request.path === "/v1/commands/pending")

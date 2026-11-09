@@ -1,11 +1,5 @@
 "use client";
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { APIError, type API } from "./api";
 import { accountLabels } from "./accountLabels";
 import { RegistrationPicker } from "./RegistrationPicker";
@@ -27,25 +21,6 @@ type BindingSelection = Record<
     name: string;
   }
 >;
-// Normal setup hides technical recovery forms without changing the legacy client's explicit controls.
-function ConnectionDetails({
-  compact,
-  title,
-  children,
-}: {
-  compact: boolean;
-  title: string;
-  children: ReactNode;
-}) {
-  return compact ? (
-    <details>
-      <summary>{title}</summary>
-      {children}
-    </details>
-  ) : (
-    <>{children}</>
-  );
-}
 // Public status and action shapes come only from the coordinator's frozen OpenAPI.
 type AttemptPage = components["schemas"]["ConnectionAttemptList"];
 type StreamStatus = components["schemas"]["ConnectionStreamStatus"];
@@ -166,6 +141,25 @@ const states = [
   "abandoned",
 ];
 
+// Customer status names describe the next step without exposing transport states.
+function setupLabel(state: string): string {
+  return (
+    (
+      {
+        link_pending: "Starting bank setup",
+        link_ready: "Waiting for bank setup",
+        exchange_claimed: "Confirming bank connection",
+        credential_pending: "Confirming bank connection",
+        binding_review: "Choose your accounts",
+        active: "Connected",
+        credential_recovery_required: "Bank setup needs attention",
+        disconnect_pending: "Canceling bank setup",
+        disconnected: "Disconnected",
+        abandoned: "Canceled",
+      } as Record<string, string>
+    )[state] ?? "Bank setup needs attention"
+  );
+}
 // Runtime responses still require shape and identity checks despite generated TypeScript.
 function validList(value: Listing): boolean {
   return (
@@ -235,7 +229,6 @@ function ConnectionWorkspace({
   const [status, setStatus] = useState<StreamStatus | null>(null);
   const [statusAccount, setStatusAccount] = useState("");
   const [operation, setOperation] = useState<StreamAction | null>(null);
-  const [inspectID, setInspectID] = useState("");
   const [message, setMessage] = useState("");
   const [selection, setSelection] = useState<BindingSelection>({});
   const [date, setDate] = useState("");
@@ -526,13 +519,13 @@ function ConnectionWorkspace({
         await readList();
         if (!current.live) return;
         setMessage(
-          "This attempt is unavailable. Your current Connections access was rechecked; no bank setup was completed.",
+          "This bank setup is unavailable. Your account access was rechecked; no bank setup was completed.",
         );
         return;
       }
       if (!current.live) return;
       setAttempt(checkedAttempt(value, id));
-      setInspectID(id);
+
       // Recheck discovery before releasing an earlier local enrollment latch.
       if (discovered?.binding_expired ?? bindingExpiry) await readList();
     });
@@ -559,7 +552,7 @@ function ConnectionWorkspace({
     if (!current.live) return;
     const a = checkedAttempt(begun.attempt);
     setAttempt(a);
-    setInspectID(a.attempt_id);
+
     if (
       !uuid.test(begun.nonce) ||
       !begun.link_token ||
@@ -588,7 +581,7 @@ function ConnectionWorkspace({
     if (!current.live) return;
     if (!result) {
       setMessage(
-        "Bank setup canceled. The known attempt remains available for inspection.",
+        "Bank setup canceled. You can review any unfinished setup below.",
       );
       return;
     }
@@ -765,7 +758,7 @@ function ConnectionWorkspace({
     );
     if (!current.live) return true;
     setAttempt(recovered);
-    setInspectID(id);
+
     if (recovered.state === "link_ready") {
       const discovery = await readList();
       if (!current.live) return true;
@@ -787,7 +780,7 @@ function ConnectionWorkspace({
       );
     } else if (recovered.state === "credential_recovery_required") {
       setMessage(
-        "Bank setup needs credential recovery. Review this attempt below; do not start another bank connection.",
+        "Bank setup needs attention. Review it below before connecting another bank.",
       );
     } else {
       await readList();
@@ -871,7 +864,7 @@ function ConnectionWorkspace({
       }
       if (!current.live) return;
       setAttempt(value);
-      setInspectID(id);
+
       if (value.state === "link_ready") {
         setMessage(
           "Plaid has not reported a completed bank setup yet. Check again after finishing there.",
@@ -1001,6 +994,14 @@ function ConnectionWorkspace({
     });
   const unavailable = locked || busy;
   const mutable = unavailable || !!pending;
+  // Show only actionable setup history; discovery still scans the server-owned pages.
+  const recoveryAttempts =
+    attempts?.items.filter(
+      (a) =>
+        !["active", "disconnected", "abandoned"].includes(a.state) ||
+        a.binding_expired ||
+        a.expired_unclaimed,
+    ) ?? [];
   return (
     <section aria-label="Connections" aria-busy={busy}>
       {hosted?.hosted_link_url && (
@@ -1064,15 +1065,43 @@ function ConnectionWorkspace({
           </button>
         </div>
       )}
-      <p>
-        Connections for {entity.name} / {book.name}. Enrollment is not a balance
-        or confirmation of complete bank history.
-      </p>
-      <p>
-        Connect account prepares bank access for a book you created, then opens
-        Plaid. You choose which accounts to share and review where they belong
-        before importing transactions.
-      </p>
+      <div className="connections-header">
+        <div>
+          <h2>Accounts</h2>
+          <p>
+            Connect a bank and review the accounts you share with {book.name}.
+          </p>
+        </div>
+        <div className="connections-header-actions">
+          <button
+            type="button"
+            disabled={
+              mutable ||
+              !link ||
+              !attempts ||
+              attempts.unfinished_count !== "0" ||
+              (enrollmentStarted &&
+                !["active", "disconnected"].includes(attempt?.state ?? ""))
+            }
+            onClick={() => void start()}
+          >
+            Connect bank
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            disabled={unavailable}
+            onClick={() =>
+              void run(async () => {
+                setList(null);
+                await readList();
+              })
+            }
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
       {attempts?.items
         .filter(
           (a) =>
@@ -1127,32 +1156,6 @@ function ConnectionWorkspace({
           </div>
         ))}
       {!link && <p>New bank setup is unavailable in this deployment.</p>}
-      <button
-        type="button"
-        disabled={
-          mutable ||
-          !link ||
-          !attempts ||
-          attempts.unfinished_count !== "0" ||
-          (enrollmentStarted &&
-            !["active", "disconnected"].includes(attempt?.state ?? ""))
-        }
-        onClick={() => void start()}
-      >
-        {prepareRegistration ? "Register accounts" : "Connect account"}
-      </button>{" "}
-      <button
-        type="button"
-        disabled={unavailable}
-        onClick={() =>
-          void run(async () => {
-            setList(null);
-            await readList();
-          })
-        }
-      >
-        Refresh connections
-      </button>
       {message && <p role="alert">{message}</p>}
       {locked && (
         <p>
@@ -1162,12 +1165,18 @@ function ConnectionWorkspace({
       {list === null ? (
         <p>Connection status unavailable.</p>
       ) : list.items.length === 0 ? (
-        <p>No connected Items in this book.</p>
+        <p>No bank accounts connected yet.</p>
       ) : (
         list.items.map((item, itemIndex) => (
           <article key={item.sync_item_id} className="connection-card">
-            <h3>Bank connection {itemIndex + 1}</h3>
-            <p>Current connection status: {item.state.replaceAll("_", " ")}</p>
+            <div className="connection-heading">
+              <h3>Bank connection {itemIndex + 1}</h3>
+              <span className="connection-status">
+                {item.state === "active"
+                  ? "Connected"
+                  : item.state.replaceAll("_", " ")}
+              </span>
+            </div>
             {prepareRegistration &&
               attempts?.items.some(
                 (candidate) =>
@@ -1221,6 +1230,7 @@ function ConnectionWorkspace({
                   )}
                   <div className="connected-account-actions">
                     <button
+                      className="secondary"
                       aria-label={`Review transactions for ${accountLabel(account.account_id)}`}
                       disabled={unavailable}
                       onClick={() => onReview(account.source_account_id)}
@@ -1228,6 +1238,7 @@ function ConnectionWorkspace({
                       Transactions
                     </button>
                     <button
+                      className="secondary"
                       aria-label={`View sync status for ${accountLabel(account.account_id)}`}
                       disabled={mutable}
                       onClick={() =>
@@ -1240,26 +1251,16 @@ function ConnectionWorkspace({
                   <details className="account-management">
                     <summary>Manage {accountLabel(account.account_id)}</summary>
                     <button
+                      className="secondary"
                       disabled={mutable || account.state === "disconnected"}
                       onClick={() => setDisconnect(account)}
                     >
                       Disconnect {accountLabel(account.account_id)}
                     </button>
-                    <details>
-                      <summary>
-                        Technical account details for{" "}
-                        {accountLabel(account.account_id)}
-                      </summary>
-                      <p>Provider account ID: {account.account_id}</p>
-                    </details>
                   </details>
                 </li>
               ))}
             </ul>
-            <details className="connection-technical">
-              <summary>Technical connection details</summary>
-              <p>Provider Item: {item.item_id}</p>
-            </details>
           </article>
         ))
       )}
@@ -1289,27 +1290,37 @@ function ConnectionWorkspace({
               {rows.length > 1 ? ` ${index + 1}` : ""}
             </button>
           ))}
-      <ConnectionDetails
-        compact={!!prepareRegistration}
-        title="Connection recovery"
-      >
-        <section aria-label="Connection recovery">
-          <h3>Connection recovery</h3>
+      {(!attempts ||
+        recoveryAttempts.length > 0 ||
+        attempts.unfinished_count !== "0") && (
+        <section
+          aria-label="Unfinished connections"
+          className="connection-recovery-list"
+        >
+          <h3>Finish connecting your bank</h3>
           {!attempts ? (
-            <p>Attempt discovery unavailable. New enrollment is disabled.</p>
+            <p>
+              We couldn’t check unfinished bank setup. Refresh before connecting
+              another bank.
+            </p>
           ) : (
             <>
-              <p>Unfinished attempts: {attempts.unfinished_count}</p>
-              {attempts.items.length === 0 && <p>No attempts on this page.</p>}
+              {attempts.unfinished_count !== "0" && (
+                <p>Unfinished bank setups: {attempts.unfinished_count}</p>
+              )}
+              {recoveryAttempts.length === 0 && (
+                <p>No unfinished setup on this page.</p>
+              )}
               <ul>
-                {attempts.items.map((a) => (
-                  <li key={a.attempt_id}>
-                    {a.mode} —{" "}
-                    {a.binding_expired
-                      ? "binding review expired"
-                      : a.expired_unclaimed
-                        ? "expired before claim"
-                        : a.state.replaceAll("_", " ")}{" "}
+                {recoveryAttempts.map((a, index) => (
+                  <li key={a.attempt_id} className="connection-recovery-item">
+                    <span>
+                      {a.binding_expired
+                        ? "Account selection expired"
+                        : a.expired_unclaimed
+                          ? "Bank setup expired"
+                          : "Bank setup needs attention"}
+                    </span>
                     <button
                       disabled={mutable}
                       onClick={() =>
@@ -1320,7 +1331,8 @@ function ConnectionWorkspace({
                         )
                       }
                     >
-                      Review attempt {a.attempt_id}
+                      Review bank setup
+                      {recoveryAttempts.length > 1 ? ` ${index + 1}` : ""}
                     </button>
                   </li>
                 ))}
@@ -1342,55 +1354,47 @@ function ConnectionWorkspace({
                     })
                   }
                 >
-                  Older connection attempts
+                  Check earlier bank setups
                 </button>
               )}
             </>
           )}
         </section>
-      </ConnectionDetails>
+      )}
       {status && (
         <section aria-label="Account sync status">
           <h3>Sync status for {accountLabel(statusAccount)}</h3>
+          <p>Account sync is {status.state.replaceAll("_", " ")}.</p>
           <p>
-            Account acquisition: {status.state}. Provider Item:{" "}
-            {status.item_state.replaceAll("_", " ")}.
-          </p>
-          <p>Readiness: {status.readiness.replaceAll("_", " ")}</p>
-          <p>
-            Requested generation {status.requested_generation}; completed
-            generation {status.completed_generation}.
+            {status.readiness === "HISTORICAL_UPDATE_COMPLETE"
+              ? "Historical import completed"
+              : status.readiness === "INITIAL_UPDATE_COMPLETE"
+                ? "Initial history imported"
+                : "Import not completed yet"}
           </p>
           <p>
             {status.delivery_state === "quarantined"
-              ? "Sync stopped after a failure. Request sync again after the cause is fixed."
+              ? "Sync needs attention. Try again after resolving the connection issue."
               : status.delivery_state === "retry_wait"
-                ? "Sync is waiting for a worker retry."
-                : status.queued
-                  ? "Sync work is queued."
-                  : "No newer sync request is queued."}{" "}
-            {status.lease_active
-              ? "A worker lease is active; publication is not yet confirmed."
-              : "No active worker lease."}
+                ? "Sync is waiting to retry."
+                : status.lease_active
+                  ? "Sync is in progress. New transactions are not confirmed yet."
+                  : status.queued
+                    ? "Sync is queued. New transactions are not confirmed yet."
+                    : "No sync is waiting."}
           </p>
           <p>
-            Last complete publication:{" "}
-            {status.last_completed_at ?? "None recorded"}
+            Last import: {status.last_completed_at ?? "No completed import yet"}
           </p>
-          <p>Last provider update: Unknown — this timestamp is not supplied.</p>
-          {status.decoder_error && status.delivery_state !== "succeeded" && (
+          {(status.decoder_error || status.last_error) && (
             <p role="status">
-              Data validation: {status.decoder_error.replaceAll("_", " ")}.
-            </p>
-          )}
-          {status.last_error && (
-            <p>
-              Last acquisition outcome: {status.last_error.replaceAll("_", " ")}
+              Some transactions could not be imported. Your posted entries have
+              not changed.
             </p>
           )}
           <p>
-            Acquisition does not post journals or prove that all bank history
-            has arrived.
+            Imported transactions still need review. An import does not confirm
+            complete bank history.
           </p>
           <button
             disabled={
@@ -1427,17 +1431,12 @@ function ConnectionWorkspace({
               <legend>Confirm account sync operation</legend>
               <p>
                 {operation === "request"
-                  ? "Request another acquisition"
+                  ? "Request a sync"
                   : operation === "pause"
-                    ? "Pause acquisition"
-                    : "Resume acquisition"}{" "}
+                    ? "Pause syncing"
+                    : "Resume syncing"}{" "}
                 for {accountLabel(statusAccount)} only. Sibling accounts and
                 posted journals are unchanged.
-              </p>
-              <p>
-                Current Item generation {status.item_generation}; binding
-                revision {status.binding_revision}; stream revision{" "}
-                {status.stream_revision}.
               </p>
               <button
                 onClick={() =>
@@ -1475,9 +1474,9 @@ function ConnectionWorkspace({
         <fieldset disabled={mutable}>
           <legend>Confirm account disconnect</legend>
           <p>
-            Stop acquisition for {accountLabel(disconnect.account_id)} only.
-            Other accounts and posted history are retained. This does not remove
-            the provider Item.
+            Stop syncing for {accountLabel(disconnect.account_id)} only. Other
+            accounts and posted history are retained. Your bank connection is
+            retained for the other accounts.
           </p>
           <button
             onClick={() =>
@@ -1504,11 +1503,12 @@ function ConnectionWorkspace({
           <p>
             The{" "}
             {pending.kind === "bind"
-              ? "binding"
+              ? "account setup"
               : pending.kind === "stream"
-                ? "stream operation"
+                ? "sync change"
                 : "disconnect"}{" "}
-            result is unresolved. Retrying uses the same request and key.
+            result is unconfirmed. Check again to safely finish the same
+            request.
           </p>
           <button
             disabled={unavailable}
@@ -1518,59 +1518,30 @@ function ConnectionWorkspace({
           </button>
         </div>
       )}
-      <ConnectionDetails
-        compact={!!prepareRegistration}
-        title="Inspect a known connection"
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (uuid.test(inspectID)) void inspect(inspectID);
-          }}
-        >
-          <label>
-            Known connection attempt ID
-            <input
-              value={inspectID}
-              onChange={(e) => setInspectID(e.target.value)}
-              disabled={mutable}
-              autoComplete="off"
-            />
-          </label>
-          <button disabled={mutable || !uuid.test(inspectID)}>
-            Inspect attempt
-          </button>
-        </form>
-        <p>
-          Unfinished enrollment is discovered after reload. Inspect and
-          reconcile it before another new connection. Expired unclaimed attempts
-          cannot be replayed. Reconnect remains unavailable.
-        </p>
-      </ConnectionDetails>
       {attempt && (
         <article>
-          <h3>Connection attempt</h3>
-          <ConnectionDetails
-            compact={!!prepareRegistration}
-            title="Connection details"
-          >
-            <p>Attempt ID: {attempt.attempt_id}</p>
-            <p>
-              Historical attempt status: {attempt.state.replaceAll("_", " ")}
-            </p>
-            <p>Setup recovery ends: {attempt.expires_at}</p>
-          </ConnectionDetails>
+          <h3>Bank setup</h3>
+          <p>Setup status: {setupLabel(attempt.state)}</p>
+          {!["active", "disconnected", "abandoned"].includes(attempt.state) && (
+            <button
+              disabled={mutable}
+              onClick={() =>
+                void inspect(attempt.attempt_id, expiredAttempt, bindingExpired)
+              }
+            >
+              Check this bank setup
+            </button>
+          )}
           {bindingExpired && (
             <p>
-              Binding review expired; start a fresh connection. The known
-              credential history is retained and its provider exchange must not
-              be replayed.
+              Account selection expired. Start a fresh connection; your earlier
+              setup history is retained.
             </p>
           )}
           {expiredAttempt && (
             <p>
-              Expired before claim. This attempt cannot be replayed; a new
-              connection requires a fresh Link session.
+              This bank setup expired before it completed. Connect again to
+              start a fresh session.
             </p>
           )}
           {attempt.mode === "new" &&
@@ -1705,13 +1676,6 @@ function ConnectionWorkspace({
                         {account.subtype ? ` / ${account.subtype}` : ""},{" "}
                         {account.iso_currency_code ?? "currency unavailable"}
                       </p>
-                      <details>
-                        <summary>
-                          Technical account details for{" "}
-                          {accountLabel(account.account_id)}
-                        </summary>
-                        <p>Provider account ID: {account.account_id}</p>
-                      </details>
                       {automaticClassification(account.type, account.subtype) &&
                       account.iso_currency_code ? (
                         <>
@@ -1921,8 +1885,9 @@ function ConnectionWorkspace({
               <section aria-label="Cancel bank setup">
                 {attempt.state === "disconnect_pending" && (
                   <p>
-                    Cancellation is waiting for Plaid Item removal. Resume the
-                    same cancellation; do not start another bank connection.
+                    Cancellation is waiting for the bank connection to be
+                    removed. Resume the same cancellation; do not start another
+                    bank connection.
                   </p>
                 )}
                 {cancelReview !== attempt.attempt_id ? (
@@ -1939,9 +1904,10 @@ function ConnectionWorkspace({
                   <fieldset disabled={mutable}>
                     <legend>Confirm bank setup cancellation</legend>
                     <p>
-                      Remove this unbound Plaid Item and keep its audit history.
-                      No ledger accounts or journals will be created. A new
-                      setup becomes available only after removal is confirmed.
+                      Remove this unfinished bank connection and keep its
+                      history. No ledger accounts or journals will be created. A
+                      new setup becomes available only after removal is
+                      confirmed.
                     </p>
                     <button
                       type="button"
