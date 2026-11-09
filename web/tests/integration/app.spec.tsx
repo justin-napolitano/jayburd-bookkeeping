@@ -150,7 +150,14 @@ test("expired enrollment preserves book setup recovery and rejects unlinked post
       data: body,
     });
     expect(response.status()).toBe(422);
-    expect(await response.json()).toMatchObject({ code: "artifact_required" });
+    // Next intentionally strips upstream diagnostic codes. The Go public-handler
+    // proof separately requires artifact_required and no posting SQL; this actual
+    // bridge journey requires its exact existing opaque Problem profile.
+    expect(await response.json()).toEqual({
+      type: "about:blank",
+      title: "Request unavailable",
+      status: 422,
+    });
   }
   await chooseFinanceTool(page, "Chart of accounts");
   await page.getByLabel("Through date", { exact: true }).fill("2026-01-31");
