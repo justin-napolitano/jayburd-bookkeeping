@@ -1,6 +1,11 @@
 <!-- stage-runbook: true -->
 # Frontend flow review — 467
 
+Current delivery: combined PR472 and artifact enforcement are merged and included
+in the accepted [Sandbox image-only release](artifact-sandbox-rollout.md).
+This original frontend-stage ledger remains historical source evidence; owner
+visual acceptance is pending and document ingestion is not implemented.
+
 ## Status and boundary
 
 Owner approved creating delivery issues and implementing the planned frontend
