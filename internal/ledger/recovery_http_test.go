@@ -20,13 +20,18 @@ func (s *recoveryStub) Recovery(ctx context.Context, c Command, action string) (
 	return s.Post(ctx, c)
 }
 
+// ArtifactRecovery records the public artifact-aware dispatch separately from generic recovery.
+func (s *recoveryStub) ArtifactRecovery(ctx context.Context, c Command, action string) (Result, error) {
+	return s.Recovery(ctx, c, action)
+}
+
 // TestCommandHTTPBoundary covers origin/auth ordering, raw JSON and command route identity.
 func TestCommandHTTPBoundary(t *testing.T) {
 	for _, tc := range []struct {
 		name, method, path, body, key, origin, token, action string
 		status                                               int
 	}{
-		{"register", "POST", "/v1/commands", `{"body":{"x":1,"x":2}}`, "registration", "https://synthetic.invalid", "Bearer synthetic", "register", 201},
+		{"register", "POST", "/v1/commands", `{"operation":"source_post","body":{"x":1,"x":2}}`, "registration", "https://synthetic.invalid", "Bearer synthetic", "register", 201},
 		{"pending", "GET", "/v1/commands/pending", "", "", "https://synthetic.invalid", "Bearer synthetic", "pending", 200},
 		{"clear", "POST", "/v1/commands/pending/clear", `{}`, "", "https://synthetic.invalid", "Bearer synthetic", "clear", 200},
 		{"execute", "POST", "/v1/commands/synthetic-id/execute", `{}`, "", "https://synthetic.invalid", "Bearer synthetic", "execute", 200},

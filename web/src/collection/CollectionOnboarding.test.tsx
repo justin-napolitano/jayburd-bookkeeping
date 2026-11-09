@@ -92,6 +92,47 @@ async function saveSetup() {
   await screen.findByRole("button", { name: "Create private workspace" });
 }
 describe("private onboarding authority and recovery", () => {
+  it("shows guided progress without advancing saved work or acknowledging the result", async () => {
+    const f = fixture();
+    const { changed } = mount(f.request);
+    await screen.findByRole("button", { name: "Set up private transactions" });
+    const currentStep = () =>
+      screen
+        .getByRole("list", { name: "Setup progress" })
+        .querySelector('[aria-current="step"]')?.textContent;
+    expect(currentStep()).toBe("1Review");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set up private transactions" }),
+    );
+    await screen.findByRole("button", { name: "Save setup review" });
+    expect(currentStep()).toBe("1Review");
+    expect(f.saved).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save setup review" }),
+    );
+    await screen.findByRole("button", { name: "Create private workspace" });
+    expect(currentStep()).toBe("2Confirm");
+    expect(f.saved?.state).toBe("prepared");
+    expect(
+      f.request.mock.calls.some(([path]) => path.endsWith("/execute")),
+    ).toBe(false);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create private workspace" }),
+    );
+    await screen.findByRole("heading", {
+      name: "Your private workspace is ready",
+    });
+    expect(currentStep()).toBe("3Done");
+    expect(f.saved?.acknowledged).toBe(false);
+    expect(changed).not.toHaveBeenCalled();
+    expect(
+      f.request.mock.calls.some(([path]) => path.endsWith("/acknowledge")),
+    ).toBe(false);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Acknowledge setup result" }),
+    );
+    await waitFor(() => expect(changed).toHaveBeenCalledTimes(1));
+  });
   it("uses only explicit setup/save/execute/ack and refreshes real discovery", async () => {
     const f = fixture(),
       { changed, lock } = mount(f.request);
@@ -126,6 +167,31 @@ describe("private onboarding authority and recovery", () => {
     );
     expect(Object.keys(body).sort()).toEqual(["prepare_key", "preview_id"]);
     expect(f.request.mock.calls.every((c) => c.length < 3)).toBe(true);
+  });
+  it("labels a cancelled review accurately and keeps acknowledgement explicit", async () => {
+    const f = fixture();
+    const { changed, lock } = mount(f.request);
+    await saveSetup();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Cancel saved setup review" }),
+    );
+    await screen.findByRole("heading", { name: "Setup review cancelled" });
+    expect(
+      screen.queryByRole("heading", {
+        name: "Your private workspace is ready",
+      }),
+    ).toBeNull();
+    expect(f.saved?.state).toBe("cancelled");
+    expect(f.saved?.acknowledged).toBe(false);
+    expect(changed).not.toHaveBeenCalled();
+    expect(lock).toHaveBeenLastCalledWith(true);
+    expect(
+      f.request.mock.calls.some(([path]) => path.endsWith("/execute")),
+    ).toBe(false);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Acknowledge setup result" }),
+    );
+    await waitFor(() => expect(changed).toHaveBeenCalledTimes(1));
   });
   it("reviews the complete authorized connection and discloses the acquisition pause", async () => {
     const f = fixture(true);
@@ -405,6 +471,104 @@ describe("private onboarding authority and recovery", () => {
     await act(async () => finish(onboardingCatalog(true)));
     expect(document.body.textContent).not.toContain("Fictional records");
     expect(lock).toHaveBeenLastCalledWith(false);
+  });
+  it("keeps an active idle catalog behind the current pending refresh before unlocking setup", async () => {
+    let pendingReads = 0;
+    let finish!: (value: unknown) => void;
+    const request = vi.fn(async (path: string) => {
+      if (path.endsWith("/pending")) {
+        if (++pendingReads === 1) return onboardingPending();
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      }
+      if (path === root) return onboardingCatalog();
+      throw Error("unexpected synthetic request");
+    });
+    const { view, lock } = mount(request);
+    await screen.findByRole("button", { name: "Set up private transactions" });
+    await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
+    expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+      1,
+    );
+    view.rerender(
+      <CollectionOnboarding
+        api={request as unknown as API}
+        active
+        externalLocked={false}
+        onLockChange={lock}
+        refreshVersion={1}
+      />,
+    );
+    await waitFor(() => expect(pendingReads).toBe(2));
+    try {
+      expect(lock).toHaveBeenLastCalledWith(true);
+      // A stale ready render must not issue a competing catalog read or supersede this pending response.
+      expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+        1,
+      );
+    } finally {
+      await act(async () => finish(onboardingPending()));
+    }
+    await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
+    expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+      2,
+    );
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Set up private transactions",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+  });
+  it("checks pending before catalog when becoming active and refreshing in the same commit", async () => {
+    let pendingReads = 0;
+    let finish!: (value: unknown) => void;
+    const request = vi.fn(async (path: string) => {
+      if (path.endsWith("/pending")) {
+        if (++pendingReads === 1) return onboardingPending();
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      }
+      if (path === root) return onboardingCatalog();
+      throw Error("unexpected synthetic request");
+    });
+    const { view, lock } = mount(request, { active: false });
+    await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
+    expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+      0,
+    );
+    view.rerender(
+      <CollectionOnboarding
+        api={request as unknown as API}
+        active
+        externalLocked={false}
+        onLockChange={lock}
+        refreshVersion={1}
+      />,
+    );
+    await waitFor(() => expect(pendingReads).toBe(2));
+    try {
+      expect(lock).toHaveBeenLastCalledWith(true);
+      expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+        0,
+      );
+    } finally {
+      await act(async () => finish(onboardingPending()));
+    }
+    await waitFor(() => expect(lock).toHaveBeenLastCalledWith(false));
+    expect(request.mock.calls.filter(([path]) => path === root)).toHaveLength(
+      1,
+    );
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Set up private transactions",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
   });
   it("resolves lost acknowledgement after revocation only through exact closure, never a newer claim", async () => {
     const a = commitOnboarding(onboardingCommand()),

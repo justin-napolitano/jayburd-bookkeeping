@@ -17,7 +17,7 @@ import {
   type OnboardingPending,
   type OnboardingPreview,
 } from "./onboarding";
-import styles from "./collection.module.css";
+import styles from "./onboarding.module.css";
 
 export type OnboardingViewState = {
   supported: boolean;
@@ -67,6 +67,7 @@ export function CollectionOnboarding({
   owner.current = api;
   const acceptedAPI = useRef<API | null>(null),
     epoch = useRef(0),
+    pendingEpoch = useRef<number | null>(null),
     running = useRef(false),
     known = useRef(false);
   const callbacks = useRef({
@@ -104,6 +105,7 @@ export function CollectionOnboarding({
   const current = (n: number) => epoch.current === n && owner.current === api;
   const discover = useCallback(async () => {
     const n = ++epoch.current;
+    pendingEpoch.current = n;
     setReady(false);
     setBusy(true);
     setError("");
@@ -218,13 +220,17 @@ export function CollectionOnboarding({
         );
       }
     } finally {
-      if (current(n)) setBusy(false);
+      if (current(n)) {
+        pendingEpoch.current = null;
+        setBusy(false);
+      }
     }
     // Current callbacks and intent refs do not restart discovery on each state update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, client]);
   useLayoutEffect(() => {
     epoch.current++;
+    pendingEpoch.current = null;
     acceptedAPI.current = null;
     running.current = false;
     known.current = false;
@@ -250,6 +256,8 @@ export function CollectionOnboarding({
     if (!running.current) void discover();
   }, [discover, refreshVersion]);
   const loadCatalog = useCallback(async () => {
+    // Recovery discovery must finish before a same-render catalog refresh can own its epoch.
+    if (pendingEpoch.current === epoch.current) return;
     const n = ++epoch.current;
     setBusy(true);
     setCatalog(null);
@@ -277,7 +285,8 @@ export function CollectionOnboarding({
       !saved.current &&
       !clearID.current &&
       !preview &&
-      !running.current
+      !running.current &&
+      pendingEpoch.current !== epoch.current
     )
       void loadCatalog();
   }, [active, ready, supported, pending, refreshVersion, loadCatalog]);
@@ -546,7 +555,11 @@ export function CollectionOnboarding({
   };
   if (wrongSession || !ready)
     return (
-      <section aria-label="Private transaction setup recovery">
+      <section
+        className={styles.panel}
+        aria-label="Private transaction setup recovery"
+        aria-busy={busy}
+      >
         <p role="status">Checking private setup and saved work…</p>
         {error && <p role="alert">{error}</p>}
         <button disabled={busy} onClick={() => void discover()}>
@@ -591,29 +604,67 @@ export function CollectionOnboarding({
   )
     return null;
   const shown = command?.preview ?? preview;
+  // Progress describes the existing explicit transitions; it never advances work.
+  const step = command ? (command.state === "prepared" ? 1 : 2) : 0;
   const panel = (
     <section
-      className={styles.workspace}
+      className={styles.panel}
       aria-label="Private transaction setup"
       aria-busy={busy}
     >
-      <h2 ref={heading} tabIndex={-1}>
-        {command
-          ? "Saved private setup review"
-          : preview
-            ? "Review private transaction setup"
-            : "Private transactions"}
-      </h2>
-      {error && <p role="alert">{error}</p>}
+      <header className={styles.header}>
+        <h2 ref={heading} tabIndex={-1}>
+          {command
+            ? command.state === "prepared"
+              ? "Saved private setup review"
+              : command.state === "cancelled"
+                ? "Setup review cancelled"
+                : command.preview.operation === "setup"
+                  ? "Your private workspace is ready"
+                  : "Your connection history is ready"
+            : preview
+              ? "Review private transaction setup"
+              : "Private transactions"}
+        </h2>
+        <p>
+          {command
+            ? command.state === "prepared"
+              ? "Check the saved review, then confirm when you are ready."
+              : "Review the result below before continuing."
+            : preview
+              ? "Check what will change before saving your review."
+              : "Bring your authorized accounts into one private workspace."}
+        </p>
+      </header>
+      <ol className={styles.progress} aria-label="Setup progress">
+        {["Review", "Confirm", "Done"].map((label, index) => (
+          <li
+            key={label}
+            aria-current={step === index ? "step" : undefined}
+            data-complete={index < step || undefined}
+          >
+            <span className={styles.stepNumber} aria-hidden="true">
+              {index + 1}
+            </span>
+            {label}
+          </li>
+        ))}
+      </ol>
+      {error && (
+        <p className={styles.alert} role="alert">
+          {error}
+        </p>
+      )}
       {busy && <p role="status">Checking private setup…</p>}
       {pending?.state === "blocked" && (
-        <p>
+        <p className={styles.notice}>
           Another saved request needs attention before private setup can
           continue.
         </p>
       )}
       {pending?.state === "inaccessible" && (
-        <>
+        <div className={styles.notice}>
+          <h3>Resolve saved setup</h3>
           <p>
             A saved private setup review is no longer accessible. Clearing it
             does not apply or reverse changes.
@@ -621,83 +672,111 @@ export function CollectionOnboarding({
           <button disabled={busy} onClick={() => void clear()}>
             Clear inaccessible setup review
           </button>
-        </>
+        </div>
       )}
       {shown && (
-        <>
+        <div className={styles.review}>
           {shown.operation === "setup" ? (
-            <p>
-              Create your private transaction workspace to view transactions,
-              connect eligible accounts, and manage labels and rules. This does
-              not create a book, connect a bank or post a journal.
-            </p>
+            <>
+              <h3>Your private workspace</h3>
+              <p>
+                View transactions across authorized accounts and manage labels
+                and rules. This does not create a book, connect a bank or post a
+                journal.
+              </p>
+            </>
           ) : (
             <>
               <h3>Use existing connection</h3>
-              <p>
+              <p className={styles.connectionName}>
                 {shown.review.entity_name} / {shown.review.book_name}
               </p>
               <p>
                 Adopt existing history for all {shown.review.sources.length}{" "}
-                registered accounts listed below. Existing automatic bank
-                syncing for this connection will pause. This makes stored
-                history available here; it does not start new syncing. No bank
-                connection, provider fetch, new journal or copied transaction
-                will be created.
+                registered accounts listed below.
               </p>
-              <ul aria-label="Reviewed source accounts">
-                {shown.review.sources.map((s) => (
-                  <li key={s.source_id}>{s.display_name}</li>
+              <ul
+                className={styles.accounts}
+                aria-label="Reviewed source accounts"
+              >
+                {shown.review.sources.map((source) => (
+                  <li key={source.source_id}>{source.display_name}</li>
                 ))}
               </ul>
+              <p className={styles.notice}>
+                <strong>
+                  Existing automatic bank syncing for this connection will
+                  pause.
+                </strong>{" "}
+                This makes stored history available here; it does not start new
+                syncing. No bank connection, provider fetch, new journal or
+                copied transaction will be created.
+              </p>
             </>
           )}
           {!command && (
             <>
-              <button
-                disabled={busy || externalLocked || !!intent.current}
-                onClick={() => void prepare()}
-              >
-                Save setup review
-              </button>
-              <button
-                disabled={busy || !!intent.current}
-                onClick={() => {
-                  setPreview(null);
-                  void loadCatalog();
-                }}
-              >
-                Back to setup choices
-              </button>
+              <p className={styles.hint}>
+                Saving keeps this review for a separate confirmation. It does
+                not apply changes.
+              </p>
+              <div className={styles.actions}>
+                <button
+                  disabled={busy || externalLocked || !!intent.current}
+                  onClick={() => void prepare()}
+                >
+                  Save setup review
+                </button>
+                <button
+                  className={styles.secondary}
+                  disabled={busy || !!intent.current}
+                  onClick={() => {
+                    setPreview(null);
+                    void loadCatalog();
+                  }}
+                >
+                  Back to setup choices
+                </button>
+              </div>
             </>
           )}
-        </>
+        </div>
       )}
       {command && (
-        <>
+        <div className={styles.confirmation}>
           {command.state === "prepared" ? (
             <>
               <p>This saved review has not been applied.</p>
-              <button
-                disabled={busy || externalLocked}
-                onClick={() => void transition("execute")}
-              >
-                {command.preview.operation === "setup"
-                  ? "Create private workspace"
-                  : "Adopt reviewed connection history"}
-              </button>
-              <button disabled={busy} onClick={() => void transition("cancel")}>
-                Cancel saved setup review
-              </button>
+              <div className={styles.actions}>
+                <button
+                  disabled={busy || externalLocked}
+                  onClick={() => void transition("execute")}
+                >
+                  {command.preview.operation === "setup"
+                    ? "Create private workspace"
+                    : "Adopt reviewed connection history"}
+                </button>
+                <button
+                  className={styles.secondary}
+                  disabled={busy}
+                  onClick={() => void transition("cancel")}
+                >
+                  Cancel saved setup review
+                </button>
+              </div>
             </>
           ) : (
             <>
-              <p role="status">
+              <p className={styles.result} role="status">
                 {command.state === "cancelled"
                   ? "Private setup cancelled. No setup changes were applied."
                   : command.preview.operation === "setup"
                     ? "Private workspace created. No journal was created."
                     : "Existing connection history adopted. Existing automatic bank syncing paused. No journal was created."}
+              </p>
+              <p className={styles.hint}>
+                Acknowledge this result to finish this review and unlock your
+                next action.
               </p>
               <button
                 disabled={busy}
@@ -707,7 +786,7 @@ export function CollectionOnboarding({
               </button>
             </>
           )}
-        </>
+        </div>
       )}
       {uncertain === "prepare" && (
         <button disabled={busy} onClick={() => void prepare()}>
@@ -763,13 +842,18 @@ export function CollectionOnboarding({
                 Review an authorized connection before adding its complete
                 existing history to private transactions.
               </p>
-              <ul aria-label="Eligible existing connections">
+              <ul
+                className={styles.connections}
+                aria-label="Eligible existing connections"
+              >
                 {catalog.candidates.map((c) => (
                   <li key={c.candidate_id}>
-                    <span>
-                      {c.entity_name} / {c.book_name} · {c.sources.length}{" "}
-                      source accounts
-                    </span>{" "}
+                    <div>
+                      <strong>{c.book_name}</strong>
+                      <span>
+                        {c.entity_name} · {c.sources.length} source accounts
+                      </span>
+                    </div>
                     <button
                       disabled={busy || externalLocked}
                       onClick={() =>
@@ -821,7 +905,7 @@ export function CollectionOnboarding({
         </>
       )}
       <button
-        className="secondary"
+        className={styles.checkSaved}
         disabled={busy}
         onClick={() => void discover()}
       >
@@ -834,7 +918,7 @@ export function CollectionOnboarding({
     !error &&
     catalog?.workspace.state === "ready" &&
     catalog.candidates.length === 0 ? (
-    <details>
+    <details className={styles.disclosure}>
       <summary>Private workspace and existing connections</summary>
       {panel}
     </details>

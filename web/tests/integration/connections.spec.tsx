@@ -1,4 +1,6 @@
+import { chooseFinanceTool } from "../finance-navigation";
 import { test, expect } from "@playwright/experimental-ct-react";
+import type { Page } from "playwright-core";
 import { ConnectionsHarness } from "./ConnectionsHarness";
 const scope =
   "10000000-0000-4000-8000-000000000002/10000000-0000-4000-8000-000000000003";
@@ -10,8 +12,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   page.setDefaultTimeout(10000);
   let component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await chooseFinanceTool(page, "Accounts");
   const connect = page.getByRole("button", {
     name: "Register accounts",
     exact: true,
@@ -23,8 +24,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await chooseFinanceTool(page, "Accounts");
   await page.route("**/connection-attempts/*/abandon", async (route) => {
     const response = await route.fetch();
     expect(response.ok()).toBe(true);
@@ -85,8 +85,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await chooseFinanceTool(page, "Accounts");
   await page
     .getByRole("button", { name: "Check bank setup status", exact: true })
     .click();
@@ -97,8 +96,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await component.unmount();
   component = await mount(<ConnectionsHarness />);
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await chooseFinanceTool(page, "Accounts");
   await expect(
     page.getByRole("button", { name: "Register accounts", exact: true }),
   ).toBeDisabled();
@@ -306,7 +304,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     drill.items.map((row: { amount: string }) => row.amount).sort(),
   ).toEqual(["0.1", "0.2"]);
   // The daily Overview renders that same real Next→Go→SQL projection without posting.
-  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await chooseFinanceTool(page, "Overview");
   await page
     .getByRole("combobox", { name: "Bank account", exact: true })
     .selectOption(firstSource.source_account_id);
@@ -367,10 +365,18 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     page.getByRole("button", { name: "Post journal", exact: true }),
   ).toBeEnabled();
   let dropped = false;
+  let sourceCommand = "";
+  let sourceJournal = "";
   await page.route("**/v1/commands/*/execute", async (route) => {
     if (dropped) return route.continue();
     const response = await route.fetch();
     expect(response.ok()).toBe(true);
+    const saved = await response.json();
+    expect(saved.operation).toBe("source_post");
+    expect(saved.state).toBe("committed");
+    sourceCommand = saved.command_id;
+    sourceJournal = saved.result.journal_id;
+    expect(sourceJournal).toMatch(/^[0-9a-f-]{36}$/);
     dropped = true;
     await route.abort("failed");
   });
@@ -385,9 +391,27 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     .getByRole("button", { name: "Acknowledge result", exact: true })
     .click();
   await page.getByLabel("Entity and book").selectOption(scope);
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Accounts", exact: true }).click();
+  await chooseFinanceTool(page, "Chart of accounts");
   await expect(page.locator("tfoot td")).toHaveText(["0.10", "0.10"]);
+  const commandReplay = await page.request.post(
+    new URL(`/v1/commands/${sourceCommand}/execute`, page.url()).href,
+    {
+      headers: {
+        Authorization: "Bearer synthetic.browser.proof",
+        Origin: new URL(page.url()).origin,
+      },
+      data: {},
+    },
+  );
+  expect(commandReplay.status()).toBe(200);
+  expect(await commandReplay.json()).toMatchObject({
+    command_id: sourceCommand,
+    operation: "source_post",
+    state: "committed",
+    acknowledged: true,
+    result: { journal_id: sourceJournal },
+  });
+
   const replay = await acquire();
   expect(replay.ok()).toBe(true);
   expect(await replay.json()).toMatchObject({
@@ -396,8 +420,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     removal_count: 1,
     journal_count: "1",
   });
-  await page.getByText("Tools", { exact: true }).click();
-  await page.getByRole("button", { name: "Connections", exact: true }).click();
+  await chooseFinanceTool(page, "Accounts");
   await page
     .getByRole("button", {
       name: "Review transactions for Bank account 1",
@@ -408,6 +431,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
   await page
     .getByRole("button", { name: "Review Fictional purchase A", exact: true })
     .click();
+  await expect(page.getByText(/^Posted journal:/)).toContainText(sourceJournal);
   await page
     .getByRole("button", { name: "View posted journal", exact: true })
     .click();
@@ -419,6 +443,7 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
       })
       .locator("tbody tr td:nth-child(3)"),
   ).toHaveText(["0.1 USD", "0.1 USD"]);
+  await verifySourcePostingReports(page, sourceJournal);
   expect(
     await page.evaluate(() => ({
       local: localStorage.length,
@@ -426,3 +451,132 @@ test("TestSyncReviewPostJourney: enrollment, acquisition, exact posting and lost
     })),
   ).toEqual({ local: 0, session: 0 });
 });
+
+// Independent 0.10 outflow→expense oracles replace the obsolete unlinked
+// 125.50 manual-entry report journey. Every report reads the one source posting.
+async function verifySourcePostingReports(page: Page, journal: string) {
+  await chooseFinanceTool(page, "Reports");
+  const reports = page.getByRole("region", { name: "Financial reports" });
+  await reports
+    .getByLabel("Report through date (inclusive)")
+    .fill("2026-12-31");
+  let snapshot = "";
+  for (const kind of [
+    "trial-balance",
+    "balance-sheet",
+    "profit-and-loss",
+    "general-ledger",
+  ]) {
+    await reports.getByLabel("Report type").selectOption(kind);
+    if (["profit-and-loss", "general-ledger"].includes(kind)) {
+      await reports.getByLabel("Report starts on").fill("2026-01-01");
+      await reports.getByLabel("Report ends before").fill("2027-01-01");
+    }
+    if (kind === "general-ledger")
+      await reports
+        .getByLabel("Report account")
+        .selectOption("10000000-0000-4000-8000-000000000012");
+    const response = page.waitForResponse((r) =>
+      r.url().includes(`/reports/${kind}?`),
+    );
+    await reports.getByRole("button", { name: "Run report" }).click();
+    const actual = await response;
+    expect(actual.status()).toBe(200);
+    const body = await actual.json();
+    expect(body.functional_currency).toBe("USD");
+    if (!snapshot) snapshot = body.snapshot_revision;
+    expect(body.snapshot_revision).toBe(snapshot);
+    await reports.getByText("Report details", { exact: true }).click();
+    await expect(
+      reports.getByText(new RegExp(`Snapshot ${snapshot} ·`)),
+    ).toBeVisible();
+    await expect(
+      reports
+        .locator("table")
+        .first()
+        .getByRole("row")
+        .filter({
+          hasText:
+            kind === "trial-balance"
+              ? "Total debits"
+              : kind === "balance-sheet"
+                ? "Assets"
+                : kind === "profit-and-loss"
+                  ? "Net income"
+                  : "Closing balance",
+        })
+        .locator("td"),
+    ).toHaveText(
+      ["balance-sheet", "profit-and-loss"].includes(kind) ? "-0.10" : "0.10",
+    );
+    if (kind === "general-ledger")
+      await expect(
+        reports.getByRole("cell", { name: /0.1 USD/ }),
+      ).toBeVisible();
+  }
+  const journalResponse = page.waitForResponse((r) =>
+    r.url().includes("/reports/general-ledger/journals/"),
+  );
+  await reports
+    .getByRole("button", { name: "Review journal line 2", exact: true })
+    .click();
+  const reply = await journalResponse;
+  expect(reply.status()).toBe(200);
+  expect(new URL(reply.url()).pathname).toContain(journal);
+  const detail = reports.getByRole("region", { name: "Journal detail" });
+  await expect(detail).toContainText("Fictional purchase A");
+  await expect(detail).toContainText(`Report snapshot ${snapshot}`);
+  await expect(detail.locator("tbody tr")).toHaveCount(2);
+  await reports.getByRole("button", { name: "Close journal detail" }).click();
+  await reports.getByLabel("Report type").selectOption("trial-balance");
+  await reports.getByLabel("Compare another period").check();
+  await reports
+    .getByLabel("Comparison through date (inclusive)")
+    .fill("2026-01-01");
+  await reports.getByRole("button", { name: "Run report" }).click();
+  await expect(
+    reports
+      .locator("table")
+      .first()
+      .getByRole("row")
+      .filter({ hasText: "Total debits" })
+      .locator("td"),
+  ).toHaveText(["0.10", "0.00", "0.10"]);
+  const exportResponse = page.waitForResponse((r) =>
+    r.url().includes("/export.csv?"),
+  );
+  const download = page.waitForEvent("download");
+  await reports.getByRole("button", { name: "Download review CSV" }).click();
+  expect((await exportResponse).status()).toBe(200);
+  const downloaded = await download;
+  expect(downloaded.suggestedFilename()).toBe("financial-reporting-review.csv");
+  const stream = await downloaded.createReadStream();
+  expect(stream).not.toBeNull();
+  let csv = "";
+  for await (const chunk of stream!) csv += chunk.toString("utf8");
+  expect(csv).toContain(
+    '"total_debits","positive","0.1","zero","0","positive","0.1"\r\n',
+  );
+  await reports
+    .getByRole("button", { name: "Review account 5000", exact: true })
+    .click();
+  await reports.getByLabel("Drill starts on").fill("2026-01-01");
+  await reports.getByLabel("Drill ends before").fill("2027-01-01");
+  const navigation = page.waitForResponse((r) =>
+    r.url().includes("/reports/general-ledger?"),
+  );
+  await reports.getByRole("button", { name: "Open account ledger" }).click();
+  const navigationResult = await navigation;
+  expect(navigationResult.status()).toBe(200);
+  expect(
+    new URL(navigationResult.url()).searchParams.get("snapshot_revision"),
+  ).toBe(snapshot);
+  await expect(
+    reports
+      .locator("table")
+      .first()
+      .getByRole("row")
+      .filter({ hasText: "Closing balance" })
+      .locator("td"),
+  ).toHaveText("0.10");
+}

@@ -50,7 +50,13 @@ func (s *operationsStub) TrialBalance(ctx context.Context, c Command) (Result, e
 	return s.Post(ctx, c)
 }
 
-// TestAPIContract verifies identity-first access, bounded raw input and redaction.
+// primitiveHTTPProofHandler isolates the legacy accounting transport proof from the public application policy.
+// It is test-only and cannot be selected by application composition or a request.
+func primitiveHTTPProofHandler(auth Authenticator, ops Operations) http.Handler {
+	return newHandler(auth, ops, false)
+}
+
+// TestAPIContract retains the isolated primitive proof of identity-first access, bounded raw input and redaction.
 func TestAPIContract(t *testing.T) {
 	path := "/v1/entities/e/books/b/journals"
 	for _, tc := range []struct {
@@ -70,7 +76,7 @@ func TestAPIContract(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ops := &operationsStub{result: Result{Status: 201, Body: []byte(`{"journal_id":"synthetic"}`), Replayed: true}, err: tc.errorValue}
-			h := Handler(authStub{tc.authErr}, ops)
+			h := primitiveHTTPProofHandler(authStub{tc.authErr}, ops)
 			r := httptest.NewRequest(http.MethodPost, path, strings.NewReader(tc.body))
 			if tc.token != "" {
 				r.Header.Set("Authorization", "Bearer "+tc.token)

@@ -171,3 +171,69 @@ test("saved command discovery and cancellation both require explicit acknowledge
   ).toBeVisible();
   await expect(page.getByLabel("Fixture acknowledgements")).toHaveText("1");
 });
+
+for (const width of [390, 768, 1440]) {
+  test(`transaction toolbar and contextual actions stay reachable at ${width}px`, async ({
+    mount,
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mount(<CollectionReviewHarness />);
+    await expect(
+      page.getByText("1–25 of 3000 matching transactions"),
+    ).toBeVisible();
+    const account = page.getByRole("combobox", {
+      name: "Account",
+      exact: true,
+    });
+    // Stress the native control without changing authorized source identity.
+    await account.evaluate((element) => {
+      (element as HTMLSelectElement).options[1].textContent =
+        "Fictional operating account with a deliberately long authorized institution and account name";
+    });
+    await account.selectOption("fictional-checking");
+    await expect(
+      page.getByText("Filters changed. Apply to update transactions."),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Apply filters", exact: true })
+      .click();
+    await expect(
+      page.getByText("1 filter applied", { exact: true }),
+    ).toBeVisible();
+    await page.getByText("More filters", { exact: true }).click();
+    await expect(page.getByLabel("Tag filter", { exact: true })).toBeVisible();
+    for (const control of [
+      account,
+      page.getByRole("searchbox", { name: "Search transactions" }),
+      page.getByRole("button", { name: "Reset filters", exact: true }),
+      page.getByLabel("Tag filter", { exact: true }),
+    ]) {
+      const box = (await control.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    await page
+      .getByRole("button", { name: "Reset filters", exact: true })
+      .click();
+    await page.getByText("More filters", { exact: true }).click();
+    await page.getByRole("checkbox").first().check();
+    const actions = page.getByRole("group", {
+      name: "Selected transaction actions",
+    });
+    await expect(actions).toBeVisible();
+    await actions
+      .getByRole("button", { name: "Clear selection", exact: true })
+      .click();
+    await expect(actions).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Fictional purchase 1", exact: true }),
+    ).toBeFocused();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  });
+}

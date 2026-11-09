@@ -963,11 +963,11 @@ func TestSecondBookIsolation(t *testing.T) {
 	requireFailure(t, err, "invalid_journal")
 }
 
-// TestHTTPPostCommitBoundary exercises the real service through in-process HTTP.
+// TestHTTPPostCommitBoundary isolates the real low-level accounting primitive HTTP proof; it is not a public application route.
 func TestHTTPPostCommitBoundary(t *testing.T) {
 	_, s, _ := fixtureDB(t, "http")
 	s.DB = &lostCommitDB{Beginner: s.DB}
-	h := Handler(authStub{}, s)
+	h := primitiveHTTPProofHandler(authStub{}, s)
 	cmd := command("http")
 	path := "/v1/entities/" + entity + "/books/" + book + "/journals"
 	for i, want := range []int{503, 201} {

@@ -1,22 +1,29 @@
 import { test, expect } from "playwright/test";
 
-// Watch real command boundaries, including a safe replay and rejected unbalanced journal.
-test("guided flow posts exact cents, replays once and rejects imbalance", async ({
+// The deployed demo offers the same retained-source workflow as the application.
+// Low-level manual ledger mathematics remain separate internal component proofs.
+test("demo offers imported evidence review without standalone manual entry runners", async ({
   page,
 }) => {
-  test.setTimeout(90000);
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Watch a few transactions", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Next step", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Next step", exact: true }),
-  ).toBeEnabled();
-  await page
-    .getByRole("button", { name: "Run continuously", exact: true })
-    .click();
-  await expect(page.getByTestId("flow-result")).toBeVisible({ timeout: 60000 });
-  await expect(page.getByText(/^Replay verified/)).toBeVisible();
-  await expect(page.getByText(/^Expected rejection confirmed/)).toBeVisible();
+    page.getByText("JAYBURD / SYNTHETIC DEMO", { exact: true }),
+  ).toBeVisible();
+  for (const name of [
+    "Manual books",
+    "Watch a few transactions",
+    "Run thousands",
+    "New journal",
+    "Start volume run",
+  ]) {
+    await expect(page.getByRole("button", { name, exact: true })).toHaveCount(
+      0,
+    );
+  }
+  await expect(page.getByLabel("Accounting date", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("button", { name: /Load demo books|Demo books loaded/ }),
+  ).toBeVisible();
 });

@@ -1,5 +1,35 @@
 # Frontend source review
 
+## Responsive flow references — 2026-11-08,467–471
+
+Owner approved implementing the navigation/setup/transaction-control plan for
+review. Preserve the current white/dark-green system and existing authority,
+exact money, command confirmation and recovery boundaries. No financial message,
+currency definition, accounting rule, database schema or API profile changes;
+the existing standards applicability remains unchanged.
+
+| First-party source and reviewed section | Evidence and application |
+| --- | --- |
+| [Monarch, Quicker and easier transaction review,2024-06-20](https://www.monarch.com/blog/quicker-and-easier-transaction-review-and-more), Transactions Improvements | Read full relevant section. Consolidates filtering, exposes account/category detail in rows and gives prominent detail actions. Apply compact transaction controls and detail-return continuity. This historical vendor example does not establish their current UI or Jayburd usability. |
+| [Actual Budget, Transaction Rules](https://actualbudget.org/docs/tour/rules/), short tour and conditional rule example | Read full short page. Conditions lead to understandable payee/category actions. Preserve readable existing rule review; do not introduce automatic execution or reuse another product's financial semantics. |
+| [GOV.UK Check answers](https://design-system.service.gov.uk/patterns/check-answers/), relevant guidance and example markup; [Confirmation pages](https://design-system.service.gov.uk/patterns/confirmation-pages/), relevant guidance and example | Read selected guidance/example sections. Review before submission and a clear completion/next step support the guided panel. Jayburd still saves a durable review, explicitly executes and explicitly acknowledges; progress styling never authorizes a mutation. |
+| [actions/upload-artifact](https://github.com/actions/upload-artifact), inputs and Uploading Hidden Files | Read selected sections. Hidden directories are excluded by default. The existing pinned action explicitly selects one fictional self-contained HTML under .local and fictional frontend PNGs; include-hidden-files is necessary for that exact file, not permission to upload a directory or environment/configuration. |
+
+Choice: persistent sidebar above960px and explicit menu below, with private
+Transactions separated from book-scoped Imported activity/ledger. Alternative:
+compact top bar; rejected for this first owner review because six destinations,
+scope and utilities competed for width. Retain existing component/state machines
+rather than a framework rewrite or another design-system dependency. These are
+design inferences requiring rendered acceptance, not conclusions from a captured
+current hosted audit. Original owner screenshots are historical grounding only.
+
+Acceptance: focused lock/progress/filter/selection tests, five-width synthetic
+component screenshots, keyboard/detail-return checks, current permission and
+lost-response regressions, actual Next/Go/restricted SQL journeys, and owner
+visual review. Initial local capture/server failures and browser local-file
+policy rejection are documented in the delivery runbook; do not infer full
+accessibility, live bookkeeping or deployed acceptance from source/build success.
+
 ## Decision
 
 Use the repository-selected Next.js/TypeScript stack for manual bookkeeping. Browser
