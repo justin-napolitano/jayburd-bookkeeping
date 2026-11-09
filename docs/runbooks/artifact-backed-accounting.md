@@ -71,3 +71,19 @@ Source0.10 report/demo acceptance had not run before this failure and remains a
 required exact-head canonical gate. Local TypeScript, Playwright discovery,
 formatting and diff checks validate this narrow correction; local listener
 restrictions still prevent claiming a composed pass.
+
+## Setup-only receipt ownership correction
+
+Exact b301d3b job128909122883 passed the corrected real browser journey (1.3s),
+then failed an obsolete post-run SQL count. Removed manual posting had produced
+one integration.operation_receipt; setup never owns that table. Immutable SQL3
+setup_book inserts ledger.setup_receipt, whereas SQL2 posting inserts the
+integration operation receipt and journal outbox. The default runner now requires
+operation_receipt0 AND setup_receipt1, retaining journal0/outbox0 and exactly one
+committed acknowledged command/execute. This adds an exact setup-specific receipt
+assertion, rather than omitting replay evidence. Source connection/Production
+journal1/outbox1 and connection review_posting1/observations2 are unchanged;
+demo3000 observations/review_posting1/Harbor1 and retired Volume Lab0 remain exact.
+No other remaining assertion depends on the removed Flow/Volume manual entries.
+The nonzero source/report/demo gates had not yet run on this head. Shell syntax
+and diff checks pass; canonical composed execution is still required.
