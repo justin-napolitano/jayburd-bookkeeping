@@ -1,6 +1,13 @@
 <!-- stage-runbook: true -->
 # Artifact-backed accounting delivery
 
+Current delivery: PR472 merged after all five exact-head checks, trusted build
+42541738958 passed, and the existing Sandbox API/web image-only release is
+accepted. See [rollout evidence](artifact-sandbox-rollout.md) and
+[independent build evidence](artifact-build-evidence.md). The source-stage ledger
+below preserves its original boundaries and corrections; owner review and476
+document/matching/correction support remain separate.
+
 ## Status and boundary
 
 Owner explicitly approved recording and implementing artifact-backed accounting,

@@ -3,10 +3,15 @@ owner requires retained evidence for new application entries. [Delivery](runbook
 closes unsupported manual UI/API paths; source-linked bank posting remains.
 Receipt/invoice ingestion, event matching and artifact-linked corrections are476;
 no placeholder Documents feature or full document-support claim.
+Source472 merged after all exact-head checks. [Sandbox rollout](runbooks/artifact-sandbox-rollout.md)
+and [trusted build evidence](runbooks/artifact-build-evidence.md) track the existing
+image-only release separately. API/web00026 are healthy, sole100, with settings
+preserved and nine anonymous transport probes passed; owner review is pending.
 
 [Frontend flow review](runbooks/frontend-flow.md),467–471: responsive navigation,
 guided setup and compact transaction controls; source and synthetic review are
-implemented, owner visual acceptance pending. Existing deployed UI remains separate.
+implemented and included in the accepted artifact-policy Sandbox release;
+owner visual acceptance is pending.
 
 [In-app private setup/adoption](contracts/collection-onboarding.md),460: durable
 self-service tooling replaces routine manual SQL. Source461 and controlled
