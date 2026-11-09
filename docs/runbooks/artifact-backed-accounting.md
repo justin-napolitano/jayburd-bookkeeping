@@ -47,3 +47,11 @@ correction capability, not a hidden manual fallback. Preserve owner review.
 Source implementation and local review ready. Existing deployment remains unchanged. Artifact evidence
 policy is governing; document upload/matching/correction children remain explicit
 until implemented, and no unsupported Documents screen is advertised.
+
+## Tagged integration compilation repair
+
+Canonical cd2bc01 validation exposed a test-only constant name collision between
+the new artifact policy unit fixtures and the integration-tag ledger fixtures.
+Renamed the new fixture constant to artifactPolicyCommandID; no runtime behavior,
+assertion, migration or financial fixture changed. Explicit integration-tag
+compilation is required alongside the ordinary ledger package checks.
