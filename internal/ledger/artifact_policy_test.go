@@ -131,10 +131,10 @@ func (r policyRow) Scan(dest ...any) error {
 	return nil
 }
 
-const policyID = "81000000-0000-4000-8000-000000000007"
+const artifactPolicyCommandID = "81000000-0000-4000-8000-000000000007"
 
 func policyPending(operation, state string) string {
-	return `{"command":{"command_id":"` + policyID + `","operation":"` + operation + `","state":"` + state + `"}}`
+	return `{"command":{"command_id":"` + artifactPolicyCommandID + `","operation":"` + operation + `","state":"` + state + `"}}`
 }
 
 // TestArtifactExecutionTransaction proves check and transition use one serializable attempt with no denied effects.
@@ -159,10 +159,10 @@ func TestArtifactExecutionTransaction(t *testing.T) {
 		{"denied_current_authority", "", &pgconn.PgError{Code: "P2102"}, "permission_denied", 1, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			tx := &policyTx{pending: tc.pending, canonical: policyID, pendingErr: tc.rowErr}
+			tx := &policyTx{pending: tc.pending, canonical: artifactPolicyCommandID, pendingErr: tc.rowErr}
 			db := &policyDB{txs: []*policyTx{tx}}
 			s := Service{DB: db}
-			c := Command{Actor: "synthetic-actor", CommandID: policyID, Body: `{}`, Request: "synthetic-request"}
+			c := Command{Actor: "synthetic-actor", CommandID: artifactPolicyCommandID, Body: `{}`, Request: "synthetic-request"}
 			r, err := s.ArtifactRecovery(context.Background(), c, "execute")
 			if tc.code == "" {
 				if err != nil || r.Status != 200 || len(r.Body) == 0 {
@@ -194,9 +194,9 @@ func TestArtifactExecutionTransaction(t *testing.T) {
 func TestArtifactHTTPExecution(t *testing.T) {
 	for _, state := range []string{"prepared", "committed"} {
 		t.Run(state, func(t *testing.T) {
-			tx := &policyTx{pending: policyPending("post", state), canonical: policyID}
+			tx := &policyTx{pending: policyPending("post", state), canonical: artifactPolicyCommandID}
 			db := &policyDB{txs: []*policyTx{tx}}
-			r := httptest.NewRequest("POST", "/v1/commands/"+policyID+"/execute", strings.NewReader(`{}`))
+			r := httptest.NewRequest("POST", "/v1/commands/"+artifactPolicyCommandID+"/execute", strings.NewReader(`{}`))
 			r.Header.Set("Authorization", "Bearer synthetic")
 			w := httptest.NewRecorder()
 			Handler(authStub{}, &Service{DB: db}).ServeHTTP(w, r)
@@ -215,7 +215,7 @@ func TestArtifactHTTPExecution(t *testing.T) {
 func TestArtifactRetriesAndReplay(t *testing.T) {
 	for _, mode := range []string{"pending_abort", "commit_abort", "commit_unknown"} {
 		unknown := mode == "commit_unknown"
-		first := &policyTx{pending: policyPending("source_post", "prepared"), canonical: policyID}
+		first := &policyTx{pending: policyPending("source_post", "prepared"), canonical: artifactPolicyCommandID}
 		if unknown {
 			first.commitErr = errors.New("synthetic lost acknowledgement")
 		} else if mode == "commit_abort" {
@@ -223,9 +223,9 @@ func TestArtifactRetriesAndReplay(t *testing.T) {
 		} else {
 			first.pendingErr = &pgconn.PgError{Code: "40001"}
 		}
-		second := &policyTx{pending: policyPending("post", "prepared"), canonical: policyID}
+		second := &policyTx{pending: policyPending("post", "prepared"), canonical: artifactPolicyCommandID}
 		db := &policyDB{txs: []*policyTx{first, second}}
-		r, err := (&Service{DB: db}).ArtifactRecovery(context.Background(), Command{CommandID: policyID, Body: `{}`}, "execute")
+		r, err := (&Service{DB: db}).ArtifactRecovery(context.Background(), Command{CommandID: artifactPolicyCommandID, Body: `{}`}, "execute")
 		var f *Failure
 		if !errors.As(err, &f) || len(r.Body) != 0 {
 			t.Fatal("exposed uncommitted result")
@@ -239,8 +239,8 @@ func TestArtifactRetriesAndReplay(t *testing.T) {
 		}
 	}
 	// UUID spellings accepted by PostgreSQL cannot bypass matching the current manual command.
-	tx := &policyTx{pending: policyPending("post", "prepared"), canonical: policyID}
-	_, err := (&Service{DB: &policyDB{txs: []*policyTx{tx}}}).ArtifactRecovery(context.Background(), Command{CommandID: strings.ReplaceAll(policyID, "-", "")}, "execute")
+	tx := &policyTx{pending: policyPending("post", "prepared"), canonical: artifactPolicyCommandID}
+	_, err := (&Service{DB: &policyDB{txs: []*policyTx{tx}}}).ArtifactRecovery(context.Background(), Command{CommandID: strings.ReplaceAll(artifactPolicyCommandID, "-", "")}, "execute")
 	if f := failure(err); f.Code != "artifact_required" || len(tx.queries) != 1 {
 		t.Fatal("noncanonical identifier bypassed policy")
 	}
