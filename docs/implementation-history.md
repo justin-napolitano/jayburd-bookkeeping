@@ -1,0 +1,372 @@
+# Historical implementation index
+
+Archived from the entry index at maina9561e2 on2026-11-11 during486. The material
+below preserves dated delivery narratives and original links. Statements such as
+“pending”, “unintegrated” or “next action” belong to their original delivery stage
+and are not current scheduling authority. Start with the [current capability map](current-capabilities.md)
+and [entry index](index.md); GitHub issues own live task state. Source contracts
+remain authoritative within their stated version/scope and accepted supersessions.
+
+---
+
+[Customer banking experience](runbooks/customer-banking-ui.md),479: merged source480
+removes debugging UI and uses compact Accounts with contextual recovery.
+[Web-only release](runbooks/customer-ui-web-release.md) and
+[independent build evidence](runbooks/customer-ui-build-evidence.md) track the
+accepted web-only rollout separately: web00027 is healthy/sole100 with unchanged
+API00026, selected settings preserved and nine anonymous probes passed. Owner
+visual acceptance remains open.
+
+[Artifact-backed accounting](contracts/artifact-backed-accounting.md),473–477:
+owner requires retained evidence for new application entries. [Delivery](runbooks/artifact-backed-accounting.md)
+closes unsupported manual UI/API paths; source-linked bank posting remains.
+Receipt/invoice ingestion, event matching and artifact-linked corrections are476;
+no placeholder Documents feature or full document-support claim.
+Source472 merged after all exact-head checks. [Sandbox rollout](runbooks/artifact-sandbox-rollout.md)
+and [trusted build evidence](runbooks/artifact-build-evidence.md) track the existing
+image-only release separately. API/web00026 are healthy, sole100, with settings
+preserved and nine anonymous transport probes passed; owner review is pending.
+
+[Frontend flow review](runbooks/frontend-flow.md),467–471: responsive navigation,
+guided setup and compact transaction controls; source and synthetic review are
+implemented and included in the accepted artifact-policy Sandbox release;
+owner visual acceptance is pending.
+
+[In-app private setup/adoption](contracts/collection-onboarding.md),460: durable
+self-service tooling replaces routine manual SQL. Source461 and controlled
+Sandbox schema47/API/web release accepted; [deployment evidence and owner
+steps](runbooks/onboarding-sandbox-rollout.md), [independent build
+evidence](runbooks/onboarding-build-evidence.md) and [source stages](runbooks/collection-onboarding.md).
+Authenticated owner setup/adoption/private review remains453/436.
+
+[Strategic tags and private recovery](contracts/collection-tags-recovery.md):450/451 versioned profile and [stages](runbooks/collection-tags-recovery.md); GitHub65 owns active dispatch.
+
+# Project context
+
+[Persistent private labels](contracts/collection-labels.md):304/305 SQL/API/UI
+and [integration stages](runbooks/collection-label-build.md); shared command gate,
+topic editing and actual private review client. GitHub449 owns merge/CI state.
+
+[Parallel classification build](runbooks/daily-classification-build.md): reviewed
+source slices and combined synthetic proof; GitHub issues own delivery state.
+
+[PFC sidecar](contracts/pfc-normalization.md) and [stages](runbooks/pfc-normalization.md),
+413: explicit current-response attribution; legacy ingestion remains unchanged.
+
+[Private review component](contracts/collection-review-ui.md) and
+[stages](runbooks/collection-review-ui.md),305: guarded injected service port;
+[connected delivery](contracts/collection-live-labels.md) now supplies the actual
+authenticated client/taxonomy/recovery UI. Hosted activation remains separate.
+
+[Private source registry](contracts/private-registry.md) and
+[stages](runbooks/private-registry.md),239: forward42, current row locks,
+audited adoption, original-unit evidence and restricted synthetic proofs.
+
+[Private source read API](contracts/collection-read-api.md) and
+[stages](runbooks/collection-read-api.md),239/304: optional managed transport,
+default off; SQL authority and full analytic review remain separate gates.
+
+[Bounded rule evaluator](contracts/rule-evaluator.md) and
+[stages](runbooks/rule-evaluator.md),414: unintegrated pure Go matcher with
+synthetic precedence/conflict/regex proofs; private source/taxonomy/store/API
+and preview/apply dependencies remain open.
+
+[Private categorization design](contracts/private-categorization.md), [fixed cases](reviews/classification-433.md)
+and [delivery gates](plans/classification-delivery.md),433: owner design accepted in
+GitHub238/242; registry42 merged447; private labels43/current UI are in449.
+Provider/rule runtime remains separate. [Stages](runbooks/private-categorization.md).
+
+[Source Overview](contracts/source-overview.md) and [stages](runbooks/source-overview.md),432:
+all-imported activity with exact unit and merchant drills; dependent source preparation.
+
+[Source activity API](contracts/source-activity-api.md) and
+[stages](runbooks/source-activity-api.md),429: original-unit totals and pinned drills; source review pending.
+
+[Spending metric proposal](contracts/spending-metrics.md),
+[sources](research/spending-metrics-sources.md) and [stages](runbooks/spending-metrics.md),428/417.
+
+[Connected account presentation](contracts/connection-cards.md) and
+[stages](runbooks/connection-cards.md),290: primary actions and secondary management.
+
+[Source transaction search](contracts/transaction-search.md) and
+[stages](runbooks/transaction-search.md),408: private filters and observed coverage.
+
+[Accounting category recovery](contracts/category-recovery.md) and
+[stages](runbooks/category-recovery.md),416: draft readiness and readable detail.
+
+[Read availability copy](contracts/read-error-copy.md) and
+[stages](runbooks/read-error-copy.md) preserve pending-command uncertainty,291.
+
+[Daily money workspace](plans/daily-money-workspace.md), #412:
+Plaid category suggestions, explainable private rules, transaction usability,
+freshness, category/merchant spending and traceable opportunities. Read the
+[Sandbox audit](reviews/sandbox-money-workspace.md) and
+[rule source review](research/categorization-rules-sources.md).
+407 primary entry is in delivery; [stages](runbooks/transaction-entry.md) record
+actual evidence. Other children and cross-book dependencies remain separate.
+
+[Compact transaction reading](contracts/compact-transaction-review.md),415:
+responsive same-row table, focused detail/back and current-source defaults;
+[stages](runbooks/compact-transaction-review.md) record its dependent delivery.
+
+[Daily diagnostics/report polish](contracts/workspace-polish.md),420:
+inline report controls, explicit reading and idle-only Settings;
+[stages](runbooks/workspace-polish.md) preserve attention/recovery evidence.
+
+[Transaction sorting](contracts/transaction-review-sort.md) and
+[frontend audit](reviews/transaction-review-406.md):406 adds global data-column
+sorting, readable rows and explicit pagination; source-only forward39. Human
+review/managed rollout pending.407 navigation and408 search/coverage remain plans.
+
+[Current Production picker rollout](runbooks/picker-rollout.md): reviewed403/
+11b9074 scanned images deployed after managed36–38 up and independent clean38
+status. Original checking identities/history/counts preserved;187 review items,
+0journals, default one-account limit and existing04Z expiry unchanged.404 tracks
+existing-account historical availability repair; fresh Sandbox append qualification
+and owner-private reconciliation remain open. Never apply stale Terraform image pins.
+
+[Account picker](contracts/account-picker.md) and [stages](runbooks/account-picker.md):
+394 replaces ordinary binding forms with explicit selection and saved mapping
+review. [Historical ledger availability](contracts/registration-history-start.md)
+records forward38's approved-policy start correction; managed release evidence above.
+
+[Registration options](contracts/registration-options.md) and
+[stages](runbooks/registration-options.md):393 adds SQL-owned advisory eligibility,
+registered identity and capacity for the picker. Forward37 is applied in the
+bounded395 rollout above; no source-limit increase.
+
+Account presentation: [existing-field label contract](contracts/account-display-labels.md)
+and [delivery evidence](runbooks/account-display-labels.md) distinguish private
+current-view labels from future bank names/masks under290.
+
+[Select-and-register plan](plans/select-register-accounts.md), [source review](research/select-register-sources.md)
+and [stages](runbooks/select-register-accounts.md):391–395 propose a checkbox
+picker, server-owned mapping and atomic additional-account registration. Reuse290/
+387; current Production source cap remains1.36–38 applied; no second account registered.
+
+[Registration SQL](contracts/registration-sql.md) and [delivery stages](runbooks/registration-sql.md):
+392 implements forward36 for saved automatic setup and atomic existing-Item
+additions, using the existing command recovery gate.399 merged after owner review
+and five passing checks;36/API/picker now deployed. Fresh hosted append qualification remains.
+
+[Registration HTTP/recovery](contracts/registration-http.md) and [stages](runbooks/registration-api.md):
+393 connects selection-only preparation to typed saved-command recovery. Deployed
+in395 without additional private provider metadata or source authority.394 owns the picker.
+
+[Sandbox signed webhook proof](contracts/signed-sync-projection.md) and
+[stages](runbooks/sandbox-webhook-probe.md):385/389 merged, scanned and deployed;
+actual signed204, durable receipt1 and automatic generation4/4,18 review rows
+unchanged. Matching Production release is deployed; owner-approved one-account
+Ally checking pilot active through2026-11-03T04:00:00Z. Import/reconciliation
+evidence in [375 operations](runbooks/production-acquisition-rollout.md): first
+checking sync1/1,187 review rows,0 journals; private reconciliation remains open.
+
+[Production USD history](contracts/production-book-bootstrap.md#historical-usd-coverage--380) and
+[stages](runbooks/production-usd-history.md):380/381 merged and reference-only apply verified; current USD unchanged and historical coverage exact.
+
+[Webhook IAM compatibility](contracts/webhook-iam-compatibility.md) and
+[stages](runbooks/webhook-iam-compatibility.md):378 merged/applied; actual permission/profile/isolation readback in [375 operations](runbooks/production-acquisition-rollout.md).
+
+[Production personal-book bootstrap](contracts/production-book-bootstrap.md) and
+[delivery stages](runbooks/production-book-bootstrap.md): bounded reference and
+creator-owned scope setup under374 completed; owner Personal book created and acknowledged, scope verified.
+
+[Production runtime and readback](runbooks/production-runtime-rollout.md):
+Production API/frontend deployed; owner MFA workspace sign-in proven.
+Exact static-version integrity passed; finite one-account activation applied. See the
+[build time-budget repair](runbooks/production-build-time-budget.md).
+
+[Finite Production acquisition](contracts/finite-production-acquisition.md) and
+[rollout stages](runbooks/production-acquisition-rollout.md):375 workers/receiver
+deployed, Production one-book scheduling explicitly enabled for the finite pilot; Sandbox35 applied and one fictional
+account imports automatically. Queue recovery and scoped signed delivery passed;
+independent equality remains open. First checking publication independently
+verified:187 review rows/0 journals; counts do not prove reconciliation.
+
+[Bookkeeping delivery and qualification plan](plans/bookkeeping-readiness.md):
+bounded issues, dependencies, acceptance evidence and future agent leases;
+#50/#237/#88; current owner goal is the one-account #90 pilot.
+
+Optional enrollment expiry: [authority boundary](contracts/enrollment-availability.md)
+and [implementation evidence](runbooks/enrollment-availability.md), #281;
+synthetic delivery, hosted acceptance pending.
+
+[Actual Tartan registration/initial sync](runbooks/tartan-browser-qualification.md):
+nine sources published,46 review rows visible, savings repeat unchanged;
+category-account setup and independent equality pending.
+
+Sandbox app recovery after31: [finite release and preserved browser command](runbooks/app-recovery31.md),
+issues272/281; actual browser acceptance pending.
+
+Verifier IAM marker compatibility: [decision](contracts/verifier-iam-compatibility.md)
+and [delivery](runbooks/verifier-iam-compatibility.md), issue272;
+[migration31 and SQL bootstrap accepted](runbooks/verifier-31-rollout.md#actual-status-and-bootstrap).
+
+Scoped hosted Sandbox equality: [execution contract](contracts/hosted-sandbox-verifier.md)
+and [delivery/remaining gates](runbooks/hosted-sandbox-verifier.md), issue272.
+
+All-books Position workspace: [approved design](plans/position-workspace.md) and
+[delivery evidence](runbooks/position-workspace.md), issue #249. Direct Ledger and
+Reports retain scoped reads; financial totals remain per book and currency.
+
+Position-first finance workbench: [proposed Position read model](contracts/position-read-model.md),
+[fixed synthetic examples and source review](research/position-sources.md), and
+[delivery evidence](runbooks/position-contract.md), issue #248. Cash classification
+and attention status remain pending owner review.
+
+Future planning boundary: [proposed available-to-use model](contracts/available-to-use.md),
+[source record](research/available-to-use-sources.md), and
+[delivery evidence](runbooks/available-to-use.md), issue #251. The model awaits
+owner/accountant review and grants no service spending authority.
+
+Historical bank acquisition: [dated-currency contract](contracts/plaid-history-currency.md)
+and [delivery ledger](runbooks/plaid-history-currency.md), issues #225/#226.
+
+Reviewed Plaid credit-card and student/mortgage loan enrollment: [liability
+contract](contracts/plaid-liability-bindings.md), [source record](research/plaid-liability-sources.md)
+and [delivery ledger](runbooks/plaid-liability-bindings.md), issue #210.
+
+Automatic multi-book Sandbox acquisition: [shared publisher
+contract](contracts/shared-acquisition-publisher.md), [source record](research/shared-acquisition-sources.md)
+and [delivery ledger](runbooks/shared-acquisition-publisher.md), issue #156.
+
+## Decision
+
+Build actual bookkeeping software, learning through small, testable slices.
+The owner selected Go, PostgreSQL, Next.js, GCP, transactions and outbox-driven
+background work. The two predecessor repos are reference material only.
+
+## Read by task
+
+| Question | Authoritative document |
+| --- | --- |
+| What does the Plaid Launch Center actually show? | [Partial personalized review](research/plaid-launch-center-review.md) and [review stages](runbooks/plaid-launch-center-review.md); #274, G01 remains PARTIAL |
+| Which Plaid tests have passed, and what remains before qualification? | [#88 test matrix](plans/plaid-88-test-matrix.md), [official sources](research/plaid-88-test-sources.md) and [audit runbook](runbooks/plaid-88-test-matrix.md) |
+| What did the Plaid qualification swarm implement? | [Integration evidence](runbooks/plaid-88-swarm.md), [dedicated webhook runtime](contracts/webhook-managed-runtime.md) and [Link recovery](contracts/plaid-link-recovery-qualification.md) |
+| How is the dedicated Sandbox webhook release prepared? | [Release evidence](contracts/webhook-release-evidence.md), [infrastructure](contracts/webhook-release.md), [SQL bootstrap](contracts/webhook-bootstrap.md), [enrollment](contracts/webhook-enrollment.md) and [integration stages](runbooks/webhook-release-preparation.md); #271 hosted acceptance remains open |
+| Why is active account sync stuck after an acknowledged worker request? | [Acquisition recovery](contracts/plaid-acquisition-recovery.md) and [delivery evidence](runbooks/plaid-acquisition-recovery.md) |
+| How are per-account bank credentials encrypted? | [Encrypted credential contract](contracts/bank-token-vault.md) and [delivery ledger](runbooks/bank-token-vault.md) |
+| How does Connect account prepare a new creator-owned book? | [Self-service onboarding](contracts/self-service-connections.md) and [delivery evidence](runbooks/self-service-connections.md) |
+| How will one Plaid enrollment create distinct ledger accounts for several selected accounts? | [Automatic account binding contract](contracts/automatic-account-binding.md), [Plaid source review](research/automatic-account-binding-sources.md), [delivery plan](plans/automatic-account-binding.md), and [stage evidence](runbooks/automatic-account-binding.md) |
+| How can an owner finish or safely cancel a Plaid binding review? | [Binding review recovery contract](contracts/binding-review-recovery.md), [Plaid source review](research/binding-review-recovery-sources.md), and [stage evidence](runbooks/binding-review-recovery.md) |
+| Why does a fresh Sandbox bank attempt show link ready without connecting? | [Hosted Link enrollment and proposed restart contract](contracts/hosted-link-enrollment.md), [status UI gap](contracts/connection-status-ui.md), and [owner-observed recovery record](runbooks/hosted-link-enrollment.md) |
+| How does the owner retrieve a worker binding for a paused release? | [Read-only binding lookup](runbooks/worker-binding-lookup.md) |
+| How does the operator provision the first Sandbox principal and book? | [First Sandbox book bootstrap](runbooks/sandbox-book-bootstrap.md) |
+| What is the next product/data-collection sequence? | [Delivery milestones](plans/product-and-ingestion.md) |
+| What must pass before live sync, and how will scaling be measured? | [Sync quality gates](plans/sync-quality.md) and [validation evidence](runbooks/sync-quality.md) |
+| What works now, and how do I review it? | [Project status and frontend guide](project-status.md) |
+| What are we building? | [Product scope](product.md) |
+| What is the connect-first and global transaction boundary? | [Source-first decision](decisions/0006-source-first-workspace.md), [authority matrix](contracts/source-first-workspace.md) and [private labels](contracts/collection-labels.md); registry42 merged447, label43/UI in449 |
+| Why this stack and boundaries? | [Architecture](decisions/0001-architecture.md) |
+| What research supports the database direction? | [Research review](research/database-foundations.md) |
+| Which source sections were reviewed? | [Source register](research/database-sources.md) |
+| What should owners and agents read first? | [Annotated bibliography and reading guide](research/bibliography.md) |
+| What evidence must future decisions include? | [Decision evidence standard](research/decision-evidence.md) |
+| How do we manage work and context? | [Knowledge and issue ownership](decisions/0002-project-memory.md) |
+| What must the ledger guarantee? | [Accounting contract](contracts/accounting.md) |
+| Which ISO standards must messages and practices follow? | [Standards applicability contract](contracts/standards.md) |
+| How do we design the database? | [Database contract](contracts/database.md) |
+| Which schema owns each responsibility? | [Schema ownership ADR](decisions/0004-schema-ownership.md) |
+| What examples and policy decisions drive posting? | [Accounting scenarios](contracts/accounting-scenarios.md) |
+| What policy drives the first development book? | [Development policy ADR](decisions/0005-development-accounting-policy.md) |
+| What exactly must the posting implementation do? | [Posting boundary and acceptance matrix](contracts/posting-boundary.md) |
+| How are money and FX represented? | [Multicurrency contract](contracts/multicurrency.md) |
+| What are the proposed columns, roles and transactions? | [First ledger SQL contract](contracts/ledger-sql.md) |
+| What does the proposed HTTP interface accept? | [API contract](contracts/api.md) |
+| Do we need an ORM? | [SQL-first decision](decisions/0003-database-first.md) |
+| How do migrations run? | [Migration workflow](../db/migrations/README.md) |
+| What must retries and workers guarantee? | [Background work contract](contracts/background-work.md) |
+| How are secrets managed? | [Infisical setup](infisical.md) |
+| How will builds reach GCP? | [GCP delivery contract](gcp-delivery.md) |
+| How does the frontend authenticate to the private API? | [Runtime identity and private bridge](contracts/private-api-bridge.md) |
+| How are application images packaged and published? | [Image delivery contract](contracts/image-delivery.md) |
+| How does Cloud SQL connect and migrate safely? | [Cloud SQL contract](contracts/cloud-sql.md) |
+| How do we prove actual API database permissions? | [Bounded permission probe and operator procedure](runbooks/database-permission-probe.md) |
+| Is the development database provisioned? | [Cloud SQL provisioning evidence and next gates](runbooks/cloud-sql-bootstrap.md) |
+| Has Cloud SQL role bootstrap succeeded? | [Cloud Shell bootstrap and current operator ownership](runbooks/cloud-shell-bootstrap.md) |
+| How is the GCP foundation validated and bootstrapped? | [Foundation operations](gcp-foundation.md) |
+| How do we start, review and finish tasks? | [Delivery workflow](delivery.md) |
+| What are the proposed reporting queries and exports? | [Financial reporting contract](contracts/financial-reporting.md) |
+| How will the financial review workspace look and behave? | [Workspace design](plans/financial-workspace.md) and [synthetic prototype](prototypes/financial-workspace.html) |
+| What implements durable import confirmation and its Go storage boundary? | [Import SQL](contracts/import-sql.md), [Go orchestration](contracts/import-service.md), and [delivery evidence](runbooks/durable-import-delivery.md) |
+| What persists synthetic source identities and private evidence? | [Source registry](contracts/source-registry.md) and [import staging](contracts/import-staging.md) |
+| What is the first proposed statement-import format? | [Synthetic statement-import contract](contracts/statement-import.md) |
+| How will Plaid pulls and webhooks feed the same ingestion core? | [Provider ingestion proposal](contracts/provider-ingestion.md) |
+| How will outbox delivery, leases and sync recovery be proved? | [Worker contract review](runbooks/outbox-contract-review.md) and [provider/worker integration review](runbooks/provider-worker-review.md) |
+| What is the reporting SQL/service implementation boundary? | [Reporting SQL contract](contracts/reporting-sql.md) and [foundation evidence](runbooks/reporting-foundation.md) |
+| How will source evidence become a reviewed draft? | [Durable import proposal](contracts/durable-import.md), [review journey](plans/import-review.md), and [prototype](prototypes/import-review.html) |
+| How does Go drive observer SQL without a queue transaction? | [Runtime adapter contract](contracts/observer-runtime.md) and [delivery evidence](runbooks/observer-runtime-delivery.md) |
+| What proves the first receipt-only worker? | [Observer contract](contracts/worker-sql.md) and [integration evidence](runbooks/ingestion-foundations.md) |
+| What can the synthetic CSV decoder validate? | [Decoder contract](contracts/statement-decoder.md) and [test evidence](runbooks/statement-decoder.md) |
+| What tables and privileges would the first worker need? | [Proposed worker SQL contract](contracts/worker-sql.md) |
+| What did the parallel foundation build verify? | [Integration evidence and remaining gates](runbooks/build-foundations.md) |
+| What connects financial reports to HTTP and browser review? | [Reporting delivery evidence](runbooks/reporting-delivery.md) |
+| What adds comparisons, journal detail and internal CSV? | [Review tools delivery](runbooks/report-review-tools.md), [pinned journal contract](contracts/report-drill.md), and [CSV wire contract](contracts/report-export.md) |
+| What is the report wire format? | [HTTP contract](contracts/reporting-http.md) and [transport evidence](runbooks/reporting-http.md) |
+| How are deleted and disabled identities tested? | [Posting identity evidence](runbooks/posting-gate.md) |
+| What did the parallel design sessions deliver? | [Integration review and remaining gates](runbooks/parallel-contract-review.md) |
+| What worked in Brainblast? | [Tooling assessment](research/brainblast.md) |
+| How are identities enrolled and books created? | [Identity/setup contract](contracts/identity-setup.md) and [delivery evidence](runbooks/identity-setup.md) |
+| How does the first application run? | [Server contract](contracts/server.md), [browser sign-in](contracts/browser-auth.md), [first UI](contracts/first-ui.md) and [application evidence](runbooks/first-app.md) |
+| How do postings recover after losing a browser session? | [Durable command contract](contracts/command-recovery.md), [source review](research/recovery-sources.md) and [integration evidence](runbooks/command-recovery.md) |
+| What has actually passed? | [PostgreSQL posting proof](runbooks/posting-proof.md) |
+| How can I try generated books locally? | [Synthetic demo and cent checks](runbooks/synthetic-demo.md) |
+| What was checked for the contract package? | [Ledger contract runbook](runbooks/ledger-contracts.md) |
+
+For the generated 3,000-transaction review workflow, see the
+[populated demo delivery](runbooks/populated-demo.md).
+
+## Synthetic test data
+
+Use the [corpus and execution guide](../tests/corpus/README.md),
+[annotated test sources](research/testing-sources.md), and
+[corpus evidence runbook](runbooks/synthetic-corpus.md).
+
+## Next action
+
+Hosted acquisition is implemented for review on top of merged PR #109. Read the [hosted delivery runbook](runbooks/hosted-sandbox.md) and
+[platform contract](contracts/hosted-platform.md) for tested behavior and remaining
+activation steps. Worker/IAM and provider adapters have synthetic evidence;
+Infisical account configuration, real hosted acceptance and full Plaid Sandbox
+qualification remain open in #7/#11/#88. [Link and controlled worker delivery](runbooks/link-worker-delivery.md)
+adds the actual browser SDK adapter and paused worker promotion workflow for review.
+Qualified reconnect and hosted acceptance remain follow-ups. No production account activation.
+
+Review the [first application evidence](runbooks/first-app.md), then complete the
+managed identity and deployment gates before connecting live accounts. JB-001 remains open for a real
+LLC policy, opening-balance source and accountant cutover review. Development
+accrual/USD defaults do not resolve those live-use decisions.
+Entity/account counts, bank providers and application authentication configuration
+remain unknown. Development project `jayburd-bookkeeping-dev` (`9088794002`)
+and its billing link/foundation are established; see the delivery evidence ledger. The owner accepted an under-$50/month synthetic development target;
+`us-central1` remains provisional. See [GCP delivery](gcp-delivery.md),
+[epic #25](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/25) and
+the [delivery evidence ledger](runbooks/gcp-delivery.md).
+
+- [Cloud Run rollout contract](contracts/cloud-run-rollout.md) and [release review instructions](../deploy/README.md).
+
+Acquisition delivery: [SQL ownership](contracts/acquisition-dispatch-sql.md), [Go runtime](contracts/acquisition-dispatch-runtime.md), [transport profile](contracts/acquisition-transport.md), [delivery runbook](runbooks/acquisition-dispatch.md), and [bounded HTTP host](runbooks/worker-host.md).
+
+Hosted integration: [delivery evidence](runbooks/hosted-sandbox.md),
+[worker composition](contracts/hosted-workers.md), [durable evidence](contracts/hosted-evidence.md),
+[provider vault](contracts/provider-vault.md), [optional API composition](contracts/hosted-connections.md),
+and [Sandbox diagnostic boundary](contracts/plaid-sandbox-qualification.md).
+
+Application promotion now requires [explicit connection configuration](contracts/connection-release.md);
+[delivery evidence](runbooks/connection-release.md) distinguishes reviewed metadata
+from actual provider qualification.
+
+- [Hosted Sandbox probe](runbooks/hosted-sandbox-probe.md): credential delivery,
+  disposable API-created Item test, and explicit hosted evidence limits.
+
+- [Sandbox Hosted Link enrollment](runbooks/hosted-link-enrollment.md): explicit
+  session completion, account binding and synthetic application journey evidence.
+
+- [Hosted completion recovery](runbooks/hosted-link-recovery-wave2.md): bounded
+  verified completion, expiry recovery and browser/API/database evidence.
+- [Existing webhook rollout](runbooks/webhook-rollout.md): inert updater,
+  owner prerequisites and selected deployment receipt; hosted delivery remains open.
+- [Finite Sandbox verification](runbooks/sandbox-verification.md): independent
+  exact fixture comparison and absolute zero journal/outbox evidence under one mandate.
+- [Stale report rejection proof](runbooks/stale-report-test-proof.md): closed
+  error envelopes and diagnostic-ID collision regression; reporting behavior unchanged.

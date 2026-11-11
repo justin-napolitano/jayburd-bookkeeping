@@ -1,25 +1,22 @@
 # Jayburd Bookkeeping
 
-A planned bookkeeping system for separate LLC and personal books, with a Go
+A bookkeeping system for separate LLC and personal books, with a Go
 backend, PostgreSQL ledger, Next.js interface, and GCP delivery.
 
 ## Current stage
 
-The first synthetic PostgreSQL posting slice is implemented: balanced manual
-journals, spot conversion, exact reversals, scoped reads and trial balance, with
-atomic audit/receipt/outbox records. Go supplies transaction and HTTP adapters.
-An identity adapter requires managed TOTP sign-in and checks revocation; controlled
-setup creates synthetic entity/book/account bundles atomically. See the
-[identity/setup evidence](docs/runbooks/identity-setup.md).
-The first application adds a bounded Go server, managed sign-in/TOTP screens,
-book setup, split journal review/posting and trial balance. Default server mode
-exposes health only; the UI remains unconfigured until the owner supplies public
-identity configuration. See [application evidence](docs/runbooks/first-app.md).
-Reviewed setup and posting requests now survive a lost response or browser restart:
-prepare, execute, recover the saved result, then explicitly acknowledge it.
-See [command recovery evidence](docs/runbooks/command-recovery.md).
-There is no live identity configuration, bank connection, cloud deployment or
-approval to use these books as a system of record.
+Implemented: private workspace setup and retained-history adoption, transaction
+filters/detail, topics/tags and reviewed categorization rules, source-backed
+accounting entries, financial reports/CSV and durable saved-work recovery.
+Every new application entry starts from retained bank/provider or statement
+evidence. Standalone manual posting and unbound reversals are rejected.
+
+The [current capability map](docs/current-capabilities.md) separates working code,
+synthetic proof, dated deployment evidence, owner review and future capability.
+Latest [synthetic acceptance482](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/482#issuecomment-6805089153)
+includes browser/API/restricted PostgreSQL, source-backed restore, 1,000 reviewed
+postings and Go 1.26.11 security checks. Hosted provider qualification, complete
+statement reconciliation and official-books acceptance remain distinct gates.
 
 ## Start here
 
@@ -27,7 +24,8 @@ approval to use these books as a system of record.
 2. Read the [architecture decision](docs/decisions/0001-architecture.md).
 3. Follow the [delivery workflow](docs/delivery.md).
 4. Review [Infisical setup](docs/infisical.md).
-5. Resume from the [recovery proof and remaining gates](docs/runbooks/command-recovery.md).
+5. Resume from the current GitHub issue and its exact remaining acceptance;
+   [historical stages](docs/implementation-history.md) preserve earlier evidence.
 
 For source material and reading priorities, use the
 [annotated bibliography](docs/research/bibliography.md).
@@ -35,14 +33,17 @@ For source material and reading priorities, use the
 ## Local commands
 
 For an interactive review with fictional generated data, run `make demo` and open
-[the synthetic demo](http://localhost:39083). It seeds two fictional LLCs into
+[the synthetic demo](http://localhost:39083). It loads 3,000 source transactions across
+three fictional LLCs into
 disposable PostgreSQL and serves the real bookkeeping components and Go API.
 Stop with Ctrl+C; restart `make demo` to reset. See the
 [demo runbook](docs/runbooks/synthetic-demo.md) for prerequisites and data limits.
-Use **Watch a few transactions** for step-by-step request/commit/replay evidence,
-or **Run thousands** for 1,000/5,000/10,000 real postings with a final balance check.
+Loading imports source evidence; review and explicitly post a source item to
+update accounting. Retired manual stepping/volume runners are not demo actions.
+`make provider-flow-test` separately proves 1,000 source-backed postings and restore
+in isolated databases; `make demo-test` verifies the current browser demo.
 
-Requires Go 1.26.10 and Git. These commands need no cloud account or credentials.
+Requires Go 1.26.11 and Git. These commands need no cloud account or credentials.
 
 ```sh
 make check

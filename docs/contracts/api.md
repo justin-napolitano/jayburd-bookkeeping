@@ -110,7 +110,9 @@ semantic reinterpretations require an explicit version/migration decision.
 Further entity/book/account management, draft approvals, journal lists/pagination, statement
 import, reconciliation, settlement, revaluation and exports are separate next
 slices. Their durable obligations are recorded in the SQL contract; they have no
-invented placeholder HTTP endpoints here. First implementable slice is manual
-identity/spot posting and reads under ADR 0005 and the posting boundary, then exact reversal.
+invented placeholder HTTP endpoints here. The original first primitive-proof slice was manual
+identity/spot posting and reads under ADR 0005, then exact reversal. That historical
+sequencing does not authorize current public manual entry;473 governs the
+implemented retained-source posting flow.
 An internal synthetic identity adapter may exercise SQL tests, but cannot stand
 in for a production bearer-token verifier.

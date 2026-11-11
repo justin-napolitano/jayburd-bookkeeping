@@ -1,5 +1,14 @@
 # First posting operation boundary
 
+Current authority (473, reviewed2026-11-11): this document specifies the
+original low-level synthetic posting proof and reusable SQL invariants.
+[Artifact-backed accounting](artifact-backed-accounting.md) governs public customer
+flows: new postings require retained source review and `source_post`; direct
+manual posting, unbound reversal and prepared legacy `post` execution are rejected.
+The primitive signatures, exact money/replay rules and historical proof remain;
+they are not a selectable public application policy. Future artifact-linked
+corrections need their own implementation and acceptance.
+
 ## Decision and implementation scope
 
 This is the implementation target for the next synthetic PostgreSQL posting PR,
