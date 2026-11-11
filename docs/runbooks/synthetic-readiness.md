@@ -61,8 +61,15 @@ without timeout inflation or reintroducing the retired manual browser runner.
 | Local integration boundary | Standard provider-flow runner stopped before resource creation: Docker public-image credential-helper error; an explicitly empty task Docker config still could not access the daemon. No resource/dump created, no restricted-SQL PASS claimed. No privilege/host/guard/timeout changes; canonical CI required. |
 | Object recovery scope | PostgreSQL dump/restore retains original source object reference/hash and the complete source/review/command/entry graph. Original fictional bytes are a separate explicit recovery input, reinstalled through the storage API and compared byte-for-byte/hash-for-hash. This does not prove managed object backup/PITR or key recovery. |
 | CI feedback order | Move the existing isolated provider-flow step ahead of unrelated SQL suites so new restore/load failures surface promptly. Same standard runner, toolchain, permissions, images and240s timeout; no gate removed or duplicated. PR483 first snapshotfc2a329 superseded by this change; only latest exact-head checks count. |
+| First executed extension | Seed43080241136 on41155b7 executed the actual restricted proofs. Existing provider flow PASS0.29s; restore prepared/committed FAIL only the final wrapper-vs-journal comparison after restore/signature/money/recovery checks; volume FAIL final state/revision conjunct after1000 posting loops18.80s. Overall FAIL, not acceptance. Frontend and actual application both SUCCESS on that head. |
+| Test corrections | SQL11 source_post receipt wraps the immutable journal; compare its exact nested journal to journal detail, retaining explicit review/draft/journal scope checks. SQL1 setup_change increments the fixture book for two accounts, policy and period; independently require initial4, each subsequent posting increment and final1004. No runtime/SQL changes, smaller workload, removed money/count checks or timeout increase. A fresh exact-head execution is required. |
 
 ## Current evidence
+
+This file records implementation-stage observations. The current exact-head
+acceptance receipt is maintained on [issue482](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/482)
+and [PR483](https://github.com/justin-napolitano/jayburd-bookkeeping/pull/483);
+pending or failed historical rows below are not final successful acceptance.
 
 Baseline code matches deployed source9b2a656; only merged documentation differs.
 Prior successful releases are historical evidence, not this fresh acceptance.

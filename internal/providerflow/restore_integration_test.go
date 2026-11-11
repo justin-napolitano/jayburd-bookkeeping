@@ -387,8 +387,17 @@ func TestProviderSourceRestore(t *testing.T) {
 			}
 			request(t, app, "POST", "/v1/commands/"+id+"/execute", "", map[string]any{}, 200)
 			restoreCounts(t, admin, true)
-			journal := restoreObject(t, command["result"])
-			jid := stringField(t, journal["journal_id"])
+			// Source-post results retain the review/link receipt around the exact immutable journal.
+			sourceReceipt := restoreObject(t, command["result"])
+			journal := restoreObject(t, sourceReceipt["journal"])
+			body := restoreObject(t, command["body"])
+			jid := stringField(t, sourceReceipt["journal_id"])
+			if stringField(t, sourceReceipt["review_id"]) != reviewID ||
+				stringField(t, sourceReceipt["draft_id"]) != stringField(t, body["draft_id"]) ||
+				stringField(t, journal["journal_id"]) != jid ||
+				stringField(t, journal["entity_id"]) != entity || stringField(t, journal["book_id"]) != book {
+				t.Fatal("restored source receipt lost its review/draft/journal identity")
+			}
 			if !reflect.DeepEqual(journal, request(t, app, "GET", base+"/journals/"+jid, "", nil, 200)) {
 				t.Fatal("restored immutable journal differs from receipt")
 			}
