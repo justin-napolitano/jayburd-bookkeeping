@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: false
       - name: Validate context and tooling
         run: make check test build
@@ -40,6 +40,9 @@ jobs:
         env:
           BASE_COMMIT: ${{ github.event.pull_request.base.sha }}
         run: bash scripts/migrate.sh check "$BASE_COMMIT"
+      # This isolated runner includes source-backed restore/load; report its failures before unrelated SQL suites.
+      - name: Enrollment through acquisition, source restore and posting volume proof
+        run: make provider-flow-test
       - name: Prove isolated PostgreSQL migrations
         run: make migration-test
       - name: Prove restricted cloud migration roles on disposable PostgreSQL
@@ -78,8 +81,6 @@ jobs:
         run: make acquisition-test
       - name: Durable acquisition dispatch and retry proof
         run: make sync-dispatch-test
-      - name: Enrollment through acquisition and review proof
-        run: make provider-flow-test
       - name: Independent exact source review and zero journal proof
         run: make sandbox-verification-test
       - name: Build and prove isolated health-only API container
@@ -167,7 +168,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
