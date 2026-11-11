@@ -40,6 +40,9 @@ jobs:
         env:
           BASE_COMMIT: ${{ github.event.pull_request.base.sha }}
         run: bash scripts/migrate.sh check "$BASE_COMMIT"
+      # This isolated runner includes source-backed restore/load; report its failures before unrelated SQL suites.
+      - name: Enrollment through acquisition, source restore and posting volume proof
+        run: make provider-flow-test
       - name: Prove isolated PostgreSQL migrations
         run: make migration-test
       - name: Prove restricted cloud migration roles on disposable PostgreSQL
@@ -78,8 +81,6 @@ jobs:
         run: make acquisition-test
       - name: Durable acquisition dispatch and retry proof
         run: make sync-dispatch-test
-      - name: Enrollment through acquisition and review proof
-        run: make provider-flow-test
       - name: Independent exact source review and zero journal proof
         run: make sandbox-verification-test
       - name: Build and prove isolated health-only API container

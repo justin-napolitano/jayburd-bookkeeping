@@ -60,6 +60,7 @@ without timeout inflation or reintroducing the retired manual browser runner.
 | Implementation | Added `TestProviderSourceRestore/{prepared,committed}` and `TestSourceBackedPostingVolume1000`. Runner creates a pristine migrated template; each new test clones its own disposable database. No runtime/schema/dependency edits. Root independently reviewed restricted API effects, fixed oracles, cleanup and dump boundary. Integration-tag compile/vet and shell syntax passed. |
 | Local integration boundary | Standard provider-flow runner stopped before resource creation: Docker public-image credential-helper error; an explicitly empty task Docker config still could not access the daemon. No resource/dump created, no restricted-SQL PASS claimed. No privilege/host/guard/timeout changes; canonical CI required. |
 | Object recovery scope | PostgreSQL dump/restore retains original source object reference/hash and the complete source/review/command/entry graph. Original fictional bytes are a separate explicit recovery input, reinstalled through the storage API and compared byte-for-byte/hash-for-hash. This does not prove managed object backup/PITR or key recovery. |
+| CI feedback order | Move the existing isolated provider-flow step ahead of unrelated SQL suites so new restore/load failures surface promptly. Same standard runner, toolchain, permissions, images and240s timeout; no gate removed or duplicated. PR483 first snapshotfc2a329 superseded by this change; only latest exact-head checks count. |
 
 ## Current evidence
 
