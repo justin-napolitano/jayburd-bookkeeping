@@ -65,13 +65,33 @@ a fresh passing run. CI acceptance is recorded separately below.
   explicitly posts one linked entry. These workloads do not prove a universal
   throughput/latency SLA, arbitrary-volume ingestion or accountant acceptance.
 - Baseline `TestLedgerRestoreReplay` is a low-level ledger receipt restore test.
-  A retained source→review/draft→saved command→linked journal→report restore proof
-  is a distinct482 extension owned by the restore lane; record its named result
-  here only after execution. Prepared and committed-unacknowledged lifecycle
-  coverage across restore must not be inferred from ordinary replay tests.
-- Source-backed volume extension is owned by the security/volume lane. Until its
-  named results are recorded, do not relabel old manual/low-level posting load
-  as artifact-linked application volume.
+  The new482 `TestProviderSourceRestore/{prepared,committed}` uses actual
+  restricted `importer.Service` plus public Handler: two retained CSV rows0.10
+  and0.20USD, explicit reviewed import/ack, draft and source_post, then isolated
+  dump/restore. It compares pre/post hashes of selected evidence, review, draft,
+  commands, link, journal, receipts and outbox identities. Independent oracles
+  require two source rows, one draft, original lexemes0.10/0.20, source sum0.3;
+  before execute zero journals/links/receipts/outbox, after execute one of each,
+  two0.1 journal lines and trial-balance debit/credit0.1. Prepared or committed
+  unacknowledged body/result recovery, repeated execute and post-ack replay must
+  not duplicate effects. Raw object bytes are an explicitly recovered synthetic
+  input beside their retained reference/hash; pg_dump alone does not restore
+  object storage. Compile/vet passed; first actual execution FAILED as recorded
+  below, so restore acceptance remains open.
+- New `TestSourceBackedPostingVolume1000` uses1000 original0.10USD CSV outflows,
+  actual restricted import and HTTP detail/categories/draft/prepare/execute/ack.
+  Fixed independent targets are1000 unique journals/links/drafts/receipts/outbox,
+  2000 lines,100USD per side and report total100; every execute replays before
+  acknowledgement and four historical acknowledged commands replay again after
+  all later revisions. This is sequential bounded source-backed volume, not an
+  arbitrary-concurrency or availability SLA. Compile/vet passed; actual execution
+  FAILED on the first actual CI run as recorded below, not yet an accepted
+  workload result.
+- Both new tests remain synthetic-only. The standard local proof attempt was
+  blocked before fixture resources by Docker credential-helper/socket permissions;
+  no credentials, network/permission bypass, alternative SQL authority or skipped
+  assertion was used. Source-level readiness is distinct from restricted SQL
+  execution/restore acceptance.
 
 ## Fresh baseline acceptance
 
@@ -129,3 +149,39 @@ Several older index/corpus paragraphs still describe already implemented rules
 as unintegrated or list runtime gates generically as future work. This matrix
 uses current named implementations for positive claims and retains the narrower
 contract limits; documentation cleanup alone must not broaden feature acceptance.
+
+## Extension run tracking
+
+PR483 source `41155b77160a2d85db449ebfd337e1234c7e7dec` adds the test-only
+restore/volume extension and moves the existing provider-flow proof earlier in
+Seed so failures surface sooner. No gate, permission, image or timeout is removed
+or weakened. Initial run43080136527 is superseded and is not final acceptance.
+Exact-head Seed [43080241136](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/43080241136)
+has validate130730726857, actual application130730726304 and
+frontend130730726874. Frontend and actual application are SUCCESS.
+The new restricted source-restore/posting-volume phase FAILED. Foundation is
+[43080241199/job130730729377](https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/43080241199/job/130730729377).
+Record actual named test results and final gate metadata before promoting the
+pending claims above.
+
+Selected first actual restricted provider-flow output,2026-11-11:
+
+- Existing `TestProviderEnrollmentAcquisitionFlow` PASS0.29s.
+- `TestProviderSourceRestore/prepared` failed1.41s and `/committed` failed1.37s
+  at `restore_integration_test.go:393`: restored immutable journal differs from
+  receipt. Overall restore2.77s. Do not infer corrupted source/product history
+  from this assertion until its actual projection comparison is diagnosed.
+- `TestSourceBackedPostingVolume1000` failed18.80s at
+  `volume_integration_test.go:134`: volume source projection or book revision
+  changed. Posting throughput/count acceptance is not granted by reaching that
+  late assertion; inspect actual count and revision assumptions first.
+- Both test owners and coordinator received exact failures. No runtime edit,
+  relaxed assertion, timeout increase, skipped gate or substitute authority is
+  part of this matrix review. Corrected source requires a fresh exact-head run.
+
+Existing actual application acceptance on that same extension head remained
+green: labels/rules four8.5s; onboarding one2.6s; recovery one1.6s;
+`TestSyncReviewPostJourney`6.2s/suite7.1s, Production3.1s/suite3.7s,
+four demos10.3s. Final log again confirms3000 imports, one atomic source-linked
+posting, exact cents and recovery. This preserves baseline workflow acceptance
+but does not override the two new failing test groups.

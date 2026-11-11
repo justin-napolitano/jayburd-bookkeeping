@@ -79,6 +79,19 @@ phase. Do not label the whole application financially approved because CI is gre
   `TestWebhookKeyLifecycle` and `TestRunnerUnknownCommitAndRevocation` with
   `-count=1` (identity0.660s, webhook0.909s, acquisition1.027s package durations).
   These are offline SDK/provider-double checks, not real provider acceptance.
-- PENDING: actual isolated PostgreSQL restore and 1,000-posting workload under
+- PENDING successful acceptance: isolated PostgreSQL restore and 1,000-posting workload under
   the unchanged standard provider-flow runner and its existing240s timeout.
   Compilation or source review must not be reported as that execution result.
+
+## First canonical execution and fixture correction
+
+CI43080241136 first executed the 1,000-posting loop in18.80s, then failed an
+incorrect test assumption that the fixture's book began at revision0. SQL1's
+`ledger.setup_change` adds one revision for each of the two fixture accounts,
+one policy and one period: the independently fixed initial revision is4.
+The corrected proof requires initial4, each posting receipt revision5 through1004,
+and final1004, while retaining1,000 posted rows and every count/money/replay
+oracle. Public posted-state pagination must also return exactly the same1,000
+review identities. This is a test correction, not a product change or a PASS
+receipt; the first canonical proof failed before later assertions and needs a
+fresh successful full run. Existing240s runner timeout remains unchanged.

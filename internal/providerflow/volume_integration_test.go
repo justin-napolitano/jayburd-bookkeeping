@@ -22,9 +22,9 @@ func volumeStatement() string {
 }
 
 // volumeReviews collects current authorized identities before any draft changes the source snapshot.
-func volumeReviews(t *testing.T, f restoreFlowFixture) []string {
+func volumeReviews(t *testing.T, f restoreFlowFixture, state string) []string {
 	t.Helper()
-	base := "/v1/entities/" + entity + "/books/" + book + "/review-items?source_account_id=" + f.sourceID + "&state=needs_review&limit=100"
+	base := "/v1/entities/" + entity + "/books/" + book + "/review-items?source_account_id=" + f.sourceID + "&state=" + state + "&limit=100"
 	path := base
 	seen := map[string]bool{}
 	cursors := map[string]bool{}
@@ -45,7 +45,7 @@ func volumeReviews(t *testing.T, f restoreFlowFixture) []string {
 			t.Fatal("volume review page omitted source observations")
 		}
 		for _, row := range rows {
-			if row.ID == "" || seen[row.ID] || row.Amount != "0.1" || row.Currency != "USD" || row.Direction != "outflow" || row.State != "needs_review" {
+			if row.ID == "" || seen[row.ID] || row.Amount != "0.1" || row.Currency != "USD" || row.Direction != "outflow" || row.State != state {
 				t.Fatal("volume source identity, original units or exact amount changed")
 			}
 			seen[row.ID] = true
@@ -91,7 +91,11 @@ func TestSourceBackedPostingVolume1000(t *testing.T) {
 	if scalar(t, f.admin, "SELECT count(*)::text FROM ledger.journal_entry") != "0" || scalar(t, f.admin, "SELECT count(*)::text FROM integration.outbox_message") != "0" {
 		t.Fatal("imported artifacts posted accounting entries without review")
 	}
-	ids := volumeReviews(t, f)
+	// The fixture inserts two accounts, one policy and one period; each setup trigger adds one revision.
+	if scalar(t, f.admin, "SELECT revision::text FROM ledger.book") != "4" {
+		t.Fatal("volume fixture must start at fixed setup revision 4")
+	}
+	ids := volumeReviews(t, f, "needs_review")
 	commands := make([]map[string]json.RawMessage, 0, 1000)
 	journalIDs := map[string]bool{}
 	postingStarted := time.Now()
@@ -106,10 +110,17 @@ func TestSourceBackedPostingVolume1000(t *testing.T) {
 		replay := request(t, f.app, "POST", path+"/execute", "", map[string]any{}, 200)
 		volumeReceipt(t, saved, replay)
 		var result struct {
-			JournalID string `json:"journal_id"`
+			JournalID    string `json:"journal_id"`
+			BookRevision string `json:"book_revision"`
+			Journal      struct {
+				BookRevision string `json:"book_revision"`
+			} `json:"journal"`
 		}
 		if json.Unmarshal(saved["result"], &result) != nil || result.JournalID == "" || journalIDs[result.JournalID] {
 			t.Fatal("distinct source rows did not create distinct linked entries")
+		}
+		if result.BookRevision != fmt.Sprint(i+5) || result.Journal.BookRevision != fmt.Sprint(i+5) {
+			t.Fatal("source-backed receipt did not advance the fixed book revision exactly once")
 		}
 		journalIDs[result.JournalID] = true
 		ack := request(t, f.app, "POST", path+"/acknowledge", "", map[string]any{}, 200)
@@ -130,8 +141,21 @@ func TestSourceBackedPostingVolume1000(t *testing.T) {
 			t.Fatalf("wrong fixed volume effect count for %s", table)
 		}
 	}
-	if scalar(t, f.admin, "SELECT count(*)::text FROM banking.review_item WHERE state='posted'") != "1000" || scalar(t, f.admin, "SELECT revision::text FROM ledger.book") != "1000" {
-		t.Fatal("volume source projection or book revision changed")
+	if scalar(t, f.admin, "SELECT count(*)::text FROM banking.review_item WHERE state='posted'") != "1000" {
+		t.Fatal("volume must retain exactly 1000 posted source projections")
+	}
+	if scalar(t, f.admin, "SELECT revision::text FROM ledger.book") != "1004" {
+		t.Fatal("volume book must finish at fixed setup 4 plus 1000 postings")
+	}
+	posted := volumeReviews(t, f, "posted")
+	wanted := make(map[string]bool, 1000)
+	for _, id := range ids {
+		wanted[id] = true
+	}
+	for _, id := range posted {
+		if !wanted[id] {
+			t.Fatal("public posted projection changed source identity")
+		}
 	}
 	if scalar(t, f.admin, "SELECT count(*)::text FROM ledger.interactive_command WHERE operation='source_post' AND state='committed' AND acknowledged_at IS NOT NULL") != "1000" {
 		t.Fatal("volume saved-command lifecycle incomplete")
