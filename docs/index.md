@@ -1,3 +1,11 @@
+[Customer banking experience](runbooks/customer-banking-ui.md),479: merged source480
+removes debugging UI and uses compact Accounts with contextual recovery.
+[Web-only release](runbooks/customer-ui-web-release.md) and
+[independent build evidence](runbooks/customer-ui-build-evidence.md) track the
+accepted web-only rollout separately: web00027 is healthy/sole100 with unchanged
+API00026, selected settings preserved and nine anonymous probes passed. Owner
+visual acceptance remains open.
+
 [Artifact-backed accounting](contracts/artifact-backed-accounting.md),473–477:
 owner requires retained evidence for new application entries. [Delivery](runbooks/artifact-backed-accounting.md)
 closes unsupported manual UI/API paths; source-linked bank posting remains.
