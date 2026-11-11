@@ -1,5 +1,12 @@
 # Production source profile and bank-read-only bookkeeping pilot
 
+Current authority (473, reviewed2026-11-11): the dated pilot proposal below
+is not current activation approval. [Artifact-backed accounting](artifact-backed-accounting.md)
+supersedes its manual posting/reversal fallback. New customer postings require
+retained source review and `source_post`; artifact-linked corrections remain a
+future workflow. Current task/activation state belongs to GitHub, not the original
+proposal's dependency descriptions. No live/provider qualification follows.
+
 ## Status and purpose
 
 #308 under #90, revised2026-10-25. Owner accepted bank-read-only access with
@@ -49,9 +56,9 @@ source evidence; a separately authorized posting workflow creates accounting.
 
 Keep source revisions and journal provenance. Posted changes are resolved through
 linked exact reversal/replacement or another separately reviewed correction
-operation, preserving immutable originals. Reuse existing manual posting/reversal
-while #332–#336 deliver reviewed rules, correction resolution/UI and end-to-end
-proof. Do not make completion of the entire automatic rule engine a prerequisite
+operation, preserving immutable originals. The original proposal to reuse manual posting/reversal while
+#332–#336 progressed is superseded by473. Use the implemented retained-source
+posting path; linked correction resolution/UI still requires its own proof. Do not make completion of the entire automatic rule engine a prerequisite
 for initial registration. Unimplemented automatic/correction actions remain honestly
 unavailable; the present provider-exception queue is not completed correction code.
 No live basis, recognition, valuation or loan/card policy is inferred from the

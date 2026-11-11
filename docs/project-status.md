@@ -1,3 +1,10 @@
+# Historical project snapshots
+
+This file preserves dated delivery observations. Use the [current capability map](current-capabilities.md)
+for implemented behavior, latest proof and remaining acceptance. Historical
+“not deployed”, manual-entry and “next” statements below are not current task
+instructions or a substitute for GitHub state.
+
 # Bank connection recovery — 2026-10-15
 
 Owner reached hosted Plaid success, but token persistence failed before a dynamic
