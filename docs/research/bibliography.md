@@ -1,5 +1,7 @@
 # Research index
 
+[Go484](go-toolchain-2026-11.md): official selections2026-11-11.
+
 [Metrics](spending-metrics-sources.md): SM01–07, proposed.
 
 [Rules](categorization-rules-sources.md): CR01–08, selected; ML abstract.
