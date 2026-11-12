@@ -10,7 +10,7 @@ on:
       phase:
         description: Separate reviewed phase for automatic-synthetic only
         type: choice
-        options: [inspect, migrate, stage, activate, web, pause]
+        options: [inspect, migrate, stage, resume-stage, activate, web, pause]
         default: inspect
       release_sha256:
         description: SHA256 of reviewed manifest selected by the release profile

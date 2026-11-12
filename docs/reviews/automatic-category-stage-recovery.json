@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "migration": {
+    "run": "43264239902",
+    "status": "forward-migration-and-candidate-status-passed",
+    "preflight": {
+      "schemaVersion": 1,
+      "status": "migration-verification-passed",
+      "project": "jayburd-bookkeeping-dev",
+      "operation": "verify",
+      "build": null,
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:199ed337de73e622c7398516a90ef196620b100701cb3f07924e6cd86df5f31a",
+      "execution": "jayburd-dev-migrate-nnlth",
+      "completedAt": "2026-11-12T16:59:46.461207Z",
+      "evidence": {
+        "issue485": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/485#issuecomment-6827331551",
+        "claim65": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/65#issuecomment-6827330358"
+      },
+      "limitations": [
+        "No API/identity/restore/load acceptance.",
+        "Read-only version/hash check; replay remains separate.",
+        "Historical schema47 baseline image; not produced by targetBuild and not patched-runtime acceptance."
+      ],
+      "targetBuild": {
+        "run": "43158591303",
+        "attempt": "1",
+        "commit": "eb1828caab584064aa076edefccbb2bb413b84a7"
+      }
+    },
+    "applied": {
+      "schemaVersion": 1,
+      "status": "migration-execution-passed",
+      "project": "jayburd-bookkeeping-dev",
+      "operation": "migrate",
+      "build": {
+        "run": "43158591303",
+        "attempt": "1",
+        "commit": "eb1828caab584064aa076edefccbb2bb413b84a7"
+      },
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:7a70083f25efcac59389524fd337c3697405a8629e647b0724d5e842171d241a",
+      "execution": "jayburd-dev-migrate-528sn",
+      "completedAt": "2026-11-12T17:01:31.087747Z",
+      "evidence": {
+        "issue485": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/485#issuecomment-6827331551",
+        "claim65": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/65#issuecomment-6827330358"
+      },
+      "limitations": [
+        "No API/identity/restore/load acceptance.",
+        "SQL version and replay require separate evidence."
+      ]
+    },
+    "verified": {
+      "schemaVersion": 1,
+      "status": "migration-verification-passed",
+      "project": "jayburd-bookkeeping-dev",
+      "operation": "verify",
+      "build": {
+        "run": "43158591303",
+        "attempt": "1",
+        "commit": "eb1828caab584064aa076edefccbb2bb413b84a7"
+      },
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:7a70083f25efcac59389524fd337c3697405a8629e647b0724d5e842171d241a",
+      "execution": "jayburd-dev-migrate-tpdpk",
+      "completedAt": "2026-11-12T17:03:04.214661Z",
+      "evidence": {
+        "issue485": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/485#issuecomment-6827331551",
+        "claim65": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/65#issuecomment-6827330358"
+      },
+      "limitations": [
+        "No API/identity/restore/load acceptance.",
+        "Read-only version/hash check; replay remains separate."
+      ]
+    },
+    "finalDefaultAction": "status"
+  },
+  "stageAttempt": {
+    "run": "43265831201",
+    "manifestSHA256": "9258dbf5a14d6c2d426d9325e36e1d8e2b31cb77c9cb5b804cdd588d0687d939",
+    "schemaVersion": 1,
+    "phase": "stage",
+    "status": "mutation-replied-requires-readback",
+    "operation": "stage-api",
+    "at": "2026-11-12T17:06:43.231Z",
+    "observed": "jayburd-dev-api-as-43158591303-stage"
+  },
+  "readback": {
+    "run": "43266304917",
+    "status": "inspection-only-not-release-acceptance",
+    "validation": {
+      "api": "requires-owner-review",
+      "web": "healthy-selected-profile",
+      "migrate": "healthy-selected-profile"
+    },
+    "apiTemplateName": "jayburd-dev-api-as-43158591303-stage",
+    "apiLatestCreated": "jayburd-dev-api-as-43158591303-stage",
+    "apiLatestReady": "jayburd-dev-api-00026-5nt",
+    "apiDesiredTraffic": [
+      {
+        "revisionName": "jayburd-dev-api-00026-5nt",
+        "percent": 100
+      }
+    ],
+    "apiObservedTraffic": [
+      {
+        "revisionName": "jayburd-dev-api-00026-5nt",
+        "percent": 100
+      }
+    ],
+    "apiConditions": [
+      {
+        "type": "Ready",
+        "status": "True"
+      },
+      {
+        "type": "ConfigurationsReady",
+        "status": "True"
+      },
+      {
+        "type": "RoutesReady",
+        "status": "True"
+      }
+    ],
+    "apiContainerSpecEqualsBaselineWithCandidateImage": true,
+    "apiSelectedAnnotationsEqualBaseline": true,
+    "webExactBaseline": true,
+    "migratorCandidateStatusExact": true
+  },
+  "renewedManifestSHA256": "cd73921a12770c9e0db2e16ad6e50f33542d5cf37a17f0f9e76dfb158c67669c",
+  "limitations": [
+    "No promotion attempt recorded; current old API sole100 traffic observed.",
+    "No startup/active readiness claim for staged candidate before direct readback/promotion.",
+    "Workspace-wide synthetic scope remains unconfirmed; no policy enable/adoption."
+  ]
+}
