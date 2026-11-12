@@ -18,5 +18,221 @@
     "issue485": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/485#issuecomment-6827331551",
     "claim65": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/65#issuecomment-6827330358"
   },
-  "baseline": null
+  "baseline": {
+    "api": {
+      "metadata": {
+        "name": "jayburd-dev-api",
+        "annotations": {
+          "run.googleapis.com/ingress": "all",
+          "run.googleapis.com/ingress-status": "all",
+          "run.googleapis.com/maxScale": "2"
+        }
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": null,
+            "annotations": {
+              "run.googleapis.com/cpu-throttling": "true",
+              "autoscaling.knative.dev/minScale": "0",
+              "autoscaling.knative.dev/maxScale": "2"
+            }
+          },
+          "spec": {
+            "serviceAccountName": "jayburd-dev-api@jayburd-bookkeeping-dev.iam.gserviceaccount.com",
+            "containerConcurrency": 16,
+            "timeoutSeconds": 15,
+            "containers": [
+              {
+                "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:9747304373c1c9923518b0675cb85a2fcdde1ed1f397244df59208683fc790e0",
+                "args": [
+                  "-mode=managed",
+                  "-listen=0.0.0.0:8080",
+                  "-project=jayburd-bookkeeping-dev",
+                  "-origin=https://jayburd-dev-web-9088794002.us-central1.run.app",
+                  "-database-mode=cloudsql",
+                  "-cloud-sql-instance=jayburd-bookkeeping-dev:us-central1:jayburd-dev",
+                  "-connections-enabled",
+                  "-plaid-link-events-qualified=false",
+                  "-provider-project-number=9088794002",
+                  "-infisical-origin=https://app.infisical.com",
+                  "-infisical-project=ec11c550-d143-4902-be67-e33266753539",
+                  "-infisical-environment=dev",
+                  "-infisical-identity=56d2a541-a48d-4bcc-ae0c-11f48c945ba2",
+                  "-provider-registry-bucket=jayburd-bookkeeping-dev-jayburd-dev-credential-registry",
+                  "-provider-registry-prefix=provider-credentials-v1",
+                  "-plaid-client-id-version=projects/9088794002/secrets/jayburd-dev-bank-sync-client-id/versions/1",
+                  "-plaid-client-secret-version=projects/9088794002/secrets/jayburd-dev-bank-sync-client-secret/versions/1",
+                  "-plaid-consent-expires-at=2026-11-02T04:00:00Z",
+                  "-plaid-webhook-url=https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid",
+                  "-collection-read-enabled=true"
+                ],
+                "command": [],
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http1"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "startupProbe": {
+                  "failureThreshold": 12,
+                  "httpGet": {
+                    "path": "/readyz",
+                    "port": 8080
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                }
+              }
+            ]
+          }
+        },
+        "traffic": [
+          {
+            "revisionName": "jayburd-dev-api-00026-5nt",
+            "percent": 100
+          }
+        ]
+      },
+      "status": {
+        "latestReadyRevisionName": "jayburd-dev-api-00026-5nt",
+        "latestCreatedRevisionName": "jayburd-dev-api-00026-5nt",
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True"
+          },
+          {
+            "type": "ConfigurationsReady",
+            "status": "True"
+          },
+          {
+            "type": "RoutesReady",
+            "status": "True"
+          }
+        ],
+        "traffic": [
+          {
+            "revisionName": "jayburd-dev-api-00026-5nt",
+            "percent": 100
+          }
+        ]
+      }
+    },
+    "web": {
+      "metadata": {
+        "name": "jayburd-dev-web",
+        "annotations": {
+          "run.googleapis.com/ingress": "all",
+          "run.googleapis.com/ingress-status": "all",
+          "run.googleapis.com/maxScale": "2"
+        }
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": null,
+            "annotations": {
+              "run.googleapis.com/cpu-throttling": "true",
+              "autoscaling.knative.dev/minScale": "0",
+              "autoscaling.knative.dev/maxScale": "2"
+            }
+          },
+          "spec": {
+            "serviceAccountName": "jayburd-dev-frontend@jayburd-bookkeeping-dev.iam.gserviceaccount.com",
+            "containerConcurrency": 32,
+            "timeoutSeconds": 20,
+            "containers": [
+              {
+                "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:e4521574edecc6a5901c7f590341112484370e6cf93d63a3f13e30c79f3ba16d",
+                "args": [],
+                "command": [],
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http1"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "startupProbe": {
+                  "failureThreshold": 12,
+                  "httpGet": {
+                    "path": "/api/auth-config",
+                    "port": 8080
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                }
+              }
+            ]
+          }
+        },
+        "traffic": [
+          {
+            "revisionName": "jayburd-dev-web-00027-6jn",
+            "percent": 100
+          }
+        ]
+      },
+      "status": {
+        "latestReadyRevisionName": "jayburd-dev-web-00027-6jn",
+        "latestCreatedRevisionName": "jayburd-dev-web-00027-6jn",
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True"
+          },
+          {
+            "type": "ConfigurationsReady",
+            "status": "True"
+          },
+          {
+            "type": "RoutesReady",
+            "status": "True"
+          }
+        ],
+        "traffic": [
+          {
+            "revisionName": "jayburd-dev-web-00027-6jn",
+            "percent": 100
+          }
+        ]
+      }
+    },
+    "migrate": {
+      "name": "jayburd-dev-migrate",
+      "taskCount": 1,
+      "parallelism": 1,
+      "serviceAccountName": "jayburd-dev-migrator@jayburd-bookkeeping-dev.iam.gserviceaccount.com",
+      "maxRetries": 0,
+      "timeoutSeconds": "660",
+      "containers": [
+        {
+          "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:199ed337de73e622c7398516a90ef196620b100701cb3f07924e6cd86df5f31a",
+          "command": [],
+          "args": [
+            "-action=status",
+            "-instance=jayburd-bookkeeping-dev:us-central1:jayburd-dev"
+          ],
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "memory": "512Mi"
+            }
+          }
+        }
+      ]
+    }
+  }
 }
