@@ -1,8 +1,11 @@
 "use client";
+import { AutomaticCategorization } from "./AutomaticCategorization";
+import { CategorizationSummary } from "./CategorizationSummary";
 import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type FormEvent,
@@ -65,6 +68,7 @@ export type CollectionReviewProps = {
   ruleSeed?: RuleSeed | null;
   onSeedConsumed?: () => void;
   onRefreshCatalog?: () => void;
+  onAutomaticRun?: (runID: string) => void;
   onPrepareConflict?: () => Promise<void> | void;
   refreshVersion?: number;
   newWorkLocked?: boolean;
@@ -111,6 +115,7 @@ function Review({
   onLockChange,
   onAcknowledged,
   onRefreshCatalog,
+  onAutomaticRun,
   onPrepareConflict,
   refreshVersion = 0,
   newWorkLocked = false,
@@ -119,6 +124,7 @@ function Review({
   onSeedConsumed,
   onDenied,
 }: CollectionReviewProps) {
+  const [automationLocked, setAutomationLocked] = useState(false);
   const topicChoiceLabel = useId();
   const afterAckSeed = useRef<RuleSeed | null>(null);
   const [detail, setDetail] = useState<DetailRequest | null>(null);
@@ -165,6 +171,7 @@ function Review({
   const recoveredVersion = useRef(refreshVersion);
   const reciprocalRefreshPending = recoveredVersion.current !== refreshVersion;
   const blocked =
+    automationLocked ||
     newWorkLocked ||
     locked ||
     denied ||
@@ -192,7 +199,8 @@ function Review({
           !!preview ||
           !!command ||
           uncertain ||
-          reciprocalRefreshPending),
+          reciprocalRefreshPending ||
+          automationLocked),
     );
   }, [
     ready,
@@ -202,6 +210,7 @@ function Review({
     uncertain,
     denied,
     reciprocalRefreshPending,
+    automationLocked,
   ]);
   useEffect(() => {
     if (locked) {
@@ -339,8 +348,8 @@ function Review({
     recover,
   ]);
 
-  // Focus only the committed current review; frames can run before React attaches its heading.
-  useEffect(() => {
+  // Focus the committed current review before paint, after React attaches its heading.
+  useLayoutEffect(() => {
     const request = focusRequest.current;
     if (!request) return;
     if (locked || !reviewVisible) return;
@@ -836,6 +845,50 @@ function Review({
           Refresh
         </button>
       </div>
+      {catalog.automatic_categorization?.state === "available" &&
+        port.automation &&
+        !command &&
+        !preview && (
+          <AutomaticCategorization
+            workspace={workspace.workspace_id}
+            port={port.automation}
+            active={active}
+            canClassify={canClassify}
+            locked={
+              newWorkLocked ||
+              locked ||
+              denied ||
+              busy ||
+              !ready ||
+              !!command ||
+              uncertain ||
+              reciprocalRefreshPending
+            }
+            onLockChange={setAutomationLocked}
+            onDenied={() => failure(new CollectionFailure("denied"))}
+            onChanged={() =>
+              onRefreshCatalog ? onRefreshCatalog() : refresh()
+            }
+            onRun={onAutomaticRun}
+            onAttention={() => {
+              const next: Selector = {
+                ...selector,
+                topic: { kind: "needs_attention" },
+                status: { ...selector.status, source: "booked" },
+              };
+              setDraft(next);
+              setSelector(next);
+              read({
+                ...next,
+                profile: "private-collection-review-v3",
+                workspace_id: workspace.workspace_id,
+                limit: 25,
+                cursor: null,
+                snapshot: null,
+              });
+            }}
+          />
+        )}
       {!command && (
         <form className={styles.filters} onSubmit={applyFilters}>
           <fieldset disabled={blocked || reading || !!preview}>
@@ -951,6 +1004,7 @@ function Review({
                               kind: event.target.value as
                                 | "all"
                                 | "unclassified"
+                                | "needs_attention"
                                 | "uncategorized",
                             },
                       })
@@ -958,6 +1012,10 @@ function Review({
                   >
                     <option value="all">All topics</option>
                     <option value="unclassified">Not classified</option>
+                    {catalog.automatic_categorization?.state ===
+                      "available" && (
+                      <option value="needs_attention">Needs attention</option>
+                    )}
                     <option value="uncategorized">
                       Explicit Uncategorized
                     </option>
@@ -1159,6 +1217,12 @@ function Review({
                     >
                       {row.description}
                     </button>
+                    <CategorizationSummary
+                      row={row}
+                      automaticAvailable={
+                        catalog.automatic_categorization?.state === "available"
+                      }
+                    />
                     <span>{row.account_name}</span>
                     <span>
                       {row.merchant === null
@@ -1174,7 +1238,10 @@ function Review({
                     </div>
                     <details>
                       <summary>Labels and provenance</summary>
-                      <RuleApplicationView application={row.rule_application} />
+                      <RuleApplicationView
+                        application={row.rule_application}
+                        catalog={catalog}
+                      />
                       <RuleSuggestionView
                         suggestion={row.rule_suggestion}
                         catalog={catalog}

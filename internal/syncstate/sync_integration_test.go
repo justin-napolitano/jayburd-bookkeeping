@@ -540,10 +540,27 @@ func TestSyncPrivileges(t *testing.T) {
 	c, db, _ := setup(t)
 	_, guardErr := c.Exec(context.Background(), "UPDATE integration.sync_stream SET account_id='rewritten'")
 	requireCode(t, guardErr, "P2602")
-	// Migration 24 adds exactly one fenced diagnostic entrypoint; tables and recovery stay private.
-	if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','banking','integration','reference') AND has_function_privilege('synthetic_sync',p.oid,'EXECUTE')`) != "12" ||
-		value(t, c, `SELECT has_function_privilege('synthetic_sync','integration.worker_bank_credential(uuid,uuid,uuid,uuid,bigint)'::regprocedure,'EXECUTE')::text`) != "true" ||
-		value(t, c, `SELECT has_function_privilege('synthetic_sync','integration.reject_sync_decode(uuid,uuid,uuid,uuid,bigint,text)'::regprocedure,'EXECUTE')::text`) != "true" {
+	// Migration48 adds exactly three attributed-category operations. Compare exact
+	// signatures rather than only a count, so helpers and accidental overloads stay denied.
+	allowed := []string{
+		"integration.request_sync(uuid, uuid, uuid, text)",
+		"integration.claim_sync(uuid, uuid, uuid, uuid)",
+		"integration.stage_sync_page(uuid, uuid, uuid, uuid, bigint, text)",
+		"integration.complete_sync(uuid, uuid, uuid, uuid, bigint)",
+		"integration.abandon_sync(uuid, uuid, uuid, uuid, bigint, text)",
+		"integration.sync_context(uuid, uuid, uuid, uuid, bigint)",
+		"integration.sync_resume(uuid, uuid, uuid, uuid)",
+		"integration.catchup_sync(uuid, uuid, uuid, integer, uuid)",
+		"integration.sync_delivery_claim(uuid, bigint, uuid)",
+		"integration.sync_delivery_settle(uuid, uuid, bigint, text, integer)",
+		"integration.worker_bank_credential(uuid, uuid, uuid, uuid, bigint)",
+		"integration.reject_sync_decode(uuid, uuid, uuid, uuid, bigint, text)",
+		"integration.stage_sync_category_page(uuid, uuid, uuid, uuid, bigint, text)",
+		"integration.sync_category_context(uuid, uuid, uuid, uuid, bigint)",
+		"integration.complete_sync_categories(uuid, uuid, uuid, uuid, bigint)",
+	}
+	if value(t, c, `SELECT count(*)::text FROM unnest($1::text[])signature WHERE to_regprocedure(signature)IS NULL`, allowed) != "0" ||
+		value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('ledger','banking','integration','reference','audit','reporting','deployment') AND has_function_privilege('synthetic_sync',p.oid,'EXECUTE')<>((n.nspname||'.'||p.proname||'('||oidvectortypes(p.proargtypes)||')')=ANY($1::text[]))`, allowed) != "0" {
 		t.Fatal("unexpected worker execute privilege")
 	}
 	worker := connect(t, db, "synthetic_sync")

@@ -1,4 +1,4 @@
-.PHONY: check test build backlog packet issue-drafts migration-create migration-seal migration-check migration-test ledger-test web-check web-test web-build web-browser app-integration
+.PHONY: check test build backlog packet issue-drafts migration-create migration-seal migration-check migration-test ledger-test web-check web-test web-build web-browser app-integration automatic-categorization-test automatic-categorization-browser
 
 check:
 	go run ./cmd/project check
@@ -7,6 +7,12 @@ check:
 	bash scripts/check-stage-runbook.sh --validate
 	go vet ./...
 	git diff --check
+
+automatic-categorization-test:
+	bash scripts/test-automatic-categorization.sh
+
+automatic-categorization-browser:
+	bash scripts/test-app-integration.sh --automatic
 
 test:
 	node --test scripts/production-release-candidate.test.mjs scripts/production-build-proof.test.mjs scripts/production-image-build.test.mjs scripts/shared-production-foundation.test.mjs

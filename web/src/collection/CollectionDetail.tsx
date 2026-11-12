@@ -1,3 +1,4 @@
+import { CategorizationSummary } from "./CategorizationSummary";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatAmount } from "../bookkeeping/amount";
 import {
@@ -97,6 +98,12 @@ export function CollectionDetail({
       {detail && (
         <>
           <h3>{detail.row.description}</h3>
+          <CategorizationSummary
+            row={detail.row}
+            automaticAvailable={
+              catalog.automatic_categorization?.state === "available"
+            }
+          />
           <p>
             {detail.row.booked_date} · {detail.row.account_name}
           </p>
@@ -153,7 +160,10 @@ export function CollectionDetail({
             . This is separate from an owner decision or accounting treatment.
           </p>
           <h3>Saved rule provenance</h3>
-          <RuleApplicationView application={detail.row.rule_application} />
+          <RuleApplicationView
+            application={detail.row.rule_application}
+            catalog={catalog}
+          />
           <h3>Current rule suggestion</h3>
           <RuleSuggestionView
             suggestion={detail.row.rule_suggestion}

@@ -7,7 +7,8 @@ connections_test=false
 production_test=false
 labels_test=false
 onboarding_test=false
-case "${1:-}" in --onboarding) onboarding_test=true ;; --labels) labels_test=true ;; --production) production_test=true; connections_test=true ;; --connections) connections_test=true ;; --demo) demo=true ;; --demo-test) demo=true; demo_test=true ;; '') ;; *) echo 'Usage: test-app-integration.sh [--demo|--demo-test|--connections|--production|--labels|--onboarding]' >&2; exit 1 ;; esac
+automatic_test=false
+case "${1:-}" in --automatic) automatic_test=true ;; --onboarding) onboarding_test=true ;; --labels) labels_test=true ;; --production) production_test=true; connections_test=true ;; --connections) connections_test=true ;; --demo) demo=true ;; --demo-test) demo=true; demo_test=true ;; '') ;; *) echo 'Usage: test-app-integration.sh [--demo|--demo-test|--connections|--production|--labels|--onboarding|--automatic]' >&2; exit 1 ;; esac
 proof_timeout=600s
 if [[ "$demo" == true ]]; then proof_timeout=0; fi
 cd "$(dirname "$0")/.."
@@ -63,7 +64,7 @@ docker cp "$proof_dir/app.test" "$proof_id:/proof/app.test"
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/app.test "$POSTGRES_IMAGE" -demo-acquisition-proof -test.run='^TestDemoAcquisitionPostgres$' -test.v -test.timeout=180s
 docker run -d --name "$proof_id-api" --network "$proof_id" \
  --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/app.test \
- "$POSTGRES_IMAGE" -app-proof -app-proof-demo="$demo" -app-proof-connections="$connections_test" -app-proof-production="$production_test" -app-proof-labels="$labels_test" -app-proof-onboarding="$onboarding_test" -app-proof-marker="$proof_id" -test.run='^TestAppIntegrationServer$' -test.timeout="$proof_timeout" >/dev/null
+ "$POSTGRES_IMAGE" -app-proof -app-proof-automatic="$automatic_test" -app-proof-demo="$demo" -app-proof-connections="$connections_test" -app-proof-production="$production_test" -app-proof-labels="$labels_test" -app-proof-onboarding="$onboarding_test" -app-proof-marker="$proof_id" -test.run='^TestAppIntegrationServer$' -test.timeout="$proof_timeout" >/dev/null
 api_created=1
 # Raw HTTP bridge makes daemon location irrelevant; no database socket is exposed.
 go test -c -tags integration -o "$proof_dir/bridge.test" ./internal/server
@@ -116,6 +117,22 @@ for ((i=0;i<60;i++)); do
  sleep 1
 done
 [[ "$ready" == 1 ]] || { cat "$proof_dir/next.log"; exit 1; }
+if [[ "$automatic_test" == true ]]; then
+ (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-automatic.config.ts)
+ # Independent durable-state oracles: analytic effects only, original units/history retained.
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_revision')" == 3 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_automatic_decision')" == 3 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_automatic_run WHERE state='committed'")" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT a.revision::text||':'||p.enabled::text FROM banking.collection_automation_state a JOIN banking.collection_automation_edition p USING(workspace_id,revision)")" == '2:true' ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_automation_setting_receipt')" == 2 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_label_decision')" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_label_command WHERE state='committed' AND acknowledged_at IS NOT NULL")" == 3 ]]
+ for table in ledger.journal_entry integration.outbox_message ledger.interactive_command_reservation; do
+  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM $table")" == 0 ]]
+ done
+ echo 'PASS: automatic categories and protected corrections through Next/Go/restricted SQL; no accounting effects'
+ exit 0
+fi
 if [[ "$onboarding_test" == true ]]; then
  (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-onboarding.config.ts)
  # Independent original-unit/history and one-effect command checks; no native copies.

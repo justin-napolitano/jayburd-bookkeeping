@@ -6,7 +6,7 @@
 
 [Rules](categorization-rules-sources.md): CR01–08, selected; ML abstract.
 [Labels](../contracts/collection-labels.md)/[tags and recovery](../contracts/collection-tags-recovery.md): PG17§13.2/13.3,RFC9457§3/5,2026-11-07; [reads](../contracts/collection-read-api.md)/[registry](../contracts/private-registry.md).
-[PFC](pfc-normalization-sources.md): selected Plaid,2026-11-06.
+[PFC488](../reviews/automatic-categorization-source.md): selected2026-11-11.
 
 [Position](position-sources.md): fixed USD/EUR.
 [Planning](available-to-use-sources.md): ATU01–07, proposed.

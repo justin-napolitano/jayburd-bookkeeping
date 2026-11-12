@@ -37,6 +37,7 @@ func parse(args []string) (options, error) {
 	f.StringVar(&o.BankKey, "bank-credential-key", "", "approved Production bank cryptoKey resource")
 	f.StringVar(&o.LinkKey, "link-handoff-key", "", "approved Production Link cryptoKey resource for scope matching")
 	f.StringVar(&o.Worker.Mode, "mode", "", "publisher or consumer")
+	f.BoolVar(&o.Worker.Categories, "automatic-categories", false, "explicit category-aware consumer publication; publisher cannot enable")
 	f.StringVar(&o.Worker.Listen, "listen", "127.0.0.1:8080", "explicit TCP listener")
 	f.StringVar(&o.Worker.Instance, "cloud-sql-instance", "", "project:us-central1:instance")
 	f.StringVar(&o.Worker.Caller.Audience, "caller-audience", "", "exact service audience")

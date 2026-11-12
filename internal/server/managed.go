@@ -115,6 +115,9 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 	if c.CollectionEnabled && collectionReady(start, pool) != nil {
 		return fail()
 	}
+	if c.AutomaticCategories && automaticReady(start, pool) != nil {
+		return fail()
+	}
 	if onboardingEnabled(c) && onboardingReady(start, pool) != nil {
 		return fail()
 	}
@@ -140,6 +143,11 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 				return err
 			}
 		}
+		if c.AutomaticCategories {
+			if err := automaticReady(ctx, pool); err != nil {
+				return err
+			}
+		}
 		if onboardingEnabled(c) {
 			return onboardingReady(ctx, pool)
 		}
@@ -147,7 +155,11 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 	}, Close: closeAll}
 	if c.CollectionEnabled {
 		d.Collection = &collectionread.Service{DB: pool}
-		d.Labels = &collectionlabels.Service{DB: pool, Rules: collectionlabels.RuleProcessor{}}
+		d.Labels = &collectionlabels.Service{DB: pool, Rules: collectionlabels.RuleProcessor{}, AutomaticCategories: c.AutomaticCategories}
+	}
+	if c.AutomaticCategories {
+		d.Automation = &collectionlabels.AutomationService{DB: pool}
+		d.Automatic = &collectionlabels.AutomaticService{DB: pool}
 	}
 	if onboardingEnabled(c) {
 		d.Onboarding = &collectiononboarding.Service{DB: pool}
@@ -163,6 +175,24 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 		}
 	}
 	return d, nil
+}
+
+// automaticReady requires only the six reviewed API functions; runtimeSafety still denies tables/owner roles.
+func automaticReady(ctx context.Context, pool *pgxpool.Pool) error {
+	var safe bool
+	err := pool.QueryRow(ctx, `SELECT NOT EXISTS(SELECT FROM unnest(ARRAY[
+ 'banking.get_collection_automation(uuid,uuid)',
+ 'banking.set_collection_automation(uuid,uuid,text)',
+ 'banking.collection_automation_work()',
+ 'banking.collection_automation_context(uuid,uuid)',
+ 'banking.prepare_collection_automatic_run(uuid,uuid,text,text)',
+ 'banking.execute_collection_automatic_run(uuid,uuid,uuid)'
+ ]) AS f(signature) WHERE to_regprocedure(f.signature) IS NULL
+ OR NOT has_function_privilege(current_user,to_regprocedure(f.signature),'EXECUTE'))`).Scan(&safe)
+	if err != nil || !safe {
+		return errors.New("dependencies unavailable")
+	}
+	return nil
 }
 
 // collectionReady requires matching source and label functions only on explicit activation.

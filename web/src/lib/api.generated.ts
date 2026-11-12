@@ -1628,6 +1628,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/collections/{workspace}/automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Automatic categorization status
+         * @description Explicit schema48 managed private collection feature; verified current owner authority. Analytic labels only, no accounting posting. No-store; no actor/results/query/Idempotency-Key/encoding accepted. Reads have no effects. POST preserves the exact closed JSON body (max1024 bytes); retry an unknown outcome with the same key and body. See docs/contracts/automatic-categorization.md.
+         */
+        get: operations["getPrivateAutomaticCategorization"];
+        put?: never;
+        /**
+         * Enable or pause automatic categorization
+         * @description Explicit schema48 managed private collection feature; verified current owner authority. Analytic labels only, no accounting posting. No-store; no actor/results/query/Idempotency-Key/encoding accepted. Reads have no effects. POST preserves the exact closed JSON body (max1024 bytes); retry an unknown outcome with the same key and body. See docs/contracts/automatic-categorization.md.
+         */
+        post: operations["setPrivateAutomaticCategorization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3524,6 +3548,10 @@ export interface components {
             /** @enum {string} */
             order: "asc" | "desc";
         };
+        PrivateLabelTopicFilterV3: components["schemas"]["PrivateLabelTopicFilterV2"] | {
+            /** @constant */
+            kind: "needs_attention";
+        };
         PrivateLabelSelectorV3: {
             source_account_id: string | null;
             /** @enum {string} */
@@ -3531,7 +3559,7 @@ export interface components {
             starts_on: string | null;
             through_date: string | null;
             search: string;
-            topic: components["schemas"]["PrivateLabelTopicFilterV2"];
+            topic: components["schemas"]["PrivateLabelTopicFilterV3"];
             sort: components["schemas"]["PrivateReadSort"];
             tag: components["schemas"]["PrivateTagFilter"];
             merchant: components["schemas"]["PrivateMerchantFilter"];
@@ -3556,7 +3584,7 @@ export interface components {
             starts_on: string | null;
             through_date: string | null;
             search: string;
-            topic: components["schemas"]["PrivateLabelTopicFilterV2"];
+            topic: components["schemas"]["PrivateLabelTopicFilterV3"];
             sort: components["schemas"]["PrivateReadSort"];
             snapshot: components["schemas"]["PrivateLabelSnapshotV2"] | null;
             cursor: string | null;
@@ -3601,6 +3629,7 @@ export interface components {
             legal_owner: components["schemas"]["PrivateLegalOwnerUnknown"];
             rule_suggestion: components["schemas"]["PrivateRuleSuggestion"];
             rule_application: components["schemas"]["PrivateRuleApplication"];
+            categorization?: components["schemas"]["PrivateAutomaticCategorization"];
         };
         PrivateReadBook: {
             /** Format: uuid */
@@ -3642,6 +3671,7 @@ export interface components {
             institution: components["schemas"]["PrivateInstitutionUnavailable"];
             legal_owner: components["schemas"]["PrivateLegalOwnerUnknown"];
             rules: components["schemas"]["PrivateRuleCatalog"];
+            automatic_categorization?: components["schemas"]["PrivateAutomaticCategorizationCapability"];
         };
         PrivateLabelPageV3: {
             /** @constant */
@@ -4071,6 +4101,67 @@ export interface components {
             /** Format: uuid */
             book_id: string;
             body: components["schemas"]["SourcePostCommandBody"];
+        };
+        /** @description Advertised only by explicitly configured automatic categorization composition. Absence means no automatic feature request is implied. */
+        PrivateAutomaticCategorizationCapability: {
+            /** @constant */
+            state: "available";
+        };
+        /** @description Bounded durable run metadata. No raw source data, actor-selected results or user acknowledgement is accepted. */
+        PrivateAutomaticCategorizationRun: {
+            /** @constant */
+            profile: "private-collection-auto-run-v1";
+            /** Format: uuid */
+            workspace_id: string;
+            /** Format: uuid */
+            run_id: string;
+            /** @enum {string} */
+            state: "prepared" | "committed" | "stale";
+            processed_count: string;
+            attention_count: string;
+        };
+        /** @description Current authorized read-only policy and whole-workspace counts. Unknown status is not zero; background work creates no journal or posting outbox. */
+        PrivateAutomaticCategorizationStatus: {
+            /** @constant */
+            profile: "private-collection-automation-v1";
+            /** Format: uuid */
+            workspace_id: string;
+            revision: string;
+            enabled: boolean;
+            /** @enum {string} */
+            processing_state: "disabled" | "idle" | "pending" | "blocked";
+            pending_count: string;
+            attention_count: string;
+            blocked_reason: ("saved_work" | "category_catalog_unavailable" | "permission_changed") | null;
+            last_run: components["schemas"]["PrivateAutomaticCategorizationRun"] | null;
+        };
+        /** @description Strict immutable configuration request. Same key/body replay under current authority; unknown outcomes retain the exact original request. No actor, source results or acknowledgement. */
+        PrivateAutomaticCategorizationRequest: {
+            key: string;
+            expected_revision: string;
+            enabled: boolean;
+        };
+        /** @description Retained actual provider/version/code/confidence attribution and approved map edition. Reported confidence is not a calibrated application accuracy score or accounting treatment. */
+        PrivateAutomaticProviderAttribution: {
+            /** @constant */
+            name: "Plaid";
+            version: string;
+            primary: string;
+            detailed: string;
+            confidence: string;
+            /** @constant */
+            map_edition: "plaid-pfc-primary-2026-11-11";
+        };
+        /** @description Additive current read projection. Automatic state refers to a durable decision, never an inert suggestion. Rule names are retained at the actual winning edition. Effective owner_topic/owner_tags remain the server-filtered values; historical saved preview shapes are unchanged. */
+        PrivateAutomaticCategorization: {
+            /** @enum {string} */
+            state: "automatic" | "manual" | "needs_attention" | "pending" | "unavailable";
+            /** @enum {string} */
+            origin: "rule" | "provider" | "manual" | "none";
+            reason: ("missing_provider_category" | "version_missing" | "unsupported_version" | "confidence_missing" | "confidence_unknown" | "confidence_unrecognized" | "low_confidence" | "unmapped_category" | "conflicting_rules" | "stale_override" | "retired_category" | "source_not_ready" | "unavailable") | null;
+            rule_names: string[];
+            provider: components["schemas"]["PrivateAutomaticProviderAttribution"] | null;
+            decision_id: string | null;
         };
     };
     responses: {
@@ -7199,6 +7290,74 @@ export interface operations {
                 };
             };
             /** @description Fixed RFC9457 failure, no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getPrivateAutomaticCategorization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized automatic categorization status or exact settings receipt */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateAutomaticCategorizationStatus"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    setPrivateAutomaticCategorization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivateAutomaticCategorizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized automatic categorization status or exact settings receipt */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateAutomaticCategorizationStatus"];
+                };
+            };
+            /** @description Fixed RFC9457 failure; no private diagnostics */
             default: {
                 headers: {
                     [name: string]: unknown;

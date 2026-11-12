@@ -54,6 +54,9 @@ func TestAppIntegrationServer(t *testing.T) {
 	if !*appProof {
 		t.Skip("disposable browser runner only")
 	}
+	if *appProofAutomatic && (*appProofLabels || *appProofDemo || *appProofConnections || *appProofProduction || *appProofOnboarding) {
+		t.Fatal("exclusive automatic proof mode")
+	}
 	if *appProofOnboarding && (*appProofLabels || *appProofDemo || *appProofConnections || *appProofProduction) {
 		t.Fatal("exclusive onboarding proof mode")
 	}
@@ -118,7 +121,7 @@ func TestAppIntegrationServer(t *testing.T) {
 		connectionFixture = bootstrapConnectionBrowser(t, ctx, admin, pool)
 		connectionService = connectionFixture.service
 	}
-	if !*appProofConnections && !*appProofDemo && !*appProofLabels && !*appProofOnboarding {
+	if !*appProofConnections && !*appProofDemo && !*appProofLabels && !*appProofOnboarding && !*appProofAutomatic {
 		connectionService = expiredEnrollmentProof(t, ctx, pool)
 	}
 	config := Config{Mode: "managed", Listen: "0.0.0.0:8080", Origin: "http://localhost:39083", Project: "synthetic-browser-proof", DatabaseURL: "synthetic-injected-test-pool", CollectionEnabled: *appProofLabels}
@@ -152,6 +155,25 @@ func TestAppIntegrationServer(t *testing.T) {
 				return err
 			}
 			return onboardingReady(ctx, pool)
+		}
+	}
+	if *appProofAutomatic {
+		bootstrapAutomaticBrowser(t, setupCtx, admin, pool)
+		config.CollectionEnabled = true
+		config.AutomaticCategories = true
+		dependencies.Auth = automaticBrowserAuth{}
+		dependencies.Collection = &collectionread.Service{DB: pool}
+		dependencies.Labels = &collectionlabels.Service{DB: pool, Rules: collectionlabels.RuleProcessor{}, AutomaticCategories: true}
+		dependencies.Automation = &collectionlabels.AutomationService{DB: pool}
+		dependencies.Automatic = &collectionlabels.AutomaticService{DB: pool}
+		dependencies.Ready = func(ctx context.Context) error {
+			if err := runtimeReady(ctx, pool); err != nil {
+				return err
+			}
+			if err := collectionReady(ctx, pool); err != nil {
+				return err
+			}
+			return automaticReady(ctx, pool)
 		}
 	}
 	app, err := New(config, dependencies)

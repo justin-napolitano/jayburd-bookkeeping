@@ -26,17 +26,23 @@ type Dependencies struct {
 	Connections ConnectionOperations
 	Collection  collectionread.Reader
 	Labels      collectionlabels.Operations
+	Automation  collectionlabels.AutomationOperations
+	Automatic   AutomaticRunner
 	Onboarding  collectiononboarding.Operations
 	Activation  *collectionactivation.Service
 	Ready       func(context.Context) error
 	Close       func()
 }
 
+// AutomaticRunner owns only the bounded classifier loop, not interactive acknowledgement.
+type AutomaticRunner interface{ Run(context.Context) }
+
 // Server owns bounded HTTP lifecycle and distinguishes liveness from dependency readiness.
 type Server struct {
-	HTTP    *http.Server
-	closing atomic.Bool
-	close   func()
+	HTTP      *http.Server
+	closing   atomic.Bool
+	close     func()
+	automatic AutomaticRunner
 }
 
 // New mounts accounting only when managed adapters exist. Health-only is never ready.
@@ -45,6 +51,12 @@ func New(c Config, d Dependencies) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{close: d.Close}
+	if c.AutomaticCategories {
+		if d.Automation == nil || d.Automatic == nil {
+			return nil, errConfiguration
+		}
+		s.automatic = d.Automatic
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -92,6 +104,9 @@ func New(c Config, d Dependencies) (*Server, error) {
 			application.Handle("/v1/collection-recovery", labels)
 			application.Handle("/v1/collection-recovery/clear", labels)
 			application.Handle("/v3/collections/{workspace}/review/detail", labels)
+			if c.AutomaticCategories {
+				application.Handle("/v1/collections/{workspace}/automation", collectionlabels.AutomationHandler(d.Auth, d.Automation))
+			}
 			// Self-service setup is scoped to the existing Sandbox private feature.
 			if onboardingEnabled(c) && d.Onboarding != nil {
 				onboarding := collectiononboarding.Handler(d.Auth, d.Onboarding)
@@ -172,6 +187,7 @@ func writeProblem(w http.ResponseWriter, status int, code string) {
 
 // Run drains requests on owner cancellation, then closes the pool; failures are redacted.
 func (s *Server) Run(ctx context.Context) error {
+	stopAutomatic := s.startAutomatic(ctx)
 	stopped := make(chan struct{})
 	drained := make(chan struct{})
 	go func() {
@@ -191,6 +207,7 @@ func (s *Server) Run(ctx context.Context) error {
 	close(stopped)
 	<-drained
 	s.closing.Store(true)
+	stopAutomatic()
 	if s.close != nil {
 		s.close()
 	}
@@ -198,4 +215,17 @@ func (s *Server) Run(ctx context.Context) error {
 		return errors.New("server stopped")
 	}
 	return nil
+}
+
+// startAutomatic cancels and drains classification before pool closure, including listener failure.
+func (s *Server) startAutomatic(parent context.Context) func() {
+	ctx, cancel := context.WithCancel(parent)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if s.automatic != nil {
+			s.automatic.Run(ctx)
+		}
+	}()
+	return func() { cancel(); <-done }
 }
