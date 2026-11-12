@@ -1,5 +1,14 @@
 # Recoverable bookkeeping commands
 
+Current authority (473, reviewed2026-11-11):
+[artifact-backed accounting](artifact-backed-accounting.md) supersedes the original
+manual `post` application workflow below. Public registration accepts supported
+setup/import/source_post/register_accounts operations, not `post`; prepared legacy
+`post` execution is rejected. Direct journal/reversal routes are rejected too.
+Authorized historical committed receipts/read recovery and safe cancel/ack remain;
+old stored bodies retain their original interpretation. The original operation
+vocabulary below documents historical SQL/protocol evolution, not a public bypass.
+
 ## Decision and scope
 
 Implementation decision for #9, owner project maintainer, 2026-10-11. Store one

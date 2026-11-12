@@ -1,14 +1,40 @@
 # Source-derived journals and linked corrections — #332
 
-## Decision, authority and implementation status
+## Current authority and historical scope
+
+Reviewed2026-11-11 for486. The accepted2026-11-08 owner decision473 in
+[artifact-backed accounting](artifact-backed-accounting.md) governs the current
+public application and supersedes this design's former manual-posting/reversal
+fallback. New postings require retained source evidence and the reviewed
+`source_post` workflow. Direct journal creation, unbound reversal, new durable
+`post` registration and execution of prepared legacy `post` commands are rejected.
+Authorized historical reads/committed receipts and safe cancel/acknowledgement
+remain available; manual registration replay does not revive that workflow.
+
+Artifact-linked correction inspection, preparation and atomic execution below
+remain a future design, not an available customer action. Existing SQL posting
+and reversal primitives remain reusable internal mechanisms and isolated
+synthetic proof subjects, not a public bypass or a correction workflow. Future
+corrections require supporting evidence/approved reason and their own reviewed
+implementation and end-to-end acceptance. See the current
+[API authority](api.md#status-and-authority) and
+[artifact delivery evidence](../runbooks/artifact-backed-accounting.md).
+
+The dated inventory, worked examples and proposed interfaces below retain the
+2026-10-25 design and its evidence limits. Historical issue sequencing is not a
+current implementation-status source; GitHub owns live task state. No new
+financial message, policy, mapping or standards-conformance claim is introduced.
+
+## Historical decision and proposed implementation scope (2026-10-25)
 
 Owner2026-10-25 approved bank-read-only access with ledger bookkeeping, retained
 source revisions and reconcilable journals. Coordinator engineering design under
 #332/#104; no SQL/API implementation, live accounting policy, security review or
 activation approval is claimed. #333 implements corrections, #334 opt-in rules,
-#335 UI and #336 independent end-to-end proof. Initial personal registration90
-does not wait for the complete rule engine; existing manual posting/reversal
-can be used only within its actual accepted scope and current permissions.
+#335 UI and #336 independent end-to-end proof. The original design allowed initial personal
+registration90 before the complete rule engine and proposed reuse of manual
+posting/reversal. That application fallback is superseded by473; retained source
+posting does not itself implement linked correction.
 
 Bank observations are authoritative evidence of what the provider reports, with
 immutable revisions and an explicit current pointer. The ledger is the durable
@@ -17,7 +43,7 @@ categories/dates alone do not select recognition, accounts, FX or tax treatment.
 No real book silently inherits dev-accrual-usd-v1. Reviewed per-book policy and
 current prepare/post permissions determine eligible accounting effects.
 
-## Current source inventory and gap
+## Historical source inventory and correction gap (main1bacecda)
 
 At main1bacecda: migration11 banking.review_posting is immutable and keyed by
 entity/book/review; it links one original draft/command/journal and cannot be
@@ -40,7 +66,7 @@ provider access expires or is paused. Source data access/review and book posting
 permissions remain independently current; revoked access is not restored by
 having a historical receipt. Provider fetch/retention authority is not bypassed.
 
-## Review snapshot and logical interfaces
+## Proposed correction snapshot and logical interfaces
 
 The #333 SQL/API review must freeze exact physical signatures/OpenAPI before DDL.
 Logical boundaries are owned source-correction inspection, immutable reviewed

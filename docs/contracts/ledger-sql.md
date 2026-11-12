@@ -1,5 +1,13 @@
 # First ledger SQL contract
 
+Current authority (473, reviewed2026-11-11): manual posting/reversal below
+identify the original internal SQL implementation/proof, not current customer
+entry points. [Artifact-backed accounting](artifact-backed-accounting.md) requires
+retained source review and `source_post` for new public postings; manual endpoints,
+new `post` registration and prepared legacy `post` execution are rejected.
+Preserve existing SQL semantics, old command bodies, immutable receipts and safe
+authorized recovery. Broader logical schemas below remain proposals where noted.
+
 ## Decision and scope
 
 JB-002 physical/transaction specification. Migrations 000001/000002 now implement

@@ -224,16 +224,6 @@ footer {
 .demo-guide p {
   max-width: 70ch;
 }
-.demo-nav button {
-  padding: 0.4rem 0.75rem;
-  font-size: 0.85rem;
-  background: transparent;
-  color: var(--ink);
-}
-.demo-nav button[aria-pressed="true"] {
-  background: var(--ink);
-  color: white;
-}
 .workspace-picker {
   display: flex;
   align-items: center;
