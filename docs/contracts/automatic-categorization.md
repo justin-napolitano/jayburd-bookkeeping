@@ -119,7 +119,7 @@ query snapshot pins, then existing SQL result/manual/output validation. Source,
 PFC, taxonomy/tag/rule and decision changes invalidate those pins. Execution still
 recomputes fresh per-row fingerprints and reauthorizes before effects. Cache
 survives exact inert prepare replay and is cleared by policy changes or terminal
-execution. Public GET does not populate it. A single private row renderer serves full queries and already-selected automatic inputs. The private context builder reuses those SQL-created rows; its public four-argument wrapper always supplies NULL for the private override. Manual selection is filtered before row rendering. No caller can pass facts through that wrapper, and both private helpers remain denied to API roles. This preserves complete result counts while keeping batch preparation bounded.
+execution. Public GET does not populate it. Full queries retain their set-based projection. A private row renderer uses the same reviewed rule/automatic expressions for already-selected bounded inputs; actual SQL equality tests guard their semantics. The private context builder reuses those SQL-created rows; its public four-argument wrapper always supplies NULL for the private override. Manual selection is filtered before row rendering. No caller can pass facts through that wrapper, and both private helpers remain denied to API roles. This preserves complete result counts while keeping batch preparation bounded.
 
 | SQL entrypoint | Frozen meaning |
 | --- | --- |

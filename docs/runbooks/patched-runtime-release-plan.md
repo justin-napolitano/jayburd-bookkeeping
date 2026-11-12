@@ -3,13 +3,18 @@
 
 ## Status and boundary
 
-OFFLINE PLAN ONLY,2026-11-11. Issue485 requires qualifying patched artifacts,
+HISTORICAL OFFLINE PLAN,2026-11-11. Execution is now separately authorized and
+tracked in [automatic category rollout](automatic-category-rollout.md) under485.
+The checklist below records the original pre-execution scope.
+
+OFFLINE PLAN ONLY at its original date. Issue485 requires qualifying patched artifacts,
 then a separately authorized finite rollout. Issue488 carries this checklist;
 it authorizes no workflow dispatch, image publication, cloud lookup, deployment,
 provider/consent action, secret access, managed SQL or data mutation. Existing
 managed binaries have not been patched by a source/toolchain change.
 
-Consolidation487/bea304ec remains frozen and unmerged while external CI is queued.
+At the original planning date, consolidation487/bea304ec was frozen and unmerged.
+It has since merged normally; feature489 is also merged at eb1828c.
 Do not bypass it or call queued checks successful. Any future release must select
 one exact accepted main source after its dependencies actually merge; this plan
 does not preapprove either487 or the new automatic categorization implementation.
