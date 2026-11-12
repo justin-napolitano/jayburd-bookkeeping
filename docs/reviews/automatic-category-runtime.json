@@ -1,0 +1,400 @@
+{
+  "schemaVersion": 1,
+  "project": "jayburd-bookkeeping-dev",
+  "source": "2087481973dce235c43d31fc4d79ae4b8af00d61",
+  "manifestSHA256": "cd73921a12770c9e0db2e16ad6e50f33542d5cf37a17f0f9e76dfb158c67669c",
+  "build": {
+    "run": "43158591303",
+    "attempt": "1",
+    "commit": "eb1828caab584064aa076edefccbb2bb413b84a7"
+  },
+  "images": {
+    "api": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:1c9c318e6de1e9727c88c959b6dde73a9e59aba54719e0eafc0c1862526eb29d",
+    "migrate": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:7a70083f25efcac59389524fd337c3697405a8629e647b0724d5e842171d241a",
+    "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:06486c8cc13ad695928d87f33e11bce98646dee53297c8e99ad7928cacf86dd7",
+    "worker": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/worker@sha256:60c513f03a71e7e6e1ade02c5be4a403d6e20c2dd40db9aafb3dbb720264fbc6"
+  },
+  "phaseReceipts": {
+    "resume-stage": {
+      "run": "43273656063",
+      "attempt": "1",
+      "status": "runtime-promoted-not-product-acceptance",
+      "receiptSHA256": "10b2ecb18ff369b68b199a9a6f9407630d604e222631c3e3e9df829497609cc2",
+      "activeHealth": {
+        "name": "jayburd-dev-api-as-43158591303-stage",
+        "status": "active-health-passed",
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True"
+          },
+          {
+            "type": "Active",
+            "status": "True"
+          },
+          {
+            "type": "ContainerHealthy",
+            "status": "True"
+          },
+          {
+            "type": "ResourcesAvailable",
+            "status": "True"
+          }
+        ]
+      },
+      "stagedHealth": {
+        "name": "jayburd-dev-api-as-43158591303-stage",
+        "status": "staged-import-only-no-startup-proof",
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True",
+            "reason": "Retired"
+          },
+          {
+            "type": "Active",
+            "status": "False",
+            "reason": "Retired"
+          },
+          {
+            "type": "ResourcesAvailable",
+            "status": "Unknown",
+            "reason": "Retired"
+          }
+        ]
+      },
+      "promotionPerformed": true
+    },
+    "activate": {
+      "run": "43274175362",
+      "attempt": "1",
+      "status": "runtime-promoted-not-product-acceptance",
+      "receiptSHA256": "2a26f3a59a0fc2d862baa4e336697ebd359ca1bc21cbefb2d07e3cc93bb04de2",
+      "activeHealth": {
+        "name": "jayburd-dev-api-as-43158591303-activate",
+        "status": "active-health-passed",
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True"
+          },
+          {
+            "type": "Active",
+            "status": "True"
+          },
+          {
+            "type": "ContainerHealthy",
+            "status": "True"
+          },
+          {
+            "type": "ResourcesAvailable",
+            "status": "True"
+          }
+        ]
+      },
+      "stagedHealth": {
+        "name": "jayburd-dev-api-as-43158591303-activate",
+        "status": "staged-import-only-no-startup-proof",
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True",
+            "reason": "Retired"
+          },
+          {
+            "type": "Active",
+            "status": "False",
+            "reason": "Retired"
+          },
+          {
+            "type": "ResourcesAvailable",
+            "status": "Unknown",
+            "reason": "Retired"
+          }
+        ]
+      },
+      "promotionPerformed": true
+    },
+    "web": {
+      "run": "43274529222",
+      "attempt": "1",
+      "status": "runtime-promoted-not-product-acceptance",
+      "receiptSHA256": "55ddc63dac8d79d2c14dad078bd000ebf4bb00069c27c4eab56ea2395a651c30",
+      "activeHealth": {
+        "name": "jayburd-dev-web-as-43158591303-web",
+        "status": "active-health-passed",
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True"
+          },
+          {
+            "type": "Active",
+            "status": "True"
+          },
+          {
+            "type": "ContainerHealthy",
+            "status": "True"
+          },
+          {
+            "type": "ResourcesAvailable",
+            "status": "True"
+          }
+        ]
+      },
+      "stagedHealth": {
+        "name": "jayburd-dev-web-as-43158591303-web",
+        "status": "staged-import-only-no-startup-proof",
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True",
+            "reason": "Retired"
+          },
+          {
+            "type": "Active",
+            "status": "False",
+            "reason": "Retired"
+          },
+          {
+            "type": "ResourcesAvailable",
+            "status": "Unknown",
+            "reason": "Retired"
+          }
+        ]
+      },
+      "promotionPerformed": true
+    }
+  },
+  "observedFinal": {
+    "api": {
+      "metadata": {
+        "name": "jayburd-dev-api",
+        "annotations": {
+          "run.googleapis.com/ingress": "all",
+          "run.googleapis.com/ingress-status": "all",
+          "run.googleapis.com/maxScale": "1"
+        }
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": "jayburd-dev-api-as-43158591303-activate",
+            "annotations": {
+              "run.googleapis.com/cpu-throttling": "false",
+              "autoscaling.knative.dev/maxScale": "1"
+            }
+          },
+          "spec": {
+            "serviceAccountName": "jayburd-dev-api@jayburd-bookkeeping-dev.iam.gserviceaccount.com",
+            "containerConcurrency": 16,
+            "timeoutSeconds": 15,
+            "containers": [
+              {
+                "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:1c9c318e6de1e9727c88c959b6dde73a9e59aba54719e0eafc0c1862526eb29d",
+                "args": [
+                  "-mode=managed",
+                  "-listen=0.0.0.0:8080",
+                  "-project=jayburd-bookkeeping-dev",
+                  "-origin=https://jayburd-dev-web-9088794002.us-central1.run.app",
+                  "-database-mode=cloudsql",
+                  "-cloud-sql-instance=jayburd-bookkeeping-dev:us-central1:jayburd-dev",
+                  "-connections-enabled",
+                  "-plaid-link-events-qualified=false",
+                  "-provider-project-number=9088794002",
+                  "-infisical-origin=https://app.infisical.com",
+                  "-infisical-project=ec11c550-d143-4902-be67-e33266753539",
+                  "-infisical-environment=dev",
+                  "-infisical-identity=56d2a541-a48d-4bcc-ae0c-11f48c945ba2",
+                  "-provider-registry-bucket=jayburd-bookkeeping-dev-jayburd-dev-credential-registry",
+                  "-provider-registry-prefix=provider-credentials-v1",
+                  "-plaid-client-id-version=projects/9088794002/secrets/jayburd-dev-bank-sync-client-id/versions/1",
+                  "-plaid-client-secret-version=projects/9088794002/secrets/jayburd-dev-bank-sync-client-secret/versions/1",
+                  "-plaid-consent-expires-at=2026-11-02T04:00:00Z",
+                  "-plaid-webhook-url=https://jayburd-dev-webhook-9088794002.us-central1.run.app/webhooks/plaid",
+                  "-collection-read-enabled=true",
+                  "-automatic-categories=true"
+                ],
+                "command": [],
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http1"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "startupProbe": {
+                  "failureThreshold": 12,
+                  "httpGet": {
+                    "path": "/readyz",
+                    "port": 8080
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                }
+              }
+            ]
+          }
+        },
+        "traffic": [
+          {
+            "revisionName": "jayburd-dev-api-as-43158591303-activate",
+            "percent": 100
+          }
+        ]
+      },
+      "status": {
+        "latestReadyRevisionName": "jayburd-dev-api-as-43158591303-activate",
+        "latestCreatedRevisionName": "jayburd-dev-api-as-43158591303-activate",
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True"
+          },
+          {
+            "type": "ConfigurationsReady",
+            "status": "True"
+          },
+          {
+            "type": "RoutesReady",
+            "status": "True"
+          }
+        ],
+        "traffic": [
+          {
+            "revisionName": "jayburd-dev-api-as-43158591303-activate",
+            "percent": 100
+          }
+        ]
+      }
+    },
+    "web": {
+      "metadata": {
+        "name": "jayburd-dev-web",
+        "annotations": {
+          "run.googleapis.com/ingress": "all",
+          "run.googleapis.com/ingress-status": "all",
+          "run.googleapis.com/maxScale": "2"
+        }
+      },
+      "spec": {
+        "template": {
+          "metadata": {
+            "name": "jayburd-dev-web-as-43158591303-web",
+            "annotations": {
+              "run.googleapis.com/cpu-throttling": "true",
+              "autoscaling.knative.dev/minScale": "0",
+              "autoscaling.knative.dev/maxScale": "2"
+            }
+          },
+          "spec": {
+            "serviceAccountName": "jayburd-dev-frontend@jayburd-bookkeeping-dev.iam.gserviceaccount.com",
+            "containerConcurrency": 32,
+            "timeoutSeconds": 20,
+            "containers": [
+              {
+                "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:06486c8cc13ad695928d87f33e11bce98646dee53297c8e99ad7928cacf86dd7",
+                "args": [],
+                "command": [],
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http1"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "startupProbe": {
+                  "failureThreshold": 12,
+                  "httpGet": {
+                    "path": "/api/auth-config",
+                    "port": 8080
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                }
+              }
+            ]
+          }
+        },
+        "traffic": [
+          {
+            "revisionName": "jayburd-dev-web-as-43158591303-web",
+            "percent": 100
+          }
+        ]
+      },
+      "status": {
+        "latestReadyRevisionName": "jayburd-dev-web-as-43158591303-web",
+        "latestCreatedRevisionName": "jayburd-dev-web-as-43158591303-web",
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True"
+          },
+          {
+            "type": "ConfigurationsReady",
+            "status": "True"
+          },
+          {
+            "type": "RoutesReady",
+            "status": "True"
+          }
+        ],
+        "traffic": [
+          {
+            "revisionName": "jayburd-dev-web-as-43158591303-web",
+            "percent": 100
+          }
+        ]
+      }
+    },
+    "migrate": {
+      "name": "jayburd-dev-migrate",
+      "taskCount": 1,
+      "parallelism": 1,
+      "serviceAccountName": "jayburd-dev-migrator@jayburd-bookkeeping-dev.iam.gserviceaccount.com",
+      "maxRetries": 0,
+      "timeoutSeconds": "660",
+      "containers": [
+        {
+          "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:7a70083f25efcac59389524fd337c3697405a8629e647b0724d5e842171d241a",
+          "command": [],
+          "args": [
+            "-action=status",
+            "-instance=jayburd-bookkeeping-dev:us-central1:jayburd-dev"
+          ],
+          "resources": {
+            "limits": {
+              "cpu": "1",
+              "memory": "512Mi"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "schemaEvidence": {
+    "run": "43264239902",
+    "status": "forward-migration-and-candidate-status-passed",
+    "candidateVersion": 48,
+    "candidateStatusExecution": "jayburd-dev-migrate-tpdpk"
+  },
+  "workerDisposition": "Qualified build evidence only; not deployed/activated by this release.",
+  "transportProof": "Pending status-only anonymous workflow smoke; local DNS and web fetch inaccessible, no HTTP status inferred.",
+  "ownerAcceptance": "Pending complete synthetic workspace scope confirmation and normal verified-owner application proof.",
+  "limitations": [
+    "Runtime metadata/direct health is not normal owner/MFA/entity acceptance.",
+    "No workspace policy enable/adoption, real records, provider call/consent renewal, accounting autopost, IAM or Production action.",
+    "Prior20 API arguments preserved; instanceCPU/min0/max1 is request-woken durable processing, not continuous-service SLA or spending cap."
+  ]
+}
