@@ -17,7 +17,9 @@ baseline-null manifest still permits inspection only.
 
 Root holds the sole finite485 existing Sandbox release lane in GitHub65 through
 2026-11-12T09:00Z. Initial branch chore/485-automatic-category-rollout is merged; diagnostic follow-up491 is merged; branch
-chore/485-approved-runtime-baseline owns public inspection and the next manifest stage. Scope:
+chore/485-approved-runtime-baseline is merged; branch
+chore/485-synthetic-release-baseline owns comprehensive diagnostics and the next
+manifest stage. Scope:
 all four same-build patched artifacts, existing migrator forward48/status,
 configuration-preserving API/web stages and explicit synthetic analytic activation.
 No ad hoc SQL, migration edits, down/force/reset, provider calls or consent renewal,
@@ -211,3 +213,39 @@ review pass at script SHA256
 `17f1211c5bedd7322fcc0b0e1490d4d1d1c48868edffa4842ad50ac13525d2e7`.
 The manifest remains baseline=null/inspection-only. No actual value mismatch is
 asserted until the next validated public snapshot is obtained and reviewed.
+
+PR492 merged at698eee1364b566a0ab3599c84c6dd7a1c1b6277c after all five
+exact fb893dc checks passed (Seed43171287938, Infrastructure43171288002 and
+GitGuardian). Read-only inspect43174384070 authenticated, read selected API
+metadata, and again stopped at public-api before any snapshot export. No
+managed job/schema/service/traffic/policy/provider/IAM mutation occurred.
+The offending constraint remains unknown; do not equate structural presence
+with exact compatibility or infer a current argument/name/resource mismatch.
+
+The next diagnostic-only stage covers every known public constraint with fixed
+labels and booleans, including normalization and per-known-flag checks. It
+collects API, web, migrator and recent-execution diagnostics before aggregate
+inspection failure, without publishing invalid values or a partial baseline.
+No failure diagnostic authorizes a mutation or substitutes a guessed value.
+Mutation guards, candidate images and SQL1–48 remain unchanged. Actual
+inspection, manifest approval, rollout and hosted synthetic acceptance stay open.
+
+The earlier09:00Z root claim and inspection manifest expired during the ongoing
+release work. Fresh register/open-PR audit at2026-11-12T15:05Z found no competing
+release writer. Root renewed the same bounded scope through18:00Z on65
+comment6827330358 and485 comment6827331551 under the continuing owner approval.
+The new inspection-only manifest references that renewal and expires18:00Z;
+baseline stays null. Every dispatch still rechecks the independent24h image-scan
+freshness; renewal never refreshes scan evidence or provider consent.
+
+Frozen diagnostic sourceSHA256
+`d17364164ad0c8194ec52950a4bf45945080d8d7008d361dad1c6ffdc4057f96`
+and testSHA256
+`895da894581f336aed830e67bf428e20e75d2b9e362c3ffd3962e71ea97bb60d`
+pass148 automatic checks and182 combined release/deployment checks. Context
+links/stage/diff checks pass. Actual complete four-image offline validation
+passes at15:07Z using the renewed inspection-only manifestSHA256
+`97dd688b37e665b09b1e6d81fd1e52d1e21d1b0ad4befefdb6e6bfe64a665b1d`.
+Missing template names and each latest-target resolution conjunct are tested
+independently; no current metadata value or healthy baseline is inferred.
+Canonical exact-head CI and fresh managed inspection remain required.
