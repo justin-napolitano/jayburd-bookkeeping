@@ -32,7 +32,7 @@ const count=v=>Array.isArray(v)?Math.min(v.length,100):null;
 const valueType=v=>v===null?'null':Array.isArray(v)?'array':['undefined','string','number','boolean','object'].includes(typeof v)?typeof v:'other';
 export function serviceShape(raw){
  const s=raw?.spec?.template?.spec,c=s?.containers?.[0],p=c?.startupProbe,h=p?.httpGet,port=c?.ports?.[0],resource=c?.resources;
- return {metadataPresent:!!raw?.metadata,templatePresent:!!raw?.spec?.template,statusPresent:!!raw?.status,containers:count(s?.containers),args:count(c?.args),command:count(c?.command),serviceAccountPresent:present(s,'serviceAccountName'),concurrencyPresent:present(s,'containerConcurrency'),timeoutPresent:present(s,'timeoutSeconds'),imagePresent:present(c,'image'),ports:count(c?.ports),portNamePresent:present(port,'name'),portNameKnown:port?.name==='http1',portNameType:valueType(port?.name),portNumberPresent:present(port,'containerPort'),portNumberType:valueType(port?.containerPort),resourcesPresent:!!resource,resourceLimitsPresent:present(resource,'limits'),resourceRequestsPresent:present(resource,'requests'),resourceLimitsUnknownFields:!!resource?.limits&&Object.keys(resource.limits).some(k=>!['cpu','memory'].includes(k)),resourceUnknownFields:!!resource&&Object.keys(resource).some(k=>!['limits','requests'].includes(k)),cpuPresent:present(resource?.limits,'cpu'),cpuType:valueType(resource?.limits?.cpu),memoryPresent:present(resource?.limits,'memory'),memoryType:valueType(resource?.limits?.memory),probePresent:!!p,probeFailureThresholdPresent:present(p,'failureThreshold'),probePeriodPresent:present(p,'periodSeconds'),probeTimeoutPresent:present(p,'timeoutSeconds'),httpPathPresent:present(h,'path'),httpPortPresent:present(h,'port'),httpPortType:valueType(h?.port),probeInitialDelayPresent:present(p,'initialDelaySeconds'),probeInitialDelayZero:p?.initialDelaySeconds===0,probeSuccessThresholdPresent:present(p,'successThreshold'),probeSuccessThresholdOne:p?.successThreshold===1,probeUnknownFields:!!p&&Object.keys(p).some(k=>!['initialDelaySeconds','successThreshold','failureThreshold','httpGet','periodSeconds','timeoutSeconds'].includes(k)),httpGetPresent:!!h,httpSchemePresent:present(h,'scheme'),httpSchemeHTTP:h?.scheme==='HTTP',httpHeadersPresent:present(h,'httpHeaders'),httpHeaders:count(h?.httpHeaders),httpGetUnknownFields:!!h&&Object.keys(h).some(k=>!['path','port','scheme','httpHeaders'].includes(k)),desiredTraffic:count(raw?.spec?.traffic),observedTraffic:count(raw?.status?.traffic),desiredLatestPresent:present(raw?.spec?.traffic?.[0],'latestRevision'),desiredLatestTrue:raw?.spec?.traffic?.[0]?.latestRevision===true,desiredLatestType:valueType(raw?.spec?.traffic?.[0]?.latestRevision),desiredNamedPresent:present(raw?.spec?.traffic?.[0],'revisionName'),observedNamedPresent:present(raw?.status?.traffic?.[0],'revisionName')};
+ return {metadataPresent:!!raw?.metadata,templateMetadataPresent:!!raw?.spec?.template?.metadata,templateNamePresent:present(raw?.spec?.template?.metadata,'name'),templateNameType:valueType(raw?.spec?.template?.metadata?.name),templateNameEmpty:raw?.spec?.template?.metadata?.name==='',latestReadyNamePresent:present(raw?.status,'latestReadyRevisionName'),latestReadyNameType:valueType(raw?.status?.latestReadyRevisionName),latestReadyNameEmpty:raw?.status?.latestReadyRevisionName==='',latestCreatedNamePresent:present(raw?.status,'latestCreatedRevisionName'),latestCreatedNameType:valueType(raw?.status?.latestCreatedRevisionName),latestCreatedNameEmpty:raw?.status?.latestCreatedRevisionName==='',templatePresent:!!raw?.spec?.template,statusPresent:!!raw?.status,containers:count(s?.containers),args:count(c?.args),command:count(c?.command),serviceAccountPresent:present(s,'serviceAccountName'),concurrencyPresent:present(s,'containerConcurrency'),timeoutPresent:present(s,'timeoutSeconds'),imagePresent:present(c,'image'),ports:count(c?.ports),portNamePresent:present(port,'name'),portNameKnown:port?.name==='http1',portNameType:valueType(port?.name),portNumberPresent:present(port,'containerPort'),portNumberType:valueType(port?.containerPort),resourcesPresent:!!resource,resourceLimitsPresent:present(resource,'limits'),resourceRequestsPresent:present(resource,'requests'),resourceLimitsUnknownFields:!!resource?.limits&&Object.keys(resource.limits).some(k=>!['cpu','memory'].includes(k)),resourceUnknownFields:!!resource&&Object.keys(resource).some(k=>!['limits','requests'].includes(k)),cpuPresent:present(resource?.limits,'cpu'),cpuType:valueType(resource?.limits?.cpu),memoryPresent:present(resource?.limits,'memory'),memoryType:valueType(resource?.limits?.memory),probePresent:!!p,probeFailureThresholdPresent:present(p,'failureThreshold'),probePeriodPresent:present(p,'periodSeconds'),probeTimeoutPresent:present(p,'timeoutSeconds'),httpPathPresent:present(h,'path'),httpPortPresent:present(h,'port'),httpPortType:valueType(h?.port),probeInitialDelayPresent:present(p,'initialDelaySeconds'),probeInitialDelayZero:p?.initialDelaySeconds===0,probeSuccessThresholdPresent:present(p,'successThreshold'),probeSuccessThresholdOne:p?.successThreshold===1,probeUnknownFields:!!p&&Object.keys(p).some(k=>!['initialDelaySeconds','successThreshold','failureThreshold','httpGet','periodSeconds','timeoutSeconds'].includes(k)),httpGetPresent:!!h,httpSchemePresent:present(h,'scheme'),httpSchemeHTTP:h?.scheme==='HTTP',httpHeadersPresent:present(h,'httpHeaders'),httpHeaders:count(h?.httpHeaders),httpGetUnknownFields:!!h&&Object.keys(h).some(k=>!['path','port','scheme','httpHeaders'].includes(k)),desiredTraffic:count(raw?.spec?.traffic),observedTraffic:count(raw?.status?.traffic),desiredLatestPresent:present(raw?.spec?.traffic?.[0],'latestRevision'),desiredLatestTrue:raw?.spec?.traffic?.[0]?.latestRevision===true,desiredLatestType:valueType(raw?.spec?.traffic?.[0]?.latestRevision),desiredNamedPresent:present(raw?.spec?.traffic?.[0],'revisionName'),observedNamedPresent:present(raw?.status?.traffic?.[0],'revisionName')};
 }
 function jobShape(raw){const t=raw?.spec?.template?.spec,v=t?.template?.spec;return {metadataPresent:!!raw?.metadata,taskCountPresent:present(t,'taskCount'),parallelismPresent:present(t,'parallelism'),taskTemplatePresent:!!v,serviceAccountPresent:present(v,'serviceAccountName'),maxRetriesPresent:present(v,'maxRetries'),timeoutPresent:present(v,'timeoutSeconds'),containers:count(v?.containers),args:count(v?.containers?.[0]?.args),command:count(v?.containers?.[0]?.command),resourcesPresent:present(v?.containers?.[0],'resources')};}
 function diagnostic(onDiagnostic,stage,status,extra={}){if(!diagnosticStages.includes(stage))fail();onDiagnostic({schemaVersion:1,stage,status,...extra});}
@@ -90,14 +90,19 @@ function publicFlags(args,names,booleans=[]){
  for(const raw of args){const m=typeof raw==='string'&&/^--?([a-z][a-z0-9-]*)(?:=([^\r\n\u0000|]*))?$/.exec(raw);if(!m||!names.includes(m[1])&&m[1]!=='automatic-categories'||out.has(m[1]))fail();const value=m[2];if(booleans.includes(m[1])){if(value!==undefined&&!['true','false'].includes(value))fail();}else if(value===undefined||value==='')fail();out.set(m[1],value);}
  if(names.some(k=>!out.has(k)))fail();return out;
 }
-function publicAPIArgs(args){
- const names=['mode','listen','project','origin','database-mode','cloud-sql-instance','connections-enabled','plaid-link-events-qualified','provider-project-number','infisical-origin','infisical-project','infisical-environment','infisical-identity','provider-registry-bucket','provider-registry-prefix','plaid-client-id-version','plaid-client-secret-version','plaid-consent-expires-at','plaid-webhook-url','collection-read-enabled'];
- const flags=publicFlags(args,names,['connections-enabled','collection-read-enabled','plaid-link-events-qualified','automatic-categories']);
+function publicAPIFlagValue(name,value){
+ if(booleanArgumentNames.includes(name))return value===undefined||['true','false'].includes(value);
  const fixed={mode:'managed',listen:'0.0.0.0:8080',project,origin:`https://jayburd-dev-web-${number}.${region}.run.app`,'database-mode':'cloudsql','cloud-sql-instance':`${project}:${region}:jayburd-dev`,'provider-project-number':number,'infisical-environment':'dev','provider-registry-bucket':`${project}-jayburd-dev-credential-registry`,'provider-registry-prefix':'provider-credentials-v1','plaid-webhook-url':`https://jayburd-dev-webhook-${number}.${region}.run.app/webhooks/plaid`};
- if(Object.entries(fixed).some(([k,v])=>flags.get(k)!==v)||!['https://us.infisical.com','https://eu.infisical.com','https://app.infisical.com'].includes(flags.get('infisical-origin')))fail();
- for(const k of ['infisical-project','infisical-identity'])if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(flags.get(k)))fail();
- for(const [k,suffix] of [['plaid-client-id-version','id'],['plaid-client-secret-version','secret']]){const prefix=`projects/${number}/secrets/jayburd-dev-bank-sync-client-${suffix}/versions/`,v=flags.get(k);if(typeof v!=='string'||!v.startsWith(prefix)||!/^([1-9][0-9]{0,18})$/.test(v.slice(prefix.length))||BigInt(v.slice(prefix.length))>9223372036854775807n)fail();}
- const expiry=flags.get('plaid-consent-expires-at'),stamp=Date.parse(expiry);if(typeof expiry!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(expiry)||!Number.isFinite(stamp)||new Date(stamp).toISOString().replace('.000Z','Z')!==expiry)fail();
+ if(Object.hasOwn(fixed,name))return value===fixed[name];
+ if(name==='infisical-origin')return ['https://us.infisical.com','https://eu.infisical.com','https://app.infisical.com'].includes(value);
+ if(['infisical-project','infisical-identity'].includes(name))return typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value);
+ if(['plaid-client-id-version','plaid-client-secret-version'].includes(name)){const prefix=`projects/${number}/secrets/jayburd-dev-bank-sync-client-${name==='plaid-client-id-version'?'id':'secret'}/versions/`;return typeof value==='string'&&value.startsWith(prefix)&&/^([1-9][0-9]{0,18})$/.test(value.slice(prefix.length))&&BigInt(value.slice(prefix.length))<=9223372036854775807n;}
+ if(name==='plaid-consent-expires-at'){const stamp=Date.parse(value);return typeof value==='string'&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(value)&&Number.isFinite(stamp)&&new Date(stamp).toISOString().replace('.000Z','Z')===value;}
+ return false;
+}
+function publicAPIArgs(args){
+ const flags=publicFlags(args,apiArgumentNames,booleanArgumentNames);
+ for(const [name,value] of flags)if(!publicAPIFlagValue(name,value))fail();
 }
 // Public identifiers and bounded operational quantities are observable; this does not approve a release profile.
 function validatePublicService(s,c){
@@ -124,6 +129,129 @@ function validatePublicJob(j){
  if(j.name!=='jayburd-dev-migrate'||j.serviceAccountName!==`jayburd-dev-migrator@${project}.iam.gserviceaccount.com`||!boundedInteger(j.taskCount,1,100)||!boundedInteger(j.parallelism,1,j.taskCount)||!boundedInteger(j.maxRetries,0,10)||!boundedInteger(timeout,1,3600)||!Array.isArray(j.containers)||j.containers.length!==1)fail();
  const c=j.containers[0];keys(c,['image','command','args','resources']);if(!equal(c.command,[])||typeof c.image!=='string'||!new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/migrate@sha256:[a-f0-9]{64}$`).test(c.image))fail();
  const args=publicFlags(c.args,['action','instance']);if(args.size!==2||!['status','up'].includes(args.get('action'))||args.get('instance')!==`${project}:${region}:jayburd-dev`)fail();publicResources(c.resources);return j;
+}
+// Inspection diagnostics are independent conjunction checks, never a replacement for authoritative validation.
+// Labels come exclusively from these fixed code lists; provider names, values and errors are never serialized.
+const apiArgumentNames=['mode','listen','project','origin','database-mode','cloud-sql-instance','connections-enabled','plaid-link-events-qualified','provider-project-number','infisical-origin','infisical-project','infisical-environment','infisical-identity','provider-registry-bucket','provider-registry-prefix','plaid-client-id-version','plaid-client-secret-version','plaid-consent-expires-at','plaid-webhook-url','collection-read-enabled'];
+const booleanArgumentNames=['connections-enabled','collection-read-enabled','plaid-link-events-qualified','automatic-categories'];
+function constraintCollector(){
+ const results=[];
+ return {check(code,fn){let passed=false;try{passed=fn()===true;}catch{}results.push({code,passed});return passed;},results};
+}
+function argumentConstraints(args,check,job=false){
+ const names=job?['action','instance']:apiArgumentNames,allowed=job?names:[...names,'automatic-categories'],parsed=[];
+ check('args-array',()=>Array.isArray(args));check('args-count',()=>Array.isArray(args)&&args.length>=names.length&&args.length<=names.length+(job?0:1));
+ if(Array.isArray(args))for(const raw of args){const m=typeof raw==='string'&&/^--?([a-z][a-z0-9-]*)(?:=([^\r\n\u0000|]*))?$/.exec(raw);parsed.push(m?{name:m[1],value:m[2]}:null);}
+ check('args-dash-syntax',()=>Array.isArray(args)&&parsed.every(Boolean));
+ check('args-known-names',()=>Array.isArray(args)&&parsed.every(v=>v&&allowed.includes(v.name)));
+ check('args-unique-names',()=>Array.isArray(args)&&parsed.every(Boolean)&&new Set(parsed.map(v=>v.name)).size===parsed.length);
+ for(const name of allowed){
+  const items=parsed.filter(v=>v?.name===name),optional=name==='automatic-categories';
+  check(optional?'arg-automatic-categories-optional-presence':`arg-${name}-present`,()=>optional||items.length>0);
+  check(`arg-${name}-unique`,()=>items.length<2);
+  check(`arg-${name}-public-value`,()=>{
+   if(optional&&items.length===0)return true;if(items.length!==1)return false;
+   const value=items[0].value;
+   if(job)return name==='action'?['status','up'].includes(value):value===`${project}:${region}:jayburd-dev`;
+   return publicAPIFlagValue(name,value);
+  });
+ }
+}
+function resourceConstraints(raw,check){
+ check('resources-object-keys',()=>raw&&typeof raw==='object'&&!Array.isArray(raw)&&Object.keys(raw).every(k=>['limits','requests'].includes(k)));
+ check('resources-limit-keys',()=>{keys(raw?.limits,['cpu','memory']);return true;});
+ for(const section of ['limits','requests']){
+  const values=raw?.[section],optional=section==='requests'&&!present(raw,'requests');
+  check(`resources-${section}-object-keys`,()=>optional||values&&typeof values==='object'&&!Array.isArray(values)&&Object.keys(values).every(k=>['cpu','memory'].includes(k)));
+  for(const field of ['cpu','memory'])check(`resources-${section}-${field}-public`,()=>{
+   if(optional||section==='requests'&&!present(values,field))return true;
+   const isolated={limits:{cpu:'1',memory:'512Mi'}};if(section==='limits')isolated.limits[field]=values?.[field];else isolated.requests={[field]:values?.[field]};publicResources(isolated);return true;
+  });
+ }
+}
+function probeConstraints(p,c,check){
+ check('probe-object-known-keys',()=>p&&typeof p==='object'&&!Array.isArray(p)&&Object.keys(p).every(k=>['initialDelaySeconds','successThreshold','failureThreshold','httpGet','periodSeconds','timeoutSeconds'].includes(k)));
+ for(const [key,min,max] of [['initialDelaySeconds',0,3600],['successThreshold',1,10],['failureThreshold',1,100],['periodSeconds',1,3600],['timeoutSeconds',1,3600]])check(`probe-${key}-public`,()=>!present(p,key)||boundedInteger(p[key],min,max));
+ const h=p?.httpGet;
+ check('probe-http-object-known-keys',()=>h&&typeof h==='object'&&!Array.isArray(h)&&Object.keys(h).every(k=>['path','port','scheme','httpHeaders'].includes(k)));
+ check('probe-http-path-public',()=>h?.path===(c==='api'?'/readyz':'/api/auth-config'));
+ check('probe-http-port-public',()=>boundedInteger(h?.port,1,65535));
+ check('probe-http-scheme-public',()=>!present(h,'scheme')||['HTTP','HTTPS'].includes(h.scheme));
+ check('probe-http-headers-empty',()=>!present(h,'httpHeaders')||Array.isArray(h.httpHeaders)&&h.httpHeaders.length===0);
+}
+function annotationConstraints(raw,names,prefix,check){
+ const selected=annotations(raw,names);
+ check(`${prefix}-selected-keys`,()=>{keys(selected,Object.keys(selected).filter(k=>names.includes(k)));return true;});
+ for(const key of names)check(`${prefix}-${key.replaceAll('.','-').replaceAll('/','-')}-public`,()=>{
+  if(!present(selected,key))return true;const value=selected[key],scale=key.endsWith('/minScale')||key.endsWith('/maxScale');
+  return scale?typeof value==='string'&&/^[0-9]{1,3}$/.test(value):key==='run.googleapis.com/cloudsql-instances'?value===`${project}:${region}:jayburd-dev`:key==='run.googleapis.com/cpu-throttling'||key==='run.googleapis.com/startup-cpu-boost'?['true','false'].includes(value):key==='run.googleapis.com/execution-environment'?['gen1','gen2'].includes(value):key==='run.googleapis.com/vpc-access-egress'?['all-traffic','private-ranges-only'].includes(value):key==='run.googleapis.com/vpc-access-connector'?typeof value==='string'&&new RegExp(`^projects/${project}/locations/${region}/connectors/[a-z][a-z0-9-]{0,62}$`).test(value):['all','internal','internal-and-cloud-load-balancing'].includes(value);
+ });
+}
+function statusConstraints(status,revision,check){
+ check('status-conditions-array-count',()=>Array.isArray(status?.conditions)&&status.conditions.length<=16);
+ check('status-condition-types-public',()=>Array.isArray(status?.conditions)&&status.conditions.every(v=>typeof v.type==='string'&&/^[A-Za-z][A-Za-z0-9]{0,63}$/.test(v.type)));
+ check('status-condition-status-enums',()=>Array.isArray(status?.conditions)&&status.conditions.every(v=>['True','False','Unknown'].includes(v.status)));
+ for(const field of ['latestReadyRevisionName','latestCreatedRevisionName'])check(`status-${field}-public`,()=>typeof status?.[field]==='string'&&revision.test(status[field]));
+}
+function trafficConstraints(rows,revision,prefix,check){
+ check(`${prefix}-array-count`,()=>Array.isArray(rows)&&rows.length<=16);
+ check(`${prefix}-revision-public`,()=>Array.isArray(rows)&&rows.every(v=>typeof v.revisionName==='string'&&revision.test(v.revisionName)));
+ check(`${prefix}-percent-public`,()=>Array.isArray(rows)&&rows.every(v=>boundedInteger(v.percent,0,100)));
+ check(`${prefix}-tag-public`,()=>Array.isArray(rows)&&rows.every(v=>!present(v,'tag')||typeof v.tag==='string'&&/^[a-z][a-z0-9-]{0,62}$/.test(v.tag)));
+}
+// Complete public-field audit continues after independent failures and emits only fixed labels plus booleans.
+export function inspectServiceConstraints(raw,c){
+ const audit=constraintCollector(),check=audit.check,revision=new RegExp(`^jayburd-dev-${c}-[a-z0-9-]{1,50}$`),t=raw?.spec?.template,v=t?.spec,container=v?.containers?.[0];
+ const object=v=>v&&typeof v==='object'&&!Array.isArray(v);
+ for(const [code,value] of [['service-object',raw],['metadata-object',raw?.metadata],['spec-object',raw?.spec],['template-object',t],['template-metadata-object',t?.metadata],['template-spec-object',v],['status-object',raw?.status]])check(code,()=>object(value));
+ check('service-name-public',()=>raw?.metadata?.name===`jayburd-dev-${c}`);
+ check('template-name-public',()=>typeof t?.metadata?.name==='string'&&revision.test(t.metadata.name));
+ check('service-account-public',()=>v?.serviceAccountName===`jayburd-dev-${c==='web'?'frontend':'api'}@${project}.iam.gserviceaccount.com`);
+ check('concurrency-public',()=>boundedInteger(v?.containerConcurrency,1,1000));check('timeout-public',()=>boundedInteger(v?.timeoutSeconds,1,3600));check('one-container',()=>Array.isArray(v?.containers)&&v.containers.length===1);
+ check('container-image-public',()=>typeof container?.image==='string'&&new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/${c}@sha256:[a-f0-9]{64}$`).test(container.image));
+ check('container-command-empty',()=>equal(container?.command??[],[]));check('one-port',()=>Array.isArray(container?.ports)&&container.ports.length===1);
+ const port=container?.ports?.[0];check('port-known-keys',()=>{keys(port,['containerPort',...(present(port,'name')?['name']:[])]);return true;});check('port-number-public',()=>boundedInteger(port?.containerPort,1,65535));check('port-name-public',()=>!present(port,'name')||['http1','h2c'].includes(port.name));
+ resourceConstraints(container?.resources,check);probeConstraints(container?.startupProbe,c,check);
+ if(c==='api')argumentConstraints(container?.args,check);else check('web-args-empty',()=>equal(container?.args??[],[]));
+ annotationConstraints(raw?.metadata?.annotations,serviceAnnotations,'service-annotations',check);annotationConstraints(t?.metadata?.annotations,revisionAnnotations,'revision-annotations',check);
+ statusConstraints(raw?.status,revision,check);
+ check('desired-latest-marker-boolean',()=>Array.isArray(raw?.spec?.traffic)&&raw.spec.traffic.every(v=>!present(v,'latestRevision')||typeof v.latestRevision==='boolean'));
+ const wantsLatest=Array.isArray(raw?.spec?.traffic)&&raw.spec.traffic.some(v=>v?.latestRevision===true);
+ check('latest-resolution-desired-sole100-unnamed-untagged',()=>!wantsLatest||raw.spec.traffic.length===1&&raw.spec.traffic[0].percent===100&&!present(raw.spec.traffic[0],'revisionName')&&!present(raw.spec.traffic[0],'tag'));
+ for(const type of ['Ready','ConfigurationsReady','RoutesReady'])check(`latest-resolution-${type}-unique-true`,()=>!wantsLatest||Array.isArray(raw?.status?.conditions)&&raw.status.conditions.filter(v=>v.type===type&&v.status==='True').length===1);
+ check('latest-resolution-ready-equals-created',()=>!wantsLatest||raw?.status?.latestReadyRevisionName===raw?.status?.latestCreatedRevisionName);
+ check('latest-resolution-observed-sole100-untagged',()=>!wantsLatest||Array.isArray(raw?.status?.traffic)&&raw.status.traffic.length===1&&raw.status.traffic[0].percent===100&&!present(raw.status.traffic[0],'tag'));
+ check('latest-resolution-observed-matches-ready',()=>!wantsLatest||Array.isArray(raw?.status?.traffic)&&raw.status.traffic.length===1&&raw.status.traffic[0].revisionName===raw.status.latestReadyRevisionName);
+ let normalized;
+ check('service-normalization',()=>{normalized=normalizeService(raw,true);return true;});
+ const desired=normalized?.spec?.traffic??raw?.spec?.traffic,observed=normalized?.status?.traffic??raw?.status?.traffic;
+ trafficConstraints(desired,revision,'desired-traffic',check);trafficConstraints(observed,revision,'observed-traffic',check);
+ check('normalized-selected-object-keys',()=>{if(!normalized)return false;keys(normalized,['metadata','spec','status']);keys(normalized.metadata,['name','annotations']);keys(normalized.spec,['template','traffic']);keys(normalized.spec.template,['metadata','spec']);keys(normalized.spec.template.metadata,['name','annotations']);keys(normalized.spec.template.spec,['serviceAccountName','containerConcurrency','timeoutSeconds','containers']);for(const x of normalized.spec.template.spec.containers)keys(x,['image','args','command','ports','resources','startupProbe']);keys(normalized.status,['latestReadyRevisionName','latestCreatedRevisionName','conditions','traffic']);for(const x of normalized.status.conditions)keys(x,['type','status']);for(const rows of [desired,observed])for(const x of rows)keys(x,['revisionName','percent',...(present(x,'tag')?['tag']:[])]);return true;});
+ check('complete-public-service-profile',()=>{if(!normalized)return false;validatePublicService(normalized,c);return true;});
+ const nameFacts={};for(const [label,value] of [['templateName',t?.metadata?.name],['latestReadyName',raw?.status?.latestReadyRevisionName],['latestCreatedName',raw?.status?.latestCreatedRevisionName]]){nameFacts[`${label}Present`]=value!==undefined;nameFacts[`${label}Type`]=valueType(value);nameFacts[`${label}Empty`]=value==='';nameFacts[`${label}Pattern`]=typeof value==='string'&&revision.test(value);}
+ nameFacts.latestResolutionRequired=wantsLatest;
+ nameFacts.automaticCategoriesArgumentPresent=c==='api'&&Array.isArray(container?.args)&&container.args.some(v=>typeof v==='string'&&/^--?automatic-categories(?:=|$)/.test(v));
+ nameFacts.templateNameEqualsLatestCreated=typeof t?.metadata?.name==='string'&&t.metadata.name===raw?.status?.latestCreatedRevisionName;
+ return {constraints:audit.results,facts:nameFacts};
+}
+export function inspectJobConstraints(raw){
+ const audit=constraintCollector(),check=audit.check,t=raw?.spec?.template?.spec,v=t?.template?.spec,c=v?.containers?.[0];
+ check('job-name-public',()=>raw?.metadata?.name==='jayburd-dev-migrate');check('job-task-count-public',()=>boundedInteger(t?.taskCount,1,100));check('job-parallelism-public',()=>boundedInteger(t?.parallelism,1,t?.taskCount));check('job-service-account-public',()=>v?.serviceAccountName===`jayburd-dev-migrator@${project}.iam.gserviceaccount.com`);check('job-retries-public',()=>boundedInteger(v?.maxRetries,0,10));
+ check('job-timeout-public',()=>boundedInteger(typeof v?.timeoutSeconds==='string'&&/^[1-9][0-9]{0,3}$/.test(v.timeoutSeconds)?Number(v.timeoutSeconds):v?.timeoutSeconds,1,3600));check('job-one-container',()=>Array.isArray(v?.containers)&&v.containers.length===1);check('job-command-empty',()=>equal(c?.command??[],[]));check('job-image-public',()=>typeof c?.image==='string'&&new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/migrate@sha256:[a-f0-9]{64}$`).test(c.image));argumentConstraints(c?.args,check,true);resourceConstraints(c?.resources,check);
+ let normalized;check('job-normalization',()=>{normalized=normalizeJob(raw);return true;});check('complete-public-job-profile',()=>{if(!normalized)return false;validatePublicJob(normalized);return true;});return {constraints:audit.results};
+}
+export function inspectExecutionConstraints(rows){
+ const audit=constraintCollector(),check=audit.check;check('executions-array-count',()=>Array.isArray(rows)&&rows.length<=3);
+ for(let i=0;i<3;i++){
+  const raw=Array.isArray(rows)?rows[i]:undefined;if(raw===undefined)continue;const prefix=`execution-${i+1}`,t=raw?.spec?.template?.spec,c=t?.containers?.[0];
+  const sub=(code,fn)=>check(`${prefix}-${code}`,fn);
+  sub('name-public',()=>typeof raw?.metadata?.name==='string'&&/^jayburd-dev-migrate-[a-z0-9]{1,20}$/.test(raw.metadata.name));sub('task-count-one',()=>raw?.spec?.taskCount===1);sub('one-container',()=>Array.isArray(t?.containers)&&t.containers.length===1);sub('service-account-public',()=>t?.serviceAccountName===`jayburd-dev-migrator@${project}.iam.gserviceaccount.com`);sub('retries-zero',()=>t?.maxRetries===0);sub('timeout-660',()=>[660,'660'].includes(t?.timeoutSeconds));sub('command-empty',()=>equal(c?.command??[],[]));sub('image-public',()=>typeof c?.image==='string'&&new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/migrate@sha256:[a-f0-9]{64}$`).test(c.image));
+  sub('args-exact-public-profile',()=>equal(c?.args??[],['-action=status',`-instance=${project}:${region}:jayburd-dev`])||equal(c?.args??[],['-action=up',`-instance=${project}:${region}:jayburd-dev`]));
+  for(const key of ['succeededCount','failedCount','cancelledCount','runningCount','retriedCount'])sub(`${key}-public`,()=>!present(raw?.status,key)||boundedInteger(raw.status[key],0,1));sub('completion-time-public',()=>!present(raw?.status,'completionTime')||typeof raw.status.completionTime==='string'&&Number.isFinite(Date.parse(raw.status.completionTime)));
+  sub('conditions-array-count',()=>!present(raw?.status,'conditions')||Array.isArray(raw.status.conditions)&&raw.status.conditions.length<=16);sub('condition-types-public',()=>!present(raw?.status,'conditions')||raw.status.conditions.every(x=>typeof x.type==='string'&&/^[A-Za-z][A-Za-z0-9]{0,63}$/.test(x.type)));sub('condition-status-enums',()=>!present(raw?.status,'conditions')||raw.status.conditions.every(x=>['True','False','Unknown'].includes(x.status)));
+  sub('complete-public-execution-profile',()=>{publicExecution(raw);return true;});
+ }
+ return {constraints:audit.results};
 }
 // Bind owner-approved bytes, fixed source and finite execution scope before reading build evidence or invoking cloud tools.
 export function validateAutomaticManifest(bytes,digest,phase,now=Date.now()){
@@ -272,20 +400,27 @@ export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{
   return reply;
  };
  if(!phases.includes(phase)||m.baseline===null&&phase!=='inspect')fail();
- const before={};
- for(const c of ['api','web']){
-  const raw=step(`read-${c}`,()=>command(['run','services','describe',`jayburd-dev-${c}`,...flags,`--format=${serviceProjection}`]),serviceShape);
-  before[c]=step(`public-${c}`,()=>{const normalized=normalizeService(raw,phase==='inspect');phase==='inspect'?validatePublicService(normalized,c):validateService(normalized,c);return normalized;});
- }
- const rawJob=step('read-migrate',()=>command(['run','jobs','describe','jayburd-dev-migrate',...flags,`--format=${jobProjection}`]),jobShape);
- before.migrate=step('public-job',()=>{const j=normalizeJob(rawJob);phase==='inspect'?validatePublicJob(j):validateJob(j);return j;});
  if(phase==='inspect'){
-  // Health failures remain observable; configuration/privacy failures stop before any receipt is written.
-  for(const c of ['api','web'])validatePublicService(before[c],c);validatePublicJob(before.migrate);
-  const executions=step('recent-executions',()=>{const rows=command(['run','jobs','executions','list','--job=jayburd-dev-migrate','--limit=3',...flags,`--format=${executionProjection}`]);if(!Array.isArray(rows)||rows.length>3)fail();return rows.map(publicExecution);},rows=>({executions:count(rows)}));
+  let incomplete=false;const before={};
+  const attempt=(stage,fn,shape)=>{try{return step(stage,fn,shape);}catch{incomplete=true;return undefined;}};
+  for(const c of ['api','web']){
+   const raw=attempt(`read-${c}`,()=>command(['run','services','describe',`jayburd-dev-${c}`,...flags,`--format=${serviceProjection}`]),serviceShape);
+   before[c]=attempt(`public-${c}`,()=>{diagnostic(onDiagnostic,`public-${c}`,'constraints',inspectServiceConstraints(raw,c));const normalized=normalizeService(raw,true);validatePublicService(normalized,c);return normalized;});
+  }
+  const rawJob=attempt('read-migrate',()=>command(['run','jobs','describe','jayburd-dev-migrate',...flags,`--format=${jobProjection}`]),jobShape);
+  before.migrate=attempt('public-job',()=>{diagnostic(onDiagnostic,'public-job','constraints',inspectJobConstraints(rawJob));const normalized=normalizeJob(rawJob);validatePublicJob(normalized);return normalized;});
+  const executions=attempt('recent-executions',()=>{const rows=command(['run','jobs','executions','list','--job=jayburd-dev-migrate','--limit=3',...flags,`--format=${executionProjection}`]);diagnostic(onDiagnostic,'recent-executions','constraints',inspectExecutionConstraints(rows));if(!Array.isArray(rows)||rows.length>3)fail();return rows.map(publicExecution);},rows=>({executions:count(rows)}));
+  if(incomplete)fail();
   const validation=Object.fromEntries(['api','web','migrate'].map(c=>{try{c==='migrate'?validateJob(before[c]):validateService(before[c],c);return [c,'healthy-selected-profile'];}catch{return [c,'requires-owner-review'];}}));
   return {schemaVersion:1,phase,status:'inspection-only-not-release-acceptance',before,validation,executions};
  }
+ const before={};
+ for(const c of ['api','web']){
+  const raw=step(`read-${c}`,()=>command(['run','services','describe',`jayburd-dev-${c}`,...flags,`--format=${serviceProjection}`]),serviceShape);
+  before[c]=step(`public-${c}`,()=>{const normalized=normalizeService(raw);validateService(normalized,c);return normalized;});
+ }
+ const rawJob=step('read-migrate',()=>command(['run','jobs','describe','jayburd-dev-migrate',...flags,`--format=${jobProjection}`]),jobShape);
+ before.migrate=step('public-job',()=>{const j=normalizeJob(rawJob);validateJob(j);return j;});
  for(const c of ['api','web'])validateService(before[c],c);validateJob(before.migrate);
  if(phase==='migrate')return migrate(m,before,runner,mutate);
  const c=phase==='web'?'web':'api',current=before[c],base=m.baseline[c];
