@@ -3,12 +3,19 @@
 
 ## Status and boundary
 
-Schema48 is applied and verified by migration43264239902 at17:03Z, with the
-existing job restored to candidate/defaultstatus. API candidate
-as-43158591303-stage is created with categoriesOFF; fresh43266304917 readback
-confirms old API00026 and web00027 still serve sole100 traffic. No promotion
-attempt was issued. Recovery tooling now distinguishes no-traffic staged status
-from active readiness and can resume only that existing stage without recreation.
+Dev APIas-43158591303-activate and webas-43158591303-web are deployed with
+exact qualified images, sole100 traffic, intended latestCreated/Ready and all
+four direct active health checksTRUE. Schema48 and embedded hashes are verified;
+migrator retains candidate/defaultstatus. API preserves the original20 arguments
+plus the automatic capability flag, with instanceCPU/min0/max1. Workspace policy
+enable/adoption has not been performed; complete synthetic-workspace scope and
+normal verified-owner product acceptance remain pending.
+
+Anonymous HTTP transport verification is being added to the existing owner
+workflow because local DNS and web fetch cannot reach run.app in this session.
+No HTTP status or product acceptance is inferred from that local restriction.
+[Runtime receipt](../reviews/automatic-category-runtime.json) retains actual
+phase IDs, hashes, health and final selected public settings.
 
 Owner explicitly approved source merge, patched deployment and synthetic category
 verification. PR489 source eb1828c and trusted four-image Build43158591303 pass
@@ -23,7 +30,8 @@ chore/485-approved-runtime-baseline is merged; branch
 chore/485-synthetic-release-baseline is merged; branch
 chore/485-observed-runtime-compatibility is merged; branch
 chore/485-pinned-observed-baseline is merged; branch
-chore/485-retired-stage-recovery owns the observed no-traffic recovery. Scope:
+chore/485-retired-stage-recovery is merged; branch
+docs/485-runtime-rollout-receipts owns final public evidence and read-only smoke. Scope:
 all four same-build patched artifacts, existing migrator forward48/status,
 configuration-preserving API/web stages and explicit synthetic analytic activation.
 No ad hoc SQL, migration edits, down/force/reset, provider calls or consent renewal,
@@ -39,8 +47,8 @@ off until the authorized in-app setting enables the selected synthetic workspace
 | Build | Trusted main43158591303 exacteb1828c; all four runtime/scan/inventory/publication jobs passed, HIGH0/CRITICAL0, actual complete receipt bindings verified. |
 | Backup | Selected CloudSQL backup metadata:1794376800000 SUCCESSFUL, completed2026-11-11T08:41:55.672Z. This is backup metadata, not a restore rehearsal. |
 | Authentication | Existing owner-deploy GitHub WIF authenticated successful inspection/migration/stage workflows. Local cache writes remain unavailable; no credentials copied/exported or permissions changed. |
-| Tooling | Finite owner-deploy profile490–495 merged; observed no-traffic latestReady mismatch requires the tested resume-stage recovery follow-up. No Terraform/IAM/federation change. |
-| Migration/runtime | Clean48/hash status verified. Candidate API stagedOFF; old API/web sole100 retained. Explicit existing-stage promotion and later activate/web phases remain pending. |
+| Tooling | Finite owner-deploy profile490–496 merged; observed no-traffic state recovered without service recreation or migration replay. Credential-free smoke is the final tooling follow-up. No Terraform/IAM/federation change. |
+| Migration/runtime | Clean48/hash verified; existing API stage resumed, capability API and new web both promoted with intended sole100 and full active health. Final candidate migrator/defaultstatus retained. |
 | Product acceptance | Pending normal verified-owner synthetic flow. Anonymous transport is separate. |
 
 ## Delivery design
@@ -112,21 +120,20 @@ needs exact selected configuration and durable-state compatibility review.
 
 ## Remaining work
 
-Pass exact-head recovery checks and merge normally, then explicitly resume the
-existing staged API and require actual active health/traffic/configuration
-readback. Continue activate and web phases with the renewed exact manifest and
-full postchecks; never recreate the staged revision or replay migration.
-Complete anonymous transport separately from normal verified-owner synthetic
-acceptance. Workspace policy/adoption remains off until its complete data scope
-is confirmed synthetic. Record actual receipts/revisions in485/488. Real provider
-qualification, new artifact ingestion and accounting autopost are separate work.
+Complete exact-head tests/review/normal merge for read-only anonymous smoke, then
+dispatch inspect with anonymous_smoke=true and retain actual public200/private
+401/directAPI403 evidence. The root/data-scope question remains pending before
+workspace policy enable/adoption or private-record review. Normal verified-owner
+synthetic category/manual-choice/exception/persistence proof remains separate
+from runtime and source CI. Real provider qualification, new artifact ingestion,
+worker rollout and accounting autopost remain separate work.
 
 ## PR handoff
 
-Source/images and clean48 migration are verified. Candidate API creation occurred,
-with old API/web traffic retained. Recovery/promotion and later activation/web
-receipts are pending. Every implementation commit includes this marked runbook
-and the staged guard; workspace analytic policy is not enabled.
+Source/images, clean48 migration and exact API/web runtime rollout are verified.
+Anonymous transport and normal owner synthetic acceptance remain distinct open
+gates. Every implementation commit includes this marked runbook and staged guard;
+no workspace policy/adoption action has been performed.
 
 ## Current evidence
 
@@ -357,3 +364,35 @@ checks and all seven offline phase validations pass against actual four-image
 receipts. Workflow changes only add the resume-stage input enum. Independent
 review passes, including actual selected-snapshot local recovery/replay proof;
 exact-head canonical CI remains required before normal merge/recovery.
+
+PR496 merged at2087481973dce235c43d31fc4d79ae4b8af00d61 after all exact
+41c8e05 checks passed (Seed43269077612, Infrastructure43269077834, GitGuardian).
+Resume43273656063 promoted the existing fixed stage with no recreate/migration
+replay. Staged Retired/import-only evidence remains distinct from post-promotion
+startup/active health. Activation43274175362 adds only the capability flag and
+reviewed scheduling; provider/connection arguments remain unchanged.
+Web43274529222 changes only the frontend image, retains its settings and leaves
+activated API/migrator unchanged. Root and independent receipt reviews pass.
+
+Local credential-free body-discarding curl probes failed DNS resolution for the
+run.app hosts; the web fetch surface also reports inaccessible. These are tool
+reachability failures, not app HTTP responses. The final bounded smoke extension
+uses the existing owner/main workflow with a default-false anonymous_smoke input
+for explicit read-only inspect; successful web rollout also probes automatically.
+Before any network call, validate exact manifest hash/expiry and accepted current
+phase receipt, target images, intended healthy status and sole100 traffic.
+Only fixed anonymousGET endpoints/status codes are retained: web/auth-config200,
+private collection/automation401 and directAPI403. Omit all credentials/cookies;
+redirects are not followed, time is bounded, and bodies are canceled unread.
+Default source tests use mocks only; no live provider/default-CI cloud calls.
+
+Frozen smoke sourceSHA256
+`93a102b50a4e682e663f62ec0aea90ee8644107fb1af45bc04c34c9671f37f91`
+and testsSHA256
+`a6a143aec8a3a11f1ba13e713c1968215315dd4a33700612b664737a50645961`
+pass23 new mock/CLI tests and246 combined release/deployment checks. Makefile
+check includes the mocks with no live requests. Independent review and actual
+web-receipt local binding pass; context/staged/diff checks pass. Exact-head
+canonical CI/normal merge and the explicit actual workflow smoke remain gates.
+Later actual smoke receipts on GitHub485/488 supersede this dated pending state;
+do not repeat completed migration/deployment based on a historical stage paragraph.
