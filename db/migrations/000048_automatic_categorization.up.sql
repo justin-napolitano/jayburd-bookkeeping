@@ -384,6 +384,7 @@ CREATE TABLE banking.collection_automation_edition(
 CREATE TABLE banking.collection_automation_state(
  workspace_id uuid PRIMARY KEY REFERENCES banking.collection_workspace,revision bigint NOT NULL DEFAULT 0,
  initialized boolean NOT NULL DEFAULT false,last_checked_at timestamptz,last_run_id uuid,
+ context_cache jsonb CHECK(context_cache IS NULL OR(jsonb_typeof(context_cache)='object'AND octet_length(context_cache::text)<=2097152)),
  blocked_reason text CHECK(blocked_reason IN('saved_work','category_catalog_unavailable','permission_changed')),
  FOREIGN KEY(workspace_id,revision)REFERENCES banking.collection_automation_edition DEFERRABLE INITIALLY DEFERRED,
  CHECK(last_checked_at IS NULL OR isfinite(last_checked_at))
@@ -696,7 +697,7 @@ DECLARE v jsonb;k text;expected bigint;enabled_value boolean;a banking.collectio
  END IF;
  IF a.revision<>expected THEN PERFORM banking.collection_error('P2803');END IF;
  INSERT INTO banking.collection_automation_edition(workspace_id,revision,enabled,principal_id)VALUES(w,a.revision+1,enabled_value,actor);
- UPDATE banking.collection_automation_state SET revision=revision+1,blocked_reason=NULL WHERE workspace_id=w;
+ UPDATE banking.collection_automation_state SET revision=revision+1,blocked_reason=NULL,context_cache=NULL WHERE workspace_id=w;
  UPDATE banking.collection_label_state SET projection_revision=projection_revision+1 WHERE workspace_id=w;
  res:=banking.collection_automatic_status(actor,w);
  INSERT INTO banking.collection_automation_setting_receipt(workspace_id,principal_id,request_key,request,result)VALUES(w,actor,k,v,res);
@@ -733,7 +734,7 @@ END $$;
 CREATE FUNCTION banking.collection_automation_context(actor uuid,w uuid)RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 DECLARE a banking.collection_automation_state;p banking.collection_automation_edition;r banking.collection_automatic_run;
- selected jsonb;context_value jsonb;last_value jsonb;state_value text:='idle';res jsonb;BEGIN
+ selected jsonb;fingerprints_value jsonb;context_value jsonb;last_value jsonb;state_value text:='idle';res jsonb;BEGIN
  PERFORM banking.collection_label_authorize(actor,w,true);
  SELECT * INTO STRICT a FROM banking.collection_automation_state WHERE workspace_id=w FOR UPDATE;
  SELECT * INTO STRICT p FROM banking.collection_automation_edition WHERE workspace_id=w AND revision=a.revision;
@@ -758,10 +759,14 @@ DECLARE a banking.collection_automation_state;p banking.collection_automation_ed
    IF NOT banking.collection_automatic_starter(actor,w)THEN
     UPDATE banking.collection_automation_state SET blocked_reason='category_catalog_unavailable'WHERE workspace_id=w;state_value:='blocked';
    ELSE
-    SELECT coalesce(jsonb_agg(jsonb_build_object('workspace_id',w,'source_id',i.source_id,'observation_id',i.observation_id,'observation_revision',i.observation_revision::text)ORDER BY i.source_id,i.observation_id),'[]')INTO selected
+    SELECT coalesce(jsonb_agg(jsonb_build_object('workspace_id',w,'source_id',i.source_id,'observation_id',i.observation_id,'observation_revision',i.observation_revision::text)ORDER BY i.source_id,i.observation_id),'[]'),
+     coalesce(jsonb_agg(jsonb_build_object('source_id',i.source_id,'observation_id',i.observation_id,'fingerprint',i.input_fingerprint)ORDER BY i.source_id,i.observation_id),'[]')INTO selected,fingerprints_value
     FROM(SELECT * FROM banking.collection_automatic_inputs(actor,w)x WHERE x.input_fingerprint IS DISTINCT FROM x.previous_fingerprint ORDER BY x.source_id,x.observation_id LIMIT 100)i;
     IF jsonb_array_length(selected)>0 THEN
      context_value:=banking.collection_rule_context(actor,w,jsonb_build_object('snapshot',banking.collection_query_snapshot(w),'selection',selected,'action',jsonb_build_object('kind','rules_apply'))::text,true);
+     -- Only this current-authorized SQL function can create the cached context.
+     -- Prepare checks exact equality and current pins; execute still checks each fresh fingerprint.
+     UPDATE banking.collection_automation_state SET context_cache=jsonb_build_object('context',context_value,'fingerprints',fingerprints_value,'policy_revision',a.revision::text)WHERE workspace_id=w;
      state_value:='ready';
     END IF;
    END IF;
@@ -774,7 +779,7 @@ END $$;
 CREATE FUNCTION banking.prepare_collection_automatic_run(actor uuid,w uuid,context_text text,results_text text)RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 DECLARE a banking.collection_automation_state;p banking.collection_automation_edition;r banking.collection_automatic_run;
- c jsonb;fresh jsonb;v jsonb;x jsonb;input_cache jsonb;normalized jsonb:='[]';fingerprints jsonb:='[]';key_value text;sid uuid;oid uuid;fp text;BEGIN
+ c jsonb;v jsonb;x jsonb;input_cache jsonb;normalized jsonb:='[]';fingerprints jsonb:='[]';key_value text;sid uuid;oid uuid;fp text;BEGIN
  PERFORM banking.collection_label_authorize(actor,w,true);
  SELECT * INTO STRICT a FROM banking.collection_automation_state WHERE workspace_id=w FOR UPDATE;
  SELECT * INTO STRICT p FROM banking.collection_automation_edition WHERE workspace_id=w AND revision=a.revision;
@@ -782,10 +787,11 @@ DECLARE a banking.collection_automation_state;p banking.collection_automation_ed
  c:=banking.import_json(context_text,1048576);v:=banking.import_json(results_text,1048576);
  PERFORM banking.collection_keys(v,ARRAY['results']);
  IF c->>'profile'<>'private-rule-context-v1'OR c->>'principal_id'<>actor::text OR c->>'workspace_id'<>w::text OR c->'action'<>jsonb_build_object('kind','rules_apply')THEN PERFORM banking.collection_error('P2800');END IF;
- fresh:=banking.collection_rule_context(actor,w,jsonb_build_object('snapshot',c->'snapshot','selection',c->'selection','action',c->'action')::text,true);
- IF fresh<>c THEN PERFORM banking.collection_error('P2803');END IF;
+ IF a.context_cache IS NULL OR a.context_cache->'context'IS DISTINCT FROM c OR a.context_cache->>'policy_revision'IS DISTINCT FROM a.revision::text THEN PERFORM banking.collection_error('P2803');END IF;
+ PERFORM banking.collection_query_pins(c->'snapshot',banking.collection_query_snapshot(w));
  IF jsonb_typeof(v->'results')IS DISTINCT FROM 'array'OR jsonb_array_length(v->'results')<>jsonb_array_length(c->'facts')OR jsonb_array_length(v->'results')NOT BETWEEN 1 AND 100 THEN PERFORM banking.collection_error('P2800');END IF;
- SELECT coalesce(jsonb_agg(jsonb_build_object('source_id',i.source_id,'observation_id',i.observation_id,'fingerprint',i.input_fingerprint)),'[]')INTO input_cache FROM banking.collection_automatic_inputs(actor,w)i WHERE EXISTS(SELECT FROM jsonb_array_elements(c->'selection')z WHERE z->>'source_id'=i.source_id::text AND z->>'observation_id'=i.observation_id::text);
+ input_cache:=a.context_cache->'fingerprints';
+ IF jsonb_array_length(input_cache)<>jsonb_array_length(c->'facts')THEN PERFORM banking.collection_error('P2803');END IF;
  FOR x IN SELECT value FROM jsonb_array_elements(v->'results')LOOP
   x:=banking.collection_rule_result(w,c,x);sid:=(x->>'source_id')::uuid;oid:=(x->>'observation_id')::uuid;
   IF EXISTS(SELECT FROM jsonb_array_elements(normalized)n WHERE n->>'source_id'=sid::text AND n->>'observation_id'=oid::text)THEN PERFORM banking.collection_error('P2800');END IF;
@@ -880,7 +886,7 @@ DECLARE a banking.collection_automation_state;p banking.collection_automation_ed
  res:=jsonb_build_object('profile','private-collection-auto-run-v1','workspace_id',w,'run_id',id,'state',CASE WHEN stale THEN 'stale'ELSE 'committed'END,
   'processed_count',processed_value::text,'attention_count',attention_value::text);
  UPDATE banking.collection_automatic_run SET state=CASE WHEN stale THEN 'stale'ELSE 'committed'END,result=res,terminal_at=clock_timestamp()WHERE workspace_id=w AND run_id=id RETURNING * INTO r;
- UPDATE banking.collection_automation_state SET last_run_id=id,blocked_reason=NULL,last_checked_at=clock_timestamp()WHERE workspace_id=w;
+ UPDATE banking.collection_automation_state SET last_run_id=id,blocked_reason=NULL,last_checked_at=clock_timestamp(),context_cache=NULL WHERE workspace_id=w;
  RETURN banking.collection_automatic_render(r);
 END $$;
 

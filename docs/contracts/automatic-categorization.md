@@ -110,13 +110,24 @@ Inventory rotation commits independently of later phase failure, so an uncertain
 40001/40P01 whole-transaction retries at most3; cancellation returns no partial
 accepted result. The same evaluator supplies private rule results.
 
+A private per-workspace cache (at most2MiB) stores only the SQL-created current
+context, selected fingerprints and policy revision. It avoids reconstructing the
+same history twice in one bounded preparation transaction. Runtime roles cannot
+read or write this table; there is no public cache/results route. Prepare requires
+exact cached JSON equality, current authorization/locks, matching policy and full
+query snapshot pins, then existing SQL result/manual/output validation. Source,
+PFC, taxonomy/tag/rule and decision changes invalidate those pins. Execution still
+recomputes fresh per-row fingerprints and reauthorizes before effects. Cache
+survives exact inert prepare replay and is cleared by policy changes or terminal
+execution. Public GET does not populate it.
+
 | SQL entrypoint | Frozen meaning |
 | --- | --- |
 | banking.get_collection_automation(actor,w) | Read-only current-authorized status; profile private-collection-automation-v1, workspace_id, revision string, enabled bool, processing_state disabled/idle/pending/blocked, pending_count/attention_count strings, blocked_reason null/saved_work/category_catalog_unavailable/permission_changed, last_run nullable bounded metadata. Unknown is not zero. |
 | banking.set_collection_automation(actor,w,raw) | Exact closed {key:string,expected_revision:string,enabled:boolean}, preserving original raw bytes for duplicate/unknown-key validation; immutable config receipt keyed owner/workspace/key. Replay same body under current authority; changed body conflicts. No interactive fake command. |
 | banking.collection_automation_work() | Trusted service only: private-collection-auto-work-v1 with at most10 current-authorized enabled owner/workspace metadata pairs. No raw source payload or financial effect. |
 | banking.collection_automation_context(actor,w) | private-collection-auto-context-v1: principal_id/workspace_id, state ready/pending/idle/blocked, run_id nullable, context nullable existing private-rule-context-v1, last_run always present and nullable full run metadata. Pending run wins over new selection. Select at most100 input-fingerprint mismatches. Starter initialization is a worker mutation, never a query effect. |
-| banking.prepare_collection_automatic_run(actor,w,context_text,results_text) | Revalidate exact current context and complete trusted evaluator results; persist immutable planned input/result with deterministic work_key and one durable run_id. Return private-collection-auto-run-v1 metadata. Inert preparation, no category effects. |
+| banking.prepare_collection_automatic_run(actor,w,context_text,results_text) | Reauthorize, require exact equality with the SQL-created context cache and current policy/snapshot pins, and validate complete trusted evaluator results; persist immutable planned input/result with deterministic work_key and one durable run_id. Return private-collection-auto-run-v1 metadata. Inert preparation, no category effects. |
 | banking.execute_collection_automatic_run(actor,w,run_id) | Reauthorize and revalidate policy/source/PFC/rule/map/taxonomy/tag/manual fingerprints; atomically persist decisions/projection/audit plus committed same-run receipt. A stale plan terminates stale with zero category effects, then fresh work may be planned. Exact committed replay returns original receipt, never duplicate effects. |
 
 Run metadata includes profile, workspace_id, run_id, state prepared/committed/stale,
