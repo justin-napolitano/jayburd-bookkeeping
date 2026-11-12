@@ -583,6 +583,42 @@ DECLARE v jsonb;sel jsonb;snap jsonb;sid uuid;first_day date;last_day date;searc
 EXCEPTION WHEN SQLSTATE 'P2100'OR SQLSTATE 'P2400'OR invalid_text_representation OR character_not_in_repertoire OR untranslatable_character THEN PERFORM banking.collection_error('P2800');END $$;
 
 -- Return only current source detail and independently authorized existing journal anchors.
+-- Catalog-only review never projects the whole transaction history for an empty selection.
+ALTER FUNCTION banking.collection_rule_context(uuid,uuid,text,boolean)RENAME TO collection_automatic_previous_rule_context;
+CREATE FUNCTION banking.collection_rule_context(actor uuid,w uuid,raw text,writing boolean)RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE v jsonb;snap jsonb;action_value jsonb;z jsonb;sid uuid;oid uuid;rev bigint;selected jsonb:='[]';row_cache jsonb:='[]';rows_value jsonb:='[]';facts_value jsonb:='[]';fact jsonb;topic_value jsonb;tags_value jsonb;rules_value jsonb;res jsonb;catalog_value jsonb;BEGIN
+ IF writing IS NULL THEN PERFORM banking.collection_error('P2800');END IF;
+ PERFORM banking.collection_label_authorize(actor,w,writing);v:=banking.import_json(raw,524288);PERFORM banking.collection_keys(v,ARRAY['snapshot','selection','action']);snap:=banking.collection_query_snapshot(w);PERFORM banking.collection_query_pins(v->'snapshot',snap);
+ IF NOT writing AND v->'action'<>jsonb_build_object('kind','rules_apply')THEN PERFORM banking.collection_error('P2800');END IF;action_value:=banking.collection_rule_action(w,v->'action');
+ IF jsonb_typeof(v->'selection')IS DISTINCT FROM 'array'THEN PERFORM banking.collection_error('P2800');END IF;
+ IF jsonb_array_length(v->'selection')>100 OR(writing AND((action_value->>'kind'IN('taxonomy','tag_catalog','rule_catalog')AND jsonb_array_length(v->'selection')<>0)OR(action_value->>'kind'NOT IN('taxonomy','tag_catalog','rule_catalog')AND jsonb_array_length(v->'selection')=0)))THEN PERFORM banking.collection_error('P2805');END IF;
+ IF jsonb_array_length(v->'selection')>0 THEN
+ SELECT coalesce(jsonb_agg(r.body),'[]')INTO row_cache FROM banking.collection_query_rows(actor,w)r WHERE EXISTS(SELECT FROM jsonb_array_elements(v->'selection')x WHERE(x->>'source_id')::uuid=r.source_id AND(x->>'observation_id')::uuid=r.observation_id);
+ END IF;
+ FOR z IN SELECT value FROM jsonb_array_elements(v->'selection')LOOP
+  PERFORM banking.collection_keys(z,ARRAY['workspace_id','source_id','observation_id','observation_revision']);IF ledger.uuid_value(z->'workspace_id')<>w THEN PERFORM banking.collection_error('P2801');END IF;
+  sid:=ledger.uuid_value(z->'source_id');oid:=ledger.uuid_value(z->'observation_id');rev:=banking.import_revision(z->'observation_revision');IF rev=0 THEN PERFORM banking.collection_error('P2800');END IF;
+  IF EXISTS(SELECT FROM jsonb_array_elements(selected)x WHERE x->>'source_id'=sid::text AND x->>'observation_id'=oid::text)THEN PERFORM banking.collection_error('P2800');END IF;
+  SELECT x INTO fact FROM jsonb_array_elements(row_cache)x WHERE x->>'source_id'=sid::text AND x->>'observation_id'=oid::text;IF NOT FOUND THEN PERFORM banking.collection_error('P2801');END IF;IF fact->>'observation_revision'<>rev::text THEN PERFORM banking.collection_error('P2803');END IF;
+  selected:=selected||jsonb_build_array(jsonb_build_object('workspace_id',w,'source_id',sid,'observation_id',oid,'observation_revision',rev::text));rows_value:=rows_value||jsonb_build_array(fact-ARRAY['institution','legal_owner','rule_application']);
+  SELECT jsonb_build_object('observation_revision',d.observation_revision::text,'taxonomy_revision',d.taxonomy_revision::text,'kind',d.kind,'topic_id',d.topic_id)INTO topic_value FROM banking.collection_label_decision d WHERE d.workspace_id=w AND d.source_account_id=sid AND d.observation_id=oid ORDER BY decision_revision DESC LIMIT 1;
+  SELECT jsonb_build_object('observation_revision',d.observation_revision::text,'tag_revision',d.tag_revision::text,'tag_ids',to_jsonb(d.tag_ids))INTO tags_value FROM banking.collection_tag_decision d WHERE d.workspace_id=w AND d.source_account_id=sid AND d.observation_id=oid ORDER BY decision_revision DESC LIMIT 1;
+  facts_value:=facts_value||jsonb_build_array(jsonb_build_object('source_id',sid,'observation_id',oid,'observation_revision',rev::text,'booked_date',fact->'booked_date','merchant',fact->'merchant','description',fact->'description','currency_version_id',fact->'money'->'currency_version_id','direction',fact->'money'->'direction','source_state',fact->'source_state','money_state',fact->'money'->'state','manual_topic',topic_value,'manual_tags',tags_value));
+ END LOOP;
+ SELECT coalesce(jsonb_agg(value ORDER BY value->>'source_id',value->>'observation_id'),'[]')INTO selected FROM jsonb_array_elements(selected);
+ SELECT coalesce(jsonb_agg(value ORDER BY value->>'source_id',value->>'observation_id'),'[]')INTO rows_value FROM jsonb_array_elements(rows_value);
+ SELECT coalesce(jsonb_agg(value ORDER BY value->>'source_id',value->>'observation_id'),'[]')INTO facts_value FROM jsonb_array_elements(facts_value);
+ IF action_value->>'kind'='rule_catalog'THEN rules_value:=action_value->'rules';
+  catalog_value:=banking.get_collection_taxonomy_v3(actor,w)||jsonb_build_object('rules',rules_value,'ruleset_revision',((snap->>'ruleset_revision')::bigint+1)::text);
+  IF octet_length(catalog_value::text)>1048576 THEN PERFORM banking.collection_error('P2805');END IF;
+ ELSE SELECT e.rules INTO rules_value FROM banking.collection_rule_edition e JOIN banking.collection_label_state s USING(workspace_id,ruleset_revision)WHERE e.workspace_id=w;END IF;
+ res:=jsonb_build_object('profile','private-rule-context-v1','principal_id',actor,'workspace_id',w,'snapshot',snap,'action',action_value,'selection',selected,'review_rows',rows_value,'rules',rules_value,'facts',facts_value,
+ 'topic_ids',(SELECT coalesce(jsonb_agg(t->'topic_id'ORDER BY t->>'topic_id'),'[]')FROM banking.collection_taxonomy_edition e JOIN banking.collection_label_state s USING(workspace_id,taxonomy_revision),jsonb_array_elements(e.topics)t WHERE e.workspace_id=w AND t->>'status'='active'),
+ 'tag_ids',(SELECT coalesce(jsonb_agg(t->'tag_id'ORDER BY t->>'tag_id'),'[]')FROM banking.collection_tag_edition e JOIN banking.collection_label_state s USING(workspace_id,tag_revision),jsonb_array_elements(e.tags)t WHERE e.workspace_id=w AND t->>'status'='active'));
+ IF octet_length(res::text)>1048576 THEN PERFORM banking.collection_error('P2805');END IF;RETURN res;
+EXCEPTION WHEN SQLSTATE 'P2100'OR SQLSTATE 'P2400'OR invalid_text_representation THEN PERFORM banking.collection_error('P2800');END $$;
+
 -- Bounded durable policy, planning and execution entrypoints.
 
 -- Current input inventory excludes pending/removed facts from routine categorization work.
@@ -856,8 +892,8 @@ DO $$DECLARE f regprocedure;BEGIN
  OR(n.nspname='integration'AND p.proname IN('stage_sync_category_page','sync_category_context','complete_sync_categories'))
  LOOP EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC,bookkeeping_api,bookkeeping_sync,bookkeeping_webhook,bookkeeping_observer,bookkeeping_publisher,bookkeeping_verifier,bookkeeping_identity_operator',f);END LOOP;
 END $$;
-REVOKE ALL ON FUNCTION banking.query_collection_review_v3(uuid,uuid,text)FROM PUBLIC,bookkeeping_api,bookkeeping_sync,bookkeeping_webhook,bookkeeping_observer,bookkeeping_publisher,bookkeeping_verifier,bookkeeping_identity_operator;
-GRANT EXECUTE ON FUNCTION banking.query_collection_review_v3(uuid,uuid,text)TO bookkeeping_api;
+REVOKE ALL ON FUNCTION banking.collection_rule_context(uuid,uuid,text,boolean),banking.query_collection_review_v3(uuid,uuid,text)FROM PUBLIC,bookkeeping_api,bookkeeping_sync,bookkeeping_webhook,bookkeeping_observer,bookkeeping_publisher,bookkeeping_verifier,bookkeeping_identity_operator;
+GRANT EXECUTE ON FUNCTION banking.collection_rule_context(uuid,uuid,text,boolean),banking.query_collection_review_v3(uuid,uuid,text)TO bookkeeping_api;
 REVOKE ALL ON reference.analytic_category,reference.analytic_category_pair,integration.sync_category_page,integration.sync_category_completion,banking.provider_category_revision,banking.collection_automation_edition,banking.collection_automation_state,banking.collection_automation_setting_receipt,banking.collection_automatic_run,banking.collection_automatic_decision FROM PUBLIC,bookkeeping_api,bookkeeping_sync,bookkeeping_webhook,bookkeeping_observer,bookkeeping_publisher,bookkeeping_verifier,bookkeeping_identity_operator;
 GRANT EXECUTE ON FUNCTION integration.stage_sync_category_page(uuid,uuid,uuid,uuid,bigint,text),integration.sync_category_context(uuid,uuid,uuid,uuid,bigint),integration.complete_sync_categories(uuid,uuid,uuid,uuid,bigint)TO bookkeeping_sync;
 GRANT EXECUTE ON FUNCTION banking.get_collection_automation(uuid,uuid),banking.set_collection_automation(uuid,uuid,text),banking.collection_automation_work(),banking.collection_automation_context(uuid,uuid),banking.prepare_collection_automatic_run(uuid,uuid,text,text),banking.execute_collection_automatic_run(uuid,uuid,uuid)TO bookkeeping_api;

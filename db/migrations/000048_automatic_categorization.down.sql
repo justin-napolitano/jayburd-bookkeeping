@@ -14,6 +14,9 @@ ALTER FUNCTION banking.collection_automatic_previous_rows(uuid,uuid)RENAME TO co
 DROP FUNCTION banking.query_collection_review_v3(uuid,uuid,text);
 ALTER FUNCTION banking.collection_automatic_previous_query(uuid,uuid,text)RENAME TO query_collection_review_v3;
 GRANT EXECUTE ON FUNCTION banking.query_collection_review_v3(uuid,uuid,text)TO bookkeeping_api;
+DROP FUNCTION banking.collection_rule_context(uuid,uuid,text,boolean);
+ALTER FUNCTION banking.collection_automatic_previous_rule_context(uuid,uuid,text,boolean)RENAME TO collection_rule_context;
+GRANT EXECUTE ON FUNCTION banking.collection_rule_context(uuid,uuid,text,boolean)TO bookkeeping_api;
 DROP TRIGGER collection_automatic_initialize ON banking.collection_workspace;
 DROP TRIGGER preserve_automatic_run ON banking.collection_automatic_run;
 -- Closed namespace list; no CASCADE can erase another slice's retained dependency.
