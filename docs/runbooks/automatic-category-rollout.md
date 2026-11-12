@@ -7,11 +7,17 @@ Owner explicitly approved merging489, deploying and enabling automatic analytic
 categories for synthetic workspace verification on2026-11-12. Source489 merged
 normally at eb1828caab584064aa076edefccbb2bb413b84a7. Exact source8a78d04 passed
 all frontend, restrictedSQL, composed application, backend, infrastructure and
-secret-scanning checks. Trusted main Build43158591303 attempt1 is in progress.
-No image or managed rollout is accepted merely because the build was dispatched.
+secret-scanning checks. Trusted main Build43158591303 attempt1 and all four independent candidate
+checks passed. Release tooling490 merged at0568a736365db2a3ef0aa879280ec0c6c2384d5a
+after exact239b066 Seed43162349952 and Infrastructure43162349982 passed. First
+read-only inspection43165186172 authenticated successfully but failed closed
+before an accepted configuration snapshot. No migration/runtime/activation was
+attempted. The next source stage adds safe structural diagnostics; the initial
+baseline-null manifest still permits inspection only.
 
 Root holds the sole finite485 existing Sandbox release lane in GitHub65 through
-2026-11-12T09:00Z. Dedicated branch chore/485-automatic-category-rollout. Scope:
+2026-11-12T09:00Z. Initial branch chore/485-automatic-category-rollout is merged; follow-up branch
+chore/485-pinned-synthetic-runtime owns the next inspection/manifest stage. Scope:
 all four same-build patched artifacts, existing migrator forward48/status,
 configuration-preserving API/web stages and explicit synthetic analytic activation.
 No ad hoc SQL, migration edits, down/force/reset, provider calls or consent renewal,
@@ -100,8 +106,9 @@ needs exact selected configuration and durable-state compatibility review.
 
 ## Remaining work
 
-Implement and prove the bounded tooling; qualify the build; inspect current
-selected metadata; execute reviewed phases; verify health/transport; then prove
+Pass exact-head checks for the diagnostic follow-up, inspect fresh selected
+metadata and pin its approved public baseline before mutation phases. Then
+execute reviewed phases, verify health/transport and prove
 normal owner synthetic use. Record exact images, operations, revisions and results
 in GitHub485/488 and this delivery evidence. Hosted real-data/provider qualification
 and live bookkeeping policy remain separate.
@@ -151,3 +158,36 @@ retain the existing `/webhooks/plaid` receiver path (existing provider constant 
 Terraform contract). It does not renew consent or enable the provider. A separate
 regression binds the retained endpoint to that existing contract and rejects the
 pathless URL;58 tooling tests pass before final exact-head CI.
+
+Follow-up inspection stage: first hosted run43165186172 passed all owner/source/
+artifact/hash/expiry checks and existing WIF authentication, then its read-only
+execution failed with a generic configuration/CLI rejection. Its artifact is
+explicitly offline-validation-only and contains no accepted before snapshot.
+No mutation path was available. Do not replay a mutation or infer the failure cause.
+
+The follow-up emits separate fixed-stage diagnostics with only known structural
+presence/type/counts and bounded child-exit/timeout codes. Failed metadata never
+becomes a raw receipt. Selected desired LATEST traffic is normalized only with
+healthy exact observed100/latestReady agreement; ambiguous/named/tagged/mismatched
+cases still fail. Only known zero/HTTP/empty-header probe defaults are normalized.
+CPU1000m maps exactly to1 for the same one-CPU service/job profile;999m/2 and all
+other resource differences remain rejected. These are supported representations,
+not claims about the unobserved hosted mismatch.82 credential-free tests pass.
+
+Historical47 preflight evidence now keeps build=null and records targetBuild
+separately; it must not attribute the old199ed image to the patched candidate
+build. Exact old-image/action/execution checks are unchanged. Candidate up/status
+receipts retain the actual new build. This fix is required before any migrate
+manifest/dispatch, and was not reachable through the first inspection manifest.
+
+Independent installed-SDK formatter checks on synthetic objects confirm the
+quoted allowlisted annotation keys, repeated containers and observed traffic
+projection while excluding unselected last-applied/headers/messages. No cloud,
+user credentials or financial records were used in these formatter checks.
+
+Independent final follow-up review passes at script SHA256
+`6fc6558d0ad17ecec3ab6d12774f17a1509548326658e0fb647f580a97c7f2b6`;
+82/82 tests pass. Offline validation of the actual four qualified artifact sets
+also passes. The committed manifest remains unchanged, baseline=null; no mutation
+phase is dispatchable. Fresh canonical checks and another safe inspection are
+required; no actual mismatch has yet been inferred from the generic failure.

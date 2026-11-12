@@ -20,15 +20,50 @@ const old={api:{revision:'jayburd-dev-api-00026-5nt',digest:'9747304373c1c992351
 const revisionAnnotations=['run.googleapis.com/cloudsql-instances','run.googleapis.com/cpu-throttling','run.googleapis.com/startup-cpu-boost','run.googleapis.com/execution-environment','run.googleapis.com/vpc-access-connector','run.googleapis.com/vpc-access-egress','autoscaling.knative.dev/minScale','autoscaling.knative.dev/maxScale'];
 const serviceAnnotations=['run.googleapis.com/ingress','run.googleapis.com/ingress-status','run.googleapis.com/minScale','run.googleapis.com/maxScale'];
 const annotationFields=(prefix,names)=>names.map(k=>`${prefix}."${k}"`);
-export const serviceProjection=`json(metadata.name,${annotationFields('metadata.annotations',serviceAnnotations)},spec.template.metadata.name,${annotationFields('spec.template.metadata.annotations',revisionAnnotations)},spec.template.spec.serviceAccountName,spec.template.spec.containerConcurrency,spec.template.spec.timeoutSeconds,spec.template.spec.containers[].image,spec.template.spec.containers[].args,spec.template.spec.containers[].command,spec.template.spec.containers[].ports,spec.template.spec.containers[].resources,spec.template.spec.containers[].startupProbe.failureThreshold,spec.template.spec.containers[].startupProbe.httpGet.path,spec.template.spec.containers[].startupProbe.httpGet.port,spec.template.spec.containers[].startupProbe.periodSeconds,spec.template.spec.containers[].startupProbe.timeoutSeconds,spec.traffic[].revisionName,spec.traffic[].percent,spec.traffic[].tag,status.traffic[].revisionName,status.traffic[].percent,status.traffic[].tag,status.latestReadyRevisionName,status.latestCreatedRevisionName,status.conditions[].type,status.conditions[].status)`;
+export const serviceProjection=`json(metadata.name,${annotationFields('metadata.annotations',serviceAnnotations)},spec.template.metadata.name,${annotationFields('spec.template.metadata.annotations',revisionAnnotations)},spec.template.spec.serviceAccountName,spec.template.spec.containerConcurrency,spec.template.spec.timeoutSeconds,spec.template.spec.containers[].image,spec.template.spec.containers[].args,spec.template.spec.containers[].command,spec.template.spec.containers[].ports,spec.template.spec.containers[].resources,spec.template.spec.containers[].startupProbe.initialDelaySeconds,spec.template.spec.containers[].startupProbe.successThreshold,spec.template.spec.containers[].startupProbe.failureThreshold,spec.template.spec.containers[].startupProbe.httpGet.path,spec.template.spec.containers[].startupProbe.httpGet.port,spec.template.spec.containers[].startupProbe.httpGet.scheme,spec.template.spec.containers[].startupProbe.httpGet.httpHeaders[].name,spec.template.spec.containers[].startupProbe.periodSeconds,spec.template.spec.containers[].startupProbe.timeoutSeconds,spec.traffic[].latestRevision,spec.traffic[].revisionName,spec.traffic[].percent,spec.traffic[].tag,status.traffic[].revisionName,status.traffic[].percent,status.traffic[].tag,status.latestReadyRevisionName,status.latestCreatedRevisionName,status.conditions[].type,status.conditions[].status)`;
 const jobProjection='json(metadata.name,spec.template.spec.taskCount,spec.template.spec.parallelism,spec.template.spec.template.spec.serviceAccountName,spec.template.spec.template.spec.maxRetries,spec.template.spec.template.spec.timeoutSeconds,spec.template.spec.template.spec.containers[].image,spec.template.spec.template.spec.containers[].command,spec.template.spec.template.spec.containers[].args,spec.template.spec.template.spec.containers[].resources)';
 const executionProjection='json(metadata.name,spec.taskCount,spec.template.spec.containers[].image,spec.template.spec.containers[].command,spec.template.spec.containers[].args,spec.template.spec.serviceAccountName,spec.template.spec.maxRetries,spec.template.spec.timeoutSeconds,status.conditions[].type,status.conditions[].status,status.succeededCount,status.failedCount,status.cancelledCount,status.runningCount,status.retriedCount,status.completionTime)';
 // Whitelist selected output again locally; omitted provider empty arrays have explicit, stable defaults.
 function annotations(raw,names){return Object.fromEntries(names.filter(k=>raw?.[k]!==undefined).map(k=>[k,raw[k]]));}
+// Diagnostics contain fixed field-presence/type/count facts, never provider keys, values or messages.
+const diagnosticStages=['offline-validation','read-api','read-web','read-migrate','public-api','public-web','public-job','recent-executions'];
+const present=(v,k)=>v!==null&&typeof v==='object'&&Object.hasOwn(v,k);
+const count=v=>Array.isArray(v)?Math.min(v.length,100):null;
+const valueType=v=>v===null?'null':Array.isArray(v)?'array':['undefined','string','number','boolean','object'].includes(typeof v)?typeof v:'other';
+export function serviceShape(raw){
+ const s=raw?.spec?.template?.spec,c=s?.containers?.[0],p=c?.startupProbe,h=p?.httpGet,port=c?.ports?.[0],resource=c?.resources;
+ return {metadataPresent:!!raw?.metadata,templatePresent:!!raw?.spec?.template,statusPresent:!!raw?.status,containers:count(s?.containers),args:count(c?.args),command:count(c?.command),serviceAccountPresent:present(s,'serviceAccountName'),concurrencyPresent:present(s,'containerConcurrency'),timeoutPresent:present(s,'timeoutSeconds'),imagePresent:present(c,'image'),ports:count(c?.ports),portNamePresent:present(port,'name'),portNameKnown:port?.name==='http1',portNameType:valueType(port?.name),portNumberPresent:present(port,'containerPort'),portNumberType:valueType(port?.containerPort),resourcesPresent:!!resource,resourceLimitsPresent:present(resource,'limits'),resourceRequestsPresent:present(resource,'requests'),resourceLimitsUnknownFields:!!resource?.limits&&Object.keys(resource.limits).some(k=>!['cpu','memory'].includes(k)),resourceUnknownFields:!!resource&&Object.keys(resource).some(k=>!['limits','requests'].includes(k)),cpuPresent:present(resource?.limits,'cpu'),cpuType:valueType(resource?.limits?.cpu),memoryPresent:present(resource?.limits,'memory'),memoryType:valueType(resource?.limits?.memory),probePresent:!!p,probeFailureThresholdPresent:present(p,'failureThreshold'),probePeriodPresent:present(p,'periodSeconds'),probeTimeoutPresent:present(p,'timeoutSeconds'),httpPathPresent:present(h,'path'),httpPortPresent:present(h,'port'),httpPortType:valueType(h?.port),probeInitialDelayPresent:present(p,'initialDelaySeconds'),probeInitialDelayZero:p?.initialDelaySeconds===0,probeSuccessThresholdPresent:present(p,'successThreshold'),probeSuccessThresholdOne:p?.successThreshold===1,probeUnknownFields:!!p&&Object.keys(p).some(k=>!['initialDelaySeconds','successThreshold','failureThreshold','httpGet','periodSeconds','timeoutSeconds'].includes(k)),httpGetPresent:!!h,httpSchemePresent:present(h,'scheme'),httpSchemeHTTP:h?.scheme==='HTTP',httpHeadersPresent:present(h,'httpHeaders'),httpHeaders:count(h?.httpHeaders),httpGetUnknownFields:!!h&&Object.keys(h).some(k=>!['path','port','scheme','httpHeaders'].includes(k)),desiredTraffic:count(raw?.spec?.traffic),observedTraffic:count(raw?.status?.traffic),desiredLatestPresent:present(raw?.spec?.traffic?.[0],'latestRevision'),desiredLatestTrue:raw?.spec?.traffic?.[0]?.latestRevision===true,desiredLatestType:valueType(raw?.spec?.traffic?.[0]?.latestRevision),desiredNamedPresent:present(raw?.spec?.traffic?.[0],'revisionName'),observedNamedPresent:present(raw?.status?.traffic?.[0],'revisionName')};
+}
+function jobShape(raw){const t=raw?.spec?.template?.spec,v=t?.template?.spec;return {metadataPresent:!!raw?.metadata,taskCountPresent:present(t,'taskCount'),parallelismPresent:present(t,'parallelism'),taskTemplatePresent:!!v,serviceAccountPresent:present(v,'serviceAccountName'),maxRetriesPresent:present(v,'maxRetries'),timeoutPresent:present(v,'timeoutSeconds'),containers:count(v?.containers),args:count(v?.containers?.[0]?.args),command:count(v?.containers?.[0]?.command),resourcesPresent:present(v?.containers?.[0],'resources')};}
+function diagnostic(onDiagnostic,stage,status,extra={}){if(!diagnosticStages.includes(stage))fail();onDiagnostic({schemaVersion:1,stage,status,...extra});}
+function observe(onDiagnostic,stage,fn,shape){
+ diagnostic(onDiagnostic,stage,'started');
+ try{const value=fn();diagnostic(onDiagnostic,stage,'observed',shape?{shape:shape(value)}:{});return value;}catch{diagnostic(onDiagnostic,stage,'failed');fail();}
+}
+// Strip only documented harmless HTTP probe defaults; all other fields remain subject to strict equality validation.
+function normalizeProbe(raw){
+ if(!raw||typeof raw!=='object'||Array.isArray(raw))fail();
+ if(Object.keys(raw).some(k=>!['initialDelaySeconds','failureThreshold','httpGet','periodSeconds','timeoutSeconds'].includes(k)))fail();
+ if(present(raw,'initialDelaySeconds')&&raw.initialDelaySeconds!==0)fail();
+ const h=raw.httpGet;if(!h||typeof h!=='object'||Array.isArray(h)||Object.keys(h).some(k=>!['path','port','scheme','httpHeaders'].includes(k)))fail();
+ if(present(h,'scheme')&&h.scheme!=='HTTP'||present(h,'httpHeaders')&&(!Array.isArray(h.httpHeaders)||h.httpHeaders.length!==0))fail();
+ return {failureThreshold:raw.failureThreshold,httpGet:{path:h.path,port:h.port},periodSeconds:raw.periodSeconds,timeoutSeconds:raw.timeoutSeconds};
+}
+// Kubernetes and Cloud Run define exactly 1000m as one CPU; no other resource coercion is allowed.
+function normalizeResources(raw){return raw?.limits?.cpu==='1000m'?{...raw,limits:{...raw.limits,cpu:'1'}}:raw;}
 function normalizeService(raw){
  const t=raw.spec.template,v=t.spec;
- const traffic=rows=>(rows??[]).map(x=>({revisionName:x.revisionName,percent:x.percent,...(x.tag?{tag:x.tag}:{})}));
- return {metadata:{name:raw.metadata?.name,annotations:annotations(raw.metadata?.annotations,serviceAnnotations)},spec:{template:{metadata:{name:t.metadata?.name,annotations:annotations(t.metadata?.annotations,revisionAnnotations)},spec:{serviceAccountName:v.serviceAccountName,containerConcurrency:v.containerConcurrency,timeoutSeconds:v.timeoutSeconds,containers:v.containers.map(c=>({image:c.image,args:c.args??[],command:c.command??[],ports:c.ports,resources:c.resources,startupProbe:c.startupProbe}))}},traffic:traffic(raw.spec.traffic)},status:{latestReadyRevisionName:raw.status.latestReadyRevisionName,latestCreatedRevisionName:raw.status.latestCreatedRevisionName,conditions:raw.status.conditions?.map(c=>({type:c.type,status:c.status})),traffic:traffic(raw.status.traffic)}};
+ const traffic=rows=>(rows??[]).map(x=>({revisionName:x.revisionName,percent:x.percent,...(present(x,'tag')?{tag:x.tag}:{})}));
+ const observed=traffic(raw.status.traffic),desired=raw.spec.traffic;
+ if(!Array.isArray(desired))fail();
+ const resolved=desired.map(x=>{
+  if(present(x,'latestRevision')&&typeof x.latestRevision!=='boolean')fail();
+  if(x.latestRevision!==true)return x;
+  const healthy=['Ready','ConfigurationsReady','RoutesReady'].every(type=>raw.status.conditions?.filter(c=>c.type===type&&c.status==='True').length===1);
+  if(desired.length!==1||x.percent!==100||present(x,'revisionName')||present(x,'tag')||!healthy||raw.status.latestReadyRevisionName!==raw.status.latestCreatedRevisionName||observed.length!==1||observed[0].percent!==100||present(observed[0],'tag')||observed[0].revisionName!==raw.status.latestReadyRevisionName)fail();
+  return {revisionName:raw.status.latestReadyRevisionName,percent:100};
+ });
+ return {metadata:{name:raw.metadata?.name,annotations:annotations(raw.metadata?.annotations,serviceAnnotations)},spec:{template:{metadata:{name:t.metadata?.name,annotations:annotations(t.metadata?.annotations,revisionAnnotations)},spec:{serviceAccountName:v.serviceAccountName,containerConcurrency:v.containerConcurrency,timeoutSeconds:v.timeoutSeconds,containers:v.containers.map(c=>({image:c.image,args:c.args??[],command:c.command??[],ports:c.ports,resources:normalizeResources(c.resources),startupProbe:normalizeProbe(c.startupProbe)}))}},traffic:traffic(resolved)},status:{latestReadyRevisionName:raw.status.latestReadyRevisionName,latestCreatedRevisionName:raw.status.latestCreatedRevisionName,conditions:raw.status.conditions?.map(c=>({type:c.type,status:c.status})),traffic:observed}};
 }
 // Bind owner-approved bytes, fixed source and finite execution scope before reading build evidence or invoking cloud tools.
 export function validateAutomaticManifest(bytes,digest,phase,now=Date.now()){
@@ -103,7 +138,11 @@ export function validateService(s,c,baseline=false,allowUnhealthy=false){
  return s;
 }
 // Only this runner touches the cloud CLI. Unknown results stop without retry or provider-output disclosure.
-export function cloudRunner(args){const r=spawnSync('gcloud',args,{encoding:'utf8',maxBuffer:1048576,timeout:180000,shell:false});if(r.error||r.status!==0)fail();try{return JSON.parse(r.stdout);}catch{fail();}}
+export function cloudRunner(args,onDiagnostic=()=>{},spawn=spawnSync){
+ let r;try{r=spawn('gcloud',args,{encoding:'utf8',maxBuffer:1048576,timeout:180000,shell:false});}catch{onDiagnostic({status:'child-failed',failure:'process',exitCode:null,timedOut:false});fail();}
+ if(r.error||r.status!==0){onDiagnostic({status:'child-failed',failure:'process',exitCode:Number.isInteger(r.status)&&r.status>=0&&r.status<=255?r.status:null,timedOut:r.error?.code==='ETIMEDOUT'});fail();}
+ try{return JSON.parse(r.stdout);}catch{onDiagnostic({status:'child-failed',failure:'invalid-json',exitCode:0,timedOut:false});fail();}
+}
 const flags=[`--project=${project}`,`--region=${region}`,'--quiet'];
 function describe(c,runner){return normalizeService(runner(['run','services','describe',`jayburd-dev-${c}`,...flags,`--format=${serviceProjection}`]));}
 // The existing migrator profile is status-only at rest; no arbitrary arguments, tasks or identities are accepted.
@@ -126,11 +165,11 @@ function publicExecution(raw){
  if(raw.status?.conditions!==undefined){if(!Array.isArray(raw.status.conditions)||raw.status.conditions.length>16)fail();status.conditions=raw.status.conditions.map(c=>{if(typeof c.type!=='string'||!/^[A-Za-z][A-Za-z0-9]{0,63}$/.test(c.type)||!['True','False','Unknown'].includes(c.status))fail();return {type:c.type,status:c.status};});}
  return {metadata:{name},spec:{taskCount:1,template:{spec:{serviceAccountName:t.serviceAccountName,maxRetries:t.maxRetries,timeoutSeconds:t.timeoutSeconds,containers:[{image:container.image,command:container.command??[],args:container.args??[]}]}}},status};
 }
-function describeJob(runner){
- const j=runner(['run','jobs','describe','jayburd-dev-migrate',...flags,`--format=${jobProjection}`]);
+function normalizeJob(j){
  const t=j.spec.template.spec,v=t.template.spec;
- return {name:j.metadata.name,taskCount:t.taskCount,parallelism:t.parallelism,serviceAccountName:v.serviceAccountName,maxRetries:v.maxRetries,timeoutSeconds:v.timeoutSeconds,containers:v.containers.map(c=>({image:c.image,command:c.command??[],args:c.args??[],resources:c.resources}))};
+ return {name:j.metadata.name,taskCount:t.taskCount,parallelism:t.parallelism,serviceAccountName:v.serviceAccountName,maxRetries:v.maxRetries,timeoutSeconds:v.timeoutSeconds,containers:v.containers.map(c=>({image:c.image,command:c.command??[],args:c.args??[],resources:normalizeResources(c.resources)}))};
 }
+function describeJob(runner){return normalizeJob(runner(['run','jobs','describe','jayburd-dev-migrate',...flags,`--format=${jobProjection}`]));}
 function migrate(m,before,runner,mutate){
  const original=before.migrate;validateJob(original);if(!equal(original,m.baseline.migrate)||original.containers[0].image!==`us-central1-docker.pkg.dev/${project}/jayburd-dev/migrate@sha256:199ed337de73e622c7398516a90ef196620b100701cb3f07924e6cd86df5f31a`)fail();
  for(const c of ['api','web'])if(!equal(before[c],m.baseline[c]))fail();
@@ -141,7 +180,9 @@ function migrate(m,before,runner,mutate){
   const raw=runner(['run','jobs','executions','describe',name,...flags,`--format=${executionProjection}`]);
   return migrationReceipt({...m,images:{...m.images,migrate:image},operation,evidence:m.approval},raw,name);
  };
- const preflight=execute('verify',original.containers[0].image);
+ const oldStatus=execute('verify',original.containers[0].image);
+ // The historical preflight image was not produced by the candidate build.
+ const preflight={...oldStatus,build:null,targetBuild:m.build,limitations:[...oldStatus.limitations,'Historical schema47 baseline image; not produced by targetBuild and not patched-runtime acceptance.']};
  update('up');
  const up=describeJob(runner),expected=structuredClone(original);expected.containers[0].image=m.images.migrate;expected.containers[0].args[0]='-action=up';if(!equal(up,expected))fail();
  const applied=execute('migrate');
@@ -160,7 +201,10 @@ function revisionHealth(c,name,runner,active){
  }
 }
 // Runtime updates change only image, then separately the approved API scheduling and automatic flag; IAM is never invoked.
-export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{}){
+export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{},onDiagnostic=()=>{}){
+ let currentStage='read-api';
+ const command=args=>runner===cloudRunner?cloudRunner(args,d=>diagnostic(onDiagnostic,currentStage,d.status,{failure:d.failure,exitCode:d.exitCode,timedOut:d.timedOut})):runner(args);
+ const step=(stage,fn,shape)=>{currentStage=stage;return observe(onDiagnostic,stage,fn,shape);};
  const mutate=(operation,args)=>{
   const attempt={schemaVersion:1,phase,status:'mutation-attempted-outcome-not-yet-verified',operation,at:new Date().toISOString()};onAttempt(attempt);
   const reply=runner(args);const observed=reply?.metadata?.name??reply?.status?.latestCreatedRevisionName;
@@ -168,13 +212,17 @@ export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{
   return reply;
  };
  if(!phases.includes(phase)||m.baseline===null&&phase!=='inspect')fail();
- const before={api:describe('api',runner),web:describe('web',runner),migrate:describeJob(runner)};
+ const before={};
+ for(const c of ['api','web']){
+  const raw=step(`read-${c}`,()=>command(['run','services','describe',`jayburd-dev-${c}`,...flags,`--format=${serviceProjection}`]),serviceShape);
+  before[c]=step(`public-${c}`,()=>{const normalized=normalizeService(raw);validateService(normalized,c,false,phase==='inspect');return normalized;});
+ }
+ const rawJob=step('read-migrate',()=>command(['run','jobs','describe','jayburd-dev-migrate',...flags,`--format=${jobProjection}`]),jobShape);
+ before.migrate=step('public-job',()=>{const j=normalizeJob(rawJob);validateJob(j,phase==='inspect');return j;});
  if(phase==='inspect'){
   // Health failures remain observable; configuration/privacy failures stop before any receipt is written.
   for(const c of ['api','web'])validateService(before[c],c,false,true);validateJob(before.migrate,true);
-  const rawExecutions=runner(['run','jobs','executions','list','--job=jayburd-dev-migrate','--limit=3',...flags,`--format=${executionProjection}`]);
-  if(!Array.isArray(rawExecutions)||rawExecutions.length>3)fail();
-  const executions=rawExecutions.map(publicExecution);
+  const executions=step('recent-executions',()=>{const rows=command(['run','jobs','executions','list','--job=jayburd-dev-migrate','--limit=3',...flags,`--format=${executionProjection}`]);if(!Array.isArray(rows)||rows.length>3)fail();return rows.map(publicExecution);},rows=>({executions:count(rows)}));
   const validation=Object.fromEntries(['api','web','migrate'].map(c=>{try{c==='migrate'?validateJob(before[c]):validateService(before[c],c);return [c,'healthy-selected-profile'];}catch{return [c,'requires-owner-review'];}}));
   return {schemaVersion:1,phase,status:'inspection-only-not-release-acceptance',before,validation,executions};
  }
@@ -241,9 +289,11 @@ export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
  try{
   const [mode,path,digest,phase,evidence,out]=process.argv.slice(2);if(!['validate','execute'].includes(mode)||!out||process.argv.length!==8)fail();
-  const m=validateAutomaticManifest(readFileSync(path),digest,phase);
-  const qualification=validateAutomaticBuild(m,file=>JSON.parse(readFileSync(`${evidence}/${file}`,'utf8')));
-  const result=mode==='execute'?executeAutomaticPhase(m,phase,cloudRunner,attempt=>{mkdirSync(out,{recursive:true,mode:0o700});writeFileSync(`${out}/automatic-${phase}-attempt.json`,JSON.stringify({manifestSHA256:digest,...attempt},null,2)+'\n',{mode:0o600});}):{schemaVersion:1,phase,status:'offline-validation-only',qualification};
+  const diagnostics=[];
+  const onDiagnostic=event=>{diagnostics.push(event);if(diagnostics.length>128)diagnostics.shift();mkdirSync(out,{recursive:true,mode:0o700});writeFileSync(`${out}/automatic-${phase}-diagnostics.json`,JSON.stringify({schemaVersion:1,manifestSHA256:digest,phase,diagnostics},null,2)+'\n',{mode:0o600});};
+  if(!phases.includes(phase)||!/^[a-f0-9]{64}$/.test(digest))fail();
+  const {m,qualification}=observe(onDiagnostic,'offline-validation',()=>{const m=validateAutomaticManifest(readFileSync(path),digest,phase);return {m,qualification:validateAutomaticBuild(m,file=>JSON.parse(readFileSync(`${evidence}/${file}`,'utf8')))};});
+  const result=mode==='execute'?executeAutomaticPhase(m,phase,cloudRunner,attempt=>{mkdirSync(out,{recursive:true,mode:0o700});writeFileSync(`${out}/automatic-${phase}-attempt.json`,JSON.stringify({manifestSHA256:digest,...attempt},null,2)+'\n',{mode:0o600});},onDiagnostic):{schemaVersion:1,phase,status:'offline-validation-only',qualification};
   mkdirSync(out,{recursive:true,mode:0o700});writeFileSync(`${out}/automatic-${phase}.json`,JSON.stringify({manifestSHA256:digest,manifest:m,...result},null,2)+'\n',{mode:0o600});
   console.log('PASS: bounded synthetic release phase recorded');
  }catch{console.error('BLOCKED: bounded synthetic release; inspect selected receipt before any new attempt');process.exitCode=1;}
