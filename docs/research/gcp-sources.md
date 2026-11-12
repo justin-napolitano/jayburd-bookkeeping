@@ -257,3 +257,12 @@ work with no continuous-service SLA. At1CPU/512Mi the displayed rates imply
 $0.0684/live-hour before shared free tier/other costs; minimum0 is not a spend cap.
 Alternative minimum1 adds about$49.93/month API compute alone; request-throttled
 CPU cannot establish idle background progress. No authenticated billing was read.
+
+G31 representation addendum: selected official [CloudRun APIv1 types](https://docs.cloud.google.com/run/docs/reference/rpc/google.cloud.run.v1),
+[health probes](https://docs.cloud.google.com/run/docs/configuring/healthchecks),
+[one-CPU CloudRun example](https://docs.cloud.google.com/run/docs/configuring/shared-vpc-host-project),
+and [Kubernetes CPU units](https://kubernetes.io/blog/2026/01/30/new-cgroup-v1-to-v2-cpu-conversion-formula/)
+reviewed2026-11-12. Exact1000m/1 equivalence supports one-CPU normalization, not
+capacity changes. Existing SDK traffic code freezes LATEST during no-traffic
+updates. Safe field-shape diagnostics must establish actual managed mismatches;
+source examples/defaults alone are not observations of this service.
