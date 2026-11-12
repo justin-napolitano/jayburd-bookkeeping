@@ -19,6 +19,7 @@ type PlaidHTTP struct {
 	client        *http.Client
 	profile       plaidprofile.Profile
 	legacySandbox bool
+	categories    bool
 }
 
 // NewPlaidHTTP accepts an injected network implementation; construction performs no request.
@@ -29,6 +30,16 @@ func NewPlaidHTTP(transport http.RoundTripper) (*PlaidHTTP, error) {
 // NewPlaidHTTPForProfile requires explicit matching execution metadata even for the Sandbox profile.
 func NewPlaidHTTPForProfile(profile plaidprofile.Profile, transport http.RoundTripper) (*PlaidHTTP, error) {
 	return newPlaidHTTP(profile, transport, false)
+}
+
+// NewPlaidHTTPForProfileWithCategories opts into the explicit v2 current-response taxonomy.
+func NewPlaidHTTPForProfileWithCategories(profile plaidprofile.Profile, transport http.RoundTripper) (*PlaidHTTP, error) {
+	p, e := NewPlaidHTTPForProfile(profile, transport)
+	if e != nil {
+		return nil, e
+	}
+	p.categories = true
+	return p, nil
 }
 
 // newPlaidHTTP preserves omitted metadata only for the original Sandbox constructor.
@@ -54,7 +65,11 @@ func (p *PlaidHTTP) Fetch(parent context.Context, f FetchRequest) ([]byte, error
 	if ctx.Err() != nil {
 		return nil, &ProviderFailure{Code: "provider_transient"}
 	}
-	raw, _ := json.Marshal(map[string]any{"client_id": f.Credentials.ClientID, "secret": f.Credentials.Secret, "access_token": f.Credentials.AccessToken, "cursor": f.Cursor, "count": 500, "options": map[string]any{"account_id": f.AccountID, "include_original_description": true}})
+	options := map[string]any{"account_id": f.AccountID, "include_original_description": true}
+	if p.categories {
+		options["personal_finance_category_version"] = "v2"
+	}
+	raw, _ := json.Marshal(map[string]any{"client_id": f.Credentials.ClientID, "secret": f.Credentials.Secret, "access_token": f.Credentials.AccessToken, "cursor": f.Cursor, "count": 500, "options": options})
 	req, e := http.NewRequestWithContext(ctx, http.MethodPost, p.profile.BaseURL()+"/transactions/sync", bytes.NewReader(raw))
 	if e != nil || !p.profile.AllowsSync(req) {
 		return nil, failure("invalid_provider_request", false)

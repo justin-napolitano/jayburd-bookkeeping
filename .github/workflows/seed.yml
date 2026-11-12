@@ -67,6 +67,10 @@ jobs:
         run: make private-activation-test
       - name: Private rule service and atomic reviewed application proof
         run: make collection-rules-test
+      - name: Durable automatic categories and whole-result exceptions proof
+        run: make automatic-categorization-test
+      - name: Automatic category application journey through Next and restricted SQL
+        run: make automatic-categorization-browser
       - name: Recoverable self-service private onboarding and adoption proof
         run: make collection-onboarding-test
       - name: Fenced synthetic provider publication proof

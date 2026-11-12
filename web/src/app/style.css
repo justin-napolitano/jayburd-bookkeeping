@@ -1626,3 +1626,18 @@ section[aria-label="Connections"] .connection-card {
     padding: 1rem;
   }
 }
+
+/* Persisted analytic categories remain visible without opening evidence details. */
+.transaction-category { display:flex; flex-wrap:wrap; gap:.25rem .6rem; align-items:baseline; margin:.25rem 0; }
+.transaction-category strong { color:#286044; }
+.transaction-category span { color:var(--muted); font-size:.875rem; }
+.automatic-categories { border-left:3px solid #286044; padding:.35rem .6rem; margin:.35rem 0; }
+.automatic-categories p { margin:.3rem 0; max-width:75ch; }
+.automatic-categories button { margin:.25rem .5rem .25rem 0; }
+
+.automatic-category-heading { display:flex; flex-wrap:wrap; gap:.25rem .6rem; align-items:baseline; }
+.automatic-category-heading span { color:var(--muted); font-size:.875rem; }
+
+.automatic-categories details { display:inline-block; vertical-align:middle; }
+.automatic-categories details[open] { display:block; }
+.automatic-categories summary { min-height:44px; font-size:.9rem; padding:.65rem .3rem; }

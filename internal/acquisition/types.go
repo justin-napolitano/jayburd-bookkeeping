@@ -222,6 +222,7 @@ type pageWire struct {
 	PageIndex     int     `json:"page_index"`
 	RequestCursor *string `json:"request_cursor"`
 	plaid.Page
+	CategoryAttribution *plaid.CategoryPage `json:"category_attribution,omitempty"`
 }
 
 // repository is private so callers cannot publish arbitrary rows through Runner.
