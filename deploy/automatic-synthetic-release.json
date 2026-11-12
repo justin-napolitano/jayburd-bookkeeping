@@ -13,10 +13,10 @@
     "web": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:06486c8cc13ad695928d87f33e11bce98646dee53297c8e99ad7928cacf86dd7",
     "worker": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/worker@sha256:60c513f03a71e7e6e1ade02c5be4a403d6e20c2dd40db9aafb3dbb720264fbc6"
   },
-  "expiresAt": "2026-11-12T18:00:00Z",
+  "expiresAt": "2026-11-12T20:00:00Z",
   "approval": {
-    "issue485": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/485#issuecomment-6827331551",
-    "claim65": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/65#issuecomment-6827330358"
+    "issue485": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/485#issuecomment-6830599050",
+    "claim65": "https://github.com/justin-napolitano/jayburd-bookkeeping/issues/65#issuecomment-6830598015"
   },
   "baseline": {
     "api": {

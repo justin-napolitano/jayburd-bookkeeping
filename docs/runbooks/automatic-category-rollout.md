@@ -3,24 +3,27 @@
 
 ## Status and boundary
 
-Owner explicitly approved merging489, deploying and enabling automatic analytic
-categories for synthetic workspace verification on2026-11-12. Source489 merged
-normally at eb1828caab584064aa076edefccbb2bb413b84a7. Exact source8a78d04 passed
-all frontend, restrictedSQL, composed application, backend, infrastructure and
-secret-scanning checks. Trusted main Build43158591303 attempt1 and all four independent candidate
-checks passed. Release tooling490 merged at0568a736365db2a3ef0aa879280ec0c6c2384d5a
-after exact239b066 Seed43162349952 and Infrastructure43162349982 passed. First
-read-only inspection43165186172 authenticated successfully but failed closed
-before an accepted configuration snapshot. No migration/runtime/activation was
-attempted. The next source stage adds safe structural diagnostics; the initial
-baseline-null manifest still permits inspection only.
+Schema48 is applied and verified by migration43264239902 at17:03Z, with the
+existing job restored to candidate/defaultstatus. API candidate
+as-43158591303-stage is created with categoriesOFF; fresh43266304917 readback
+confirms old API00026 and web00027 still serve sole100 traffic. No promotion
+attempt was issued. Recovery tooling now distinguishes no-traffic staged status
+from active readiness and can resume only that existing stage without recreation.
+
+Owner explicitly approved source merge, patched deployment and synthetic category
+verification. PR489 source eb1828c and trusted four-image Build43158591303 pass
+qualification; release tooling490–495 is merged. Actual operations and limits are
+recorded below and in GitHub485/488. Complete workspace synthetic scope is still
+unconfirmed; a book filter does not scope policy processing. No policy enable or
+adoption is permitted while this data-scope question remains pending.
 
 Root holds the sole finite485 existing Sandbox release lane in GitHub65 through
-2026-11-12T09:00Z. Initial branch chore/485-automatic-category-rollout is merged; diagnostic follow-up491 is merged; branch
+2026-11-12T20:00Z (renewal65#6830598015). Initial branch chore/485-automatic-category-rollout is merged; diagnostic follow-up491 is merged; branch
 chore/485-approved-runtime-baseline is merged; branch
 chore/485-synthetic-release-baseline is merged; branch
 chore/485-observed-runtime-compatibility is merged; branch
-chore/485-pinned-observed-baseline owns the exact observed baseline stage. Scope:
+chore/485-pinned-observed-baseline is merged; branch
+chore/485-retired-stage-recovery owns the observed no-traffic recovery. Scope:
 all four same-build patched artifacts, existing migrator forward48/status,
 configuration-preserving API/web stages and explicit synthetic analytic activation.
 No ad hoc SQL, migration edits, down/force/reset, provider calls or consent renewal,
@@ -33,11 +36,11 @@ off until the authorized in-app setting enables the selected synthetic workspace
 | Stage | Evidence / disposition |
 | --- | --- |
 | Source | PR489 merged after exact-head Seed43154917364, Infrastructure43154917211 and GitGuardian success. Root observed native merge and clean worktree. |
-| Build | Existing trusted main-only workflow43158591303 dispatched as owner on exacteb1828c; complete receipts/scans/runtime qualification pending. |
+| Build | Trusted main43158591303 exacteb1828c; all four runtime/scan/inventory/publication jobs passed, HIGH0/CRITICAL0, actual complete receipt bindings verified. |
 | Backup | Selected CloudSQL backup metadata:1794376800000 SUCCESSFUL, completed2026-11-11T08:41:55.672Z. This is backup metadata, not a restore rehearsal. |
-| Local operator | gcloud auth inventory identifies existing owner. Run metadata requests fail because the session cannot write its credential-cache path. No credentials copied/exported or filesystem permissions changed. |
-| Tooling | Legacy Terraform release regenerates arguments/settings and cannot represent automatic categories; a finite path in the existing owner-deploy workflow is being prepared and tested before managed effects. No federation/IAM change. |
-| Migration/runtime | Not started. Retain fresh selected baseline and phase receipts before claiming success. |
+| Authentication | Existing owner-deploy GitHub WIF authenticated successful inspection/migration/stage workflows. Local cache writes remain unavailable; no credentials copied/exported or permissions changed. |
+| Tooling | Finite owner-deploy profile490–495 merged; observed no-traffic latestReady mismatch requires the tested resume-stage recovery follow-up. No Terraform/IAM/federation change. |
+| Migration/runtime | Clean48/hash status verified. Candidate API stagedOFF; old API/web sole100 retained. Explicit existing-stage promotion and later activate/web phases remain pending. |
 | Product acceptance | Pending normal verified-owner synthetic flow. Anonymous transport is separate. |
 
 ## Delivery design
@@ -109,18 +112,21 @@ needs exact selected configuration and durable-state compatibility review.
 
 ## Remaining work
 
-Pass exact-head checks for the diagnostic follow-up, inspect fresh selected
-metadata and pin its approved public baseline before mutation phases. Then
-execute reviewed phases, verify health/transport and prove
-normal owner synthetic use. Record exact images, operations, revisions and results
-in GitHub485/488 and this delivery evidence. Hosted real-data/provider qualification
-and live bookkeeping policy remain separate.
+Pass exact-head recovery checks and merge normally, then explicitly resume the
+existing staged API and require actual active health/traffic/configuration
+readback. Continue activate and web phases with the renewed exact manifest and
+full postchecks; never recreate the staged revision or replay migration.
+Complete anonymous transport separately from normal verified-owner synthetic
+acceptance. Workspace policy/adoption remains off until its complete data scope
+is confirmed synthetic. Record actual receipts/revisions in485/488. Real provider
+qualification, new artifact ingestion and accounting autopost are separate work.
 
 ## PR handoff
 
-Pending implementation and actual execution receipts. Every implementation commit
-includes this marked runbook and the staged guard. No managed deployment/migration
-or analytic activation has occurred at this stage.
+Source/images and clean48 migration are verified. Candidate API creation occurred,
+with old API/web traffic retained. Recovery/promotion and later activation/web
+receipts are pending. Every implementation commit includes this marked runbook
+and the staged guard; workspace analytic policy is not enabled.
 
 ## Current evidence
 
@@ -307,3 +313,47 @@ has occurred. Each phase still requires exact current baseline/phase state,
 expiry, four-image freshness, owner/main gates and selected post-readback.
 Workspace policy remains off pending complete synthetic-workspace scope
 confirmation: book filters/account-scoped rules do not scope the runner.
+
+PR495 merged normally at79d3a1b246cdb38a81602d24acaadbd7e0833913 after
+all exactd8af467 checks passed (Seed43260022368, Infrastructure43260022653,
+GitGuardian). Migration43264239902 succeeds: old status nnlth16:59:46Z,
+candidate UP528sn17:01:31Z and candidate status tpdpk17:03:04Z. Final job
+uses candidate image/defaultstatus and unchanged settings. Root and independent
+receipt/source review confirm clean48 and complete embedded hash validation.
+No restore, financial reconciliation, hosted product or replay acceptance is implied.
+
+Stage43265831201 created APIas-43158591303-stage with categoriesOFF, then stopped
+before any promote attempt. Fresh read-only inspect43266304917 succeeds and
+observes exact candidate container/config/20args, unchanged selected annotations,
+new templateName/latestCreated, old00026 latestReady, all three aggregate readiness
+conditionsTRUE and old desired/observed sole100 traffic. Web is exactly baseline;
+migrator is candidate/defaultstatus. This exposes the incorrect requirement for
+latestReady to advance before no-traffic promotion. No update was rerun.
+
+The bounded recovery adds explicit resume-stage for only the existing fixed
+revision: exact staged configuration/old traffic and direct revision import/health
+checks precede promotion; intended active status/traffic/direct health follow it.
+If that exact stage is already active after an unknown outcome, readback verifies
+without another mutation. Standard later no-traffic stages use the same observed
+tuple while active validation stays strict. Raw provider reasons/messages remain
+excluded from public evidence; only fixed accepted reason codes may be retained.
+[Recovery evidence](../reviews/automatic-category-stage-recovery.json) records actual
+operations and selected current state separately from desired next effects.
+
+Fresh65 audit17:14Z finds no competing writer. Root renews the same finite scope
+through20:00Z (65 comment6830598015 /485 comment6830599050). Original approved
+baseline and all four images are unchanged; only manifest expiry/claim links renew.
+New manifestSHA256: `cd73921a12770c9e0db2e16ad6e50f33542d5cf37a17f0f9e76dfb158c67669c`.
+Scan freshness is independently enforced; workspace policy/adoption stays off
+pending complete synthetic-workspace confirmation. Normal review/tests/CI/merge
+precede recovery; no additional managed effect is authorized by a failed check.
+
+Frozen recovery sourceSHA256
+`ff1faf8abf358b602cc12cb4d6f078addf021a2860d3e3b36f71e3e7d10b2bcb`
+and testsSHA256
+`711b28c07a0ffe61a8c6bfdf51c54e9d2c077092e531180c241aae5214b97fb9`
+pass189 automatic and223 combined release/deployment checks. Context/diff
+checks and all seven offline phase validations pass against actual four-image
+receipts. Workflow changes only add the resume-stage input enum. Independent
+review passes, including actual selected-snapshot local recovery/replay proof;
+exact-head canonical CI remains required before normal merge/recovery.
