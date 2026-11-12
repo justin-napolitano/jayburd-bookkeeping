@@ -149,42 +149,6 @@ func (*provider) Remove(context.Context, connections.Secret) error {
 	return errors.New("not in scenario")
 }
 
-// secretStore retains only this test's synthetic token in memory behind the production interface.
-type secretStore struct {
-	stored        connections.StoredCredential
-	writes, reads int
-}
-
-// Put requires immutable reference identity and exact synthetic replay.
-func (s *secretStore) Put(_ context.Context, r connections.CredentialReference, token connections.Secret) error {
-	if s.writes > 0 && (s.stored.Reference != r || s.stored.Token != token) {
-		return errors.New("conflict")
-	}
-	s.stored = connections.StoredCredential{Reference: r, Token: token}
-	s.writes++
-	return nil
-}
-
-// Read returns only the exact immutable version requested.
-func (s *secretStore) Read(_ context.Context, r connections.CredentialReference) (connections.StoredCredential, error) {
-	s.reads++
-	if s.writes == 0 || s.stored.Reference != r {
-		return connections.StoredCredential{}, errors.New("missing")
-	}
-	return s.stored, nil
-}
-
-// Resolve checks the same stored reference before furnishing fictional runner credentials.
-func (s *secretStore) Resolve(_ context.Context, r acquisition.CredentialReference) (acquisition.ProviderCredentials, error) {
-	stored := s.stored.Reference
-	if s.writes == 0 || stored.ReferenceID != r.ReferenceID || stored.Version != r.Version || stored.ItemID != r.ItemID || stored.Environment != r.Environment {
-		return acquisition.ProviderCredentials{}, errors.New("denied")
-	}
-	credentials := acquisition.ProviderCredentials{ClientID: "synthetic-client", Secret: "synthetic-secret"}
-	err := s.stored.Token.WithValue(func(value string) error { credentials.AccessToken = value; return nil })
-	return credentials, err
-}
-
 // transport intercepts the pinned production adapter; no request reaches Plaid.
 type transport struct{ calls int }
 

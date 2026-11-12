@@ -1,5 +1,12 @@
 # Money and multicurrency contract
 
+Current authority (473, reviewed2026-11-11): references below to the first
+manual posting slice describe internal synthetic mathematics/proof history.
+[Artifact-backed accounting](artifact-backed-accounting.md) governs public posting
+from retained source review; generic manual entry and unbound reversal are not
+customer workflows. Exact original units, FX/rounding invariants, stored receipt
+semantics and unfinished lifecycle gates remain unchanged.
+
 ## Status and source boundary
 
 Representation and operation requirements for JB-002. The selected synthetic

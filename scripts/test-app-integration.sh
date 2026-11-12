@@ -91,7 +91,7 @@ if [[ "$demo" == true ]]; then
  [[ "$ready" == 1 ]] || { echo 'Synthetic review UI not ready' >&2; exit 1; }
  if [[ "$demo_test" == true ]]; then
   (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-demo.config.ts)
-  # Manual FlowViewer/VolumeViewer are internal primitive proofs, not demo actions.
+  # Retired manual demo runners were removed; only source-backed posting is supported.
   # Imported 3,000 observations still produce exactly one explicit linked posting.
   [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM ledger.journal_entry j JOIN ledger.entity e USING(entity_id) WHERE e.name LIKE 'Volume Lab %'")" == 0 ]]
   [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.source_observation')" == 3000 ]]

@@ -2,7 +2,39 @@
 
 <!-- stage-runbook: true -->
 
+## Current authority and supported review
+
+Reviewed2026-11-11 under486. The accepted
+[artifact policy](../contracts/artifact-backed-accounting.md) governs this harness:
+new entries require retained source evidence and explicit `source_post` review,
+save, confirmation and acknowledgement. The old manual Flow/Volume runners are
+retired; the dated PR23 results below preserve historical proof only. They are
+not current buttons, supported customer workflows or current load acceptance.
+Historical seeded journals remain readable synthetic evidence, not a manual-entry
+capability. No application authentication bypass or provider connection is enabled.
+
+Current `web/demo/main.tsx` mounts `LoadDemo` and the production bookkeeping
+components. Load demo books imports3,000 source observations across three fictional
+LLCs; loading evidence never authorizes accounting. Review an imported transaction,
+categorize it, save its source-linked draft/command and explicitly execute/ack.
+The current four-journey demo proof independently requires3,000 observations,
+one source-linked review posting and one fictional Harbor journal, with no
+Volume Lab journals. This proves the named journey, not3,000 journal postings.
+
+Latest [482 acceptance](https://github.com/justin-napolitano/jayburd-bookkeeping/issues/482)
+on tested headf84a359070a116f863b49de6cd66506228b2ebe5, Seed43082561882,
+passed all five gates. Four demo journeys took10.4s. Separate restricted proofs
+passed source-backed restore for prepared/committed work and1,000 sequential
+0.10USD source postings:1,000 journals/links/receipts/outbox,2,000 lines and
+100.00USD per side; total24.34s on that hosted runner. These are distinct workloads,
+not a demo throughput, concurrent scaling, managed backup or runtime capacity
+claim. See [implementation-stage evidence and limits](synthetic-readiness.md).
+Synthetic identity/provider adapters do not qualify real sign-in, bank feeds or
+real books. No deployment follows from these tests.
+
 ## Status and boundary
+
+The following status describes the historical PR23 scope.
 
 Implemented for #9, based on PR23. Owner requested a usable local synthetic demo
 and cent checks. This is an isolated review harness, never a production auth mode.
@@ -27,6 +59,8 @@ exactly 1,000 PostgreSQL journals. No cloud or real financial data access.
 
 ## Stage ledger
 
+Historical PR23 delivery stages:
+
 | Owner | Work | Evidence |
 | --- | --- | --- |
 | Coordinator | Loopback demo lifecycle and browser review | Real demo cent posting, reload, guided flow and SQL count PASS |
@@ -36,6 +70,9 @@ exactly 1,000 PostgreSQL journals. No cloud or real financial data access.
 | Volume agent | Bounded sequential 1,000/5,000/10,000 runs | Real 1,000 run PASS in approximately 3.2 minutes |
 
 ## Current evidence
+
+The entries in this section preserve historical PR23 evidence; current482
+acceptance and its separate limits are recorded above.
 
 Reviewed [generator source audit](../research/testing-sources.md#t04--synthetic-accounting-data-generator):
 15 upstream journals have one-cent residuals. Invalid journals must not enter
@@ -65,10 +102,11 @@ Startup initially rejected duplicate synthetic rate references; fixed with
 date-specific references and reran successfully. Type checks caught a Vite option
 and Playwright import mismatch; corrected and TypeScript passed.
 
-## Review commands
+## Current review commands
 
-Requires Docker, Go1.26.9, Node24.18.0, locked `npm --prefix web ci` dependencies,
-and free loopback ports39081–39083. Browser test additionally needs Chromium.
+Requires Docker, tracked Go1.26.11, Node24.18.0, locked
+`npm --prefix web ci` dependencies and free loopback ports39081–39083.
+Browser tests additionally require the locked Playwright Chromium installation.
 
 ```sh
 make demo
@@ -77,36 +115,31 @@ make demo
 make demo-test
 ```
 
-The review page uses the production bookkeeping components against real Go/SQL;
-its synthetic identity and Vite entrypoint live outside Next application routes.
-No environment files are loaded. Production mode still requires managed sign-in.
-Currency display uses exact strings and versioned minor units; no float
-conversion or rounding hides nonzero extra digits.
+The synthetic Vite entrypoint and identity remain outside Next application routes.
+No environment files are loaded. The harness uses real Go/restricted SQL and
+production bookkeeping components; ordinary application sign-in is unchanged.
+Original currency values remain exact strings with versioned minor units.
+`LoadDemo` discovers progress on mount; mutations require an explicit click.
+Pausing stops new requests after the current operation, and unknown replies retain
+same-identity recovery rather than silently creating another effect. Actual posting
+requires the separate reviewed source workflow; no manual/bulk-journal runner is
+available. Reset affects only the harness's owned disposable resources.
 
-**Watch a few transactions** offers manual stepping or a 19-step continuous suite:
-setup, deposits 0.10/0.20, fee 0.01, same-command replay, rejected imbalance and
-trial balance. The timeline records observed API boundaries, not invented SQL
-tracing. **Run thousands** creates a separate Volume Lab and posts 1,000/5,000/
-10,000 real deposits sequentially. Each request is prepared, executed, receipt-
-checked and acknowledged; recent receipts are bounded to 20 rows. Pause finishes
-the current transaction. Retry retains the same request/key/command identity.
-No execution occurs merely by opening the page. Start explicitly authorizes this
-fixed synthetic sequence and its acknowledgements.
-
-Each volume receipt must have a unique journal ID, expected revision and exact
-cents. A separate closed-form oracle checks the final API trial balance;
-the 1,000 case expects bank 495.55 and capital credit 495.55. The test runner also
-queries PostgreSQL for exactly 1,000 journal rows in the created Volume Lab.
-Count and elapsed time describe actual confirmed responses. They include this
-local HTTP bridge and sequential browser overhead; no production capacity claim.
+The old “Watch a few transactions” and “Run thousands”/Volume Lab descriptions
+belong to the PR23 history above. Their1,000/5,000/10,000 manual deposit options
+are retired. Do not use their historical count/timing claims as current proof.
 
 ## Remaining work
 
-Local checks complete; PR review and hosted CI remain pending.
-This is local workflow evidence, not production capacity. Larger browser runs
-and multi-user concurrency/load benchmarks remain separate evidence.
+482 supplies the named current synthetic acceptance above; the historical PR23
+handoff below does not mean those checks remain pending. Broader ingestion,
+concurrency/noisy-neighbor benchmarks, hosted provider qualification, real-book
+reconciliation and document/matching/correction workflows remain separate work.
+No fixed sequential fixture establishes production capacity or availability.
 
 ## PR handoff
+
+Historical PR23 handoff, preserved for traceability:
 
 No migrations, production authentication bypass or live provider connections.
 Reset stops and recreates only the demo's owned disposable database.

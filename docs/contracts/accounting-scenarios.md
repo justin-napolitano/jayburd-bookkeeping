@@ -1,5 +1,12 @@
 # Accounting scenarios and policy decisions
 
+Current authority (473, reviewed2026-11-11): these fixed accounting examples
+and manual spot/reversal descriptions are retained internal primitive-proof or
+future-policy scope, not customer entry workflows.
+[Artifact-backed accounting](artifact-backed-accounting.md) governs new application
+postings from retained source review. No fixed oracle, money rule or historical
+receipt interpretation is changed; broader lifecycle acceptance remains separate.
+
 ## Status and assumptions
 
 Draft for JB-001/JB-002. Synthetic examples are proposed acceptance oracles, not
