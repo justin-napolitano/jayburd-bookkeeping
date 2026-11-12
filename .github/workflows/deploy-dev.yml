@@ -12,6 +12,10 @@ on:
         type: choice
         options: [inspect, migrate, stage, resume-stage, activate, web, pause]
         default: inspect
+      anonymous_smoke:
+        description: Anonymous status-only checks after an explicit automatic-synthetic inspect
+        type: boolean
+        default: false
       release_sha256:
         description: SHA256 of reviewed manifest selected by the release profile
         type: string
@@ -161,7 +165,7 @@ jobs:
         with:
           node-version: '24.18.0'
       - name: Prove closed synthetic release guards without credentials
-        run: node --test scripts/automatic-synthetic-release.test.mjs
+        run: node --test scripts/automatic-synthetic-release.test.mjs scripts/automatic-synthetic-smoke.test.mjs
       - name: Verify owner gates and complete exact-source build before cloud authentication
         env:
           GH_TOKEN: ${{ github.token }}
@@ -210,6 +214,12 @@ jobs:
         run: |
           node scripts/automatic-synthetic-release.mjs execute deploy/automatic-synthetic-release.json \
             "$RELEASE_SHA256" "$RELEASE_PHASE" "$RUNNER_TEMP/evidence" "$RUNNER_TEMP/receipt"
+      - name: Verify fixed anonymous transport statuses
+        if: inputs.phase == 'web' || (inputs.phase == 'inspect' && inputs.anonymous_smoke)
+        run: |
+          node scripts/automatic-synthetic-smoke.mjs deploy/automatic-synthetic-release.json \
+            "$RELEASE_SHA256" "$RUNNER_TEMP/receipt/automatic-$RELEASE_PHASE.json" \
+            "$RUNNER_TEMP/receipt/automatic-anonymous-smoke.json"
       - name: Retain only selected public phase receipts
         if: always() && steps.auth.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
