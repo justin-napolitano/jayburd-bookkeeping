@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "inspection": {
+    "run": "43258761537",
+    "attempt": "1",
+    "commit": "f42dbca5918b5f21eececeb6d847548118420049",
+    "manifestSHA256": "97dd688b37e665b09b1e6d81fd1e52d1e21d1b0ad4befefdb6e6bfe64a665b1d",
+    "status": "inspection-only-not-release-acceptance"
+  },
+  "baselineSHA256": "278847e3a88c8fdcaf5694baed55a9083d56c2b9061324446024916a821aba4b",
+  "pinnedManifestSHA256": "9258dbf5a14d6c2d426d9325e36e1d8e2b31cb77c9cb5b804cdd588d0687d939",
+  "validation": {
+    "api": "healthy-selected-profile",
+    "web": "healthy-selected-profile",
+    "migrate": "healthy-selected-profile"
+  },
+  "observedOmission": {
+    "apiTemplateName": null,
+    "webTemplateName": null
+  },
+  "historicalExecutions": [
+    {
+      "name": "jayburd-dev-migrate-s5fwv",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:199ed337de73e622c7398516a90ef196620b100701cb3f07924e6cd86df5f31a",
+      "action": "-action=status",
+      "completedAt": "2026-11-09T00:14:37.066Z"
+    },
+    {
+      "name": "jayburd-dev-migrate-gz274",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:199ed337de73e622c7398516a90ef196620b100701cb3f07924e6cd86df5f31a",
+      "action": "-action=status",
+      "completedAt": "2026-11-08T16:32:57.036Z"
+    },
+    {
+      "name": "jayburd-dev-migrate-6sb26",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:199ed337de73e622c7398516a90ef196620b100701cb3f07924e6cd86df5f31a",
+      "action": "-action=up",
+      "completedAt": "2026-11-08T16:31:11.084Z"
+    }
+  ],
+  "limitations": [
+    "Read-only public configuration; no schema status, runtime rollout or product acceptance.",
+    "Historical successful execution metadata is not candidate48 migration evidence.",
+    "Workspace-wide synthetic scope must be established before enabling a workspace policy."
+  ]
+}

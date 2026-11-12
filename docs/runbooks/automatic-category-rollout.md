@@ -19,8 +19,8 @@ Root holds the sole finite485 existing Sandbox release lane in GitHub65 through
 2026-11-12T09:00Z. Initial branch chore/485-automatic-category-rollout is merged; diagnostic follow-up491 is merged; branch
 chore/485-approved-runtime-baseline is merged; branch
 chore/485-synthetic-release-baseline is merged; branch
-chore/485-observed-runtime-compatibility owns the observed optional-field repair
-and the next manifest stage. Scope:
+chore/485-observed-runtime-compatibility is merged; branch
+chore/485-pinned-observed-baseline owns the exact observed baseline stage. Scope:
 all four same-build patched artifacts, existing migrator forward48/status,
 configuration-preserving API/web stages and explicit synthetic analytic activation.
 No ad hoc SQL, migration edits, down/force/reset, provider calls or consent renewal,
@@ -284,3 +284,26 @@ Full simulated inspect/JSON-baseline/migrate/stage/activate/web/pause retains
 actual omission and20 arguments; malformed names/status/traffic/direct-health
 failures remain blocked. No API/web image, runtime or managed schema has changed.
 Exact-head canonical CI, normal merge and fresh read-only inspection remain gates.
+
+PR494 merged normally via the standard merge API at
+`f42dbca5918b5f21eececeb6d847548118420049` after all five b03fe05
+checks passed (Seed43252848147, Infrastructure43252848195, GitGuardian).
+The initial GraphQL merge gateway error left the PR open/main unchanged;
+subsequent standard exact-head merge succeeded and was independently read back.
+Read-only inspection43258761537 succeeded on that main commit, with complete
+API/web/migrator baseline and all three healthy-selected-profile results.
+Actual API00026-5nt and web00027-6jn retain sole100 traffic and Ready/
+ConfigurationsReady/RoutesReady. Template-name omissions remain explicit null;
+all20 API arguments and expired Nov2 consent/false qualification remain intact.
+Migrator remains historical199ed337/defaultstatus. This is public metadata
+acceptance, not schema47/48, candidate runtime or hosted product acceptance.
+
+The next manifest stage pins the complete validated before object byte-for-byte
+by value; selected source/hash/evidence is retained in
+[inspection receipt](../reviews/automatic-category-inspection.json).
+Pinned manifestSHA256: `9258dbf5a14d6c2d426d9325e36e1d8e2b31cb77c9cb5b804cdd588d0687d939`.
+No runtime settings are reconstructed from assumptions, and no managed mutation
+has occurred. Each phase still requires exact current baseline/phase state,
+expiry, four-image freshness, owner/main gates and selected post-readback.
+Workspace policy remains off pending complete synthetic-workspace scope
+confirmation: book filters/account-scoped rules do not scope the runner.
