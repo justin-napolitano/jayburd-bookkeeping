@@ -96,6 +96,22 @@ func TestAuto48UnknownCommit(t *testing.T) {
 	}
 }
 
+// auto48ProjectionEqual guards semantic drift between whole-history and selected-row SQL projections.
+func auto48ProjectionEqual(t testing.TB, owner *pgx.Conn, w string) {
+	t.Helper()
+	if value(t, owner, `WITH complete AS MATERIALIZED(
+ SELECT source_id,observation_id,observation_revision,body FROM banking.collection_query_rows($1::uuid,$2::uuid)
+), selected AS MATERIALIZED(
+ SELECT r.source_id,r.observation_id,r.observation_revision,
+ banking.collection_automatic_project_row($1::uuid,$2::uuid,r.source_id,r.observation_id,r.observation_revision,r.body)AS body
+ FROM banking.collection_tag_rows($1::uuid,$2::uuid)r
+)
+SELECT count(*)::text FROM complete c FULL JOIN selected s USING(source_id,observation_id,observation_revision)
+WHERE c.source_id IS NULL OR s.source_id IS NULL OR c.body IS DISTINCT FROM s.body`, actor, w) != "0" {
+		t.Fatal("selected-row and complete SQL projections disagree")
+	}
+}
+
 // TestAuto48WholeResult proves bounded batches finish a larger history and filters/counts use saved output.
 func TestAuto48WholeResult(t *testing.T) {
 	owner, pool, db := auto48Fixture(t)
@@ -137,6 +153,7 @@ func TestAuto48WholeResult(t *testing.T) {
 	if value(t, owner, "SELECT count(*)::text FROM banking.collection_automatic_decision") != "3000" || value(t, owner, "SELECT count(*)::text FROM banking.collection_automatic_run") != "30" {
 		t.Fatal("bounded backfill did not finish exactly")
 	}
+	auto48ProjectionEqual(t, owner, w)
 	q := query45Selector()
 	q["topic"] = map[string]any{"kind": "topic", "topic_id": childTopic}
 	p := query45Page(t, db, w, q)
@@ -246,7 +263,7 @@ func TestAuto48AtomicFailure(t *testing.T) {
 
 // TestAuto48ExactAttention excludes queued, zero and no-longer-booked manual facts from the exception count/view.
 func TestAuto48ExactAttention(t *testing.T) {
-	_, pool, db := auto48Fixture(t)
+	owner, pool, db := auto48Fixture(t)
 	w := provision(t, db, actor)
 	_, sources := register(t, db, w, actor, "attention48", 1)
 	zero := change("zero", "0", "USD")
@@ -276,6 +293,7 @@ func TestAuto48ExactAttention(t *testing.T) {
 		t.Fatal(e)
 	}
 	rule46Complete(t, s, w, "manual", p)
+	auto48ProjectionEqual(t, owner, w)
 	worker := &AutomaticService{DB: pool}
 	for i := 0; i < 2; i++ {
 		if e := worker.Step(context.Background()); e != nil {
@@ -294,6 +312,7 @@ func TestAuto48ExactAttention(t *testing.T) {
 	if v["attention_count"] != "1" || p["matching_count"] != "1" || len(p["items"].([]any)) != 1 {
 		t.Fatal("exception view/count included pending or unavailable records")
 	}
+	auto48ProjectionEqual(t, owner, w)
 }
 
 // TestAuto48Lifecycle exercises actual trusted matcher/service phases through the restricted login.

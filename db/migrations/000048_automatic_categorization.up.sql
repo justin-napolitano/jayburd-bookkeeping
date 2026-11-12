@@ -471,7 +471,7 @@ CREATE FUNCTION banking.collection_automatic_provider(w uuid,sid uuid,oid uuid,r
  WHERE s.workspace_id=w AND s.source_account_id=sid ORDER BY p.metadata_revision DESC LIMIT 1
 $$;
 
--- SQL-only helpers inherit the secure entrypoint search_path; fully qualified tables permit planner inlining.
+-- SQL-only helpers inherit the secure entrypoint search_path; their table references are fully qualified.
 -- Do not include global auto progress in row fingerprints: one batch must not invalidate every earlier batch.
 CREATE FUNCTION banking.collection_automatic_row_fingerprint(w uuid,sid uuid,oid uuid,rev bigint,body_value jsonb)RETURNS text LANGUAGE sql STABLE AS $$
  SELECT encode(sha256(convert_to(jsonb_build_array(rev::text,body_value->'source_state',body_value->'money',
@@ -484,7 +484,7 @@ CREATE FUNCTION banking.collection_automatic_row_fingerprint(w uuid,sid uuid,oid
 $$;
 
 ALTER FUNCTION banking.collection_query_rows(uuid,uuid)RENAME TO collection_automatic_previous_rows;
--- One private renderer serves complete queries and already-selected automatic inputs.
+-- Bounded selected inputs use the same rule/automatic expressions as the set-based full projection.
 CREATE FUNCTION banking.collection_automatic_project_row(actor uuid,w uuid,sid uuid,oid uuid,rev bigint,base_value jsonb)RETURNS jsonb
 LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
 WITH reviewed AS MATERIALIZED(
@@ -516,10 +516,27 @@ SELECT r.body||jsonb_build_object(
  CROSS JOIN LATERAL(SELECT EXISTS(SELECT FROM banking.collection_tag_decision x WHERE x.workspace_id=w AND x.source_account_id=r.source_id AND x.observation_id=r.observation_id)present)manual_tags
  LEFT JOIN LATERAL(SELECT value FROM banking.collection_taxonomy_edition t JOIN banking.collection_label_state s USING(workspace_id,taxonomy_revision),jsonb_array_elements(t.topics)x(value)WHERE t.workspace_id=w AND value->>'topic_id'=d.output->>'topic_id')topic ON true
 $$;
+-- Keep full-history rendering set-based; the private row renderer is only for bounded selections.
 CREATE FUNCTION banking.collection_query_rows(actor uuid,w uuid)RETURNS TABLE(source_id uuid,observation_id uuid,observation_revision bigint,booked_date date,body jsonb)
 LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
- SELECT r.source_id,r.observation_id,r.observation_revision,r.booked_date,banking.collection_automatic_project_row(actor,w,r.source_id,r.observation_id,r.observation_revision,r.body)
- FROM banking.collection_tag_rows(actor,w)r
+ WITH current_rows AS MATERIALIZED(
+  SELECT r.*,CASE WHEN EXISTS(SELECT FROM banking.collection_automatic_decision d WHERE d.workspace_id=w AND d.source_account_id=r.source_id AND d.observation_id=r.observation_id)THEN banking.collection_automatic_row_fingerprint(w,r.source_id,r.observation_id,r.observation_revision,r.body)END AS input_fingerprint
+  FROM banking.collection_automatic_previous_rows(actor,w)r
+ )
+ SELECT r.source_id,r.observation_id,r.observation_revision,r.booked_date,
+  r.body||jsonb_build_object('owner_topic',CASE WHEN manual_topic.present THEN r.body->'owner_topic'
+   WHEN d.input_fingerprint=r.input_fingerprint THEN CASE WHEN d.output IS NULL THEN jsonb_build_object('state','unclassified')WHEN d.output->>'kind'='uncategorized'THEN jsonb_build_object('state','uncategorized')ELSE jsonb_build_object('state','topic','topic_id',d.output->>'topic_id','name',topic.value->>'name')END
+   ELSE r.body->'owner_topic'END,
+  'owner_tags',CASE WHEN NOT manual_tags.present AND d.classification->>'origin'='rule'AND d.input_fingerprint=r.input_fingerprint AND d.output IS NOT NULL THEN jsonb_build_object('state','current','tags',banking.collection_tag_names(w,ARRAY(SELECT value::uuid FROM jsonb_array_elements_text(d.output->'tag_ids'))))ELSE r.body->'owner_tags'END,
+  'categorization',CASE WHEN manual_topic.present THEN jsonb_build_object('state',CASE WHEN r.body->'owner_topic'->>'state'='stale'THEN 'needs_attention'ELSE 'manual'END,'origin','manual','reason',CASE WHEN r.body->'owner_topic'->>'state'='stale'THEN 'stale_override'ELSE NULL END,'rule_names','[]'::jsonb,'provider',NULL,'decision_id',NULL)
+   WHEN d.input_fingerprint=r.input_fingerprint THEN d.classification||jsonb_build_object('decision_id',d.run_id)
+   ELSE jsonb_build_object('state',CASE WHEN r.body->>'source_state' IN('pending','removed','held')THEN 'unavailable'WHEN policy.enabled THEN 'pending'ELSE 'unavailable'END,'origin','none','reason',CASE WHEN r.body->>'source_state'<>'booked'THEN 'source_not_ready'ELSE 'unavailable'END,'rule_names','[]'::jsonb,'provider',NULL,'decision_id',NULL)END)
+ FROM current_rows r
+ JOIN banking.collection_automation_state a ON a.workspace_id=w JOIN banking.collection_automation_edition policy ON policy.workspace_id=w AND policy.revision=a.revision
+ LEFT JOIN LATERAL(SELECT x.* FROM banking.collection_automatic_decision x WHERE x.workspace_id=w AND x.source_account_id=r.source_id AND x.observation_id=r.observation_id ORDER BY decision_revision DESC LIMIT 1)d ON true
+ CROSS JOIN LATERAL(SELECT EXISTS(SELECT FROM banking.collection_label_decision x WHERE x.workspace_id=w AND x.source_account_id=r.source_id AND x.observation_id=r.observation_id)present)manual_topic
+ CROSS JOIN LATERAL(SELECT EXISTS(SELECT FROM banking.collection_tag_decision x WHERE x.workspace_id=w AND x.source_account_id=r.source_id AND x.observation_id=r.observation_id)present)manual_tags
+ LEFT JOIN LATERAL(SELECT value FROM banking.collection_taxonomy_edition t JOIN banking.collection_label_state s USING(workspace_id,taxonomy_revision),jsonb_array_elements(t.topics)x(value)WHERE t.workspace_id=w AND value->>'topic_id'=d.output->>'topic_id')topic ON true
 $$;
 
 -- Exact exceptions filter uses the complete persisted projection before count and pagination.
