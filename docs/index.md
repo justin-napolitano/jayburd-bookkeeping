@@ -25,6 +25,7 @@ immutable posted history and saved-work recovery.
 | Private setup and retained-history adoption | [Onboarding](contracts/collection-onboarding.md), [source stages](runbooks/collection-onboarding.md), [controlled release](runbooks/onboarding-sandbox-rollout.md) |
 | Transactions, labels, tags and rules | [Query/rules](contracts/collection-query-rules.md), [labels](contracts/collection-labels.md), [tags/recovery](contracts/collection-tags-recovery.md), [composed delivery](runbooks/query-rules-build.md) |
 | Reports and exports | [Reporting](contracts/financial-reporting.md), [CSV](contracts/report-export.md), [journal drill](contracts/report-drill.md) |
+| Synthetic automatic category rollout | [Current scoped release](runbooks/automatic-category-rollout.md); GitHub485 owns execution and actual results |
 | Current banking UI/release evidence | [Customer UI](runbooks/customer-banking-ui.md), [web rollout](runbooks/customer-ui-web-release.md); owner visual review stays distinct |
 | Local fictional review | [Demo guide](runbooks/synthetic-demo.md), [source acquisition contract](contracts/demo-acquisition.md) |
 | Provider and worker boundaries | [Runtime boundaries](contracts/provider-runtime-boundaries.md), [dispatch](contracts/acquisition-dispatch-runtime.md), [worker operator guide](../deploy/WORKERS.md) |
