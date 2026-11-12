@@ -63,13 +63,20 @@ export function validateAutomaticBuild(m,read,now=Date.now()){
  return {build:m.build,images:m.images,components:receipts.map(r=>({component:r.component,testedImageID:r.testedImageID}))};
 }
 // Validate the finite public service shape; baseline has one fully healthy historical traffic target.
-export function validateService(s,c,baseline=false){
+export function validateService(s,c,baseline=false,allowUnhealthy=false){
  keys(s,['metadata','spec','status']); keys(s.metadata,['name','annotations']);keys(s.spec,['template','traffic']);
  keys(s.spec.template,['metadata','spec']);keys(s.spec.template.metadata,['name','annotations']);
  for(const [a,names] of [[s.metadata.annotations,serviceAnnotations],[s.spec.template.metadata.annotations,revisionAnnotations]])if(!a||Object.keys(a).some(k=>!names.includes(k)))fail();
+ for(const [a,names] of [[s.metadata.annotations,serviceAnnotations],[s.spec.template.metadata.annotations,revisionAnnotations]])for(const [k,value] of Object.entries(a)){
+  const scale=k.endsWith('/minScale')||k.endsWith('/maxScale');
+  const allowed=scale?typeof value==='string'&&/^[0-9]{1,3}$/.test(value):k==='run.googleapis.com/cloudsql-instances'?value===`${project}:${region}:jayburd-dev`:k==='run.googleapis.com/cpu-throttling'||k==='run.googleapis.com/startup-cpu-boost'?['true','false'].includes(value):k==='run.googleapis.com/execution-environment'?['gen1','gen2'].includes(value):k==='run.googleapis.com/vpc-access-egress'?['all-traffic','private-ranges-only'].includes(value):k==='run.googleapis.com/vpc-access-connector'?typeof value==='string'&&new RegExp(`^projects/${project}/locations/${region}/connectors/[a-z][a-z0-9-]{0,62}$`).test(value):['all','internal','internal-and-cloud-load-balancing'].includes(value);
+  if(!allowed)fail();
+ }
+ const revisionPattern=new RegExp(`^jayburd-dev-${c}-[a-z0-9-]{1,50}$`);
+ if(!revisionPattern.test(s.spec.template.metadata.name)||!revisionPattern.test(s.status?.latestCreatedRevisionName)||!revisionPattern.test(s.status?.latestReadyRevisionName))fail();
  const t=s.spec.template.spec;keys(t,['serviceAccountName','containerConcurrency','timeoutSeconds','containers']);
  if(s.metadata.name!==`jayburd-dev-${c}`||t.serviceAccountName!==`jayburd-dev-${c==='web'?'frontend':'api'}@${project}.iam.gserviceaccount.com`||t.containerConcurrency!==(c==='api'?16:32)||t.timeoutSeconds!==(c==='api'?15:20)||t.containers.length!==1)fail();
- const v=t.containers[0];keys(v,['image','args','command','ports','resources','startupProbe']);
+ const v=t.containers[0];if(typeof v?.image!=='string'||!new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/${c}@sha256:[a-f0-9]{64}$`).test(v.image))fail();keys(v,['image','args','command','ports','resources','startupProbe']);
  if(!equal(v.command,[])||!equal(v.ports,[{containerPort:8080,name:'http1'}])||!equal(v.resources,{limits:{cpu:'1',memory:'512Mi'}}))fail();
  if(!equal(v.startupProbe,{failureThreshold:12,httpGet:{path:c==='api'?'/readyz':'/api/auth-config',port:8080},periodSeconds:5,timeoutSeconds:3}))fail();
  if(!Array.isArray(v.args)||c==='web'&&v.args.length!==0||c==='api'&&(v.args.length!==20&&v.args.length!==21))fail();
@@ -83,6 +90,12 @@ export function validateService(s,c,baseline=false){
   if(!v.args.some(x=>['-infisical-origin=https://us.infisical.com','-infisical-origin=https://eu.infisical.com','-infisical-origin=https://app.infisical.com'].includes(x)))fail();
   if(v.args.some(x=>x.startsWith('-automatic-categories')&&x!=='-automatic-categories=true'))fail();
  }
+ keys(s.status,['latestReadyRevisionName','latestCreatedRevisionName','conditions','traffic']);
+ if(!Array.isArray(s.status.conditions)||s.status.conditions.length>16||s.status.conditions.some(c=>typeof c.type!=='string'||!/^[A-Za-z][A-Za-z0-9]{0,63}$/.test(c.type)||!['True','False','Unknown'].includes(c.status)))fail();
+ for(const rows of [s.spec.traffic,s.status.traffic])if(!Array.isArray(rows)||rows.length>16||rows.some(t=>!revisionPattern.test(t.revisionName)||!Number.isInteger(t.percent)||t.percent<0||t.percent>100||t.tag!==undefined&&(typeof t.tag!=='string'||!/^[a-z][a-z0-9-]{0,62}$/.test(t.tag))))fail();
+ for(const condition of s.status.conditions)keys(condition,['type','status']);
+ for(const rows of [s.spec.traffic,s.status.traffic])for(const target of rows)keys(target,['revisionName','percent',...(target.tag===undefined?[]:['tag'])]);
+ if(allowUnhealthy)return s;
  if(s.status.latestReadyRevisionName!==s.status.latestCreatedRevisionName||!['Ready','ConfigurationsReady','RoutesReady'].every(type=>s.status.conditions?.filter(x=>x.type===type&&x.status==='True').length===1))fail();
  if(!Array.isArray(s.spec.traffic)||s.spec.traffic.length!==1||s.spec.traffic[0].percent!==100||typeof s.spec.traffic[0].revisionName!=='string')fail();
  if(s.spec.traffic.some(x=>x.tag)||s.status.traffic?.some(x=>x.tag)||!equal(s.status.traffic,s.spec.traffic))fail();
@@ -94,11 +107,24 @@ export function cloudRunner(args){const r=spawnSync('gcloud',args,{encoding:'utf
 const flags=[`--project=${project}`,`--region=${region}`,'--quiet'];
 function describe(c,runner){return normalizeService(runner(['run','services','describe',`jayburd-dev-${c}`,...flags,`--format=${serviceProjection}`]));}
 // The existing migrator profile is status-only at rest; no arbitrary arguments, tasks or identities are accepted.
-export function validateJob(j){
+export function validateJob(j,allowUp=false){
  keys(j,['name','taskCount','parallelism','serviceAccountName','maxRetries','timeoutSeconds','containers']);
  if(j.name!=='jayburd-dev-migrate'||j.taskCount!==1||j.parallelism!==1||j.serviceAccountName!==`jayburd-dev-migrator@${project}.iam.gserviceaccount.com`||j.maxRetries!==0||![660,'660'].includes(j.timeoutSeconds)||j.containers.length!==1)fail();
  const c=j.containers[0];keys(c,['image','command','args','resources']);
- if(!equal(c.command,[])||!equal(c.args,['-action=status',`-instance=${project}:${region}:jayburd-dev`])||!equal(c.resources,{limits:{cpu:'1',memory:'512Mi'}})||!new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/migrate@sha256:[a-f0-9]{64}$`).test(c.image))fail();return j;
+ if(!equal(c.command,[])||(!equal(c.args,['-action=status',`-instance=${project}:${region}:jayburd-dev`])&&!(allowUp&&equal(c.args,['-action=up',`-instance=${project}:${region}:jayburd-dev`])))||!equal(c.resources,{limits:{cpu:'1',memory:'512Mi'}})||!new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/migrate@sha256:[a-f0-9]{64}$`).test(c.image))fail();return j;
+}
+// Inspection may report failed health, but only typed public migration arguments and identities can reach its receipt.
+function publicExecution(raw){
+ const name=raw?.metadata?.name,t=raw?.spec?.template?.spec;
+ if(typeof name!=='string'||!/^jayburd-dev-migrate-[a-z0-9]{1,20}$/.test(name)||!t||raw.spec.taskCount!==1||!Array.isArray(t.containers)||t.containers.length!==1)fail();
+ const container=t.containers[0];
+ const profile={name:'jayburd-dev-migrate',taskCount:1,parallelism:1,serviceAccountName:t.serviceAccountName,maxRetries:t.maxRetries,timeoutSeconds:t.timeoutSeconds,containers:[{image:container.image,command:container.command??[],args:container.args??[],resources:{limits:{cpu:'1',memory:'512Mi'}}}]};
+ validateJob(profile,true);
+ const status={};
+ for(const k of ['succeededCount','failedCount','cancelledCount','runningCount','retriedCount'])if(raw.status?.[k]!==undefined){if(!Number.isSafeInteger(raw.status[k])||raw.status[k]<0||raw.status[k]>1)fail();status[k]=raw.status[k];}
+ if(raw.status?.completionTime!==undefined){if(typeof raw.status.completionTime!=='string'||!Number.isFinite(Date.parse(raw.status.completionTime)))fail();status.completionTime=new Date(raw.status.completionTime).toISOString();}
+ if(raw.status?.conditions!==undefined){if(!Array.isArray(raw.status.conditions)||raw.status.conditions.length>16)fail();status.conditions=raw.status.conditions.map(c=>{if(typeof c.type!=='string'||!/^[A-Za-z][A-Za-z0-9]{0,63}$/.test(c.type)||!['True','False','Unknown'].includes(c.status))fail();return {type:c.type,status:c.status};});}
+ return {metadata:{name},spec:{taskCount:1,template:{spec:{serviceAccountName:t.serviceAccountName,maxRetries:t.maxRetries,timeoutSeconds:t.timeoutSeconds,containers:[{image:container.image,command:container.command??[],args:container.args??[]}]}}},status};
 }
 function describeJob(runner){
  const j=runner(['run','jobs','describe','jayburd-dev-migrate',...flags,`--format=${jobProjection}`]);
@@ -144,8 +170,11 @@ export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{
  if(!phases.includes(phase)||m.baseline===null&&phase!=='inspect')fail();
  const before={api:describe('api',runner),web:describe('web',runner),migrate:describeJob(runner)};
  if(phase==='inspect'){
-  const executions=runner(['run','jobs','executions','list','--job=jayburd-dev-migrate','--limit=3',...flags,`--format=${executionProjection}`]);
-  if(!Array.isArray(executions)||executions.length>3)fail();
+  // Health failures remain observable; configuration/privacy failures stop before any receipt is written.
+  for(const c of ['api','web'])validateService(before[c],c,false,true);validateJob(before.migrate,true);
+  const rawExecutions=runner(['run','jobs','executions','list','--job=jayburd-dev-migrate','--limit=3',...flags,`--format=${executionProjection}`]);
+  if(!Array.isArray(rawExecutions)||rawExecutions.length>3)fail();
+  const executions=rawExecutions.map(publicExecution);
   const validation=Object.fromEntries(['api','web','migrate'].map(c=>{try{c==='migrate'?validateJob(before[c]):validateService(before[c],c);return [c,'healthy-selected-profile'];}catch{return [c,'requires-owner-review'];}}));
   return {schemaVersion:1,phase,status:'inspection-only-not-release-acceptance',before,validation,executions};
  }
