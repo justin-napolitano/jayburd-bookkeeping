@@ -125,3 +125,23 @@ fake-CLI legacy orchestration pass. Local Go check reaches public dependency-cac
 write denial (x/net cache lock); no tracked dependency/toolchain was changed.
 Canonical source checks and workflow lint remain required before merge. Local
 infrastructure mocks are running; no managed Terraform/state/plan/apply occurred.
+
+The complete trusted build43158591303 attempt1 is SUCCESS on exacteb1828c:
+all three reusable gates and four runtime/scan/publication jobs passed. Independent
+receipt regeneration, Dockerfile/VCS/OCI/amd64 bindings and nonempty Trivy0.75.0
+CycloneDX inventories passed for every component, with HIGH0/CRITICAL0. Root
+reran the independent verifier and the new offline CLI against all four actual
+artifact sets. Permanent selected summary, file hashes and complete candidate
+receipts: [build evidence](../reviews/automatic-category-build.json).
+
+The initial exact inspection manifest has baseline=null, so it cannot execute any
+mutation phase. SHA256871c1f5ba80b3ef48f8b1015881758e09b01d2d66670b681ae824449d2e08f96;
+expires2026-11-12T09:00Z. Current tooling privacy fixes reject unapproved argument
+values/commands/references before writing inspection receipts, while retaining
+known unhealthy/status-or-up observations for recovery.57 guards pass; all local
+infrastructure mocks also pass. Review fresh selected baseline bytes under the owner’s existing rollout
+authorization before a later non-inspection manifest is committed/hashed. No managed
+workflow or migration/traffic/activation has been dispatched yet.
+
+Independent final privacy review passes at script SHA256
+`c80a508e83bdadadf4d282acb0e2ab8c8428e38fe7128f5cfdd2558e0ce106a9`;57/57 tests.
