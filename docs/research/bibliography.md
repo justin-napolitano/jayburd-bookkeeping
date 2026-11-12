@@ -277,21 +277,12 @@ These support identity/setup; live deployment evidence remains separate.
 
 [Scan](scan.md):SHA.
 
-The [GCP source register](gcp-sources.md) describes managed request billing,
-Cloud Tasks pricing and duplicate delivery, Cloud SQL connectivity and IAM
-authentication, Terraform mock tests, state bootstrap, GitHub federation, the pinned Cloud SQL connector and restricted
-migration role design, standalone packaging, image provenance limits and private
-service invocation, runtime identity configuration, and explicit quota-project settings for user ADC bootstrap. Read its section-level review limits before implementing cloud
-delivery; provider documentation and budget assumptions are not deployment proof.
-G24 reviews Cloud SQL IAM database-role assignment and pinned provider behavior
-for a possible administrator bootstrap path; it does not establish role compatibility
-or authorize elevated application logins.
-G25 covers the pinned owner-operated IAM proxy, private socket boundary and
-outbound connector requirement; read it before diagnosing bootstrap connectivity.
-G26 records Cloud Shell command access and its owner-administration boundary,
-including observed CLI behavior and the distinction from runtime authentication.
-G27 describes immutable job execution metadata and completion counts used to bind
-migration evidence to the approved image and workload identity.
+The [GCP source register](gcp-sources.md) covers G01–31: billing/background CPU,
+Tasks delivery, CloudSQL connectivity/IAM and restricted migrations, Terraform
+mocks/state, WIF, standalone packaging, image provenance, service invocation and
+runtime identity. Reviews name selected sections and limits; they are not
+deployment proof. G24's administrator-bootstrap research does not establish role
+compatibility or authorize elevated application logins.
 
 ## Agent maintenance rules
 

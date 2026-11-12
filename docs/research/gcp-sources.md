@@ -242,3 +242,18 @@ command, then require its active readiness/latest-ready/sole100percent and exact
 settings before completing the rollout. Alternative tagged no-traffic testing
 adds a tag/URL and still cannot prove private authenticated ownership; this
 bounded existing Sandbox operation uses explicit sequential activation instead.
+
+## G31 — Synthetic background CPU lifecycle —2026-11-12
+
+Google [billing settings](https://docs.cloud.google.com/run/docs/configuring/billing-settings),
+[autoscaling](https://docs.cloud.google.com/run/docs/about-instance-autoscaling),
+[runtime contract](https://docs.cloud.google.com/run/docs/container-contract),
+and [pricing](https://cloud.google.com/run/pricing): reviewed selected CPU,
+zero-instance/request wake, shutdown and us-central1 instance-billing sections.
+Instance-based CPU supports background work while an instance exists; requests
+trigger zero→one. Minimum1 is Google's continuous-background recommendation, not
+adopted here. Inference for485: minimum0/maximum1, request-woken durable synthetic
+work with no continuous-service SLA. At1CPU/512Mi the displayed rates imply
+$0.0684/live-hour before shared free tier/other costs; minimum0 is not a spend cap.
+Alternative minimum1 adds about$49.93/month API compute alone; request-throttled
+CPU cannot establish idle background progress. No authenticated billing was read.
