@@ -145,3 +145,9 @@ workflow or migration/traffic/activation has been dispatched yet.
 
 Independent final privacy review passes at script SHA256
 `c80a508e83bdadadf4d282acb0e2ab8c8428e38fe7128f5cfdd2558e0ce106a9`;57/57 tests.
+
+A pre-dispatch contract cross-check corrected the fixture/validator webhook URL to
+retain the existing `/webhooks/plaid` receiver path (existing provider constant and
+Terraform contract). It does not renew consent or enable the provider. A separate
+regression binds the retained endpoint to that existing contract and rejects the
+pathless URL;58 tooling tests pass before final exact-head CI.
