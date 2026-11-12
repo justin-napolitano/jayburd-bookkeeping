@@ -74,7 +74,11 @@ func Managed(parent context.Context, c Config, a ConsumerAdapters) (*Runtime, er
 	var runner *acquisition.Runner
 	if c.Mode == "consumer" {
 		profile, _ := plaidprofile.New(c.ProviderEnvironment())
-		provider, err := acquisition.NewPlaidHTTPForProfile(profile, dependency)
+		providerConstructor := acquisition.NewPlaidHTTPForProfile
+		if c.Categories {
+			providerConstructor = acquisition.NewPlaidHTTPForProfileWithCategories
+		}
+		provider, err := providerConstructor(profile, dependency)
 		if err != nil {
 			closeAll()
 			return nil, ErrConfiguration
@@ -87,7 +91,11 @@ func Managed(parent context.Context, c Config, a ConsumerAdapters) (*Runtime, er
 				return nil, ErrConfiguration
 			}
 		}
-		runner, e = acquisition.New(pool, provider, credentials, a.Evidence)
+		runnerConstructor := acquisition.New
+		if c.Categories {
+			runnerConstructor = acquisition.NewWithCategories
+		}
+		runner, e = runnerConstructor(pool, provider, credentials, a.Evidence)
 		if e != nil {
 			closeAll()
 			return nil, ErrConfiguration

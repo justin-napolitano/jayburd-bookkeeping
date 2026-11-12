@@ -6121,6 +6121,112 @@
           }
         }
       }
+    },
+    "/v1/collections/{workspace}/automation": {
+      "get": {
+        "operationId": "getPrivateAutomaticCategorization",
+        "summary": "Automatic categorization status",
+        "description": "Explicit schema48 managed private collection feature; verified current owner authority. Analytic labels only, no accounting posting. No-store; no actor/results/query/Idempotency-Key/encoding accepted. Reads have no effects. POST preserves the exact closed JSON body (max1024 bytes); retry an unknown outcome with the same key and body. See docs/contracts/automatic-categorization.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized automatic categorization status or exact settings receipt",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateAutomaticCategorizationStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "setPrivateAutomaticCategorization",
+        "summary": "Enable or pause automatic categorization",
+        "description": "Explicit schema48 managed private collection feature; verified current owner authority. Analytic labels only, no accounting posting. No-store; no actor/results/query/Idempotency-Key/encoding accepted. Reads have no effects. POST preserves the exact closed JSON body (max1024 bytes); retry an unknown outcome with the same key and body. See docs/contracts/automatic-categorization.md.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current-authorized automatic categorization status or exact settings receipt",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateAutomaticCategorizationStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure; no private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateAutomaticCategorizationRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -14325,6 +14431,25 @@
           "order"
         ]
       },
+      "PrivateLabelTopicFilterV3": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PrivateLabelTopicFilterV2"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "needs_attention"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        ]
+      },
       "PrivateLabelSelectorV3": {
         "type": "object",
         "additionalProperties": false,
@@ -14376,7 +14501,7 @@
             "maxLength": 100
           },
           "topic": {
-            "$ref": "#/components/schemas/PrivateLabelTopicFilterV2"
+            "$ref": "#/components/schemas/PrivateLabelTopicFilterV3"
           },
           "sort": {
             "$ref": "#/components/schemas/PrivateReadSort"
@@ -14500,7 +14625,7 @@
             "maxLength": 100
           },
           "topic": {
-            "$ref": "#/components/schemas/PrivateLabelTopicFilterV2"
+            "$ref": "#/components/schemas/PrivateLabelTopicFilterV3"
           },
           "sort": {
             "$ref": "#/components/schemas/PrivateReadSort"
@@ -14690,6 +14815,9 @@
           },
           "rule_application": {
             "$ref": "#/components/schemas/PrivateRuleApplication"
+          },
+          "categorization": {
+            "$ref": "#/components/schemas/PrivateAutomaticCategorization"
           }
         },
         "required": [
@@ -14896,6 +15024,9 @@
           },
           "rules": {
             "$ref": "#/components/schemas/PrivateRuleCatalog"
+          },
+          "automatic_categorization": {
+            "$ref": "#/components/schemas/PrivateAutomaticCategorizationCapability"
           }
         },
         "required": [
@@ -16750,6 +16881,299 @@
           }
         ],
         "description": "New public application commands: setup, import and source_post only. A post command without retained source evidence is rejected with 422 artifact_required."
+      },
+      "PrivateAutomaticCategorizationCapability": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "const": "available"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "description": "Advertised only by explicitly configured automatic categorization composition. Absence means no automatic feature request is implied."
+      },
+      "PrivateAutomaticCategorizationRun": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-auto-run-v1"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "prepared",
+              "committed",
+              "stale"
+            ]
+          },
+          "processed_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "attention_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "run_id",
+          "state",
+          "processed_count",
+          "attention_count"
+        ],
+        "description": "Bounded durable run metadata. No raw source data, actor-selected results or user acknowledgement is accepted."
+      },
+      "PrivateAutomaticCategorizationStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "const": "private-collection-automation-v1"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "processing_state": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "idle",
+              "pending",
+              "blocked"
+            ]
+          },
+          "pending_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "attention_count": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "saved_work",
+                  "category_catalog_unavailable",
+                  "permission_changed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrivateAutomaticCategorizationRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "workspace_id",
+          "revision",
+          "enabled",
+          "processing_state",
+          "pending_count",
+          "attention_count",
+          "blocked_reason",
+          "last_run"
+        ],
+        "description": "Current authorized read-only policy and whole-workspace counts. Unknown status is not zero; background work creates no journal or posting outbox."
+      },
+      "PrivateAutomaticCategorizationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+          },
+          "expected_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "expected_revision",
+          "enabled"
+        ],
+        "description": "Strict immutable configuration request. Same key/body replay under current authority; unknown outcomes retain the exact original request. No actor, source results or acknowledgement."
+      },
+      "PrivateAutomaticProviderAttribution": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "const": "Plaid"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "primary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "detailed": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "confidence": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "map_edition": {
+            "const": "plaid-pfc-primary-2026-11-11"
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "primary",
+          "detailed",
+          "confidence",
+          "map_edition"
+        ],
+        "description": "Retained actual provider/version/code/confidence attribution and approved map edition. Reported confidence is not a calibrated application accuracy score or accounting treatment."
+      },
+      "PrivateAutomaticCategorization": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "automatic",
+              "manual",
+              "needs_attention",
+              "pending",
+              "unavailable"
+            ]
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "rule",
+              "provider",
+              "manual",
+              "none"
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "missing_provider_category",
+                  "version_missing",
+                  "unsupported_version",
+                  "confidence_missing",
+                  "confidence_unknown",
+                  "confidence_unrecognized",
+                  "low_confidence",
+                  "unmapped_category",
+                  "conflicting_rules",
+                  "stale_override",
+                  "retired_category",
+                  "source_not_ready",
+                  "unavailable"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rule_names": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 100,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrivateAutomaticProviderAttribution"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "state",
+          "origin",
+          "reason",
+          "rule_names",
+          "provider",
+          "decision_id"
+        ],
+        "description": "Additive current read projection. Automatic state refers to a durable decision, never an inert suggestion. Rule names are retained at the actual winning edition. Effective owner_topic/owner_tags remain the server-filtered values; historical saved preview shapes are unchanged."
       }
     },
     "responses": {

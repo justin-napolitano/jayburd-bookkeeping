@@ -31,8 +31,10 @@ type Config struct {
 	Mode, Instance, Listen, BindingID, PublisherPolicy string
 	Environment                                        string
 	ApprovalExpiresAt                                  string
-	Caller                                             observer.CallerPolicy
-	Queue                                              observer.QueueConfig
+	// Categories enables additive current-response metadata only for the consumer.
+	Categories bool
+	Caller     observer.CallerPolicy
+	Queue      observer.QueueConfig
 }
 
 // component separates publisher delivery from the sync login that can acquire source observations.
@@ -45,6 +47,9 @@ func (c Config) component() string {
 
 // Validate rejects ambiguous mode, sockets and cross-project queue configuration before external access.
 func (c Config) Validate() error {
+	if c.Categories && c.Mode != "consumer" {
+		return ErrConfiguration
+	}
 	if c.Mode != "publisher" && c.Mode != "consumer" {
 		return ErrConfiguration
 	}

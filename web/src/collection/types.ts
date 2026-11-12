@@ -1,3 +1,4 @@
+import type { AutomationPort, Categorization } from "./automation";
 import {
   canonicalRules,
   validRuleCatalog,
@@ -42,6 +43,7 @@ export type CurrencyChoice = {
   valid_to: string | null;
 };
 export type Catalog = {
+  automatic_categorization?: { state: "available" };
   rules: RuleDefinition[];
   books: BookChoice[];
   currencies: CurrencyChoice[];
@@ -68,6 +70,7 @@ export type LegacySnapshot = Omit<Snapshot, "tag_revision">;
 export type TopicFilter =
   | { kind: "all" }
   | { kind: "unclassified" }
+  | { kind: "needs_attention" }
   | { kind: "uncategorized" }
   | { kind: "topic"; topic_id: string };
 export type LabelAction =
@@ -204,6 +207,7 @@ export type Row = Selection & {
 };
 export type LegacyRow = Omit<Row, "owner_tags">;
 export type ReviewRow = Row & {
+  categorization?: Categorization;
   institution: { state: "unavailable" };
   legal_owner: { state: "unknown" };
   rule_suggestion: RuleSuggestion;
@@ -293,6 +297,7 @@ export type LabelCommand = {
 export type CommandIdentity = { workspace_id: string; command_id: string };
 // This injected port declares future service behavior; it supplies no fetch, auth bypass or store.
 export type CollectionPort = {
+  automation?: AutomationPort;
   query: (query: Query) => Promise<Page>;
   detail: (request: DetailRequest) => Promise<SourceDetail>;
   preview: (request: PreviewRequest) => Promise<Preview>;

@@ -21,6 +21,8 @@ const collectionQuery = new RegExp(`^${collectionPath}/review/query$`);
 const collectionPreview = new RegExp(`^${collectionPath}/labels/preview$`);
 const collectionPrepare = new RegExp(`^${collectionPath}/label-commands$`);
 const collectionTransition = new RegExp(`^${collectionPath}/label-commands/${uuid}/(?:execute|cancel|acknowledge)$`);
+// Automatic settings remain one v1 private route; trusted worker results are never browser-addressable.
+const collectionAutomation = new RegExp(`^/v1/collections/${uuid}/automation$`);
 // v3 adds richer reads/rules; old command recovery keeps its explicit version.
 const collectionV3Read = new RegExp(`^/v3/collections/${uuid}/taxonomy$`);
 const collectionV3Query = new RegExp(`^/v3/collections/${uuid}/review/(?:query|detail)$`);
@@ -31,7 +33,7 @@ const onboardingRead = new RegExp(`^${onboardingRoot}(?:/commands/pending)?$`);
 const onboardingWrite = new RegExp(`^${onboardingRoot}/(?:previews|commands|commands/${uuid}/(?:execute|cancel|acknowledge)|recovery/clear)$`);
 /** Exact private route membership prevents unrelated POSTs inheriting body-key semantics. */
 function collectionRoute(path: string): boolean {
-  return onboardingRead.test(path) || onboardingWrite.test(path) || path === '/v1/collection' || path === '/v1/collection-recovery' || path === '/v1/collection-recovery/clear' || path === collectionActivation || collectionV3Read.test(path) || collectionV3Query.test(path) || collectionRead.test(path) || collectionQuery.test(path) || collectionPreview.test(path) || collectionPrepare.test(path) || collectionTransition.test(path);
+  return collectionAutomation.test(path) || onboardingRead.test(path) || onboardingWrite.test(path) || path === '/v1/collection' || path === '/v1/collection-recovery' || path === '/v1/collection-recovery/clear' || path === collectionActivation || collectionV3Read.test(path) || collectionV3Query.test(path) || collectionRead.test(path) || collectionQuery.test(path) || collectionPreview.test(path) || collectionPrepare.test(path) || collectionTransition.test(path);
 }
 /** Taxonomy editions have a larger bounded preview than a selection/query/transition. */
 function collectionBodyLimit(path: string): number {
@@ -64,7 +66,7 @@ function allowed(url: URL, method: string): boolean {
   if (url.pathname.length + url.search.length > 4096) return false;
   if (collectionRoute(url.pathname)) {
     if (url.href.includes('?') || url.hash) return false;
-    return method === 'GET' ? onboardingRead.test(url.pathname) || url.pathname === '/v1/collection' || url.pathname === '/v1/collection-recovery' || collectionRead.test(url.pathname) || collectionV3Read.test(url.pathname) : method === 'POST' && (onboardingWrite.test(url.pathname) || url.pathname === '/v1/collection-recovery/clear' || url.pathname === collectionActivation || collectionV3Query.test(url.pathname) || collectionQuery.test(url.pathname) || collectionPreview.test(url.pathname) || collectionPrepare.test(url.pathname) || collectionTransition.test(url.pathname));
+    return method === 'GET' ? collectionAutomation.test(url.pathname) || onboardingRead.test(url.pathname) || url.pathname === '/v1/collection' || url.pathname === '/v1/collection-recovery' || collectionRead.test(url.pathname) || collectionV3Read.test(url.pathname) : method === 'POST' && (collectionAutomation.test(url.pathname) || onboardingWrite.test(url.pathname) || url.pathname === '/v1/collection-recovery/clear' || url.pathname === collectionActivation || collectionV3Query.test(url.pathname) || collectionQuery.test(url.pathname) || collectionPreview.test(url.pathname) || collectionPrepare.test(url.pathname) || collectionTransition.test(url.pathname));
   }
   // Discovery permits only bounded, duplicate-free keyset parameters.
   if (method === 'GET' && new RegExp(`^${bookPath}/connection-attempts$`).test(url.pathname)) {
@@ -237,6 +239,7 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
       if (bearer.length > 16384 || !bearer.startsWith('Bearer ') || !tokenPattern.test(bearer.slice(7))) return failure(401);
       const collection = collectionRoute(url.pathname);
       if (collection && (request.headers.has('Idempotency-Key') || request.headers.has('Content-Encoding'))) return failure(400);
+      if (collectionAutomation.test(url.pathname) && request.method === 'GET' && request.headers.has('Content-Length') && request.headers.get('Content-Length') !== '0') return failure(400);
       const signal = AbortSignal.any([request.signal, AbortSignal.timeout(12000)]);
       const csv = exportPath.test(url.pathname);
       const headers = new Headers({Authorization: bearer, Origin: config.origin, Accept: csv ? 'text/csv' : 'application/json'});

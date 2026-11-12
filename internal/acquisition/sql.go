@@ -15,7 +15,11 @@ import (
 )
 
 // SQLRepository owns short role-checked transactions and exposes results only after COMMIT.
-type SQLRepository struct{ DB Beginner }
+type SQLRepository struct {
+	DB Beginner
+	// Categories selects only the additive category publication functions.
+	Categories bool
+}
 
 const syncRoleQuery = `SELECT session_user=current_user AND r.rolcanlogin AND NOT(r.rolsuper OR r.rolbypassrls OR r.rolcreaterole OR r.rolcreatedb OR r.rolreplication)
 AND pg_has_role(r.oid,'bookkeeping_sync','USAGE')
@@ -203,7 +207,11 @@ func (r *SQLRepository) Claim(ctx context.Context, s Scope, key string) (attempt
 // Context authorizes each credential/provider/evidence access using current SQL pins.
 func (r *SQLRepository) Context(ctx context.Context, s Scope, a attempt) (workContext, error) {
 	var out workContext
-	raw, e := r.call(ctx, "SELECT integration.sync_context($1,$2,$3,$4,$5)", s.EntityID, s.BookID, s.StreamID, a.SetID, a.Fence)
+	query := "SELECT integration.sync_context($1,$2,$3,$4,$5)"
+	if r.Categories {
+		query = "SELECT integration.sync_category_context($1,$2,$3,$4,$5)"
+	}
+	raw, e := r.call(ctx, query, s.EntityID, s.BookID, s.StreamID, a.SetID, a.Fence)
 	if e != nil {
 		return out, e
 	}
@@ -268,7 +276,11 @@ func regexpCurrency(s string) bool {
 
 // Stage sends only the runner's exact-decoder result after private evidence publication.
 func (r *SQLRepository) Stage(ctx context.Context, s Scope, a attempt, index int, body json.RawMessage) error {
-	raw, e := r.call(ctx, "SELECT integration.stage_sync_page($1,$2,$3,$4,$5,$6)", s.EntityID, s.BookID, s.StreamID, a.SetID, a.Fence, string(body))
+	query := "SELECT integration.stage_sync_page($1,$2,$3,$4,$5,$6)"
+	if r.Categories {
+		query = "SELECT integration.stage_sync_category_page($1,$2,$3,$4,$5,$6)"
+	}
+	raw, e := r.call(ctx, query, s.EntityID, s.BookID, s.StreamID, a.SetID, a.Fence, string(body))
 	if e != nil {
 		return e
 	}
@@ -285,7 +297,11 @@ func (r *SQLRepository) Stage(ctx context.Context, s Scope, a attempt, index int
 // Complete exposes a result only after SQL atomically publishes evidence and cursor.
 func (r *SQLRepository) Complete(ctx context.Context, s Scope, a attempt) (completion, error) {
 	var out completion
-	raw, e := r.call(ctx, "SELECT integration.complete_sync($1,$2,$3,$4,$5)", s.EntityID, s.BookID, s.StreamID, a.SetID, a.Fence)
+	query := "SELECT integration.complete_sync($1,$2,$3,$4,$5)"
+	if r.Categories {
+		query = "SELECT integration.complete_sync_categories($1,$2,$3,$4,$5)"
+	}
+	raw, e := r.call(ctx, query, s.EntityID, s.BookID, s.StreamID, a.SetID, a.Fence)
 	if e != nil {
 		return out, e
 	}

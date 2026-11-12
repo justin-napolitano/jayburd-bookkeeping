@@ -17,6 +17,7 @@ type Runner struct {
 	credentials CredentialResolver
 	evidence    EvidenceStore
 	slots       chan struct{}
+	categories  bool
 }
 
 // New validates dependencies without reading credentials, touching storage or beginning SQL work.
@@ -24,7 +25,31 @@ func New(db Beginner, p Provider, c CredentialResolver, e EvidenceStore) (*Runne
 	if db == nil || p == nil || c == nil || e == nil {
 		return nil, failure("configuration_error", false)
 	}
-	return &Runner{&SQLRepository{DB: db}, p, c, e, make(chan struct{}, 1)}, nil
+	return &Runner{repo: &SQLRepository{DB: db}, provider: p, credentials: c, evidence: e, slots: make(chan struct{}, 1)}, nil
+}
+
+// NewWithCategories explicitly enables current-response PFC staging without changing legacy callers.
+func NewWithCategories(db Beginner, p Provider, c CredentialResolver, e EvidenceStore) (*Runner, error) {
+	r, err := New(db, p, c, e)
+	if err != nil {
+		return nil, err
+	}
+	r.categories = true
+	r.repo = &SQLRepository{DB: db, Categories: true}
+	return r, nil
+}
+
+// decode preserves the default financial wire and returns a separately bound opt-in sidecar.
+func (r *Runner) decode(raw []byte, expected plaid.Expected) (plaid.Page, *plaid.CategoryPage, error) {
+	if !r.categories {
+		p, e := plaid.DecodePage(raw, expected)
+		return p, nil, e
+	}
+	p, c, e := plaid.DecodePageWithCategories(raw, expected)
+	if e != nil {
+		return plaid.Page{}, nil, e
+	}
+	return p, &c, nil
 }
 
 // Run reuses a stable claim identity and never confuses transport or staged progress with publication.
@@ -121,7 +146,7 @@ func (r *Runner) prefix(ctx context.Context, s Scope, a attempt, c workContext) 
 		if total > MaxRawBytes {
 			return 0, failure("limit_exceeded", false)
 		}
-		page, e := plaid.DecodePage(raw, c.expected())
+		page, _, e := r.decode(raw, c.expected())
 		if e != nil {
 			return 0, failure("invalid_evidence", false)
 		}
@@ -209,11 +234,11 @@ func (r *Runner) acquire(ctx context.Context, s Scope, a attempt) (Outcome, bool
 		if len(raw) == 0 || total+len(raw) > MaxRawBytes {
 			return r.abort(ctx, s, a, "decoder_rejected", failure("limit_exceeded", false))
 		}
-		page, e := plaid.DecodePage(raw, c.expected())
+		page, category, e := r.decode(raw, c.expected())
 		if e != nil {
 			return r.abort(ctx, s, a, "decoder_rejected", failure("decoder_rejected", false), plaid.ErrorCode(e))
 		}
-		body, e := json.Marshal(pageWire{PageIndex: c.NextPageIndex, RequestCursor: c.RequestCursor, Page: page})
+		body, e := json.Marshal(pageWire{PageIndex: c.NextPageIndex, RequestCursor: c.RequestCursor, Page: page, CategoryAttribution: category})
 		if e != nil {
 			return r.abort(ctx, s, a, "decoder_rejected", failure("decoder_rejected", false))
 		}
@@ -253,7 +278,12 @@ func (r *Runner) abort(ctx context.Context, s Scope, a attempt, reason string, c
 	}
 	var abandonErr error
 	if len(decoderCode) == 1 {
-		abandonErr = r.repo.RejectDecode(ctx, s, a, decoderCode[0])
+		code := decoderCode[0]
+		// Existing SQL diagnostics retain their closed vocabulary; malformed opt-in PFC is a field failure.
+		if code == "invalid_category_metadata" {
+			code = "invalid_field"
+		}
+		abandonErr = r.repo.RejectDecode(ctx, s, a, code)
 	} else {
 		abandonErr = r.repo.Abandon(ctx, s, a, reason)
 	}

@@ -61,8 +61,9 @@ func (s *Service) ClearRecovery(ctx context.Context, r Request) (json.RawMessage
 
 // Service uses a caller-composed restricted pool; SQL owns every business invariant.
 type Service struct {
-	DB    ledger.Beginner
-	Rules RuleHook
+	DB                  ledger.Beginner
+	Rules               RuleHook
+	AutomaticCategories bool
 }
 
 // RuleHook evaluates only authoritative SQL inputs inside this operation's transaction.
@@ -73,7 +74,20 @@ type RuleHook interface {
 
 // Catalog reads the complete bounded authorized catalog and source aliases.
 func (s *Service) Catalog(ctx context.Context, r Request) (json.RawMessage, error) {
-	return s.run(ctx, r, "catalog")
+	body, err := s.run(ctx, r, "catalog")
+	if err != nil || s == nil || !s.AutomaticCategories {
+		return body, err
+	}
+	var catalog map[string]json.RawMessage
+	if json.Unmarshal(body, &catalog) != nil {
+		return nil, unavailable()
+	}
+	catalog["automatic_categorization"] = json.RawMessage(`{"state":"available"}`)
+	body, err = json.Marshal(catalog)
+	if err != nil || len(body) > 1<<20 {
+		return nil, unavailable()
+	}
+	return body, nil
 }
 
 // Query reads one current revision-pinned page without interpreting money or filters.

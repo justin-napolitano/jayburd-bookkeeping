@@ -39,6 +39,13 @@ export function CollectionWorkspace({
     "loading" | "ready" | "absent" | "denied" | "failed"
   >("loading");
   const [sessionLocked, setSessionLocked] = useState(true);
+  // Opaque run IDs deduplicate catalog refresh across child remounts; no financial payload is retained.
+  const automaticRuns = useRef<{ api: API; seen: Set<string> }>({
+    api,
+    seen: new Set(),
+  });
+  if (automaticRuns.current.api !== api)
+    automaticRuns.current = { api, seen: new Set() };
   const epoch = useRef(0);
   const bootstrapAPI = useRef<API | null>(null);
   const refreshedVersion = useRef(refreshVersion);
@@ -163,6 +170,12 @@ export function CollectionWorkspace({
           void load();
         }}
         onRefreshCatalog={() => void load()}
+        onAutomaticRun={(runID) => {
+          const key = bootstrap.workspace.workspace_id + "/" + runID;
+          if (automaticRuns.current.seen.has(key)) return;
+          automaticRuns.current.seen.add(key);
+          void load();
+        }}
         onPrepareConflict={onPrepareConflict}
         refreshVersion={refreshVersion}
         onDenied={() => {

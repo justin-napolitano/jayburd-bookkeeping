@@ -1,3 +1,4 @@
+import { winningRuleNames } from "./CategorizationSummary";
 import type { Catalog, Row } from "./types";
 import { selectionKey } from "./types";
 import type {
@@ -13,26 +14,32 @@ export function ruleOutputLabel(output: RuleOutput, catalog: Catalog): string {
     output.kind === "uncategorized"
       ? "Explicit Uncategorized"
       : (catalog.topics.find((topic) => topic.topic_id === output.topic_id)
-          ?.name ?? `Topic ${output.topic_id}`);
+          ?.name ?? "An earlier category");
   return (
     topic +
     (output.tag_ids.length
       ? "; tags: " +
         output.tag_ids
           .map(
-            (id) => catalog.tags.find((tag) => tag.tag_id === id)?.name ?? id,
+            (id) =>
+              catalog.tags.find((tag) => tag.tag_id === id)?.name ??
+              "An earlier tag",
           )
           .join(", ")
       : "; no tags")
   );
 }
-function WinningRules({ rules }: { rules: RuleSuggestion["rules"] }) {
+function WinningRules({
+  rules,
+  catalog,
+}: {
+  rules: RuleSuggestion["rules"];
+  catalog?: Catalog;
+}) {
   return rules.length ? (
     <ul>
       {rules.map((rule) => (
-        <li key={rule.rule_id}>
-          Rule {rule.rule_id}, revision {rule.rule_revision}
-        </li>
+        <li key={rule.rule_id}>{winningRuleNames([rule], catalog)[0]}</li>
       ))}
     </ul>
   ) : null;
@@ -64,7 +71,7 @@ export function RuleSuggestionView({
           ? " " + ruleOutputLabel(suggestion.output, catalog) + "."
           : ""}
       </p>
-      <WinningRules rules={suggestion.rules} />
+      <WinningRules rules={suggestion.rules} catalog={catalog} />
       <p>
         Suggestions are inert. Historical changes require an explicit selected
         preview and confirmation.
@@ -74,8 +81,10 @@ export function RuleSuggestionView({
 }
 export function RuleApplicationView({
   application,
+  catalog,
 }: {
   application: RuleApplication;
+  catalog?: Catalog;
 }) {
   if (application.state === "none") return <p>No saved rule application.</p>;
   return (
@@ -95,7 +104,7 @@ export function RuleApplicationView({
           .join(", ") || "none"}
         .
       </p>
-      <WinningRules rules={application.rules} />
+      <WinningRules rules={application.rules} catalog={catalog} />
     </div>
   );
 }
@@ -115,7 +124,7 @@ export function RuleCatalogReview({
           </strong>
           <span>
             {rule.source_account_id
-              ? "Account " + rule.source_account_id
+              ? "Selected account"
               : "Whole private workspace"}
             ; priority {rule.priority}
           </span>
@@ -176,7 +185,7 @@ export function RuleResultsView({
                 .join(", ") || "none"}
               .
             </p>
-            <WinningRules rules={result.rules} />
+            <WinningRules rules={result.rules} catalog={catalog} />
           </li>
         ))}
       </ul>
