@@ -5,6 +5,7 @@ package collectionlabels
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -13,6 +14,17 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var automaticCategorizationProof = flag.Bool("automatic-categorization-proof", false, "use only the disposable schema48 automatic proof template")
+
+// auto48Fixture never borrows the legacy label runner's schema43/46 resources.
+func auto48Fixture(t *testing.T) (*pgx.Conn, *pgxpool.Pool, string) {
+	t.Helper()
+	if !*automaticCategorizationProof {
+		t.Skip("use scripts/test-automatic-categorization.sh")
+	}
+	return rule46Fixture(t)
+}
 
 // auto48Loss reports an ambiguous commit only after PostgreSQL has durably accepted the phase.
 type auto48Loss struct {
@@ -52,7 +64,7 @@ func (tx *auto48LossTx) Commit(ctx context.Context) error {
 func TestAuto48UnknownCommit(t *testing.T) {
 	for _, phase := range []string{"prepare_collection_automatic_run", "execute_collection_automatic_run"} {
 		t.Run(phase, func(t *testing.T) {
-			owner, pool, db := rule46Fixture(t)
+			owner, pool, db := auto48Fixture(t)
 			w := provision(t, db, actor)
 			_, sources := register(t, db, w, actor, "unknown48", 1)
 			if _, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", []map[string]any{change("one", "0.10", "USD")}); e != nil {
@@ -84,7 +96,7 @@ func TestAuto48UnknownCommit(t *testing.T) {
 
 // TestAuto48WholeResult proves bounded batches finish a larger history and filters/counts use saved output.
 func TestAuto48WholeResult(t *testing.T) {
-	owner, pool, db := rule46Fixture(t)
+	owner, pool, db := auto48Fixture(t)
 	w := provision(t, db, actor)
 	_, sources := register(t, db, w, actor, "history48", 1)
 	for batch := 0; batch < 3; batch++ {
@@ -148,7 +160,7 @@ func TestAuto48WholeResult(t *testing.T) {
 
 // TestAuto48SourceFenceAndSharedWork prevents stale effects and leaves human work untouched.
 func TestAuto48SourceFenceAndSharedWork(t *testing.T) {
-	owner, pool, db := rule46Fixture(t)
+	owner, pool, db := auto48Fixture(t)
 	w := provision(t, db, actor)
 	_, sources := register(t, db, w, actor, "fence48", 1)
 	if _, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", []map[string]any{change("one", "1.00", "USD")}); e != nil {
@@ -195,7 +207,7 @@ func TestAuto48SourceFenceAndSharedWork(t *testing.T) {
 
 // TestAuto48AtomicFailure proves a later-row rejection rolls back the entire batch and retains its exact plan.
 func TestAuto48AtomicFailure(t *testing.T) {
-	owner, pool, db := rule46Fixture(t)
+	owner, pool, db := auto48Fixture(t)
 	w := provision(t, db, actor)
 	_, sources := register(t, db, w, actor, "atomic48", 1)
 	if _, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", []map[string]any{change("one", "1.00", "USD"), change("two", "2.00", "USD")}); e != nil {
@@ -226,7 +238,7 @@ func TestAuto48AtomicFailure(t *testing.T) {
 
 // TestAuto48ExactAttention excludes queued, zero and no-longer-booked manual facts from the exception count/view.
 func TestAuto48ExactAttention(t *testing.T) {
-	_, pool, db := rule46Fixture(t)
+	_, pool, db := auto48Fixture(t)
 	w := provision(t, db, actor)
 	_, sources := register(t, db, w, actor, "attention48", 1)
 	zero := change("zero", "0", "USD")
@@ -278,7 +290,7 @@ func TestAuto48ExactAttention(t *testing.T) {
 
 // TestAuto48Lifecycle exercises actual trusted matcher/service phases through the restricted login.
 func TestAuto48Lifecycle(t *testing.T) {
-	owner, pool, db := rule46Fixture(t)
+	owner, pool, db := auto48Fixture(t)
 	s := &Service{DB: pool, Rules: RuleProcessor{}}
 	settings := &AutomationService{DB: pool}
 	worker := &AutomaticService{DB: pool}
@@ -368,7 +380,7 @@ func TestAuto48Lifecycle(t *testing.T) {
 
 // TestAuto48PolicyStale protects retained work against a pause and proves exact settings recovery.
 func TestAuto48PolicyStale(t *testing.T) {
-	owner, pool, db := rule46Fixture(t)
+	owner, pool, db := auto48Fixture(t)
 	w := provision(t, db, actor)
 	_, sources := register(t, db, w, actor, "pause48", 1)
 	if _, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", []map[string]any{change("one", "1.00", "USD")}); e != nil {
@@ -409,7 +421,7 @@ func TestAuto48PolicyStale(t *testing.T) {
 
 // TestAuto48InventoryFairness rotates scheduling even when no selected workspace phase succeeds.
 func TestAuto48InventoryFairness(t *testing.T) {
-	owner, _, db := rule46Fixture(t)
+	owner, _, db := auto48Fixture(t)
 	for n := 0; n < 11; n++ {
 		principal := fmt.Sprintf("00000000-0000-4000-8000-%012d", 48000+n)
 		exec(t, owner, "INSERT INTO ledger.principal(principal_id,issuer,subject)VALUES($1,'synthetic-auto48-fairness',$2)", principal, fmt.Sprintf("owner-%d", n))
@@ -446,7 +458,7 @@ func TestAuto48InventoryFairness(t *testing.T) {
 
 // TestAuto48RetainedRollback refuses to erase accepted automatic evidence on downgrade.
 func TestAuto48RetainedRollback(t *testing.T) {
-	owner, pool, db := rule46Fixture(t)
+	owner, pool, db := auto48Fixture(t)
 	w := provision(t, db, actor)
 	_, sources := register(t, db, w, actor, "retained48", 1)
 	if _, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", []map[string]any{change("one", "1.00", "USD")}); e != nil {

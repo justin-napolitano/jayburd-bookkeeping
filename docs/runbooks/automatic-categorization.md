@@ -33,6 +33,8 @@ inspection. Synthetic proof only. SQL1–47 immutable; forward48 is allocated so
 | Review fixes | Replaced repeated history scans with row fingerprints and bounded current-input caches; retained4second transaction limit. Added exact exceptions selector/count, current receipt visibility, and inventory rotation independent of a failing phase. |
 | Composed browser gate | New --automatic Next/Go/restricted-SQL runner and CI gate implemented. Unchanged local prerequisite port check is blocked by EPERM before resources; no host/port/timeout/permission workaround. This composed gate is pending, distinct from the100 passing component journeys. |
 | CI repair |1893c16 passed canonical Go1.26.11 core, frontend, infrastructure and existing composed application journeys. Validate13 correctly rejected the old source-registry API privilege inventory, which omitted the six new reviewed functions. Add only their exact names/signatures; helper/table/overload denials stay. Move both required automatic proofs to the application job immediately after browser setup so they provide independent early feedback; retain every existing gate and timeout. Local source-registry runner is blocked by Docker credential-helper -50 before resources, so actual repaired inventory acceptance remains a CI requirement. |
+| Related inventory audit | The same failure prompted a read-only scan of other complete privilege inventories. The sync proof still expected12 functions although48 adds three reviewed category operations. Replace that count with all15 exact schema-qualified signatures, including original12, to reject extra helpers/overloads rather than merely increasing a count. No product SQL or permission changes. |
+| Hosted scale/isolation repair |449bec37 passed the repaired source privilege proof, frontend and infrastructure. Its automatic proof exposed unnecessary whole-history work for an empty catalog selection; forward48 preserves the exact46 context with only a validated-empty-selection scan guard. CI also exposed new48 fixtures entering a legacy43 runner: add an explicit dedicated automatic proof flag/template gate, and require it in the automatic runner; preserve all legacy coverage and the required automatic gate. Neither repair changes deadlines or financial behavior. |
 | Product/release review | Existing16 fictional browser checks and18 screenshots reviewed in the UX lane; identified hidden categories and technical provenance as concrete friction. Offline485 patched release plan prepared without cloud reads/activation. These do not supply owner signoff. |
 
 ## Current evidence
@@ -63,3 +65,11 @@ Prepare485 release/rollback checklist offline; do not activate providers/deploy.
 Pending. Every implementation commit includes this stage and staged runbook
 guard. Final exact-head CI and boundaries belong on488/linked PR. No future feature,
 automatic posting, real-data or hosted qualification is accepted by this plan.
+
+CI performance/isolation repair evidence: the complete automatic SQL suite passes
+with disposable PostgreSQL limited to2CPUs; the3000row case completes in72.87s.
+The dedicated flag runs actual lifecycle proofs, while the legacy-only flag
+skips schema48 tests even on an isolated network with no database. Existing
+Rule46 compatibility/recovery/primed-snapshot tests pass against the replacement
+context. Fresh migration/empty roundtrip and core check/test/build pass; final
+canonical browser/repair-head acceptance still requires CI.

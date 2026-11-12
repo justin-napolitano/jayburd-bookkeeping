@@ -44,7 +44,7 @@ case "$(docker exec "$proof_id" uname -m)" in
 esac
 CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/auto48.test ./internal/collectionlabels
 docker cp .local/auto48.test "$proof_id:/proof/auto48.test"
-docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/auto48.test "$POSTGRES_IMAGE" -collection-label-proof -test.run '^TestAuto48' -test.v -test.timeout=300s
+docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/auto48.test "$POSTGRES_IMAGE" -collection-label-proof -automatic-categorization-proof -test.run '^TestAuto48' -test.v -test.timeout=300s
 CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/auto48-server.test ./internal/server
 docker cp .local/auto48-server.test "$proof_id:/proof/auto48-server.test"
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/auto48-server.test "$POSTGRES_IMAGE" -automatic-server-proof -test.run '^TestAuto48' -test.v -test.timeout=120s
