@@ -51,7 +51,7 @@ function normalizeProbe(raw){
 }
 // Kubernetes and Cloud Run define exactly 1000m as one CPU; no other resource coercion is allowed.
 function normalizeResources(raw){return raw?.limits?.cpu==='1000m'?{...raw,limits:{...raw.limits,cpu:'1'}}:raw;}
-function normalizeService(raw){
+function normalizeService(raw,inspection=false){
  const t=raw.spec.template,v=t.spec;
  const traffic=rows=>(rows??[]).map(x=>({revisionName:x.revisionName,percent:x.percent,...(present(x,'tag')?{tag:x.tag}:{})}));
  const observed=traffic(raw.status.traffic),desired=raw.spec.traffic;
@@ -63,7 +63,67 @@ function normalizeService(raw){
   if(desired.length!==1||x.percent!==100||present(x,'revisionName')||present(x,'tag')||!healthy||raw.status.latestReadyRevisionName!==raw.status.latestCreatedRevisionName||observed.length!==1||observed[0].percent!==100||present(observed[0],'tag')||observed[0].revisionName!==raw.status.latestReadyRevisionName)fail();
   return {revisionName:raw.status.latestReadyRevisionName,percent:100};
  });
- return {metadata:{name:raw.metadata?.name,annotations:annotations(raw.metadata?.annotations,serviceAnnotations)},spec:{template:{metadata:{name:t.metadata?.name,annotations:annotations(t.metadata?.annotations,revisionAnnotations)},spec:{serviceAccountName:v.serviceAccountName,containerConcurrency:v.containerConcurrency,timeoutSeconds:v.timeoutSeconds,containers:v.containers.map(c=>({image:c.image,args:c.args??[],command:c.command??[],ports:c.ports,resources:normalizeResources(c.resources),startupProbe:normalizeProbe(c.startupProbe)}))}},traffic:traffic(resolved)},status:{latestReadyRevisionName:raw.status.latestReadyRevisionName,latestCreatedRevisionName:raw.status.latestCreatedRevisionName,conditions:raw.status.conditions?.map(c=>({type:c.type,status:c.status})),traffic:observed}};
+ return {metadata:{name:raw.metadata?.name,annotations:annotations(raw.metadata?.annotations,serviceAnnotations)},spec:{template:{metadata:{name:t.metadata?.name,annotations:annotations(t.metadata?.annotations,revisionAnnotations)},spec:{serviceAccountName:v.serviceAccountName,containerConcurrency:v.containerConcurrency,timeoutSeconds:v.timeoutSeconds,containers:v.containers.map(c=>({image:c.image,args:c.args??[],command:c.command??[],ports:c.ports,resources:normalizeResources(c.resources),startupProbe:inspection?publicProbe(c.startupProbe,raw.metadata?.name==='jayburd-dev-api'?'api':'web'):normalizeProbe(c.startupProbe)}))}},traffic:traffic(resolved)},status:{latestReadyRevisionName:raw.status.latestReadyRevisionName,latestCreatedRevisionName:raw.status.latestCreatedRevisionName,conditions:raw.status.conditions?.map(c=>({type:c.type,status:c.status})),traffic:observed}};
+}
+// Inspection minimizes public configuration independently of exact promotion compatibility.
+function boundedInteger(v,min,max){return Number.isSafeInteger(v)&&v>=min&&v<=max;}
+function publicResources(r){
+ if(!r||typeof r!=='object'||Array.isArray(r)||Object.keys(r).some(k=>!['limits','requests'].includes(k)))fail();
+ keys(r.limits,['cpu','memory']);
+ for(const values of [r.limits,...(present(r,'requests')?[r.requests]:[])]){
+  if(!values||typeof values!=='object'||Array.isArray(values)||Object.keys(values).some(k=>!['cpu','memory'].includes(k)))fail();
+  if(present(values,'cpu')){const v=values.cpu;if(typeof v!=='string'||!(/^(?:[1-8](?:\.[0-9]{1,3})?|0\.[0-9]{1,3}|[1-9][0-9]{0,3}m)$/.test(v))||!(parseFloat(v)/(v.endsWith('m')?1000:1)>0&&parseFloat(v)/(v.endsWith('m')?1000:1)<=8))fail();}
+  if(present(values,'memory')){const v=values.memory,m=typeof v==='string'&&/^([1-9][0-9]{0,5})(Mi|Gi)$/.exec(v);if(!m||Number(m[1])*(m[2]==='Gi'?1024:1)>32768)fail();}
+ }
+ return r;
+}
+function publicProbe(p,c){
+ if(!p||typeof p!=='object'||Array.isArray(p)||Object.keys(p).some(k=>!['initialDelaySeconds','successThreshold','failureThreshold','httpGet','periodSeconds','timeoutSeconds'].includes(k)))fail();
+ for(const [k,min,max] of [['initialDelaySeconds',0,3600],['successThreshold',1,10],['failureThreshold',1,100],['periodSeconds',1,3600],['timeoutSeconds',1,3600]])if(present(p,k)&&!boundedInteger(p[k],min,max))fail();
+ const h=p.httpGet;if(!h||typeof h!=='object'||Array.isArray(h)||Object.keys(h).some(k=>!['path','port','scheme','httpHeaders'].includes(k))||h.path!==(c==='api'?'/readyz':'/api/auth-config')||!boundedInteger(h.port,1,65535))fail();
+ if(present(h,'scheme')&&!['HTTP','HTTPS'].includes(h.scheme)||present(h,'httpHeaders')&&(!Array.isArray(h.httpHeaders)||h.httpHeaders.length!==0))fail();
+ const normalized=structuredClone(p);if(normalized.initialDelaySeconds===0)delete normalized.initialDelaySeconds;if(normalized.httpGet.scheme==='HTTP')delete normalized.httpGet.scheme;delete normalized.httpGet.httpHeaders;return normalized;
+}
+function publicFlags(args,names,booleans=[]){
+ if(!Array.isArray(args)||args.length<names.length||args.length>names.length+1)fail();
+ const out=new Map();
+ for(const raw of args){const m=typeof raw==='string'&&/^--?([a-z][a-z0-9-]*)(?:=([^\r\n\u0000|]*))?$/.exec(raw);if(!m||!names.includes(m[1])&&m[1]!=='automatic-categories'||out.has(m[1]))fail();const value=m[2];if(booleans.includes(m[1])){if(value!==undefined&&!['true','false'].includes(value))fail();}else if(value===undefined||value==='')fail();out.set(m[1],value);}
+ if(names.some(k=>!out.has(k)))fail();return out;
+}
+function publicAPIArgs(args){
+ const names=['mode','listen','project','origin','database-mode','cloud-sql-instance','connections-enabled','plaid-link-events-qualified','provider-project-number','infisical-origin','infisical-project','infisical-environment','infisical-identity','provider-registry-bucket','provider-registry-prefix','plaid-client-id-version','plaid-client-secret-version','plaid-consent-expires-at','plaid-webhook-url','collection-read-enabled'];
+ const flags=publicFlags(args,names,['connections-enabled','collection-read-enabled','plaid-link-events-qualified','automatic-categories']);
+ const fixed={mode:'managed',listen:'0.0.0.0:8080',project,origin:`https://jayburd-dev-web-${number}.${region}.run.app`,'database-mode':'cloudsql','cloud-sql-instance':`${project}:${region}:jayburd-dev`,'provider-project-number':number,'infisical-environment':'dev','provider-registry-bucket':`${project}-jayburd-dev-credential-registry`,'provider-registry-prefix':'provider-credentials-v1','plaid-webhook-url':`https://jayburd-dev-webhook-${number}.${region}.run.app/webhooks/plaid`};
+ if(Object.entries(fixed).some(([k,v])=>flags.get(k)!==v)||!['https://us.infisical.com','https://eu.infisical.com','https://app.infisical.com'].includes(flags.get('infisical-origin')))fail();
+ for(const k of ['infisical-project','infisical-identity'])if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(flags.get(k)))fail();
+ for(const [k,suffix] of [['plaid-client-id-version','id'],['plaid-client-secret-version','secret']]){const prefix=`projects/${number}/secrets/jayburd-dev-bank-sync-client-${suffix}/versions/`,v=flags.get(k);if(typeof v!=='string'||!v.startsWith(prefix)||!/^([1-9][0-9]{0,18})$/.test(v.slice(prefix.length))||BigInt(v.slice(prefix.length))>9223372036854775807n)fail();}
+ const expiry=flags.get('plaid-consent-expires-at'),stamp=Date.parse(expiry);if(typeof expiry!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(expiry)||!Number.isFinite(stamp)||new Date(stamp).toISOString().replace('.000Z','Z')!==expiry)fail();
+}
+// Public identifiers and bounded operational quantities are observable; this does not approve a release profile.
+function validatePublicService(s,c){
+ keys(s,['metadata','spec','status']);keys(s.metadata,['name','annotations']);keys(s.spec,['template','traffic']);keys(s.spec.template,['metadata','spec']);keys(s.spec.template.metadata,['name','annotations']);
+ const revision=new RegExp(`^jayburd-dev-${c}-[a-z0-9-]{1,50}$`),t=s.spec.template.spec;
+ keys(t,['serviceAccountName','containerConcurrency','timeoutSeconds','containers']);
+ if(s.metadata.name!==`jayburd-dev-${c}`||!revision.test(s.spec.template.metadata.name)||!revision.test(s.status?.latestReadyRevisionName)||!revision.test(s.status?.latestCreatedRevisionName)||t.serviceAccountName!==`jayburd-dev-${c==='web'?'frontend':'api'}@${project}.iam.gserviceaccount.com`||!boundedInteger(t.containerConcurrency,1,1000)||!boundedInteger(t.timeoutSeconds,1,3600)||!Array.isArray(t.containers)||t.containers.length!==1)fail();
+ const v=t.containers[0];keys(v,['image','args','command','ports','resources','startupProbe']);
+ if(typeof v.image!=='string'||!new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/${c}@sha256:[a-f0-9]{64}$`).test(v.image)||!equal(v.command,[])||!Array.isArray(v.ports)||v.ports.length!==1)fail();
+ const port=v.ports[0];keys(port,['containerPort',...(present(port,'name')?['name']:[])]);if(!boundedInteger(port.containerPort,1,65535)||present(port,'name')&&!['http1','h2c'].includes(port.name))fail();publicResources(v.resources);publicProbe(v.startupProbe,c);
+ if(c==='api')publicAPIArgs(v.args);else if(!equal(v.args,[]))fail();
+ for(const [a,names] of [[s.metadata.annotations,serviceAnnotations],[s.spec.template.metadata.annotations,revisionAnnotations]]){
+  if(!a||typeof a!=='object'||Array.isArray(a)||Object.keys(a).some(k=>!names.includes(k)))fail();
+  for(const [k,value] of Object.entries(a)){const scale=k.endsWith('/minScale')||k.endsWith('/maxScale');const allowed=scale?typeof value==='string'&&/^[0-9]{1,3}$/.test(value):k==='run.googleapis.com/cloudsql-instances'?value===`${project}:${region}:jayburd-dev`:k==='run.googleapis.com/cpu-throttling'||k==='run.googleapis.com/startup-cpu-boost'?['true','false'].includes(value):k==='run.googleapis.com/execution-environment'?['gen1','gen2'].includes(value):k==='run.googleapis.com/vpc-access-egress'?['all-traffic','private-ranges-only'].includes(value):k==='run.googleapis.com/vpc-access-connector'?typeof value==='string'&&new RegExp(`^projects/${project}/locations/${region}/connectors/[a-z][a-z0-9-]{0,62}$`).test(value):['all','internal','internal-and-cloud-load-balancing'].includes(value);if(!allowed)fail();}
+ }
+ keys(s.status,['latestReadyRevisionName','latestCreatedRevisionName','conditions','traffic']);if(!Array.isArray(s.status.conditions)||s.status.conditions.length>16)fail();
+ for(const condition of s.status.conditions){keys(condition,['type','status']);if(typeof condition.type!=='string'||!/^[A-Za-z][A-Za-z0-9]{0,63}$/.test(condition.type)||!['True','False','Unknown'].includes(condition.status))fail();}
+ for(const rows of [s.spec.traffic,s.status.traffic]){if(!Array.isArray(rows)||rows.length>16)fail();for(const target of rows){keys(target,['revisionName','percent',...(present(target,'tag')?['tag']:[])]);if(!revision.test(target.revisionName)||!boundedInteger(target.percent,0,100)||present(target,'tag')&&(typeof target.tag!=='string'||!/^[a-z][a-z0-9-]{0,62}$/.test(target.tag)))fail();}}
+ return s;
+}
+function validatePublicJob(j){
+ keys(j,['name','taskCount','parallelism','serviceAccountName','maxRetries','timeoutSeconds','containers']);
+ const timeout=typeof j.timeoutSeconds==='string'&&/^[1-9][0-9]{0,3}$/.test(j.timeoutSeconds)?Number(j.timeoutSeconds):j.timeoutSeconds;
+ if(j.name!=='jayburd-dev-migrate'||j.serviceAccountName!==`jayburd-dev-migrator@${project}.iam.gserviceaccount.com`||!boundedInteger(j.taskCount,1,100)||!boundedInteger(j.parallelism,1,j.taskCount)||!boundedInteger(j.maxRetries,0,10)||!boundedInteger(timeout,1,3600)||!Array.isArray(j.containers)||j.containers.length!==1)fail();
+ const c=j.containers[0];keys(c,['image','command','args','resources']);if(!equal(c.command,[])||typeof c.image!=='string'||!new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/migrate@sha256:[a-f0-9]{64}$`).test(c.image))fail();
+ const args=publicFlags(c.args,['action','instance']);if(args.size!==2||!['status','up'].includes(args.get('action'))||args.get('instance')!==`${project}:${region}:jayburd-dev`)fail();publicResources(c.resources);return j;
 }
 // Bind owner-approved bytes, fixed source and finite execution scope before reading build evidence or invoking cloud tools.
 export function validateAutomaticManifest(bytes,digest,phase,now=Date.now()){
@@ -215,13 +275,13 @@ export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{
  const before={};
  for(const c of ['api','web']){
   const raw=step(`read-${c}`,()=>command(['run','services','describe',`jayburd-dev-${c}`,...flags,`--format=${serviceProjection}`]),serviceShape);
-  before[c]=step(`public-${c}`,()=>{const normalized=normalizeService(raw);validateService(normalized,c,false,phase==='inspect');return normalized;});
+  before[c]=step(`public-${c}`,()=>{const normalized=normalizeService(raw,phase==='inspect');phase==='inspect'?validatePublicService(normalized,c):validateService(normalized,c);return normalized;});
  }
  const rawJob=step('read-migrate',()=>command(['run','jobs','describe','jayburd-dev-migrate',...flags,`--format=${jobProjection}`]),jobShape);
- before.migrate=step('public-job',()=>{const j=normalizeJob(rawJob);validateJob(j,phase==='inspect');return j;});
+ before.migrate=step('public-job',()=>{const j=normalizeJob(rawJob);phase==='inspect'?validatePublicJob(j):validateJob(j);return j;});
  if(phase==='inspect'){
   // Health failures remain observable; configuration/privacy failures stop before any receipt is written.
-  for(const c of ['api','web'])validateService(before[c],c,false,true);validateJob(before.migrate,true);
+  for(const c of ['api','web'])validatePublicService(before[c],c);validatePublicJob(before.migrate);
   const executions=step('recent-executions',()=>{const rows=command(['run','jobs','executions','list','--job=jayburd-dev-migrate','--limit=3',...flags,`--format=${executionProjection}`]);if(!Array.isArray(rows)||rows.length>3)fail();return rows.map(publicExecution);},rows=>({executions:count(rows)}));
   const validation=Object.fromEntries(['api','web','migrate'].map(c=>{try{c==='migrate'?validateJob(before[c]):validateService(before[c],c);return [c,'healthy-selected-profile'];}catch{return [c,'requires-owner-review'];}}));
   return {schemaVersion:1,phase,status:'inspection-only-not-release-acceptance',before,validation,executions};
