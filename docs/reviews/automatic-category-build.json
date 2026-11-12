@@ -1,0 +1,172 @@
+{
+  "profile": "independent-public-build-review-v1",
+  "commit": "eb1828caab584064aa076edefccbb2bb413b84a7",
+  "run": "43158591303",
+  "attempt": 1,
+  "status": "verified-candidates",
+  "components": [
+    {
+      "component": "api",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:1c9c318e6de1e9727c88c959b6dde73a9e59aba54719e0eafc0c1862526eb29d",
+      "testedImageID": "sha256:93326f0bc715c1275411e7cbfd57528c3e0a4d4f103b8694d4a6de14057119c7",
+      "jobID": 130992161418,
+      "exactReceiptRegeneration": true,
+      "exactRuntimePassed": true,
+      "sourceBoundProvenance": true,
+      "sbomComponents": 106,
+      "highCritical": 0,
+      "filesSHA256": {
+        "candidate.json": "6ca3f4deae8e48918553defbc308cd0cff7c577aa2a71bf721af6531daf4679d",
+        "build.json": "432b1a902fd47f5ef70cc4a1c2d52982c545477437735112f65cf3df00619f91",
+        "repo-digests.json": "f074742090e76888c4bcdb401451c29de041c887fa65ddd7f6ebc123984f22f9",
+        "vulnerabilities.json": "387e66247701decf2db21b678aebf4e3b0d777db73591a05c977a307b23adba8",
+        "sbom.cdx.json": "0e126616c7bda8aa8bd632a5c0cbbb4cf77ca5268a76c6687c8a9645b26fa732"
+      }
+    },
+    {
+      "component": "migrate",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:7a70083f25efcac59389524fd337c3697405a8629e647b0724d5e842171d241a",
+      "testedImageID": "sha256:1864b684fcc36a6e157e9f6470d4169a4ac6aa613ecb4cdf124a4da112a1339b",
+      "jobID": 130992161380,
+      "exactReceiptRegeneration": true,
+      "exactRuntimePassed": true,
+      "sourceBoundProvenance": true,
+      "sbomComponents": 44,
+      "highCritical": 0,
+      "filesSHA256": {
+        "candidate.json": "1f64f4cdba998b062ebd6ea5d274891e0c6428244bb79dd47abbddd69ef325ca",
+        "build.json": "8e2a288916491716f91203db2607fd10acf89085076aa0deb3223645645b2d3f",
+        "repo-digests.json": "6b61b6cf6df2395e849f0c5afb9e3a642be9ab1824c53f2a05fb8f33799b71b6",
+        "vulnerabilities.json": "88ca3f3bba8eb25ef130237a0325877f422353c53d012b361ac905d1b08e9283",
+        "sbom.cdx.json": "2efc89a20556b7265a824501643fa0980a8ce34de171dbeeed80eaaf37800372"
+      }
+    },
+    {
+      "component": "web",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:06486c8cc13ad695928d87f33e11bce98646dee53297c8e99ad7928cacf86dd7",
+      "testedImageID": "sha256:6d4f6271bd180fb8fca3ecdec4bd67486583a1f39e058bb90b94418c26388817",
+      "jobID": 130992161352,
+      "exactReceiptRegeneration": true,
+      "exactRuntimePassed": true,
+      "sourceBoundProvenance": true,
+      "sbomComponents": 46,
+      "highCritical": 0,
+      "filesSHA256": {
+        "candidate.json": "9eb4affd433f49e6f234979da3e3fbdfec51eb129b6aca9a92cb4434345d0a33",
+        "build.json": "36d7aadab7df7c22ad1690a0642aac32fbb2db4deadeda7735f3e78785ed33d5",
+        "repo-digests.json": "e0aaa1396a42059662c5ff766e820860c85664f43011c052401b93f7c281a5b9",
+        "vulnerabilities.json": "d5b5f0b057a49281b8a319f2e65047da92e6c79114095df098d4e7cd898981aa",
+        "sbom.cdx.json": "d2fa3d5b82f9f4d38eb8600fccd92cd2b67a3cf2529aebe159af41e0c87ad9a3"
+      }
+    },
+    {
+      "component": "worker",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/worker@sha256:60c513f03a71e7e6e1ade02c5be4a403d6e20c2dd40db9aafb3dbb720264fbc6",
+      "testedImageID": "sha256:5a5480f79956b99750f76b1f88b21de016af5c864993510708d75e428d4ce636",
+      "jobID": 130992161322,
+      "exactReceiptRegeneration": true,
+      "exactRuntimePassed": true,
+      "sourceBoundProvenance": true,
+      "sbomComponents": 301,
+      "highCritical": 0,
+      "filesSHA256": {
+        "candidate.json": "d6295151a3fafe821ba6833047b5296a2276d788d8a680a226066cb419c89e06",
+        "build.json": "d0c23e59bda55e59d0ec7eaf5a4c73390d1b22d332ce70f15272cc105b079704",
+        "repo-digests.json": "920c746f47fd1da420f5048d0de2e91621570138f78d7a66b1b389442005356e",
+        "vulnerabilities.json": "3648bbb85313abebcaf2093d9ad1f79aebed09c12b53ef974b79568428045b9d",
+        "sbom.cdx.json": "e425794ba1c4c9cf11ef6cad22d18c7bc79caba61e8f626085cb153139c573fa"
+      }
+    }
+  ],
+  "limitations": [
+    "Unsigned build metadata; not a SLSA attestation.",
+    "Candidate receipts do not authorize deployment or establish current managed runtime/database state.",
+    "Only public GitHub build artifacts and metadata inspected; no cloud, private data or credential access."
+  ],
+  "candidateReceipts": {
+    "api": {
+      "schemaVersion": 1,
+      "component": "api",
+      "commit": "eb1828caab584064aa076edefccbb2bb413b84a7",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/api@sha256:1c9c318e6de1e9727c88c959b6dde73a9e59aba54719e0eafc0c1862526eb29d",
+      "testedImageID": "sha256:93326f0bc715c1275411e7cbfd57528c3e0a4d4f103b8694d4a6de14057119c7",
+      "buildDigest": "sha256:a165ba5c329be71be1399bce1d34172be46681d44a47d9b21aa39ff66abac965",
+      "configDigest": "sha256:93326f0bc715c1275411e7cbfd57528c3e0a4d4f103b8694d4a6de14057119c7",
+      "workflowRun": "https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/43158591303/attempts/1",
+      "evidence": {
+        "build": "build.json",
+        "vulnerabilities": "vulnerabilities.json",
+        "sbom": "sbom.cdx.json"
+      },
+      "status": "candidate-only",
+      "deployable": false,
+      "limitations": [
+        "Unsigned build metadata; not a SLSA attestation.",
+        "Requires separate identity, ingress, migration and rollout acceptance."
+      ]
+    },
+    "migrate": {
+      "schemaVersion": 1,
+      "component": "migrate",
+      "commit": "eb1828caab584064aa076edefccbb2bb413b84a7",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/migrate@sha256:7a70083f25efcac59389524fd337c3697405a8629e647b0724d5e842171d241a",
+      "testedImageID": "sha256:1864b684fcc36a6e157e9f6470d4169a4ac6aa613ecb4cdf124a4da112a1339b",
+      "buildDigest": "sha256:0076c8133191bfdac3fbf3469f9321be3dd45facca23a73a57d38d58abad6005",
+      "configDigest": "sha256:1864b684fcc36a6e157e9f6470d4169a4ac6aa613ecb4cdf124a4da112a1339b",
+      "workflowRun": "https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/43158591303/attempts/1",
+      "evidence": {
+        "build": "build.json",
+        "vulnerabilities": "vulnerabilities.json",
+        "sbom": "sbom.cdx.json"
+      },
+      "status": "candidate-only",
+      "deployable": false,
+      "limitations": [
+        "Unsigned build metadata; not a SLSA attestation.",
+        "Requires separate identity, ingress, migration and rollout acceptance."
+      ]
+    },
+    "web": {
+      "schemaVersion": 1,
+      "component": "web",
+      "commit": "eb1828caab584064aa076edefccbb2bb413b84a7",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/web@sha256:06486c8cc13ad695928d87f33e11bce98646dee53297c8e99ad7928cacf86dd7",
+      "testedImageID": "sha256:6d4f6271bd180fb8fca3ecdec4bd67486583a1f39e058bb90b94418c26388817",
+      "buildDigest": "sha256:5f4a2100b6b6f3f5e3311a0acb336f9d05e5f6940e41543383293422e499566b",
+      "configDigest": "sha256:6d4f6271bd180fb8fca3ecdec4bd67486583a1f39e058bb90b94418c26388817",
+      "workflowRun": "https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/43158591303/attempts/1",
+      "evidence": {
+        "build": "build.json",
+        "vulnerabilities": "vulnerabilities.json",
+        "sbom": "sbom.cdx.json"
+      },
+      "status": "candidate-only",
+      "deployable": false,
+      "limitations": [
+        "Unsigned build metadata; not a SLSA attestation.",
+        "Requires separate identity, ingress, migration and rollout acceptance."
+      ]
+    },
+    "worker": {
+      "schemaVersion": 1,
+      "component": "worker",
+      "commit": "eb1828caab584064aa076edefccbb2bb413b84a7",
+      "image": "us-central1-docker.pkg.dev/jayburd-bookkeeping-dev/jayburd-dev/worker@sha256:60c513f03a71e7e6e1ade02c5be4a403d6e20c2dd40db9aafb3dbb720264fbc6",
+      "testedImageID": "sha256:5a5480f79956b99750f76b1f88b21de016af5c864993510708d75e428d4ce636",
+      "buildDigest": "sha256:685b4160c7698bda5a9e9db9595c7c3bceccaf92d0281d4b508523361bec494c",
+      "configDigest": "sha256:5a5480f79956b99750f76b1f88b21de016af5c864993510708d75e428d4ce636",
+      "workflowRun": "https://github.com/justin-napolitano/jayburd-bookkeeping/actions/runs/43158591303/attempts/1",
+      "evidence": {
+        "build": "build.json",
+        "vulnerabilities": "vulnerabilities.json",
+        "sbom": "sbom.cdx.json"
+      },
+      "status": "candidate-only",
+      "deployable": false,
+      "limitations": [
+        "Unsigned build metadata; not a SLSA attestation.",
+        "Requires separate identity, ingress, migration and rollout acceptance."
+      ]
+    }
+  }
+}
