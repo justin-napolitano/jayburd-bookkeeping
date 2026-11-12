@@ -16,7 +16,13 @@ const reasons: Record<string, string> = {
   unavailable: "Category details are unavailable",
 };
 // Current labels come from persisted effective fields, never an inert provider/rule suggestion.
-export function CategorizationSummary({ row }: { row: ReviewRow }) {
+export function CategorizationSummary({
+  row,
+  automaticAvailable = false,
+}: {
+  row: ReviewRow;
+  automaticAvailable?: boolean;
+}) {
   const metadata = categorizationOf(row.categorization);
   const c =
     metadata?.state === "automatic" &&
@@ -36,7 +42,9 @@ export function CategorizationSummary({ row }: { row: ReviewRow }) {
         : row.owner_topic.state === "stale"
           ? "Needs confirmation"
           : c?.state === "pending"
-            ? "Categorizing…"
+            ? automaticAvailable
+              ? "Categorizing…"
+              : "Not categorized"
             : c?.state === "unavailable"
               ? "Category unavailable"
               : row.source_state === "booked"
@@ -50,7 +58,9 @@ export function CategorizationSummary({ row }: { row: ReviewRow }) {
       : c?.state === "manual"
         ? "Your choice"
         : c?.state === "pending"
-          ? "Categorization in progress"
+          ? automaticAvailable
+            ? "Categorization in progress"
+            : null
           : c?.reason
             ? reasons[c.reason]
             : row.rule_application.state === "current" &&

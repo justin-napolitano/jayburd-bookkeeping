@@ -1217,7 +1217,12 @@ function Review({
                     >
                       {row.description}
                     </button>
-                    <CategorizationSummary row={row} />
+                    <CategorizationSummary
+                      row={row}
+                      automaticAvailable={
+                        catalog.automatic_categorization?.state === "available"
+                      }
+                    />
                     <span>{row.account_name}</span>
                     <span>
                       {row.merchant === null

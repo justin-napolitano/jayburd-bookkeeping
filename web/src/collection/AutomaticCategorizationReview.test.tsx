@@ -52,6 +52,61 @@ it("does not call any new automation API when the advertised capability is absen
     screen.queryByRole("region", { name: "Automatic categories" }),
   ).toBeNull();
 });
+it.each([false, true])(
+  "describes a pending transaction truthfully when automatic capability is %s",
+  async (available) => {
+    const f = collectionFixture({
+      rows: [
+        collectionRow(0, {
+          workspace_id: workspace.workspace_id,
+          owner_topic: { state: "unclassified" },
+          categorization: {
+            state: "pending",
+            origin: "none",
+            reason: "unavailable",
+            rule_names: [],
+            provider: null,
+            decision_id: null,
+          },
+        }),
+      ],
+    });
+    const read = vi.fn(async () => ({
+      ...status,
+      enabled: true,
+      processing_state: "pending" as const,
+      pending_count: "1",
+    }));
+    render(
+      <CollectionReview
+        workspace={workspace}
+        sources={collectionSources}
+        catalog={
+          available
+            ? {
+                ...collectionCatalog,
+                automatic_categorization: { state: "available" },
+              }
+            : collectionCatalog
+        }
+        port={{ ...f.port, automation: { read, configure: vi.fn() } }}
+        onDenied={vi.fn()}
+      />,
+    );
+    await screen.findByText(/matching transactions/);
+    const list = screen.getByRole("list", { name: "Transaction rows" });
+    if (available) {
+      expect(list.textContent).toContain("Categorizing…");
+      expect(list.textContent).toContain("Categorization in progress");
+      expect(read).toHaveBeenCalled();
+    } else {
+      expect(list.textContent).toContain("Not categorized");
+      expect(list.textContent).not.toContain("Categorizing");
+      expect(list.textContent).not.toContain("in progress");
+      expect(read).not.toHaveBeenCalled();
+    }
+  },
+);
 it("requests the complete booked needs-attention selector without client page effects", async () => {
   const f = fixture();
   render(
