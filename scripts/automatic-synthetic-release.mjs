@@ -9,7 +9,7 @@ import {migrationReceipt} from './migration-receipt.mjs';
 const project='jayburd-bookkeeping-dev', number='9088794002', region='us-central1';
 const source={run:'43158591303',attempt:'1',commit:'eb1828caab584064aa076edefccbb2bb413b84a7'};
 const components=['api','migrate','web','worker'];
-const phases=['inspect','migrate','stage','activate','web','pause'];
+const phases=['inspect','migrate','stage','resume-stage','activate','web','pause'];
 const fail=()=>{throw new Error('Automatic synthetic release blocked');};
 const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
 const equal=(a,b)=>JSON.stringify(canonical(a))===JSON.stringify(canonical(b));
@@ -293,7 +293,10 @@ export function validateAutomaticBuild(m,read,now=Date.now()){
  return {build:m.build,images:m.images,components:receipts.map(r=>({component:r.component,testedImageID:r.testedImageID}))};
 }
 // Validate the finite public service shape; baseline has one fully healthy historical traffic target.
-export function validateService(s,c,baseline=false,allowUnhealthy=false){
+export function validateService(s,c,baseline=false,allowUnhealthy=false){return validateServiceState(s,c,baseline,allowUnhealthy);}
+// A staged state is bound to exactly the reviewed previous serving revision and fixed intended revision.
+function validateStagedService(s,c,intended,prior){return validateServiceState(s,c,false,false,{intended,prior});}
+function validateServiceState(s,c,baseline=false,allowUnhealthy=false,staging=null){
  keys(s,['metadata','spec','status']); keys(s.metadata,['name','annotations']);keys(s.spec,['template','traffic']);
  keys(s.spec.template,['metadata','spec']);keys(s.spec.template.metadata,['name','annotations']);
  for(const [a,names] of [[s.metadata.annotations,serviceAnnotations],[s.spec.template.metadata.annotations,revisionAnnotations]])if(!a||Object.keys(a).some(k=>!names.includes(k)))fail();
@@ -326,9 +329,12 @@ export function validateService(s,c,baseline=false,allowUnhealthy=false){
  for(const condition of s.status.conditions)keys(condition,['type','status']);
  for(const rows of [s.spec.traffic,s.status.traffic])for(const target of rows)keys(target,['revisionName','percent',...(target.tag===undefined?[]:['tag'])]);
  if(allowUnhealthy)return s;
- if(s.status.latestReadyRevisionName!==s.status.latestCreatedRevisionName||!['Ready','ConfigurationsReady','RoutesReady'].every(type=>s.status.conditions?.filter(x=>x.type===type&&x.status==='True').length===1))fail();
+ if(!['Ready','ConfigurationsReady','RoutesReady'].every(type=>s.status.conditions?.filter(x=>x.type===type&&x.status==='True').length===1))fail();
+ if(staging){keys(staging,['intended','prior']);if(!revisionPattern.test(staging.intended)||!revisionPattern.test(staging.prior)||staging.intended===staging.prior||s.status.latestCreatedRevisionName!==staging.intended||![staging.prior,staging.intended].includes(s.status.latestReadyRevisionName))fail();}
+ else if(s.status.latestReadyRevisionName!==s.status.latestCreatedRevisionName)fail();
  if(!Array.isArray(s.spec.traffic)||s.spec.traffic.length!==1||s.spec.traffic[0].percent!==100||typeof s.spec.traffic[0].revisionName!=='string')fail();
  if(s.spec.traffic.some(x=>x.tag)||s.status.traffic?.some(x=>x.tag)||!equal(s.status.traffic,s.spec.traffic))fail();
+ if(staging&&s.spec.traffic[0].revisionName!==staging.prior)fail();
  if(baseline&&(s.status.latestReadyRevisionName!==old[c].revision||s.status.latestCreatedRevisionName!==old[c].revision||s.spec.traffic[0].revisionName!==old[c].revision||v.image!==`us-central1-docker.pkg.dev/${project}/jayburd-dev/${c}@sha256:${old[c].digest}`||v.args.length!==(c==='api'?20:0)))fail();
  return s;
 }
@@ -388,12 +394,31 @@ function migrate(m,before,runner,mutate){
 function revisionHealth(c,name,runner,active){
  for(let i=0;i<6;i++){
   const r=runner(['run','revisions','describe',name,...flags,'--format=json(metadata.name,status.conditions[].type,status.conditions[].status,status.conditions[].reason)']);
-  if(r.metadata?.name!==name||!Array.isArray(r.status?.conditions))fail();
-  const trueCondition=type=>r.status.conditions.filter(x=>x.type===type&&x.status==='True').length===1;
-  const accepted=active?['Ready','ContainerHealthy','ResourcesAvailable','Active'].every(trueCondition):trueCondition('Ready')||r.status.conditions.some(x=>x.type==='Active'&&x.status==='False'&&x.reason==='Retired');
-  if(accepted)return {name,status:active?'active-health-passed':trueCondition('ContainerHealthy')?'staged-health-observed':'staged-import-only-no-startup-proof',conditions:r.status.conditions.map(v=>({type:v.type,status:v.status,...(v.reason?{reason:v.reason}:{})}))};
+  if(r.metadata?.name!==name||!Array.isArray(r.status?.conditions)||r.status.conditions.length>16)fail();
+  const knownTypes=['Ready','ContainerHealthy','ResourcesAvailable','Active'];
+  const conditions=r.status.conditions.filter(v=>knownTypes.includes(v.type)).map(v=>{if(!['True','False','Unknown'].includes(v.status))fail();return {type:v.type,status:v.status,...(v.reason==='Retired'?{reason:'Retired'}:{})};});
+  const one=type=>conditions.filter(v=>v.type===type);
+  const trueCondition=type=>one(type).length===1&&one(type)[0].status==='True';
+  const retired=one('Active').length===1&&one('Active')[0].status==='False'&&one('Active')[0].reason==='Retired';
+  const accepted=active?knownTypes.every(trueCondition):trueCondition('Ready')||retired;
+  if(accepted)return {name,status:active?'active-health-passed':trueCondition('ContainerHealthy')?'staged-health-observed':'staged-import-only-no-startup-proof',conditions};
   if(i===5)fail();if(runner===cloudRunner)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,5000);
  }
+}
+function serviceConfiguration(s){return {metadata:{...s.metadata,annotations:{'run.googleapis.com/minScale':'0',...s.metadata.annotations}},spec:s.spec.template.spec,annotations:{'autoscaling.knative.dev/minScale':'0',...s.spec.template.metadata.annotations}};}
+function resumeStage(m,before,runner,mutate){
+ const name=`jayburd-dev-api-as-${source.run}-stage`,prior=old.api.revision,expected=structuredClone(m.baseline.api);
+ expected.spec.template.spec.containers[0].image=m.images.api;
+ const job=structuredClone(m.baseline.migrate);job.containers[0].image=m.images.migrate;
+ if(!equal(serviceConfiguration(before.api),serviceConfiguration(expected))||!equal(before.web,m.baseline.web)||!equal(before.migrate,job))fail();
+ const promoted=[{revisionName:name,percent:100}];
+ const already=before.api.status.latestCreatedRevisionName===name&&before.api.status.latestReadyRevisionName===name&&equal(before.api.spec.traffic,promoted)&&equal(before.api.status.traffic,promoted);
+ let stagedHealth=null;
+ if(already)validateService(before.api,'api');
+ else {validateStagedService(before.api,'api',name,prior);stagedHealth=revisionHealth('api',name,runner,false);mutate('promote-existing-api-stage',['run','services','update-traffic','jayburd-dev-api',...flags,`--to-revisions=${name}=100`,'--format=json(status.conditions[].type,status.conditions[].status)']);}
+ const activeHealth=revisionHealth('api',name,runner,true),after=describe('api',runner);validateService(after,'api');
+ if(after.status.latestReadyRevisionName!==name||after.status.latestCreatedRevisionName!==name||!equal(after.spec.traffic,promoted)||!equal(after.status.traffic,promoted)||!equal(serviceConfiguration(after),serviceConfiguration(before.api))||!equal(describe('web',runner),before.web)||!equal(describeJob(runner),before.migrate))fail();
+ return {schemaVersion:1,phase:'resume-stage',status:'runtime-promoted-not-product-acceptance',promotion_performed:!already,before,after,stagedHealth,activeHealth,build:m.build,images:m.images};
 }
 // Runtime updates change only image, then separately the approved API scheduling and automatic flag; IAM is never invoked.
 export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{},onDiagnostic=()=>{}){
@@ -424,17 +449,18 @@ export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{
  const before={};
  for(const c of ['api','web']){
   const raw=step(`read-${c}`,()=>command(['run','services','describe',`jayburd-dev-${c}`,...flags,`--format=${serviceProjection}`]),serviceShape);
-  before[c]=step(`public-${c}`,()=>{const normalized=normalizeService(raw);validateService(normalized,c);return normalized;});
+  before[c]=step(`public-${c}`,()=>{const normalized=normalizeService(raw);if(phase==='resume-stage'&&c==='api'){const intended=`jayburd-dev-api-as-${source.run}-stage`;if(normalized.status.latestReadyRevisionName===intended&&normalized.status.latestCreatedRevisionName===intended&&normalized.spec.traffic[0]?.revisionName===intended)validateService(normalized,c);else validateStagedService(normalized,c,intended,old.api.revision);}else validateService(normalized,c);return normalized;});
  }
  const rawJob=step('read-migrate',()=>command(['run','jobs','describe','jayburd-dev-migrate',...flags,`--format=${jobProjection}`]),jobShape);
  before.migrate=step('public-job',()=>{const j=normalizeJob(rawJob);validateJob(j);return j;});
+ if(phase==='resume-stage')return resumeStage(m,before,runner,mutate);
  for(const c of ['api','web'])validateService(before[c],c);validateJob(before.migrate);
  if(phase==='migrate')return migrate(m,before,runner,mutate);
  const c=phase==='web'?'web':'api',current=before[c],base=m.baseline[c];
  const expected=structuredClone(base);
  if(['activate','pause'].includes(phase))expected.spec.template.spec.containers[0].image=m.images.api;
  if(phase==='pause'){expected.spec.template.spec.containers[0].args.push('-automatic-categories=true');expected.spec.template.metadata.annotations['run.googleapis.com/cpu-throttling']='false';expected.spec.template.metadata.annotations['autoscaling.knative.dev/maxScale']='1';expected.spec.template.metadata.annotations['autoscaling.knative.dev/minScale']='0';expected.metadata.annotations['run.googleapis.com/maxScale']='1';expected.metadata.annotations['run.googleapis.com/minScale']='0';}
- const config=s=>({metadata:{...s.metadata,annotations:{'run.googleapis.com/minScale':'0',...s.metadata.annotations}},spec:s.spec.template.spec,annotations:{'autoscaling.knative.dev/minScale':'0',...s.spec.template.metadata.annotations}});
+ const config=serviceConfiguration;
  if(!equal(config(current),config(expected)))fail();
  if(!['activate','pause'].includes(phase)&&!equal(current.spec.traffic,base.spec.traffic))fail();
  if(['stage','web'].includes(phase)&&(current.status.latestReadyRevisionName!==old[c].revision||current.status.latestCreatedRevisionName!==old[c].revision))fail();
@@ -462,12 +488,12 @@ export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{
  let staged;
  for(let i=0;i<6;i++){
   staged=describe(c,runner);
-  if(staged.status.latestReadyRevisionName===name&&staged.status.latestCreatedRevisionName===name&&staged.status.conditions?.some(x=>x.type==='Ready'&&x.status==='True'))break;
+  if(staged.status.latestCreatedRevisionName===name&&[current.status.latestReadyRevisionName,name].includes(staged.status.latestReadyRevisionName)&&['Ready','ConfigurationsReady','RoutesReady'].every(type=>staged.status.conditions?.filter(x=>x.type===type&&x.status==='True').length===1))break;
   if(i===5)fail();
   if(runner===cloudRunner)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,5000);
  }
- validateService(staged,c);
- if(staged.status.latestReadyRevisionName!==name||!equal(staged.spec.traffic,current.spec.traffic)||!equal(staged.status.traffic,current.status.traffic)||staged.spec.template.spec.containers[0].image!==m.images[c])fail();
+ validateStagedService(staged,c,name,current.status.latestReadyRevisionName);
+ if(staged.status.latestCreatedRevisionName!==name||!equal(staged.spec.traffic,current.spec.traffic)||!equal(staged.status.traffic,current.status.traffic)||staged.spec.template.spec.containers[0].image!==m.images[c])fail();
  const desired=structuredClone(current.spec.template.spec);desired.containers[0].image=m.images[c];
  if(phase==='pause')desired.containers[0].args=[...base.spec.template.spec.containers[0].args];
  if(phase==='activate')desired.containers[0].args.push('-automatic-categories=true');
@@ -484,7 +510,7 @@ export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{
  mutate(`promote-${c}`,['run','services','update-traffic',`jayburd-dev-${c}`,...flags,`--to-revisions=${name}=100`,'--format=json(status.conditions[].type,status.conditions[].status)']);
  const activeHealth=revisionHealth(c,name,runner,true);
  const after=describe(c,runner);validateService(after,c);
- if(!equal(after.spec.template.spec,staged.spec.template.spec)||!equal(after.metadata,staged.metadata)||!equal(after.spec.template.metadata.annotations,staged.spec.template.metadata.annotations)||after.spec.traffic[0].revisionName!==name)fail();
+ if(after.status.latestReadyRevisionName!==name||after.status.latestCreatedRevisionName!==name||!equal(after.spec.template.spec,staged.spec.template.spec)||!equal(after.metadata,staged.metadata)||!equal(after.spec.template.metadata.annotations,staged.spec.template.metadata.annotations)||after.spec.traffic[0].revisionName!==name)fail();
  if(!equal(describe(other,runner),before[other])||!equal(describeJob(runner),before.migrate))fail();
  return {schemaVersion:1,phase,status:'runtime-promoted-not-product-acceptance',before,staged,after,stagedHealth,activeHealth,build:m.build,images:m.images};
 }

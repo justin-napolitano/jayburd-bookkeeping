@@ -287,3 +287,23 @@ replacement service configuration. Alternatives: requiring an optional name
 blocks healthy services; copying a status name invents an unobserved field.
 Named synthetic round-trip/malformed-name/full-phase tests and fresh hosted
 inspection validate the narrow handling; vendor docs alone approve no rollout.
+
+## G33 — Distinct staged and active revision status —2026-11-12
+
+Google [ServiceStatus](https://docs.cloud.google.com/run/docs/reference/rest/v1/namespaces.services#ServiceStatus)
+field descriptions and [Manage revisions](https://docs.cloud.google.com/run/docs/managing/revisions)
+view-details/RETIRED note reviewed2026-11-12. latestCreated identifies the new
+revision; latestReady identifies one whose Ready became true. A non-current
+revision can have retired infrastructure. These facts do not prove startup
+health, complete reconciliation, request success or private ownership.
+
+Actual43266304917 observes a newly staged candidate with old latestReady and
+old observed/desired sole100 traffic, despite aggregate readiness being true.
+Inference: validate this exact bounded staged tuple and direct revision import/
+health separately; then require intended active name/traffic/direct health after
+explicit promotion. Resume only the existing fixed stage, without repeating
+services update; verify-only if already promoted after an unknown outcome.
+Alternative requiring latestReady=new before promotion blocks the observed
+platform state; treating aggregate readiness as startup proof overclaims evidence.
+Fixed tuple/config/health/unknown-outcome tests and actual selected readbacks
+validate this policy; no provider, IAM or bookkeeping approval follows.
