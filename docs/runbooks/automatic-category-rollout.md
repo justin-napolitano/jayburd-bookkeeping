@@ -16,8 +16,8 @@ attempted. The next source stage adds safe structural diagnostics; the initial
 baseline-null manifest still permits inspection only.
 
 Root holds the sole finite485 existing Sandbox release lane in GitHub65 through
-2026-11-12T09:00Z. Initial branch chore/485-automatic-category-rollout is merged; follow-up branch
-chore/485-pinned-synthetic-runtime owns the next inspection/manifest stage. Scope:
+2026-11-12T09:00Z. Initial branch chore/485-automatic-category-rollout is merged; diagnostic follow-up491 is merged; branch
+chore/485-approved-runtime-baseline owns public inspection and the next manifest stage. Scope:
 all four same-build patched artifacts, existing migrator forward48/status,
 configuration-preserving API/web stages and explicit synthetic analytic activation.
 No ad hoc SQL, migration edits, down/force/reset, provider calls or consent renewal,
@@ -191,3 +191,23 @@ Independent final follow-up review passes at script SHA256
 also passes. The committed manifest remains unchanged, baseline=null; no mutation
 phase is dispatchable. Fresh canonical checks and another safe inspection are
 required; no actual mismatch has yet been inferred from the generic failure.
+
+Read-only inspection43169572531 on491 mergea552863 authenticated and obtained
+the API's selected metadata. Safe diagnostics show the expected object structure,
+20 arguments, HTTP1/8080, custom probe fields and no secret headers, but exact
+public-api compatibility still fails. No raw snapshot or runtime acceptance was
+emitted. This confirms that privacy checking must precede and remain separate
+from comparison against historical deployment assumptions. No schema, service,
+traffic, policy, provider or IAM mutation was issued.
+
+The next source stage introduces a closed inspection-only public minimizer. It
+checks every argument/reference/command/annotation and public data type before
+export, while bounded operational numeric settings and standard Go flag spellings
+can be observed as requires-owner-review. Unapproved strings, credentials, unknown
+fields, commands and headers remain rejected. Exact manifest, migration, service,
+job, execution and mutation checks are mechanically unchanged; a drifted read-only
+snapshot cannot authorize deployment.118 automatic tests and independent privacy
+review pass at script SHA256
+`17f1211c5bedd7322fcc0b0e1490d4d1d1c48868edffa4842ad50ac13525d2e7`.
+The manifest remains baseline=null/inspection-only. No actual value mismatch is
+asserted until the next validated public snapshot is obtained and reviewed.
