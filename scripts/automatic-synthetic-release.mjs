@@ -53,6 +53,11 @@ function normalizeProbe(raw){
 function normalizeResources(raw){return raw?.limits?.cpu==='1000m'?{...raw,limits:{...raw.limits,cpu:'1'}}:raw;}
 function normalizeService(raw,inspection=false){
  const t=raw.spec.template,v=t.spec;
+ // Only observed wire omission becomes canonical null; a supplied name is never repaired or inferred.
+ if(!t.metadata||typeof t.metadata!=='object'||Array.isArray(t.metadata))fail();
+ const suppliedName=present(t.metadata,'name'),templateName=suppliedName?t.metadata.name:null;
+ const component=raw.metadata?.name==='jayburd-dev-api'?'api':'web';
+ if(suppliedName&&(typeof templateName!=='string'||!new RegExp(`^jayburd-dev-${component}-[a-z0-9-]{1,50}$`).test(templateName)||templateName!==raw.status?.latestCreatedRevisionName))fail();
  const traffic=rows=>(rows??[]).map(x=>({revisionName:x.revisionName,percent:x.percent,...(present(x,'tag')?{tag:x.tag}:{})}));
  const observed=traffic(raw.status.traffic),desired=raw.spec.traffic;
  if(!Array.isArray(desired))fail();
@@ -63,7 +68,7 @@ function normalizeService(raw,inspection=false){
   if(desired.length!==1||x.percent!==100||present(x,'revisionName')||present(x,'tag')||!healthy||raw.status.latestReadyRevisionName!==raw.status.latestCreatedRevisionName||observed.length!==1||observed[0].percent!==100||present(observed[0],'tag')||observed[0].revisionName!==raw.status.latestReadyRevisionName)fail();
   return {revisionName:raw.status.latestReadyRevisionName,percent:100};
  });
- return {metadata:{name:raw.metadata?.name,annotations:annotations(raw.metadata?.annotations,serviceAnnotations)},spec:{template:{metadata:{name:t.metadata?.name,annotations:annotations(t.metadata?.annotations,revisionAnnotations)},spec:{serviceAccountName:v.serviceAccountName,containerConcurrency:v.containerConcurrency,timeoutSeconds:v.timeoutSeconds,containers:v.containers.map(c=>({image:c.image,args:c.args??[],command:c.command??[],ports:c.ports,resources:normalizeResources(c.resources),startupProbe:inspection?publicProbe(c.startupProbe,raw.metadata?.name==='jayburd-dev-api'?'api':'web'):normalizeProbe(c.startupProbe)}))}},traffic:traffic(resolved)},status:{latestReadyRevisionName:raw.status.latestReadyRevisionName,latestCreatedRevisionName:raw.status.latestCreatedRevisionName,conditions:raw.status.conditions?.map(c=>({type:c.type,status:c.status})),traffic:observed}};
+ return {metadata:{name:raw.metadata?.name,annotations:annotations(raw.metadata?.annotations,serviceAnnotations)},spec:{template:{metadata:{name:templateName,annotations:annotations(t.metadata?.annotations,revisionAnnotations)},spec:{serviceAccountName:v.serviceAccountName,containerConcurrency:v.containerConcurrency,timeoutSeconds:v.timeoutSeconds,containers:v.containers.map(c=>({image:c.image,args:c.args??[],command:c.command??[],ports:c.ports,resources:normalizeResources(c.resources),startupProbe:inspection?publicProbe(c.startupProbe,raw.metadata?.name==='jayburd-dev-api'?'api':'web'):normalizeProbe(c.startupProbe)}))}},traffic:traffic(resolved)},status:{latestReadyRevisionName:raw.status.latestReadyRevisionName,latestCreatedRevisionName:raw.status.latestCreatedRevisionName,conditions:raw.status.conditions?.map(c=>({type:c.type,status:c.status})),traffic:observed}};
 }
 // Inspection minimizes public configuration independently of exact promotion compatibility.
 function boundedInteger(v,min,max){return Number.isSafeInteger(v)&&v>=min&&v<=max;}
@@ -109,7 +114,7 @@ function validatePublicService(s,c){
  keys(s,['metadata','spec','status']);keys(s.metadata,['name','annotations']);keys(s.spec,['template','traffic']);keys(s.spec.template,['metadata','spec']);keys(s.spec.template.metadata,['name','annotations']);
  const revision=new RegExp(`^jayburd-dev-${c}-[a-z0-9-]{1,50}$`),t=s.spec.template.spec;
  keys(t,['serviceAccountName','containerConcurrency','timeoutSeconds','containers']);
- if(s.metadata.name!==`jayburd-dev-${c}`||!revision.test(s.spec.template.metadata.name)||!revision.test(s.status?.latestReadyRevisionName)||!revision.test(s.status?.latestCreatedRevisionName)||t.serviceAccountName!==`jayburd-dev-${c==='web'?'frontend':'api'}@${project}.iam.gserviceaccount.com`||!boundedInteger(t.containerConcurrency,1,1000)||!boundedInteger(t.timeoutSeconds,1,3600)||!Array.isArray(t.containers)||t.containers.length!==1)fail();
+ if(s.metadata.name!==`jayburd-dev-${c}`||s.spec.template.metadata.name!==null&&(!revision.test(s.spec.template.metadata.name)||s.spec.template.metadata.name!==s.status?.latestCreatedRevisionName)||!revision.test(s.status?.latestReadyRevisionName)||!revision.test(s.status?.latestCreatedRevisionName)||t.serviceAccountName!==`jayburd-dev-${c==='web'?'frontend':'api'}@${project}.iam.gserviceaccount.com`||!boundedInteger(t.containerConcurrency,1,1000)||!boundedInteger(t.timeoutSeconds,1,3600)||!Array.isArray(t.containers)||t.containers.length!==1)fail();
  const v=t.containers[0];keys(v,['image','args','command','ports','resources','startupProbe']);
  if(typeof v.image!=='string'||!new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/${c}@sha256:[a-f0-9]{64}$`).test(v.image)||!equal(v.command,[])||!Array.isArray(v.ports)||v.ports.length!==1)fail();
  const port=v.ports[0];keys(port,['containerPort',...(present(port,'name')?['name']:[])]);if(!boundedInteger(port.containerPort,1,65535)||present(port,'name')&&!['http1','h2c'].includes(port.name))fail();publicResources(v.resources);publicProbe(v.startupProbe,c);
@@ -205,7 +210,8 @@ export function inspectServiceConstraints(raw,c){
  const object=v=>v&&typeof v==='object'&&!Array.isArray(v);
  for(const [code,value] of [['service-object',raw],['metadata-object',raw?.metadata],['spec-object',raw?.spec],['template-object',t],['template-metadata-object',t?.metadata],['template-spec-object',v],['status-object',raw?.status]])check(code,()=>object(value));
  check('service-name-public',()=>raw?.metadata?.name===`jayburd-dev-${c}`);
- check('template-name-public',()=>typeof t?.metadata?.name==='string'&&revision.test(t.metadata.name));
+ check('template-name-public',()=>t?.metadata&&typeof t.metadata==='object'&&!Array.isArray(t.metadata)&&(!present(t.metadata,'name')||typeof t.metadata.name==='string'&&revision.test(t.metadata.name)&&t.metadata.name===raw?.status?.latestCreatedRevisionName));
+ check('template-name-equals-latest-created-when-present',()=>t?.metadata&&typeof t.metadata==='object'&&!Array.isArray(t.metadata)&&(!present(t.metadata,'name')||typeof t.metadata.name==='string'&&t.metadata.name===raw?.status?.latestCreatedRevisionName));
  check('service-account-public',()=>v?.serviceAccountName===`jayburd-dev-${c==='web'?'frontend':'api'}@${project}.iam.gserviceaccount.com`);
  check('concurrency-public',()=>boundedInteger(v?.containerConcurrency,1,1000));check('timeout-public',()=>boundedInteger(v?.timeoutSeconds,1,3600));check('one-container',()=>Array.isArray(v?.containers)&&v.containers.length===1);
  check('container-image-public',()=>typeof container?.image==='string'&&new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/${c}@sha256:[a-f0-9]{64}$`).test(container.image));
@@ -229,6 +235,7 @@ export function inspectServiceConstraints(raw,c){
  check('normalized-selected-object-keys',()=>{if(!normalized)return false;keys(normalized,['metadata','spec','status']);keys(normalized.metadata,['name','annotations']);keys(normalized.spec,['template','traffic']);keys(normalized.spec.template,['metadata','spec']);keys(normalized.spec.template.metadata,['name','annotations']);keys(normalized.spec.template.spec,['serviceAccountName','containerConcurrency','timeoutSeconds','containers']);for(const x of normalized.spec.template.spec.containers)keys(x,['image','args','command','ports','resources','startupProbe']);keys(normalized.status,['latestReadyRevisionName','latestCreatedRevisionName','conditions','traffic']);for(const x of normalized.status.conditions)keys(x,['type','status']);for(const rows of [desired,observed])for(const x of rows)keys(x,['revisionName','percent',...(present(x,'tag')?['tag']:[])]);return true;});
  check('complete-public-service-profile',()=>{if(!normalized)return false;validatePublicService(normalized,c);return true;});
  const nameFacts={};for(const [label,value] of [['templateName',t?.metadata?.name],['latestReadyName',raw?.status?.latestReadyRevisionName],['latestCreatedName',raw?.status?.latestCreatedRevisionName]]){nameFacts[`${label}Present`]=value!==undefined;nameFacts[`${label}Type`]=valueType(value);nameFacts[`${label}Empty`]=value==='';nameFacts[`${label}Pattern`]=typeof value==='string'&&revision.test(value);}
+ nameFacts.templateNameCanonicalNull=normalized?.spec?.template?.metadata?.name===null;
  nameFacts.latestResolutionRequired=wantsLatest;
  nameFacts.automaticCategoriesArgumentPresent=c==='api'&&Array.isArray(container?.args)&&container.args.some(v=>typeof v==='string'&&/^--?automatic-categories(?:=|$)/.test(v));
  nameFacts.templateNameEqualsLatestCreated=typeof t?.metadata?.name==='string'&&t.metadata.name===raw?.status?.latestCreatedRevisionName;
@@ -296,7 +303,7 @@ export function validateService(s,c,baseline=false,allowUnhealthy=false){
   if(!allowed)fail();
  }
  const revisionPattern=new RegExp(`^jayburd-dev-${c}-[a-z0-9-]{1,50}$`);
- if(!revisionPattern.test(s.spec.template.metadata.name)||!revisionPattern.test(s.status?.latestCreatedRevisionName)||!revisionPattern.test(s.status?.latestReadyRevisionName))fail();
+ if(s.spec.template.metadata.name!==null&&(!revisionPattern.test(s.spec.template.metadata.name)||s.spec.template.metadata.name!==s.status?.latestCreatedRevisionName)||!revisionPattern.test(s.status?.latestCreatedRevisionName)||!revisionPattern.test(s.status?.latestReadyRevisionName))fail();
  const t=s.spec.template.spec;keys(t,['serviceAccountName','containerConcurrency','timeoutSeconds','containers']);
  if(s.metadata.name!==`jayburd-dev-${c}`||t.serviceAccountName!==`jayburd-dev-${c==='web'?'frontend':'api'}@${project}.iam.gserviceaccount.com`||t.containerConcurrency!==(c==='api'?16:32)||t.timeoutSeconds!==(c==='api'?15:20)||t.containers.length!==1)fail();
  const v=t.containers[0];if(typeof v?.image!=='string'||!new RegExp(`^us-central1-docker\\.pkg\\.dev/${project}/jayburd-dev/${c}@sha256:[a-f0-9]{64}$`).test(v.image))fail();keys(v,['image','args','command','ports','resources','startupProbe']);
@@ -322,7 +329,7 @@ export function validateService(s,c,baseline=false,allowUnhealthy=false){
  if(s.status.latestReadyRevisionName!==s.status.latestCreatedRevisionName||!['Ready','ConfigurationsReady','RoutesReady'].every(type=>s.status.conditions?.filter(x=>x.type===type&&x.status==='True').length===1))fail();
  if(!Array.isArray(s.spec.traffic)||s.spec.traffic.length!==1||s.spec.traffic[0].percent!==100||typeof s.spec.traffic[0].revisionName!=='string')fail();
  if(s.spec.traffic.some(x=>x.tag)||s.status.traffic?.some(x=>x.tag)||!equal(s.status.traffic,s.spec.traffic))fail();
- if(baseline&&(s.spec.traffic[0].revisionName!==old[c].revision||v.image!==`us-central1-docker.pkg.dev/${project}/jayburd-dev/${c}@sha256:${old[c].digest}`||v.args.length!==(c==='api'?20:0)))fail();
+ if(baseline&&(s.status.latestReadyRevisionName!==old[c].revision||s.status.latestCreatedRevisionName!==old[c].revision||s.spec.traffic[0].revisionName!==old[c].revision||v.image!==`us-central1-docker.pkg.dev/${project}/jayburd-dev/${c}@sha256:${old[c].digest}`||v.args.length!==(c==='api'?20:0)))fail();
  return s;
 }
 // Only this runner touches the cloud CLI. Unknown results stop without retry or provider-output disclosure.
@@ -430,6 +437,7 @@ export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{
  const config=s=>({metadata:{...s.metadata,annotations:{'run.googleapis.com/minScale':'0',...s.metadata.annotations}},spec:s.spec.template.spec,annotations:{'autoscaling.knative.dev/minScale':'0',...s.spec.template.metadata.annotations}});
  if(!equal(config(current),config(expected)))fail();
  if(!['activate','pause'].includes(phase)&&!equal(current.spec.traffic,base.spec.traffic))fail();
+ if(['stage','web'].includes(phase)&&(current.status.latestReadyRevisionName!==old[c].revision||current.status.latestCreatedRevisionName!==old[c].revision))fail();
  if(phase==='activate'&&(current.spec.traffic[0].revisionName!==current.status.latestReadyRevisionName||current.status.latestReadyRevisionName!==`jayburd-dev-api-as-${source.run}-stage`))fail();
  const other=c==='api'?'web':'api';
  const otherExpected=structuredClone(m.baseline[other]);
@@ -439,10 +447,10 @@ export function executeAutomaticPhase(m,phase,runner=cloudRunner,onAttempt=()=>{
  }
  if(phase==='pause'&&before.web.spec.traffic[0].revisionName===`jayburd-dev-web-as-${source.run}-web`)otherExpected.spec.template.spec.containers[0].image=m.images.web;
  if(!equal(config(before[other]),config(otherExpected)))fail();
- if(phase==='web'&&before.api.spec.traffic[0].revisionName!==`jayburd-dev-api-as-${source.run}-activate`)fail();
- if(phase!=='web'&&phase!=='pause'&&!equal(before[other].spec.traffic,m.baseline[other].spec.traffic))fail();
- if(phase==='pause'&&!equal(before.web.spec.traffic,m.baseline.web.spec.traffic)&&before.web.spec.traffic[0].revisionName!==`jayburd-dev-web-as-${source.run}-web`)fail();
- if(phase==='pause'&&current.spec.traffic[0].revisionName!==`jayburd-dev-api-as-${source.run}-activate`)fail();
+ if(phase==='web'&&(before.api.spec.traffic[0].revisionName!==`jayburd-dev-api-as-${source.run}-activate`||before.api.status.latestReadyRevisionName!==`jayburd-dev-api-as-${source.run}-activate`))fail();
+ if(phase!=='web'&&phase!=='pause'&&(!equal(before[other].spec.traffic,m.baseline[other].spec.traffic)||before[other].status.latestReadyRevisionName!==old[other].revision||before[other].status.latestCreatedRevisionName!==old[other].revision))fail();
+ if(phase==='pause'&&(!equal(before.web.spec.traffic,m.baseline.web.spec.traffic)&&before.web.spec.traffic[0].revisionName!==`jayburd-dev-web-as-${source.run}-web`||before.web.status.latestReadyRevisionName!==before.web.spec.traffic[0].revisionName))fail();
+ if(phase==='pause'&&(current.spec.traffic[0].revisionName!==`jayburd-dev-api-as-${source.run}-activate`||current.status.latestReadyRevisionName!==`jayburd-dev-api-as-${source.run}-activate`))fail();
  const migrationExpected=structuredClone(m.baseline.migrate);migrationExpected.containers[0].image=m.images.migrate;if(!equal(before.migrate,migrationExpected))fail();
  const suffix=`as-${source.run}-${phase}`,name=`jayburd-dev-${c}-${suffix}`;
  const args=['run','services','update',`jayburd-dev-${c}`,...flags,`--image=${m.images[c]}`,`--revision-suffix=${suffix}`,'--no-traffic'];

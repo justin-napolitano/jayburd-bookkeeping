@@ -18,8 +18,9 @@ baseline-null manifest still permits inspection only.
 Root holds the sole finite485 existing Sandbox release lane in GitHub65 through
 2026-11-12T09:00Z. Initial branch chore/485-automatic-category-rollout is merged; diagnostic follow-up491 is merged; branch
 chore/485-approved-runtime-baseline is merged; branch
-chore/485-synthetic-release-baseline owns comprehensive diagnostics and the next
-manifest stage. Scope:
+chore/485-synthetic-release-baseline is merged; branch
+chore/485-observed-runtime-compatibility owns the observed optional-field repair
+and the next manifest stage. Scope:
 all four same-build patched artifacts, existing migrator forward48/status,
 configuration-preserving API/web stages and explicit synthetic analytic activation.
 No ad hoc SQL, migration edits, down/force/reset, provider calls or consent renewal,
@@ -249,3 +250,37 @@ passes at15:07Z using the renewed inspection-only manifestSHA256
 Missing template names and each latest-target resolution conjunct are tested
 independently; no current metadata value or healthy baseline is inferred.
 Canonical exact-head CI and fresh managed inspection remain required.
+
+PR493 merged at28c7d83f92e8d5c05a5e548dcb1b3284c3b0840c after all five
+exact0559603 checks passed (Seed43245859539, Infrastructure43245858761 and
+GitGuardian). Read-only inspect43250769965 now identifies the actual sole
+public-profile mismatch: API and web both omit template.metadata.name.
+Diagnostics report templateNamePresent=false/type=undefined; every other
+API/web public predicate and every migrator/recent-execution predicate passes.
+The inspection exports no partial baseline and performs no managed mutation.
+
+The next compatibility stage preserves this observed optional-field absence as
+explicit null instead of inventing a template name from revision status. Require
+the metadata object and reject raw null/empty/nonstring/foreign names. Initial
+baseline identity still requires the exact historical healthy latestCreated/Ready
+and sole100 desired/observed traffic; staging may advance latest revision while
+retaining old traffic. New candidate identity remains bound by fixed suffix,
+status, image/configuration and direct revision health. The existing finite
+gcloud updates never send null or a replacement receipt to CloudRun.
+All20 API arguments, provider consent/qualification, SQL1–48 and qualified images
+remain unchanged. Root's18:00Z claim persists; actual rollout is still pending.
+
+[G32](../research/gcp-sources.md#g32--omitted-revision-template-name-2026-11-12)
+records the selected official APIv1 RevisionTemplate metadata semantics, actual
+read-only observation, alternatives and independent tests. Vendor-generated
+revision names do not imply an observed template-name property.
+
+Frozen omitted-name sourceSHA256
+`3e9752f7e3cf6a722998fcb79917f892b5f8a09429d617ea5956f6a840a1bd38`
+and testSHA256
+`e1be95aa134828bf9db0021ffebe2d2426978e204f60340f7450cb1a5db07208`
+pass169 automatic and203 combined release/deployment checks plus context links.
+Full simulated inspect/JSON-baseline/migrate/stage/activate/web/pause retains
+actual omission and20 arguments; malformed names/status/traffic/direct-health
+failures remain blocked. No API/web image, runtime or managed schema has changed.
+Exact-head canonical CI, normal merge and fresh read-only inspection remain gates.
