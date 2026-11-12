@@ -94,3 +94,18 @@ fences remain. Fresh2CPUproofs pass all automatic/cache and prior Rule46 cases;
 3000row case69.59s, longest phase2.027s. Separate API helper-denial checks and
 fresh migration/empty roundtrip pass. Pending wording is now neutral when the
 runtime capability is absent;709 units/100component journeys/build/types pass.
+
+Canonicalbe05 passed frontend/infrastructure but exposed catalog status overhead
+from calling the private scalar renderer for every history row. Restore the
+previous set-based full-history query; retain the bounded selected-input renderer
+for automatic context. No deadline, acceptance volume or authorization changes.
+Final exact-head database/application proof remains pending.
+
+Restored set-based full rendering passes all10automatic/cache SQL groups on
+2CPUdisposablePostgreSQL:3000facts/30runs in68.28s, longestboundedworkspace
+phase1.723s. Server readiness/auth/settings and empty48down/up pass. Core
+check/test/build pass with local1.26.5adapter; canonical1.26.11 remainsCI.
+Standard Docker wrappers hit local keychain-50 before resource creation; exact
+pinned-image SQL steps ran directly on an internal task-owned network. Added an
+actualSQL equality guard for full/selected projections across saved/manual/stale
+facts. No managed database, provider, deployment or accounting mutations.
