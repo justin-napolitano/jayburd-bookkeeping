@@ -266,3 +266,24 @@ reviewed2026-11-12. Exact1000m/1 equivalence supports one-CPU normalization, not
 capacity changes. Existing SDK traffic code freezes LATEST during no-traffic
 updates. Safe field-shape diagnostics must establish actual managed mismatches;
 source examples/defaults alone are not observations of this service.
+
+## G32 — Omitted revision template name —2026-11-12
+
+Google [APIv1 RevisionTemplate](https://docs.cloud.google.com/run/docs/reference/rest/v1/RevisionTemplate),
+selected metadata field description reviewed2026-11-12 (page updated2025-07-09),
+states metadata is optional and Configuration generates the revision name.
+The installed SDK also clears template.name for updates without an explicit
+suffix; SDK source mechanics are not an observation of this deployment.
+Read-only inspection43250769965 independently observes template name absent
+on API and web, with every other public predicate passing.
+
+Inference: canonicalize only that observed omitted property to explicit null
+for JSON receipts, preserving absence rather than fabricating a template name.
+Reject raw null/empty/nonstring; require the metadata object and all existing
+configuration/authority checks. Initial baseline must bind exact historical
+latestCreated/Ready and observed/desired traffic; candidate stages bind fixed
+suffix/status/direct health while old traffic remains. The receipt is never a
+replacement service configuration. Alternatives: requiring an optional name
+blocks healthy services; copying a status name invents an unobserved field.
+Named synthetic round-trip/malformed-name/full-phase tests and fresh hosted
+inspection validate the narrow handling; vendor docs alone approve no rollout.

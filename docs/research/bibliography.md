@@ -277,7 +277,7 @@ These support identity/setup; live deployment evidence remains separate.
 
 [Scan](scan.md):SHA.
 
-The [GCP source register](gcp-sources.md) covers G01–31: billing/background CPU,
+The [GCP source register](gcp-sources.md) covers G01–32: optional template-name semantics, billing/background CPU,
 Tasks delivery, CloudSQL connectivity/IAM and restricted migrations, Terraform
 mocks/state, WIF, standalone packaging, image provenance, service invocation and
 runtime identity. Reviews name selected sections and limits; they are not
