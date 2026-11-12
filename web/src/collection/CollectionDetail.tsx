@@ -98,7 +98,12 @@ export function CollectionDetail({
       {detail && (
         <>
           <h3>{detail.row.description}</h3>
-          <CategorizationSummary row={detail.row} />
+          <CategorizationSummary
+            row={detail.row}
+            automaticAvailable={
+              catalog.automatic_categorization?.state === "available"
+            }
+          />
           <p>
             {detail.row.booked_date} · {detail.row.account_name}
           </p>

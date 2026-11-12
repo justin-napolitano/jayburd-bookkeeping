@@ -84,3 +84,13 @@ facts cannot populate the private cache. Actual2CPU3000row proof now passes in
 reject forged/stale facts, preserve inert replay, deny direct table access and
 prove GET leaves state unchanged. Private projection-inlining and JIT experiments
 were discarded; no role/session JIT change ships and all4second limits remain.
+
+Canonicalb2b8235 still exceeded the first-phase budget: the same small selection
+was rendered through the full query projection. The final live path uses one
+private renderer for both whole queries and already-selected SQL inputs. The
+public context wrapper supplies no override; only private SQL code can reuse
+those selected facts. Exact masks, source checks, snapshots and cached/effect
+fences remain. Fresh2CPUproofs pass all automatic/cache and prior Rule46 cases;
+3000row case69.59s, longest phase2.027s. Separate API helper-denial checks and
+fresh migration/empty roundtrip pass. Pending wording is now neutral when the
+runtime capability is absent;709 units/100component journeys/build/types pass.

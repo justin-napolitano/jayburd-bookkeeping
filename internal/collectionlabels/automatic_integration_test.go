@@ -529,7 +529,12 @@ func TestAuto48ContextCache(t *testing.T) {
 			case "private_cache_and_read_only_status":
 				runtime := connect(t, db, "synthetic_runtime")
 				defer runtime.Close(context.Background())
-				for _, q := range []string{"SELECT context_cache FROM banking.collection_automation_state", "UPDATE banking.collection_automation_state SET context_cache='{}'::jsonb"} {
+				for _, q := range []string{
+					"SELECT context_cache FROM banking.collection_automation_state",
+					"UPDATE banking.collection_automation_state SET context_cache='{}'::jsonb",
+					"SELECT banking.collection_automatic_rule_context('00000000-0000-4000-8000-000000000001'::uuid,'00000000-0000-4000-8000-000000000002'::uuid,'{}'::text,true,'[]'::jsonb)",
+					"SELECT banking.collection_automatic_project_row('00000000-0000-4000-8000-000000000001'::uuid,'00000000-0000-4000-8000-000000000002'::uuid,'00000000-0000-4000-8000-000000000003'::uuid,'00000000-0000-4000-8000-000000000004'::uuid,1::bigint,'{}'::jsonb)",
+				} {
 					_, e = runtime.Exec(context.Background(), q)
 					code(t, e, "42501")
 				}

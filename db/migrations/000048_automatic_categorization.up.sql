@@ -484,14 +484,25 @@ CREATE FUNCTION banking.collection_automatic_row_fingerprint(w uuid,sid uuid,oid
 $$;
 
 ALTER FUNCTION banking.collection_query_rows(uuid,uuid)RENAME TO collection_automatic_previous_rows;
-CREATE FUNCTION banking.collection_query_rows(actor uuid,w uuid)RETURNS TABLE(source_id uuid,observation_id uuid,observation_revision bigint,booked_date date,body jsonb)
+-- One private renderer serves complete queries and already-selected automatic inputs.
+CREATE FUNCTION banking.collection_automatic_project_row(actor uuid,w uuid,sid uuid,oid uuid,rev bigint,base_value jsonb)RETURNS jsonb
 LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
- WITH current_rows AS MATERIALIZED(
+WITH reviewed AS MATERIALIZED(
+SELECT r.body||jsonb_build_object(
+ 'institution',jsonb_build_object('state','unavailable'),'legal_owner',jsonb_build_object('state','unknown'),
+ 'owner_topic',CASE WHEN manual_topic.present OR d.decision_revision IS NULL THEN r.body->'owner_topic'WHEN d.observation_revision<>r.observation_revision THEN jsonb_build_object('state','stale')WHEN d.output->>'kind'='uncategorized'THEN jsonb_build_object('state','uncategorized')ELSE jsonb_build_object('state','topic','topic_id',d.output->>'topic_id','name',topic.value->>'name')END,
+ 'owner_tags',CASE WHEN manual_tags.present OR d.decision_revision IS NULL THEN r.body->'owner_tags'ELSE jsonb_build_object('state',CASE WHEN d.observation_revision<>r.observation_revision THEN 'stale'ELSE 'current'END,'tags',banking.collection_tag_names(w,ARRAY(SELECT value::uuid FROM jsonb_array_elements_text(d.output->'tag_ids'))))END,
+ 'rule_application',CASE WHEN d.decision_revision IS NULL THEN jsonb_build_object('state','none')ELSE jsonb_build_object('state',CASE WHEN manual_topic.present AND manual_tags.present THEN 'superseded'WHEN d.observation_revision<>r.observation_revision OR d.taxonomy_revision<>s.taxonomy_revision OR d.tag_revision<>s.tag_revision OR d.ruleset_revision<>s.ruleset_revision THEN 'stale'ELSE 'current'END,'ruleset_revision',d.ruleset_revision::text,'rules',d.rules,'fields',jsonb_build_object('topic',NOT manual_topic.present,'tags',NOT manual_tags.present))END) AS body
+ FROM(VALUES(sid,oid,rev,base_value))r(source_id,observation_id,observation_revision,body) JOIN banking.collection_label_state s ON s.workspace_id=w
+ LEFT JOIN LATERAL(SELECT x.* FROM banking.collection_rule_decision x WHERE x.workspace_id=w AND x.source_account_id=r.source_id AND x.observation_id=r.observation_id ORDER BY decision_revision DESC LIMIT 1)d ON true
+ CROSS JOIN LATERAL(SELECT EXISTS(SELECT FROM banking.collection_label_decision x WHERE x.workspace_id=w AND x.source_account_id=r.source_id AND x.observation_id=r.observation_id)present)manual_topic
+ CROSS JOIN LATERAL(SELECT EXISTS(SELECT FROM banking.collection_tag_decision x WHERE x.workspace_id=w AND x.source_account_id=r.source_id AND x.observation_id=r.observation_id)present)manual_tags
+ LEFT JOIN LATERAL(SELECT value FROM banking.collection_taxonomy_edition e,jsonb_array_elements(e.topics)t(value)WHERE e.workspace_id=w AND e.taxonomy_revision=s.taxonomy_revision AND value->>'topic_id'=d.output->>'topic_id')topic ON true
+),current_rows AS MATERIALIZED(
   SELECT r.*,CASE WHEN EXISTS(SELECT FROM banking.collection_automatic_decision d WHERE d.workspace_id=w AND d.source_account_id=r.source_id AND d.observation_id=r.observation_id)THEN banking.collection_automatic_row_fingerprint(w,r.source_id,r.observation_id,r.observation_revision,r.body)END AS input_fingerprint
-  FROM banking.collection_automatic_previous_rows(actor,w)r
+  FROM(SELECT sid AS source_id,oid AS observation_id,rev AS observation_revision,body FROM reviewed)r
  )
- SELECT r.source_id,r.observation_id,r.observation_revision,r.booked_date,
-  r.body||jsonb_build_object('owner_topic',CASE WHEN manual_topic.present THEN r.body->'owner_topic'
+ SELECT r.body||jsonb_build_object('owner_topic',CASE WHEN manual_topic.present THEN r.body->'owner_topic'
    WHEN d.input_fingerprint=r.input_fingerprint THEN CASE WHEN d.output IS NULL THEN jsonb_build_object('state','unclassified')WHEN d.output->>'kind'='uncategorized'THEN jsonb_build_object('state','uncategorized')ELSE jsonb_build_object('state','topic','topic_id',d.output->>'topic_id','name',topic.value->>'name')END
    ELSE r.body->'owner_topic'END,
   'owner_tags',CASE WHEN NOT manual_tags.present AND d.classification->>'origin'='rule'AND d.input_fingerprint=r.input_fingerprint AND d.output IS NOT NULL THEN jsonb_build_object('state','current','tags',banking.collection_tag_names(w,ARRAY(SELECT value::uuid FROM jsonb_array_elements_text(d.output->'tag_ids'))))ELSE r.body->'owner_tags'END,
@@ -504,6 +515,11 @@ LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
  CROSS JOIN LATERAL(SELECT EXISTS(SELECT FROM banking.collection_label_decision x WHERE x.workspace_id=w AND x.source_account_id=r.source_id AND x.observation_id=r.observation_id)present)manual_topic
  CROSS JOIN LATERAL(SELECT EXISTS(SELECT FROM banking.collection_tag_decision x WHERE x.workspace_id=w AND x.source_account_id=r.source_id AND x.observation_id=r.observation_id)present)manual_tags
  LEFT JOIN LATERAL(SELECT value FROM banking.collection_taxonomy_edition t JOIN banking.collection_label_state s USING(workspace_id,taxonomy_revision),jsonb_array_elements(t.topics)x(value)WHERE t.workspace_id=w AND value->>'topic_id'=d.output->>'topic_id')topic ON true
+$$;
+CREATE FUNCTION banking.collection_query_rows(actor uuid,w uuid)RETURNS TABLE(source_id uuid,observation_id uuid,observation_revision bigint,booked_date date,body jsonb)
+LANGUAGE sql STABLE SET search_path=pg_catalog,pg_temp AS $$
+ SELECT r.source_id,r.observation_id,r.observation_revision,r.booked_date,banking.collection_automatic_project_row(actor,w,r.source_id,r.observation_id,r.observation_revision,r.body)
+ FROM banking.collection_tag_rows(actor,w)r
 $$;
 
 -- Exact exceptions filter uses the complete persisted projection before count and pagination.
@@ -586,8 +602,8 @@ EXCEPTION WHEN SQLSTATE 'P2100'OR SQLSTATE 'P2400'OR invalid_text_representation
 -- Return only current source detail and independently authorized existing journal anchors.
 -- Catalog-only review never projects the whole transaction history for an empty selection.
 ALTER FUNCTION banking.collection_rule_context(uuid,uuid,text,boolean)RENAME TO collection_automatic_previous_rule_context;
-CREATE FUNCTION banking.collection_rule_context(actor uuid,w uuid,raw text,writing boolean)RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+CREATE FUNCTION banking.collection_automatic_rule_context(actor uuid,w uuid,raw text,writing boolean,rows_override jsonb)RETURNS jsonb
+LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
 DECLARE v jsonb;snap jsonb;action_value jsonb;z jsonb;sid uuid;oid uuid;rev bigint;selected jsonb:='[]';row_cache jsonb:='[]';rows_value jsonb:='[]';facts_value jsonb:='[]';fact jsonb;topic_value jsonb;tags_value jsonb;rules_value jsonb;res jsonb;catalog_value jsonb;BEGIN
  IF writing IS NULL THEN PERFORM banking.collection_error('P2800');END IF;
  PERFORM banking.collection_label_authorize(actor,w,writing);v:=banking.import_json(raw,524288);PERFORM banking.collection_keys(v,ARRAY['snapshot','selection','action']);snap:=banking.collection_query_snapshot(w);PERFORM banking.collection_query_pins(v->'snapshot',snap);
@@ -595,7 +611,13 @@ DECLARE v jsonb;snap jsonb;action_value jsonb;z jsonb;sid uuid;oid uuid;rev bigi
  IF jsonb_typeof(v->'selection')IS DISTINCT FROM 'array'THEN PERFORM banking.collection_error('P2800');END IF;
  IF jsonb_array_length(v->'selection')>100 OR(writing AND((action_value->>'kind'IN('taxonomy','tag_catalog','rule_catalog')AND jsonb_array_length(v->'selection')<>0)OR(action_value->>'kind'NOT IN('taxonomy','tag_catalog','rule_catalog')AND jsonb_array_length(v->'selection')=0)))THEN PERFORM banking.collection_error('P2805');END IF;
  IF jsonb_array_length(v->'selection')>0 THEN
- SELECT coalesce(jsonb_agg(r.body),'[]')INTO row_cache FROM banking.collection_query_rows(actor,w)r WHERE EXISTS(SELECT FROM jsonb_array_elements(v->'selection')x WHERE(x->>'source_id')::uuid=r.source_id AND(x->>'observation_id')::uuid=r.observation_id);
+ IF rows_override IS NOT NULL THEN
+  IF jsonb_typeof(rows_override)IS DISTINCT FROM 'array'OR jsonb_array_length(rows_override)<>jsonb_array_length(v->'selection')THEN PERFORM banking.collection_error('P2800');END IF;
+  row_cache:=rows_override;
+ ELSE
+  WITH selected_rows AS MATERIALIZED(SELECT r.* FROM banking.collection_tag_rows(actor,w)r WHERE EXISTS(SELECT FROM jsonb_array_elements(v->'selection')x WHERE(x->>'source_id')::uuid=r.source_id AND(x->>'observation_id')::uuid=r.observation_id))
+  SELECT coalesce(jsonb_agg(banking.collection_automatic_project_row(actor,w,r.source_id,r.observation_id,r.observation_revision,r.body)),'[]')INTO row_cache FROM selected_rows r;
+ END IF;
  END IF;
  FOR z IN SELECT value FROM jsonb_array_elements(v->'selection')LOOP
   PERFORM banking.collection_keys(z,ARRAY['workspace_id','source_id','observation_id','observation_revision']);IF ledger.uuid_value(z->'workspace_id')<>w THEN PERFORM banking.collection_error('P2801');END IF;
@@ -619,6 +641,11 @@ DECLARE v jsonb;snap jsonb;action_value jsonb;z jsonb;sid uuid;oid uuid;rev bigi
  'tag_ids',(SELECT coalesce(jsonb_agg(t->'tag_id'ORDER BY t->>'tag_id'),'[]')FROM banking.collection_tag_edition e JOIN banking.collection_label_state s USING(workspace_id,tag_revision),jsonb_array_elements(e.tags)t WHERE e.workspace_id=w AND t->>'status'='active'));
  IF octet_length(res::text)>1048576 THEN PERFORM banking.collection_error('P2805');END IF;RETURN res;
 EXCEPTION WHEN SQLSTATE 'P2100'OR SQLSTATE 'P2400'OR invalid_text_representation THEN PERFORM banking.collection_error('P2800');END $$;
+
+CREATE FUNCTION banking.collection_rule_context(actor uuid,w uuid,raw text,writing boolean)RETURNS jsonb
+LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+ SELECT banking.collection_automatic_rule_context(actor,w,raw,writing,NULL::jsonb)
+$$;
 
 -- Bounded durable policy, planning and execution entrypoints.
 
@@ -734,7 +761,7 @@ END $$;
 CREATE FUNCTION banking.collection_automation_context(actor uuid,w uuid)RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 DECLARE a banking.collection_automation_state;p banking.collection_automation_edition;r banking.collection_automatic_run;
- selected jsonb;fingerprints_value jsonb;context_value jsonb;last_value jsonb;state_value text:='idle';res jsonb;BEGIN
+ selected jsonb;fingerprints_value jsonb;selected_rows_value jsonb;context_value jsonb;last_value jsonb;state_value text:='idle';res jsonb;BEGIN
  PERFORM banking.collection_label_authorize(actor,w,true);
  SELECT * INTO STRICT a FROM banking.collection_automation_state WHERE workspace_id=w FOR UPDATE;
  SELECT * INTO STRICT p FROM banking.collection_automation_edition WHERE workspace_id=w AND revision=a.revision;
@@ -760,10 +787,11 @@ DECLARE a banking.collection_automation_state;p banking.collection_automation_ed
     UPDATE banking.collection_automation_state SET blocked_reason='category_catalog_unavailable'WHERE workspace_id=w;state_value:='blocked';
    ELSE
     SELECT coalesce(jsonb_agg(jsonb_build_object('workspace_id',w,'source_id',i.source_id,'observation_id',i.observation_id,'observation_revision',i.observation_revision::text)ORDER BY i.source_id,i.observation_id),'[]'),
-     coalesce(jsonb_agg(jsonb_build_object('source_id',i.source_id,'observation_id',i.observation_id,'fingerprint',i.input_fingerprint)ORDER BY i.source_id,i.observation_id),'[]')INTO selected,fingerprints_value
+     coalesce(jsonb_agg(jsonb_build_object('source_id',i.source_id,'observation_id',i.observation_id,'fingerprint',i.input_fingerprint)ORDER BY i.source_id,i.observation_id),'[]'),
+     coalesce(jsonb_agg(banking.collection_automatic_project_row(actor,w,i.source_id,i.observation_id,i.observation_revision,i.body)ORDER BY i.source_id,i.observation_id),'[]')INTO selected,fingerprints_value,selected_rows_value
     FROM(SELECT * FROM banking.collection_automatic_inputs(actor,w)x WHERE x.input_fingerprint IS DISTINCT FROM x.previous_fingerprint ORDER BY x.source_id,x.observation_id LIMIT 100)i;
     IF jsonb_array_length(selected)>0 THEN
-     context_value:=banking.collection_rule_context(actor,w,jsonb_build_object('snapshot',banking.collection_query_snapshot(w),'selection',selected,'action',jsonb_build_object('kind','rules_apply'))::text,true);
+     context_value:=banking.collection_automatic_rule_context(actor,w,jsonb_build_object('snapshot',banking.collection_query_snapshot(w),'selection',selected,'action',jsonb_build_object('kind','rules_apply'))::text,true,selected_rows_value);
      -- Only this current-authorized SQL function can create the cached context.
      -- Prepare checks exact equality and current pins; execute still checks each fresh fingerprint.
      UPDATE banking.collection_automation_state SET context_cache=jsonb_build_object('context',context_value,'fingerprints',fingerprints_value,'policy_revision',a.revision::text)WHERE workspace_id=w;
