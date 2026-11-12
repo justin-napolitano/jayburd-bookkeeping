@@ -15,12 +15,12 @@ authorized by automatic analytic categories; optional owner clarification is sti
 pending. Documents/matching476, evidence-linked corrections333, source FX/splits,
 bank reconciliation and hosted identity/provider qualification remain separate.
 
-This inventory is proposed acceptance, not implemented API/SQL or a passing test
-receipt. Root owns authority/execution/schema/API design; no migration number,
-SQL signature, role, schedule, wire profile or managed activation is allocated
-here. Consolidation487/bea304ec remains a frozen unmerged prerequisite; externally
-queued CI is not green. Every new outcome needs actual restricted SQL/service/
-browser proof on the final exact head. No data/provider/cloud read was performed.
+The matrix below records the initial acceptance obligations, not a blanket test
+receipt. The implemented contract and executed evidence below now own concrete
+SQL/API behavior. Consolidation487 merged normally at f0fea341 after exact-head
+Seed43149100006 and Infrastructure43149105618 passed. Feature489 targets main;
+its own final exact-head SQL/service/browser checks remain required. No managed
+activation or real-data acceptance is implied.
 
 Grounding: [automatic stage](../runbooks/automatic-categorization.md),
 [private design](../contracts/private-categorization.md),
@@ -108,8 +108,8 @@ unreviewed mechanism:
 ## Handoff and limits
 
 This is a reviewable inventory of proposed proof obligations, not test execution
-or owner sign-off. New work is stacked on487; required exact-head CI still applies
-to every dependency and final source. Applicable standards/source mapping changes
+or owner sign-off. New work retains the merged487 ancestry; required exact-head CI still applies
+to the final feature source. Applicable standards/source mapping changes
 belong in the reviewed financial/data contracts before implementation, without
 inventing an ISO name for this internal analytic operation.
 
@@ -140,10 +140,18 @@ TestRule46 lifecycle, compatibility, primed snapshot and fieldwise tests also
 passed against48. No categorization journal/outbox effect is accepted.
 
 Local make check/test/build, fresh migration/replay/empty downgrade-upgrade,
-707frontend units,100component browser journeys, API types and optimized Next
+709frontend units,100component browser journeys, API types and optimized Next
 build pass. Go runs used local1.26.5 with an untracked exact-dependency modfile;
 source/CI remain pinned1.26.11. The new full Next/Go/restricted-SQL browser runner
 is implemented and wired into CI but blocked locally by EPERM at its unchanged
 port prerequisite, before fixture resources. It is not counted among the100
-component passes. Canonical exact-head CI and prerequisite487 remain pending;
+component passes. Consolidation487 is merged. Canonical exact-head feature CI remains pending;
 no provider/cloud/deployment/real-data or owner usability acceptance is implied.
+
+Performance repair evidence: the full-history path remains set-based while the
+automatic context renders only its bounded selected inputs. All10automatic/cache
+SQL groups pass on disposable2CPUPostgreSQL; the3000fact case completed in68.28s
+with a1.723s longest bounded phase. A subsequent actualSQL projection-equality
+guard passed after3000saved decisions and manual/stale cases (37.27s whole case,
+1.484s longest phase). The exact same source and accounting hashes are preserved.
+These local receipts do not substitute for the composed browser/CI gate.

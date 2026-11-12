@@ -109,3 +109,8 @@ Standard Docker wrappers hit local keychain-50 before resource creation; exact
 pinned-image SQL steps ran directly on an internal task-owned network. Added an
 actualSQL equality guard for full/selected projections across saved/manual/stale
 facts. No managed database, provider, deployment or accounting mutations.
+
+The actual full/selected projection-equivalence guard now also passes for3000
+saved decisions and manual/stale sources. Updated acceptance inventory distinguishes
+its original proposed obligations from implemented evidence and the merged487
+prerequisite. Full automatic application CI is still pending; flags remainoff.
