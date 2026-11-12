@@ -1,0 +1,1235 @@
+{
+  "edition": "plaid-pfc-primary-2026-11-11",
+  "source_sha256": "c585fae8e48b834f78791c13c1fd013ae8594df337cf27f4de85bf9cae89f1bc",
+  "topics": [
+    {
+      "code": "BANK_FEES",
+      "name": "Bank fees"
+    },
+    {
+      "code": "ENTERTAINMENT",
+      "name": "Entertainment"
+    },
+    {
+      "code": "FOOD_AND_DRINK",
+      "name": "Food and drink"
+    },
+    {
+      "code": "GENERAL_MERCHANDISE",
+      "name": "General merchandise"
+    },
+    {
+      "code": "GENERAL_SERVICES",
+      "name": "General services"
+    },
+    {
+      "code": "GOVERNMENT_AND_NON_PROFIT",
+      "name": "Government and nonprofit"
+    },
+    {
+      "code": "HOME_IMPROVEMENT",
+      "name": "Home improvement"
+    },
+    {
+      "code": "INCOME",
+      "name": "Income"
+    },
+    {
+      "code": "LOAN_DISBURSEMENTS",
+      "name": "Loan disbursements"
+    },
+    {
+      "code": "LOAN_PAYMENTS",
+      "name": "Loan payments"
+    },
+    {
+      "code": "MEDICAL",
+      "name": "Medical"
+    },
+    {
+      "code": "OTHER",
+      "name": "Other"
+    },
+    {
+      "code": "PERSONAL_CARE",
+      "name": "Personal care"
+    },
+    {
+      "code": "RENT_AND_UTILITIES",
+      "name": "Rent and utilities"
+    },
+    {
+      "code": "TRANSFER_IN",
+      "name": "Transfers in"
+    },
+    {
+      "code": "TRANSFER_OUT",
+      "name": "Transfers out"
+    },
+    {
+      "code": "TRANSPORTATION",
+      "name": "Transportation"
+    },
+    {
+      "code": "TRAVEL",
+      "name": "Travel"
+    }
+  ],
+  "pairs": [
+    {
+      "version": "v1",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_ATM_FEES"
+    },
+    {
+      "version": "v1",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_FOREIGN_TRANSACTION_FEES"
+    },
+    {
+      "version": "v1",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_INSUFFICIENT_FUNDS"
+    },
+    {
+      "version": "v1",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_INTEREST_CHARGE"
+    },
+    {
+      "version": "v1",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_OTHER_BANK_FEES"
+    },
+    {
+      "version": "v1",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_OVERDRAFT_FEES"
+    },
+    {
+      "version": "v1",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_CASINOS_AND_GAMBLING"
+    },
+    {
+      "version": "v1",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_MUSIC_AND_AUDIO"
+    },
+    {
+      "version": "v1",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_OTHER_ENTERTAINMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_SPORTING_EVENTS_AMUSEMENT_PARKS_AND_MUSEUMS"
+    },
+    {
+      "version": "v1",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_TV_AND_MOVIES"
+    },
+    {
+      "version": "v1",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_VIDEO_GAMES"
+    },
+    {
+      "version": "v1",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_BEER_WINE_AND_LIQUOR"
+    },
+    {
+      "version": "v1",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_COFFEE"
+    },
+    {
+      "version": "v1",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_FAST_FOOD"
+    },
+    {
+      "version": "v1",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_GROCERIES"
+    },
+    {
+      "version": "v1",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_OTHER_FOOD_AND_DRINK"
+    },
+    {
+      "version": "v1",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_RESTAURANT"
+    },
+    {
+      "version": "v1",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_VENDING_MACHINES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_BOOKSTORES_AND_NEWSSTANDS"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_CLOTHING_AND_ACCESSORIES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_CONVENIENCE_STORES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_DEPARTMENT_STORES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_DISCOUNT_STORES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_ELECTRONICS"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_GIFTS_AND_NOVELTIES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_OFFICE_SUPPLIES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_ONLINE_MARKETPLACES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_OTHER_GENERAL_MERCHANDISE"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_PET_SUPPLIES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_SPORTING_GOODS"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_SUPERSTORES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_TOBACCO_AND_VAPE"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_ACCOUNTING_AND_FINANCIAL_PLANNING"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_AUTOMOTIVE"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_CHILDCARE"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_CONSULTING_AND_LEGAL"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_EDUCATION"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_INSURANCE"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_OTHER_GENERAL_SERVICES"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_POSTAGE_AND_SHIPPING"
+    },
+    {
+      "version": "v1",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_STORAGE"
+    },
+    {
+      "version": "v1",
+      "primary": "GOVERNMENT_AND_NON_PROFIT",
+      "detailed": "GOVERNMENT_AND_NON_PROFIT_DONATIONS"
+    },
+    {
+      "version": "v1",
+      "primary": "GOVERNMENT_AND_NON_PROFIT",
+      "detailed": "GOVERNMENT_AND_NON_PROFIT_GOVERNMENT_DEPARTMENTS_AND_AGENCIES"
+    },
+    {
+      "version": "v1",
+      "primary": "GOVERNMENT_AND_NON_PROFIT",
+      "detailed": "GOVERNMENT_AND_NON_PROFIT_OTHER_GOVERNMENT_AND_NON_PROFIT"
+    },
+    {
+      "version": "v1",
+      "primary": "GOVERNMENT_AND_NON_PROFIT",
+      "detailed": "GOVERNMENT_AND_NON_PROFIT_TAX_PAYMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "HOME_IMPROVEMENT",
+      "detailed": "HOME_IMPROVEMENT_FURNITURE"
+    },
+    {
+      "version": "v1",
+      "primary": "HOME_IMPROVEMENT",
+      "detailed": "HOME_IMPROVEMENT_HARDWARE"
+    },
+    {
+      "version": "v1",
+      "primary": "HOME_IMPROVEMENT",
+      "detailed": "HOME_IMPROVEMENT_OTHER_HOME_IMPROVEMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "HOME_IMPROVEMENT",
+      "detailed": "HOME_IMPROVEMENT_REPAIR_AND_MAINTENANCE"
+    },
+    {
+      "version": "v1",
+      "primary": "HOME_IMPROVEMENT",
+      "detailed": "HOME_IMPROVEMENT_SECURITY"
+    },
+    {
+      "version": "v1",
+      "primary": "INCOME",
+      "detailed": "INCOME_DIVIDENDS"
+    },
+    {
+      "version": "v1",
+      "primary": "INCOME",
+      "detailed": "INCOME_INTEREST_EARNED"
+    },
+    {
+      "version": "v1",
+      "primary": "INCOME",
+      "detailed": "INCOME_OTHER_INCOME"
+    },
+    {
+      "version": "v1",
+      "primary": "INCOME",
+      "detailed": "INCOME_RETIREMENT_PENSION"
+    },
+    {
+      "version": "v1",
+      "primary": "INCOME",
+      "detailed": "INCOME_TAX_REFUND"
+    },
+    {
+      "version": "v1",
+      "primary": "INCOME",
+      "detailed": "INCOME_UNEMPLOYMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "INCOME",
+      "detailed": "INCOME_WAGES"
+    },
+    {
+      "version": "v1",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_CAR_PAYMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_MORTGAGE_PAYMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_OTHER_PAYMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_PERSONAL_LOAN_PAYMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_STUDENT_LOAN_PAYMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_DENTAL_CARE"
+    },
+    {
+      "version": "v1",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_EYE_CARE"
+    },
+    {
+      "version": "v1",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_NURSING_CARE"
+    },
+    {
+      "version": "v1",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_OTHER_MEDICAL"
+    },
+    {
+      "version": "v1",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_PHARMACIES_AND_SUPPLEMENTS"
+    },
+    {
+      "version": "v1",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_PRIMARY_CARE"
+    },
+    {
+      "version": "v1",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_VETERINARY_SERVICES"
+    },
+    {
+      "version": "v1",
+      "primary": "PERSONAL_CARE",
+      "detailed": "PERSONAL_CARE_GYMS_AND_FITNESS_CENTERS"
+    },
+    {
+      "version": "v1",
+      "primary": "PERSONAL_CARE",
+      "detailed": "PERSONAL_CARE_HAIR_AND_BEAUTY"
+    },
+    {
+      "version": "v1",
+      "primary": "PERSONAL_CARE",
+      "detailed": "PERSONAL_CARE_LAUNDRY_AND_DRY_CLEANING"
+    },
+    {
+      "version": "v1",
+      "primary": "PERSONAL_CARE",
+      "detailed": "PERSONAL_CARE_OTHER_PERSONAL_CARE"
+    },
+    {
+      "version": "v1",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_GAS_AND_ELECTRICITY"
+    },
+    {
+      "version": "v1",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_INTERNET_AND_CABLE"
+    },
+    {
+      "version": "v1",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_OTHER_UTILITIES"
+    },
+    {
+      "version": "v1",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_RENT"
+    },
+    {
+      "version": "v1",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_SEWAGE_AND_WASTE_MANAGEMENT"
+    },
+    {
+      "version": "v1",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_TELEPHONE"
+    },
+    {
+      "version": "v1",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_WATER"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_ACCOUNT_TRANSFER"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_CASH_ADVANCES_AND_LOANS"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_DEPOSIT"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_OTHER_TRANSFER_IN"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_SAVINGS"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_ACCOUNT_TRANSFER"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_OTHER_TRANSFER_OUT"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_SAVINGS"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_WITHDRAWAL"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_BIKES_AND_SCOOTERS"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_GAS"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_OTHER_TRANSPORTATION"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_PARKING"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_PUBLIC_TRANSIT"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_TAXIS_AND_RIDE_SHARES"
+    },
+    {
+      "version": "v1",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_TOLLS"
+    },
+    {
+      "version": "v1",
+      "primary": "TRAVEL",
+      "detailed": "TRAVEL_FLIGHTS"
+    },
+    {
+      "version": "v1",
+      "primary": "TRAVEL",
+      "detailed": "TRAVEL_LODGING"
+    },
+    {
+      "version": "v1",
+      "primary": "TRAVEL",
+      "detailed": "TRAVEL_OTHER_TRAVEL"
+    },
+    {
+      "version": "v1",
+      "primary": "TRAVEL",
+      "detailed": "TRAVEL_RENTAL_CARS"
+    },
+    {
+      "version": "v2",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_ATM_FEES"
+    },
+    {
+      "version": "v2",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_CASH_ADVANCE"
+    },
+    {
+      "version": "v2",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_FOREIGN_TRANSACTION_FEES"
+    },
+    {
+      "version": "v2",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_INSUFFICIENT_FUNDS"
+    },
+    {
+      "version": "v2",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_INTEREST_CHARGE"
+    },
+    {
+      "version": "v2",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_LATE_FEES"
+    },
+    {
+      "version": "v2",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_OTHER_BANK_FEES"
+    },
+    {
+      "version": "v2",
+      "primary": "BANK_FEES",
+      "detailed": "BANK_FEES_OVERDRAFT_FEES"
+    },
+    {
+      "version": "v2",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_CASINOS_AND_GAMBLING"
+    },
+    {
+      "version": "v2",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_MUSIC_AND_AUDIO"
+    },
+    {
+      "version": "v2",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_OTHER_ENTERTAINMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_SPORTING_EVENTS_AMUSEMENT_PARKS_AND_MUSEUMS"
+    },
+    {
+      "version": "v2",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_TV_AND_MOVIES"
+    },
+    {
+      "version": "v2",
+      "primary": "ENTERTAINMENT",
+      "detailed": "ENTERTAINMENT_VIDEO_GAMES"
+    },
+    {
+      "version": "v2",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_BEER_WINE_AND_LIQUOR"
+    },
+    {
+      "version": "v2",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_COFFEE"
+    },
+    {
+      "version": "v2",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_FAST_FOOD"
+    },
+    {
+      "version": "v2",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_GROCERIES"
+    },
+    {
+      "version": "v2",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_OTHER_FOOD_AND_DRINK"
+    },
+    {
+      "version": "v2",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_RESTAURANT"
+    },
+    {
+      "version": "v2",
+      "primary": "FOOD_AND_DRINK",
+      "detailed": "FOOD_AND_DRINK_VENDING_MACHINES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_BOOKSTORES_AND_NEWSSTANDS"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_CLOTHING_AND_ACCESSORIES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_CONVENIENCE_STORES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_DEPARTMENT_STORES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_DISCOUNT_STORES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_ELECTRONICS"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_GIFTS_AND_NOVELTIES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_OFFICE_SUPPLIES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_ONLINE_MARKETPLACES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_OTHER_GENERAL_MERCHANDISE"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_PET_SUPPLIES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_SPORTING_GOODS"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_SUPERSTORES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_MERCHANDISE",
+      "detailed": "GENERAL_MERCHANDISE_TOBACCO_AND_VAPE"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_ACCOUNTING_AND_FINANCIAL_PLANNING"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_AUTOMOTIVE"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_CHILDCARE"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_CONSULTING_AND_LEGAL"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_EDUCATION"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_INSURANCE"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_OTHER_GENERAL_SERVICES"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_POSTAGE_AND_SHIPPING"
+    },
+    {
+      "version": "v2",
+      "primary": "GENERAL_SERVICES",
+      "detailed": "GENERAL_SERVICES_STORAGE"
+    },
+    {
+      "version": "v2",
+      "primary": "GOVERNMENT_AND_NON_PROFIT",
+      "detailed": "GOVERNMENT_AND_NON_PROFIT_DONATIONS"
+    },
+    {
+      "version": "v2",
+      "primary": "GOVERNMENT_AND_NON_PROFIT",
+      "detailed": "GOVERNMENT_AND_NON_PROFIT_GOVERNMENT_DEPARTMENTS_AND_AGENCIES"
+    },
+    {
+      "version": "v2",
+      "primary": "GOVERNMENT_AND_NON_PROFIT",
+      "detailed": "GOVERNMENT_AND_NON_PROFIT_OTHER_GOVERNMENT_AND_NON_PROFIT"
+    },
+    {
+      "version": "v2",
+      "primary": "GOVERNMENT_AND_NON_PROFIT",
+      "detailed": "GOVERNMENT_AND_NON_PROFIT_TAX_PAYMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "HOME_IMPROVEMENT",
+      "detailed": "HOME_IMPROVEMENT_FURNITURE"
+    },
+    {
+      "version": "v2",
+      "primary": "HOME_IMPROVEMENT",
+      "detailed": "HOME_IMPROVEMENT_HARDWARE"
+    },
+    {
+      "version": "v2",
+      "primary": "HOME_IMPROVEMENT",
+      "detailed": "HOME_IMPROVEMENT_OTHER_HOME_IMPROVEMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "HOME_IMPROVEMENT",
+      "detailed": "HOME_IMPROVEMENT_REPAIR_AND_MAINTENANCE"
+    },
+    {
+      "version": "v2",
+      "primary": "HOME_IMPROVEMENT",
+      "detailed": "HOME_IMPROVEMENT_SECURITY"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_CHILD_SUPPORT"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_CONTRACTOR"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_DIVIDENDS"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_GIG_ECONOMY"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_INTEREST_EARNED"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_LONG_TERM_DISABILITY"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_MILITARY"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_OTHER"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_RENTAL"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_RETIREMENT_PENSION"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_SALARY"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_TAX_REFUND"
+    },
+    {
+      "version": "v2",
+      "primary": "INCOME",
+      "detailed": "INCOME_UNEMPLOYMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_DISBURSEMENTS",
+      "detailed": "LOAN_DISBURSEMENTS_AUTO"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_DISBURSEMENTS",
+      "detailed": "LOAN_DISBURSEMENTS_CASH_ADVANCES"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_DISBURSEMENTS",
+      "detailed": "LOAN_DISBURSEMENTS_EWA"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_DISBURSEMENTS",
+      "detailed": "LOAN_DISBURSEMENTS_MORTGAGE"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_DISBURSEMENTS",
+      "detailed": "LOAN_DISBURSEMENTS_OTHER_DISBURSEMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_DISBURSEMENTS",
+      "detailed": "LOAN_DISBURSEMENTS_PERSONAL"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_DISBURSEMENTS",
+      "detailed": "LOAN_DISBURSEMENTS_STUDENT"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_BNPL"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_CAR_PAYMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_CASH_ADVANCES"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_EWA"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_MORTGAGE_PAYMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_OTHER_PAYMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_PERSONAL_LOAN_PAYMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "LOAN_PAYMENTS",
+      "detailed": "LOAN_PAYMENTS_STUDENT_LOAN_PAYMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_DENTAL_CARE"
+    },
+    {
+      "version": "v2",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_EYE_CARE"
+    },
+    {
+      "version": "v2",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_NURSING_CARE"
+    },
+    {
+      "version": "v2",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_OTHER_MEDICAL"
+    },
+    {
+      "version": "v2",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_PHARMACIES_AND_SUPPLEMENTS"
+    },
+    {
+      "version": "v2",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_PRIMARY_CARE"
+    },
+    {
+      "version": "v2",
+      "primary": "MEDICAL",
+      "detailed": "MEDICAL_VETERINARY_SERVICES"
+    },
+    {
+      "version": "v2",
+      "primary": "OTHER",
+      "detailed": "OTHER_OTHER"
+    },
+    {
+      "version": "v2",
+      "primary": "PERSONAL_CARE",
+      "detailed": "PERSONAL_CARE_GYMS_AND_FITNESS_CENTERS"
+    },
+    {
+      "version": "v2",
+      "primary": "PERSONAL_CARE",
+      "detailed": "PERSONAL_CARE_HAIR_AND_BEAUTY"
+    },
+    {
+      "version": "v2",
+      "primary": "PERSONAL_CARE",
+      "detailed": "PERSONAL_CARE_LAUNDRY_AND_DRY_CLEANING"
+    },
+    {
+      "version": "v2",
+      "primary": "PERSONAL_CARE",
+      "detailed": "PERSONAL_CARE_OTHER_PERSONAL_CARE"
+    },
+    {
+      "version": "v2",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_GAS_AND_ELECTRICITY"
+    },
+    {
+      "version": "v2",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_INTERNET_AND_CABLE"
+    },
+    {
+      "version": "v2",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_OTHER_UTILITIES"
+    },
+    {
+      "version": "v2",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_RENT"
+    },
+    {
+      "version": "v2",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_SEWAGE_AND_WASTE_MANAGEMENT"
+    },
+    {
+      "version": "v2",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_TELEPHONE"
+    },
+    {
+      "version": "v2",
+      "primary": "RENT_AND_UTILITIES",
+      "detailed": "RENT_AND_UTILITIES_WATER"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_ACCOUNT_TRANSFER"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_DEPOSIT"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_OTHER_TRANSFER_IN"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_SAVINGS"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_TRANSFER_IN_FROM_APPS"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_IN",
+      "detailed": "TRANSFER_IN_WIRE"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_ACCOUNT_TRANSFER"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_CRYPTO"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_OTHER_TRANSFER_OUT"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_SAVINGS"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_TRANSFER_OUT_FROM_APPS"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_WIRE"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSFER_OUT",
+      "detailed": "TRANSFER_OUT_WITHDRAWAL"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_BIKES_AND_SCOOTERS"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_GAS"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_OTHER_TRANSPORTATION"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_PARKING"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_PUBLIC_TRANSIT"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_TAXIS_AND_RIDE_SHARES"
+    },
+    {
+      "version": "v2",
+      "primary": "TRANSPORTATION",
+      "detailed": "TRANSPORTATION_TOLLS"
+    },
+    {
+      "version": "v2",
+      "primary": "TRAVEL",
+      "detailed": "TRAVEL_FLIGHTS"
+    },
+    {
+      "version": "v2",
+      "primary": "TRAVEL",
+      "detailed": "TRAVEL_LODGING"
+    },
+    {
+      "version": "v2",
+      "primary": "TRAVEL",
+      "detailed": "TRAVEL_OTHER_TRAVEL"
+    },
+    {
+      "version": "v2",
+      "primary": "TRAVEL",
+      "detailed": "TRAVEL_RENTAL_CARS"
+    }
+  ]
+}

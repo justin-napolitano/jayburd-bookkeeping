@@ -349,6 +349,9 @@ export function collectionFixture(
           (!q.starts_on || row.booked_date >= q.starts_on) &&
           (!q.through_date || row.booked_date <= q.through_date) &&
           (q.topic.kind === "all" ||
+            (q.topic.kind === "needs_attention" &&
+              row.source_state === "booked" &&
+              row.categorization?.state === "needs_attention") ||
             (row.owner_topic.state === q.topic.kind &&
               (q.topic.kind !== "topic" ||
                 (row.owner_topic.state === "topic" &&

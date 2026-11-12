@@ -393,6 +393,15 @@ func TestSourceRegistryPrivileges(t *testing.T) {
 		allowed := []string{}
 		if role == "bookkeeping_api" {
 			allowed = []string{"get_source", "register_import_batch", "import_context", "publish_import_preview", "get_import_batch", "get_review_item", "list_sources", "list_review_items", "search_review_items", "query_source_activity", "review_categories", "create_review_draft", "get_collection_workspace", "list_collection_sources", "query_collection_observations", "register_collection_item", "publish_collection_batch", "set_collection_state", "adopt_collection_item", "get_collection_taxonomy", "query_collection_review", "preview_collection_labels", "prepare_collection_label_command", "pending_collection_label_command", "transition_collection_label_command", "get_collection_taxonomy_v2", "query_collection_review_v2", "preview_collection_labels_v2", "prepare_collection_label_command_v2", "pending_collection_label_command_v2", "transition_collection_label_command_v2", "collection_recovery_status", "clear_collection_recovery", "get_collection_taxonomy_v3", "query_collection_review_v3", "get_collection_detail", "collection_rule_context", "publish_collection_rule_preview", "preview_collection_labels_v3", "prepare_collection_label_command_v3", "pending_collection_label_command_v3", "transition_collection_label_command_v3", "get_collection_onboarding", "preview_collection_onboarding", "prepare_collection_onboarding", "pending_collection_onboarding", "transition_collection_onboarding", "clear_collection_onboarding"}
+			// Migration48 adds only these reviewed automatic-category entrypoints.
+			allowed = append(allowed,
+				"get_collection_automation",
+				"set_collection_automation",
+				"collection_automation_work",
+				"collection_automation_context",
+				"prepare_collection_automatic_run",
+				"execute_collection_automatic_run",
+			)
 		}
 		if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='banking' AND has_function_privilege($1,p.oid,'EXECUTE')<>(p.proname=ANY($2::text[]))`, role, allowed) != "0" {
 			t.Fatal("function privileges")
@@ -404,6 +413,15 @@ func TestSourceRegistryPrivileges(t *testing.T) {
 		allowed := []string{}
 		if role == "bookkeeping_api" {
 			allowed = []string{"get_collection_workspace(uuid)", "list_collection_sources(uuid, uuid, text)", "query_collection_observations(uuid, uuid, text)", "register_collection_item(uuid, uuid, text, text)", "publish_collection_batch(uuid, uuid, uuid, text, text)", "set_collection_state(uuid, uuid, text, text)", "adopt_collection_item(uuid, uuid, uuid, uuid, uuid, text, text)", "get_collection_taxonomy(uuid, uuid)", "query_collection_review(uuid, uuid, text)", "preview_collection_labels(uuid, uuid, text)", "prepare_collection_label_command(uuid, uuid, text)", "pending_collection_label_command(uuid, uuid)", "transition_collection_label_command(uuid, uuid, uuid, text, text)", "get_collection_taxonomy_v2(uuid, uuid)", "query_collection_review_v2(uuid, uuid, text)", "preview_collection_labels_v2(uuid, uuid, text)", "prepare_collection_label_command_v2(uuid, uuid, text)", "pending_collection_label_command_v2(uuid, uuid)", "transition_collection_label_command_v2(uuid, uuid, uuid, text, text)", "collection_recovery_status(uuid)", "clear_collection_recovery(uuid, text)", "get_collection_taxonomy_v3(uuid, uuid)", "query_collection_review_v3(uuid, uuid, text)", "get_collection_detail(uuid, uuid, text)", "collection_rule_context(uuid, uuid, text, boolean)", "publish_collection_rule_preview(uuid, uuid, text, text)", "preview_collection_labels_v3(uuid, uuid, text)", "prepare_collection_label_command_v3(uuid, uuid, text)", "pending_collection_label_command_v3(uuid, uuid)", "transition_collection_label_command_v3(uuid, uuid, uuid, text, text)", "get_collection_onboarding(uuid)", "preview_collection_onboarding(uuid, text)", "prepare_collection_onboarding(uuid, text)", "pending_collection_onboarding(uuid)", "transition_collection_onboarding(uuid, uuid, text, text)", "clear_collection_onboarding(uuid, text)"}
+			// Migration48 adds only these reviewed automatic-category entrypoints.
+			allowed = append(allowed,
+				"get_collection_automation(uuid, uuid)",
+				"set_collection_automation(uuid, uuid, text)",
+				"collection_automation_work()",
+				"collection_automation_context(uuid, uuid)",
+				"prepare_collection_automatic_run(uuid, uuid, text, text)",
+				"execute_collection_automatic_run(uuid, uuid, uuid)",
+			)
 		}
 		if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='banking' AND p.proname LIKE '%collection%' AND has_function_privilege($1,p.oid,'EXECUTE')<>((p.proname||'('||oidvectortypes(p.proargtypes)||')')=ANY($2::text[]))`, role, allowed) != "0" {
 			t.Fatalf("collection function privileges for %s", role)

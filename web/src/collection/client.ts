@@ -1,3 +1,4 @@
+import { createAutomationPort } from "./automation";
 import { validRuleCatalog } from "./rules";
 import { APIError, type API } from "../bookkeeping/api";
 import {
@@ -74,6 +75,10 @@ export async function discoverCollection(
     !revision(catalog.ruleset_revision) ||
     !revision(catalog.map_revision) ||
     !revision(catalog.tag_revision) ||
+    (catalog.automatic_categorization !== undefined &&
+      (!record(catalog.automatic_categorization) ||
+        catalog.automatic_categorization.state !== "available" ||
+        Object.keys(catalog.automatic_categorization).length !== 1)) ||
     !validReadCatalog(catalog) ||
     !validRuleCatalog(catalog.rules) ||
     !validTags(catalog.tags) ||
@@ -95,6 +100,9 @@ export async function discoverCollection(
   return {
     workspace: context,
     catalog: {
+      ...(catalog.automatic_categorization
+        ? { automatic_categorization: { state: "available" as const } }
+        : {}),
       rules: catalog.rules,
       books: catalog.books,
       currencies: catalog.currencies,
@@ -182,6 +190,7 @@ export function createCollectionPort(api: API): CollectionPort {
         {},
       ))!;
   return {
+    automation: createAutomationPort(api),
     query: ({ workspace_id, ...request }) =>
       read(
         `/v3/collections/${encodeURIComponent(workspace_id)}/review/query`,
