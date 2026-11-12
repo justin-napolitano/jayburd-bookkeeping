@@ -73,3 +73,14 @@ skips schema48 tests even on an isolated network with no database. Existing
 Rule46 compatibility/recovery/primed-snapshot tests pass against the replacement
 context. Fresh migration/empty roundtrip and core check/test/build pass; final
 canonical browser/repair-head acceptance still requires CI.
+
+The next canonical run exposed first-preparation cost after catalog review was
+fixed. The final tuning retains the original private projections and caches only
+the database-created context/fingerprints/policy under existing locks. Prepare
+requires exact cached context plus current policy and complete snapshot pins;
+existing SQL result validation and fresh execution fingerprints remain. Caller
+facts cannot populate the private cache. Actual2CPU3000row proof now passes in
+55.60s, longest bounded workspace phase2.278s; four actual cache boundary cases
+reject forged/stale facts, preserve inert replay, deny direct table access and
+prove GET leaves state unchanged. Private projection-inlining and JIT experiments
+were discarded; no role/session JIT change ships and all4second limits remain.

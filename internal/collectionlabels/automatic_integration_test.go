@@ -4,12 +4,14 @@ package collectionlabels
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -121,11 +123,17 @@ func TestAuto48WholeResult(t *testing.T) {
 	rule46Catalog(t, s, w, "history-rule", rule46Rule("00000000-0000-4000-8000-000000006001", "Fictional cafe rule", "Fictional Cafe", childTopic))
 	before := rule46Hash(t, owner)
 	worker := &AutomaticService{DB: pool}
+	var longestPhase time.Duration
 	for i := 0; i < 60; i++ {
+		started := time.Now()
 		if e := worker.Step(context.Background()); e != nil {
-			t.Fatalf("bounded phase%d: %v", i, e)
+			t.Fatalf("bounded phase%d after %s: %v", i, time.Since(started), e)
+		}
+		if elapsed := time.Since(started); elapsed > longestPhase {
+			longestPhase = elapsed
 		}
 	}
+	t.Logf("3000 facts / 30 runs; longest bounded workspace phase %s", longestPhase)
 	if value(t, owner, "SELECT count(*)::text FROM banking.collection_automatic_decision") != "3000" || value(t, owner, "SELECT count(*)::text FROM banking.collection_automatic_run") != "30" {
 		t.Fatal("bounded backfill did not finish exactly")
 	}
@@ -481,5 +489,91 @@ func TestAuto48RetainedRollback(t *testing.T) {
 	exec(t, owner, "ROLLBACK")
 	if value(t, owner, "SELECT count(*)::text FROM banking.collection_automatic_decision") != "1" || value(t, owner, "SELECT count(*)::text FROM banking.collection_automatic_run WHERE state='committed'") != "1" {
 		t.Fatal("failed downgrade erased evidence")
+	}
+}
+
+// TestAuto48ContextCache proves the retained SQL context is an authority boundary, not caller-supplied facts.
+func TestAuto48ContextCache(t *testing.T) {
+	for _, scenario := range []string{"private_cache_and_read_only_status", "changed_context", "source_changed_before_prepare", "same_context_prepare_replay"} {
+		t.Run(scenario, func(t *testing.T) {
+			owner, _, db := auto48Fixture(t)
+			w := provision(t, db, actor)
+			_, sources := register(t, db, w, actor, "cache48", 1)
+			if _, e := publish(t, db, w, sources[0], "facts", "0", nil, "c1", []map[string]any{change("one", "0.10", "USD")}); e != nil {
+				t.Fatal(e)
+			}
+			if scenario == "private_cache_and_read_only_status" {
+				before := value(t, owner, "SELECT to_jsonb(s)::text FROM banking.collection_automation_state s WHERE workspace_id=$1", w)
+				if _, e := call(t, db, "synthetic_runtime", "repeatable read", "SELECT banking.get_collection_automation($1,$2)", actor, w); e != nil {
+					t.Fatal(e)
+				}
+				if before != value(t, owner, "SELECT to_jsonb(s)::text FROM banking.collection_automation_state s WHERE workspace_id=$1", w) {
+					t.Fatal("public status changed private automation state")
+				}
+			}
+			wrapper, e := call(t, db, "synthetic_runtime", "serializable", "SELECT banking.collection_automation_context($1,$2)", actor, w)
+			if e != nil || wrapper["state"] != "ready" {
+				t.Fatal("SQL context unavailable", e)
+			}
+			c := wrapper["context"].(map[string]any)
+			var typed ruleContext
+			if e = json.Unmarshal([]byte(raw(c)), &typed); e != nil {
+				t.Fatal(e)
+			}
+			results, e := evaluateRuleContext(context.Background(), typed, false)
+			if e != nil || len(results) != 1 {
+				t.Fatal("existing matcher unavailable", e)
+			}
+			payload := raw(map[string]any{"results": results})
+			switch scenario {
+			case "private_cache_and_read_only_status":
+				runtime := connect(t, db, "synthetic_runtime")
+				defer runtime.Close(context.Background())
+				for _, q := range []string{"SELECT context_cache FROM banking.collection_automation_state", "UPDATE banking.collection_automation_state SET context_cache='{}'::jsonb"} {
+					_, e = runtime.Exec(context.Background(), q)
+					code(t, e, "42501")
+				}
+				before := value(t, owner, "SELECT to_jsonb(s)::text FROM banking.collection_automation_state s WHERE workspace_id=$1", w)
+				if _, e = call(t, db, "synthetic_runtime", "repeatable read", "SELECT banking.get_collection_automation($1,$2)", actor, w); e != nil {
+					t.Fatal(e)
+				}
+				if before != value(t, owner, "SELECT to_jsonb(s)::text FROM banking.collection_automation_state s WHERE workspace_id=$1", w) {
+					t.Fatal("status mutated or cleared an authorized retained context")
+				}
+			case "changed_context":
+				c["facts"].([]any)[0].(map[string]any)["description"] = "Fictional caller-altered context"
+				_, e = call(t, db, "synthetic_runtime", "serializable", "SELECT banking.prepare_collection_automatic_run($1,$2,$3,$4)", actor, w, raw(c), payload)
+				code(t, e, "P2803")
+				if value(t, owner, "SELECT context_cache#>>'{context,facts,0,description}' FROM banking.collection_automation_state WHERE workspace_id=$1", w) != "Fictional cafe purchase" {
+					t.Fatal("caller replaced the SQL-owned context")
+				}
+			case "source_changed_before_prepare":
+				modified := change("one", "0.20", "USD")
+				modified["operation"] = "modified"
+				if _, e = publish(t, db, w, sources[0], "changed", "1", "c1", "c2", []map[string]any{modified}); e != nil {
+					t.Fatal(e)
+				}
+				_, e = call(t, db, "synthetic_runtime", "serializable", "SELECT banking.prepare_collection_automatic_run($1,$2,$3,$4)", actor, w, raw(c), payload)
+				code(t, e, "P2803")
+			case "same_context_prepare_replay":
+				first, e := call(t, db, "synthetic_runtime", "serializable", "SELECT banking.prepare_collection_automatic_run($1,$2,$3,$4)", actor, w, raw(c), payload)
+				if e != nil || first["state"] != "prepared" {
+					t.Fatal("inert plan unavailable", e)
+				}
+				again, e := call(t, db, "synthetic_runtime", "serializable", "SELECT banking.prepare_collection_automatic_run($1,$2,$3,$4)", actor, w, raw(c), payload)
+				if e != nil || raw(first) != raw(again) || value(t, owner, "SELECT count(*)::text FROM banking.collection_automatic_run") != "1" {
+					t.Fatal("same context/result did not recover its exact inert plan", e)
+				}
+			}
+			wantRuns := "0"
+			if scenario == "same_context_prepare_replay" {
+				wantRuns = "1"
+			}
+			if value(t, owner, "SELECT count(*)::text FROM banking.collection_automatic_run") != wantRuns ||
+				value(t, owner, "SELECT count(*)::text FROM banking.collection_automatic_decision") != "0" ||
+				value(t, owner, "SELECT count(*)::text FROM ledger.journal_entry") != "0" {
+				t.Fatal("cache validation created unintended effects")
+			}
+		})
 	}
 }
