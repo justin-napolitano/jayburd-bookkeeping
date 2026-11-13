@@ -1,0 +1,77 @@
+.importer {
+  flex-basis: 100%;
+  min-width: 0;
+  border-block: 1px solid #dce3e7;
+  padding: 1rem 0;
+  margin-block: 0.5rem;
+}
+.heading,
+.actions,
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.heading {
+  justify-content: space-between;
+}
+.heading h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+.importer p {
+  max-width: 78ch;
+  margin-block: 0.65rem;
+  font-size: 0.875rem;
+}
+.importer textarea {
+  width: 100%;
+  min-height: 16rem;
+  padding: 0.75rem;
+  font:
+    0.8125rem/1.6 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+  color: #26343d;
+  background: #f7f9fa;
+  border: 1px solid #a9b7bc;
+  border-radius: 4px;
+  resize: vertical;
+}
+.importer label {
+  font-size: 0.8125rem;
+}
+.importer input[type="file"] {
+  max-width: 100%;
+  font-size: 0.8125rem;
+  padding: 0.25rem 0;
+}
+.hint,
+.notice {
+  color: #526762;
+}
+.notice,
+.error {
+  flex-basis: 100%;
+  font-size: 0.875rem;
+  margin: 0.25rem 0;
+}
+.error {
+  color: #9d3430;
+}
+.summary {
+  justify-content: space-between;
+  padding-top: 0.75rem;
+}
+.importer :focus-visible {
+  outline: 2px solid #286044;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

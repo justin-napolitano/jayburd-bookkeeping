@@ -174,3 +174,84 @@ it("displays and previews multiline literal condition text without input sanitiz
   );
   expect(preview.mock.calls[0][0][0].conditions[0].value).toBe(value);
 });
+
+it("filters the inventory without losing other draft edits or mounting multiple editors", async () => {
+  const preview = vi.fn();
+  const second: RuleDefinition = {
+    ...rule,
+    rule_id: "86000000-0000-4000-8000-000000000002",
+    name: "Fictional train rule",
+    conditions: [
+      { field: "description", operator: "contains", value: "Train" },
+    ],
+  };
+  render(
+    <RuleEditor
+      catalog={{ ...collectionCatalog, rules: [rule, second] }}
+      sources={collectionSources}
+      disabled={false}
+      onPreview={preview}
+    />,
+  );
+  await userEvent.click(screen.getByText("Manage rules", { exact: true }));
+  expect(
+    screen.getByRole("table", { name: "Private categorization rules" }),
+  ).toBeTruthy();
+  await userEvent.clear(screen.getByLabelText("Rule 1 name", { exact: true }));
+  await userEvent.type(
+    screen.getByLabelText("Rule 1 name", { exact: true }),
+    "Updated meal rule",
+  );
+  await userEvent.type(
+    screen.getByRole("searchbox", { name: "Search rules" }),
+    "train",
+  );
+  expect(
+    screen.queryByRole("button", { name: "Updated meal rule" }),
+  ).toBeNull();
+  await userEvent.click(
+    screen.getByRole("button", { name: "Fictional train rule" }),
+  );
+  expect(screen.queryByLabelText("Rule 1 name", { exact: true })).toBeNull();
+  expect(screen.getByLabelText("Rule 2 name", { exact: true })).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: "Close editor" }));
+  expect(screen.queryByLabelText("Rule 2 name", { exact: true })).toBeNull();
+  await userEvent.click(
+    screen.getByRole("button", { name: "Preview rule changes" }),
+  );
+  expect(preview).toHaveBeenCalledExactlyOnceWith([
+    { ...rule, name: "Updated meal rule" },
+    second,
+  ]);
+});
+
+it("locks table editing and bulk rule actions while saved work owns the workspace", async () => {
+  const preview = vi.fn();
+  render(
+    <RuleEditor
+      catalog={{ ...collectionCatalog, rules: [rule] }}
+      sources={collectionSources}
+      disabled
+      onPreview={preview}
+    />,
+  );
+  await userEvent.click(screen.getByText("Manage rules", { exact: true }));
+  for (const name of [
+    "Import YAML",
+    "Export YAML",
+    "Add rule",
+    "Fictional meal rule",
+    "Close editor",
+    "Preview rule changes",
+  ]) {
+    expect(
+      (screen.getByRole("button", { name }) as HTMLButtonElement).matches(
+        ":disabled",
+      ),
+    ).toBe(true);
+  }
+  await userEvent.click(
+    screen.getByRole("button", { name: "Fictional meal rule" }),
+  );
+  expect(preview).not.toHaveBeenCalled();
+});

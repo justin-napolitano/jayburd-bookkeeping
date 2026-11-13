@@ -24,6 +24,7 @@ immutable posted history and saved-work recovery.
 | Source-backed posting | [Artifact policy](contracts/artifact-backed-accounting.md), [source review SQL](contracts/source-review-sql.md), [command recovery](contracts/command-recovery.md) |
 | Private setup and retained-history adoption | [Onboarding](contracts/collection-onboarding.md), [source stages](runbooks/collection-onboarding.md), [controlled release](runbooks/onboarding-sandbox-rollout.md) |
 | Transactions, labels, tags and rules | [Query/rules](contracts/collection-query-rules.md), [labels](contracts/collection-labels.md), [tags/recovery](contracts/collection-tags-recovery.md), [composed delivery](runbooks/query-rules-build.md) |
+| YAML rule packs and compact rule workspace | [Format/boundary](contracts/rule-packs.md), [source delivery](runbooks/rule-workspace.md) |
 | Reports and exports | [Reporting](contracts/financial-reporting.md), [CSV](contracts/report-export.md), [journal drill](contracts/report-drill.md) |
 | Synthetic automatic category rollout | [Current scoped release](runbooks/automatic-category-rollout.md); GitHub485 owns execution and actual results |
 | Current banking UI/release evidence | [Customer UI](runbooks/customer-banking-ui.md), [web rollout](runbooks/customer-ui-web-release.md); owner visual review stays distinct |
