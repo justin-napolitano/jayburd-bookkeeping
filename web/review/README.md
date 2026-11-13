@@ -8,6 +8,9 @@ No Next route imports this entry. Reloading discards sample changes.
 From web/, run `npm run review:build` to export
 `.local/frontend-review/jayburd-frontend-review.html` at the repository root.
 It is one self-contained HTML file that can be opened manually in a browser.
+Append `#rules` to review the compact rule inventory and local YAML import/export
+against fictional rules with real-format IDs. These edits remain in memory;
+preview displays a local summary and never invokes the application backend.
 The ordinary multi-file build is beside it. `npm run review:dev` serves the
 review on127.0.0.1:39093 where local socket permissions allow it.
 

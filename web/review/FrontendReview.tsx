@@ -146,6 +146,15 @@ export function FrontendReview() {
         <button type="button" disabled={locked} onClick={reset}>
           Reset sample
         </button>
+        <button
+          type="button"
+          disabled={locked}
+          onClick={() => {
+            window.location.hash = "rules";
+          }}
+        >
+          Review rule workspace
+        </button>
       </div>
       <div className="finance-workspace">
         <FinanceNavigation

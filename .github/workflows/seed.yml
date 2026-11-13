@@ -145,6 +145,7 @@ jobs:
             web/test-results/**/connected-accounts-*.png
             web/test-results/**/saved-work-*.png
             web/test-results/**/idle-customer-workspace.png
+            web/test-results/**/rule-workspace-*.png
           retention-days: 7
           if-no-files-found: error
           # Only the exact fictional HTML above is selected from the hidden build directory.
