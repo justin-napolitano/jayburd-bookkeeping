@@ -183,6 +183,8 @@ jobs:
       - name: Install Chromium for real application proof
         working-directory: web
         run: npx --no-install playwright install --with-deps chromium
+      - name: Automatic source-backed accounting and recovery through restricted SQL
+        run: make automatic-accounting-test
       - name: Durable automatic categories and whole-result exceptions proof
         run: make automatic-categorization-test
       - name: Automatic category application journey through Next and restricted SQL
