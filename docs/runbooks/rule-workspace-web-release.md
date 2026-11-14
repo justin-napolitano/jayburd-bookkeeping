@@ -33,6 +33,22 @@ for a different release. No broad Terraform runtime apply is part of500.
 
 ## Current evidence
 
+Owner2026-11-14 explicitly supersedes the privacy hold and authorizes making
+Jayburd public again for Actions, then completing500/488/334. Authenticated PATCH
+and independent GET confirm public visibility. No billing setting was changed.
+The identity rewrite is complete: current source is
+88fce16ad2dbbd71b755a2b8dbe90166b006a0f2; earlier source hashes and run43537686978
+above are historical, not candidate pins. Fresh trusted main build43543189976
+uses the corrected source. Separate exact transport-tooling Seed43543185473 and
+Infrastructure43543233712 are qualification runs, not deployment receipts.
+
+Fresh selected API/web/migrator readbacks equal all three original baseline
+projections exactly. No cloud mutation has been issued. Prepared independent
+candidate/runtime verifiers now pin the new source/run and a new explicit web
+revision name; earlier receipts remain preserved. API/migrator/worker/schema48
+remain outside this web release. Parallel334 source implementation and488
+synthetic category acceptance are separately claimed in65.
+
 Local API metadata reads with shell redirection hit credential-cache write
 restrictions. A direct selected-field gcloud describe succeeds without copying
 credentials, changing authentication or reading private values. Public projections
