@@ -1,20 +1,27 @@
 import { test, expect } from "@playwright/experimental-ct-react";
+import { resolve } from "node:path";
 import { chooseFinanceTool, financeNavItem } from "../finance-navigation";
 import { AutomaticHarness } from "./AutomaticHarness";
 
 // Only delivery is fault-injected: the settings mutation commits through production Next, Go and SQL.
-test("automatic categories preserve owner choices and recover the same settings request", async ({
+test("automatic categories persist YAML matches, protected choices, conflicts and settings recovery", async ({
   mount,
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   let interactiveMutations = 0;
+  let selectedRuleApplications = 0;
   page.on("request", (request) => {
     if (
       request.method() === "POST" &&
       /\/label-commands(?:\/|$)/.test(new URL(request.url()).pathname)
     )
       interactiveMutations++;
+    if (
+      request.method() === "POST" &&
+      /"kind"\s*:\s*"rules_apply"/.test(request.postData() ?? "")
+    )
+      selectedRuleApplications++;
   });
   const component = await mount(<AutomaticHarness />);
   await chooseFinanceTool(page, "Transactions");
@@ -174,6 +181,152 @@ test("automatic categories preserve owner choices and recover the same settings 
     last_run: { run_id: initial.last_run.run_id, state: "committed" },
   });
   expect(interactiveMutations).toBe(0);
+
+  // Import actual files through the product authoring/review flow, retaining the seeded cafe rule.
+  // Fixed expectations below are authored independently of the parser and Go matcher.
+  const saveYamlPack = async (file: string, preserved: number) => {
+    await page.getByText("Manage rules", { exact: true }).click();
+    await page
+      .getByRole("button", { name: "Import YAML", exact: true })
+      .click();
+    await page
+      .getByLabel("YAML file", { exact: true })
+      .setInputFiles(resolve(process.cwd(), "tests", "fixtures", file));
+    await expect(
+      page.getByLabel("Rule pack YAML", { exact: true }),
+    ).toHaveValue(/Fictional Unknown Shop/);
+    const beforeDraft = interactiveMutations;
+    await page
+      .getByRole("button", { name: "Validate YAML", exact: true })
+      .click();
+    await expect(
+      page.getByRole("status").filter({
+        hasText: `1 added · 0 updated · ${preserved} existing rules preserved`,
+      }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Add to draft", exact: true })
+      .click();
+    expect(interactiveMutations).toBe(beforeDraft);
+    await page
+      .getByRole("button", { name: "Preview rule changes", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Save rule review", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Confirm rule changes", exact: true })
+      .click();
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: "Rules updated. No journal was created." }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Acknowledge result", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Refresh transactions", exact: true }),
+    ).toBeEnabled();
+  };
+  const waitForRun = async (priorID: string, attention: string) => {
+    await expect
+      .poll(async () => {
+        const state = await (
+          await page.request.get(settingsURL, { headers })
+        ).json();
+        return (
+          state.last_run?.run_id !== priorID &&
+          state.last_run?.state === "committed" &&
+          state.last_run?.processed_count === "3" &&
+          state.processing_state === "idle" &&
+          state.pending_count === "0" &&
+          state.attention_count === attention
+        );
+      })
+      .toBe(true);
+    await page
+      .getByRole("button", { name: "Refresh transactions", exact: true })
+      .click();
+    return (await (await page.request.get(settingsURL, { headers })).json())
+      .last_run.run_id as string;
+  };
+  await saveYamlPack("automatic-yaml-eligible.yaml", 1);
+  const eligibleRun = await waitForRun(initial.last_run.run_id, "0");
+  await expect(
+    unknown.getByText("Fictional Automatic Food", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    unknown.getByText("Automatic · Your rule", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    unknown
+      .locator(".transaction-category")
+      .getByText("Fictional YAML shop food", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    protectedRow.getByText("Fictional Automatic Travel", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    protectedRow.getByText("Your choice", { exact: true }),
+  ).toBeVisible();
+
+  await saveYamlPack("automatic-yaml-conflict.yaml", 2);
+  const conflictRun = await waitForRun(eligibleRun, "1");
+  await expect(
+    unknown.getByText("Needs category", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    unknown.getByText("Your rules disagree", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    protectedRow.getByText("Fictional Automatic Travel", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    protectedRow.getByText("Your choice", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    routine.getByText("Automatic · Your rule", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Needs attention", exact: true })
+    .click();
+  await expect(rows.getByRole("listitem")).toHaveCount(1);
+  await expect(unknown).toBeVisible();
+  await page.getByText("Book, topic and date filters", { exact: true }).click();
+  await page
+    .getByRole("button", { name: "Reset filters", exact: true })
+    .click();
+  await expect(rows.getByRole("listitem")).toHaveCount(3);
+  expect(selectedRuleApplications).toBe(0);
+  // Two catalog reviews account for prepare/execute/ack requests; no per-transaction apply was invoked.
+  expect(interactiveMutations).toBe(6);
+
+  // A fresh mount discards every React draft and discovers the persisted editions/decisions again.
+  await component.unmount();
+  const reopened = await mount(<AutomaticHarness />);
+  await chooseFinanceTool(page, "Transactions");
+  await expect(
+    unknown.getByText("Your rules disagree", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    protectedRow.getByText("Your choice", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    protectedRow.getByText("Fictional Automatic Travel", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    routine.getByText("Fictional Automatic Food", { exact: true }),
+  ).toBeVisible();
+  const persisted = await (
+    await page.request.get(settingsURL, { headers })
+  ).json();
+  expect(persisted).toMatchObject({
+    enabled: true,
+    pending_count: "0",
+    attention_count: "1",
+    last_run: { run_id: conflictRun, state: "committed", processed_count: "3" },
+  });
   await page.screenshot({
     path: test.info().outputPath("fictional-automatic-mobile.png"),
     fullPage: true,
@@ -191,5 +344,5 @@ test("automatic categories preserve owner choices and recover the same settings 
     path: test.info().outputPath("fictional-automatic-desktop.png"),
     fullPage: true,
   });
-  await component.unmount();
+  await reopened.unmount();
 });

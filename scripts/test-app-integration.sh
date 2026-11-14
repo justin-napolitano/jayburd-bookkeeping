@@ -121,16 +121,19 @@ if [[ "$automatic_test" == true ]]; then
  (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-automatic.config.ts)
  # Independent durable-state oracles: analytic effects only, original units/history retained.
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_revision')" == 3 ]]
- [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_automatic_decision')" == 3 ]]
- [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_automatic_run WHERE state='committed'")" == 1 ]]
+ # Three fixed source rows are processed once initially and once per each of two YAML rule editions.
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_automatic_decision')" == 9 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_automatic_run WHERE state='committed'")" == 3 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT a.revision::text||':'||p.enabled::text FROM banking.collection_automation_state a JOIN banking.collection_automation_edition p USING(workspace_id,revision)")" == '2:true' ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_automation_setting_receipt')" == 2 ]]
  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.collection_label_decision')" == 1 ]]
- [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_label_command WHERE state='committed' AND acknowledged_at IS NOT NULL")" == 3 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.collection_label_command WHERE state='committed' AND acknowledged_at IS NOT NULL")" == 5 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT string_agg(amount_lexeme,',' ORDER BY amount) FROM banking.collection_revision")" == '0.10,0.20,0.30' ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT string_agg(booked_date::text||':'||currency_code||':'||direction||':'||amount_lexeme,',' ORDER BY booked_date) FROM banking.collection_revision")" == '2026-10-01:USD:outflow:0.30,2026-10-02:USD:outflow:0.10,2026-10-03:USD:outflow:0.20' ]]
  for table in ledger.journal_entry integration.outbox_message ledger.interactive_command_reservation; do
   [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM $table")" == 0 ]]
  done
- echo 'PASS: automatic categories and protected corrections through Next/Go/restricted SQL; no accounting effects'
+ echo 'PASS: YAML rule save, automatic match, protected correction, conflict and remount through Next/Go/restricted SQL; no accounting effects'
  exit 0
 fi
 if [[ "$onboarding_test" == true ]]; then
