@@ -1,0 +1,11 @@
+# Same rank and merchant as the eligible pack, but a different topic: must abstain.
+version: 1
+rules:
+  - id: 48800000-0000-4000-8000-000000000102
+    name: Fictional YAML shop travel conflict
+    priority: 20
+    conditions:
+      - field: merchant
+        operator: exact
+        value: Fictional Unknown Shop
+    topic: { name: Fictional Automatic Travel }
