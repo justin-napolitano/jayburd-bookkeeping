@@ -1,5 +1,7 @@
 # Research index
 
+[Rule workspace web release500](../runbooks/rule-workspace-web-release.md): selected Google Cloud image/no-traffic/promotion CLI and traffic lifecycle,2026-11-14; actual qualification remains separate.
+
 [Rule packs498](rule-pack-sources.md): YAML2 parser and owner-requested compact management, selected2026-11-12.
 
 [Go484](go-toolchain-2026-11.md): official selections2026-11-11.

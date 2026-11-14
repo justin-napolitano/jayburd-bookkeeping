@@ -15,7 +15,7 @@ automatic-categorization-browser:
 	bash scripts/test-app-integration.sh --automatic
 
 test:
-	node --test scripts/production-release-candidate.test.mjs scripts/production-build-proof.test.mjs scripts/production-image-build.test.mjs scripts/shared-production-foundation.test.mjs scripts/automatic-synthetic-release.test.mjs scripts/automatic-synthetic-smoke.test.mjs
+	node --test scripts/production-release-candidate.test.mjs scripts/production-build-proof.test.mjs scripts/production-image-build.test.mjs scripts/shared-production-foundation.test.mjs scripts/automatic-synthetic-release.test.mjs scripts/automatic-synthetic-smoke.test.mjs scripts/check-dev-transport.test.mjs
 	go test -race ./...
 	bash scripts/test-migration-files.sh
 

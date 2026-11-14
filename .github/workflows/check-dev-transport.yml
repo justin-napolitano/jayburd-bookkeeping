@@ -1,0 +1,26 @@
+name: Check development transport
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.actor_id == '55423093' && github.repository_id == '1414515318' && github.triggering_actor == 'justin-napolitano'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.18.0'
+      - name: Check the fixed development endpoints without credentials
+        run: node scripts/check-dev-transport.mjs "$RUNNER_TEMP/dev-transport.json"
+      - name: Retain selected transport statuses only
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dev-transport-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/dev-transport.json
+          if-no-files-found: error
+          retention-days: 90
