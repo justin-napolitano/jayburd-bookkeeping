@@ -164,7 +164,7 @@ test("lost acknowledgement opens an inert correction seed only after its exact c
   await expect(page.getByText(/saved review outcome is unknown/)).toBeVisible();
   await expect(
     page.getByRole("heading", {
-      name: "Rule conditions and outputs",
+      name: "Rules",
       exact: true,
     }),
   ).toHaveCount(0);

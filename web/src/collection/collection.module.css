@@ -573,3 +573,320 @@
     min-width: 0;
   }
 }
+
+/* Dense rule inventory and one focused editor keep catalog size out of page height. */
+.ruleWorkspace {
+  --rule-line: #dce3e7;
+  --rule-ink: #26343d;
+  --rule-muted: #62716e;
+  color: var(--rule-ink);
+  min-width: 0;
+}
+.ruleWorkspace h3 {
+  margin: 0.75rem 0 0.3rem;
+  font-size: 1.05rem;
+}
+.ruleWorkspace .ruleIntro,
+.ruleWorkspace .ruleHelp {
+  color: var(--rule-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0 0 0.8rem;
+  max-width: 78ch;
+}
+.ruleWorkspace .ruleCatalog {
+  display: block;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.ruleWorkspace .ruleToolbar,
+.ruleWorkspace .ruleFooter,
+.ruleWorkspace .ruleEditorHeading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+}
+.ruleWorkspace .ruleToolbar {
+  padding-block: 0.5rem;
+}
+.ruleWorkspace .ruleSearch {
+  flex: 1 1 180px;
+  margin: 0;
+}
+.ruleWorkspace button,
+.ruleWorkspace input:not([type="checkbox"]),
+.ruleWorkspace select,
+.ruleWorkspace textarea {
+  box-sizing: border-box;
+  min-height: 36px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  padding: 0.4rem 0.6rem;
+  margin: 0;
+  max-width: 100%;
+}
+.ruleWorkspace label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  gap: 0.25rem;
+  margin-block: 0.3rem;
+  min-width: 0;
+}
+.ruleWorkspace input:not([type="checkbox"]),
+.ruleWorkspace select,
+.ruleWorkspace textarea {
+  width: 100%;
+  color: var(--rule-ink);
+  border: 1px solid #b6c4c6;
+  background: #fff;
+}
+.ruleWorkspace :focus-visible {
+  outline: 2px solid #286044;
+  outline-offset: 2px;
+}
+.ruleLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  border-block: 1px solid var(--rule-line);
+  min-width: 0;
+}
+.ruleLayout:has(.ruleEdit) {
+  grid-template-columns: minmax(0, 1.3fr) minmax(330px, 1fr);
+}
+.ruleList {
+  min-width: 0;
+}
+.ruleListCount {
+  font-size: 0.75rem;
+  color: var(--rule-muted);
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--rule-line);
+}
+.ruleTableScroll {
+  min-width: 0;
+  max-height: 32rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.ruleTable {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  table-layout: auto;
+  text-align: left;
+}
+.ruleTable th,
+.ruleTable td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--rule-line);
+  vertical-align: top;
+  text-align: left;
+  max-width: 18rem;
+  overflow-wrap: anywhere;
+}
+.ruleTable thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--rule-muted);
+  background: #f7f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  white-space: nowrap;
+}
+.ruleTable tbody th {
+  min-width: 130px;
+  font-weight: 500;
+}
+.ruleTable tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.ruleWorkspace .ruleSelect {
+  text-align: left;
+  padding: 0;
+  min-height: 28px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ruleTable .ruleSelected > * {
+  background: #edf5ef;
+}
+.ruleSelected > th:first-child {
+  box-shadow: inset 3px 0 #286044;
+}
+.ruleActive,
+.ruleRetired {
+  display: inline-block;
+  border-radius: 3px;
+  padding: 0.1rem 0.35rem;
+  background: #e9f2ec;
+  color: #286044;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.ruleRetired {
+  background: #f3efe6;
+  color: #765b24;
+}
+.ruleMatch {
+  display: block;
+  min-width: 130px;
+  max-width: 22rem;
+  color: var(--rule-muted);
+  white-space: pre-wrap;
+}
+.ruleMatch > span {
+  color: var(--rule-ink);
+}
+.ruleEmpty {
+  padding: 1.25rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--rule-muted);
+  max-width: 60ch;
+}
+.ruleEmpty strong {
+  color: var(--rule-ink);
+  font-weight: 600;
+}
+.ruleEmpty p {
+  line-height: 1.5;
+  margin-block: 0.45rem 0;
+}
+.ruleWorkspace .ruleEdit {
+  border: 0;
+  border-left: 1px solid var(--rule-line);
+  margin: 0;
+  padding: 0.75rem 1rem;
+  min-width: 0;
+  display: block;
+  background: #fbfcfc;
+}
+.ruleWorkspace .ruleEdit > legend {
+  float: left;
+  width: 100%;
+  color: var(--rule-muted);
+  font-size: 0.75rem;
+  padding: 0;
+  margin-bottom: 0.4rem;
+}
+.ruleWorkspace .ruleEdit > legend + * {
+  clear: both;
+}
+.ruleEditorHeading {
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.ruleEditorHeading h4 {
+  font-size: 0.95rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ruleWorkspace .topicEdit {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
+  gap: 0.3rem 0.65rem;
+}
+.ruleWorkspace .ruleCondition {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.25rem 0.65rem;
+  padding-block: 0.3rem 0.6rem;
+  border-bottom: 1px solid var(--rule-line);
+  margin-bottom: 0.6rem;
+}
+.ruleWorkspace .ruleCondition > label:nth-child(3) {
+  grid-column: 1 / -1;
+}
+.ruleWorkspace .ruleCondition > button {
+  grid-column: 1 / -1;
+  justify-self: start;
+  font-size: 0.75rem;
+}
+.ruleWorkspace .ruleEdit > label {
+  margin-top: 0.65rem;
+}
+.ruleWorkspace .ruleEdit > fieldset {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--rule-line);
+  min-width: 0;
+}
+.ruleWorkspace .ruleEdit > fieldset > legend {
+  font-size: 0.8rem;
+}
+.ruleWorkspace .tagCheck {
+  min-height: 32px;
+}
+.ruleWorkspace .tagChecks {
+  border: 0;
+  padding: 0.2rem 0;
+  gap: 0.2rem 0.65rem;
+  max-height: 12rem;
+}
+.ruleWorkspace .ruleEdit > fieldset > p {
+  font-size: 0.75rem;
+  color: var(--rule-muted);
+  margin-block: 0.5rem 0;
+}
+.ruleWorkspace .ruleFooter {
+  justify-content: space-between;
+  padding: 0.75rem 0;
+}
+.ruleFooter > span {
+  font-size: 0.75rem;
+  color: var(--rule-muted);
+  max-width: 70ch;
+}
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 1050px) {
+  .ruleLayout:has(.ruleEdit) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ruleWorkspace .ruleEdit {
+    border-left: 0;
+    border-top: 1px solid var(--rule-line);
+  }
+  .ruleTableScroll {
+    max-height: 21rem;
+  }
+}
+@media (max-width: 600px) {
+  .ruleWorkspace .ruleToolbar {
+    align-items: stretch;
+  }
+  .ruleWorkspace .ruleSearch {
+    flex-basis: 100%;
+  }
+  .ruleWorkspace .ruleToolbar button {
+    flex: 1 1 auto;
+  }
+  .ruleWorkspace .ruleEdit {
+    padding: 0.75rem 0.5rem;
+  }
+  .ruleWorkspace .ruleFooter {
+    align-items: stretch;
+  }
+  .ruleWorkspace .ruleFooter > button {
+    width: 100%;
+  }
+}

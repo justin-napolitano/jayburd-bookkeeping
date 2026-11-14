@@ -1,5 +1,7 @@
 # Research index
 
+[Rule packs498](rule-pack-sources.md): YAML2 parser and owner-requested compact management, selected2026-11-12.
+
 [Go484](go-toolchain-2026-11.md): official selections2026-11-11.
 
 [Metrics](spending-metrics-sources.md): SM01–07, proposed.
