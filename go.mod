@@ -9,7 +9,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.20.1
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/plaid/plaid-go/v49 v49.0.0
-	golang.org/x/oauth2 v0.37.0
+	golang.org/x/oauth2 v0.38.0
 	google.golang.org/api v0.301.0
 )
 
