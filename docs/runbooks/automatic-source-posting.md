@@ -22,15 +22,17 @@ Source green tests and analytic category acceptance do not qualify live bookkeep
 | Local diagnostic | Go1.26.5 exact-dependency temporary modfile package and integration-tag compile PASS, secondary diagnostic only. Tracked Go1.26.11 download403; canonical gate required. Actual restricted SQL runner stops BEFORE SQL at missing pinned migrate-image pull credential-helper error; exact-digest cache reuse changes no pins and bypasses no auth/network/permission gate. |
 | Recovery follow-up | Root and independent reviewer accepted machine-only receipt observation so lost execute replies recover the same terminal identity before new work. Seventh restricted machine-only observation entrypoint implemented; status policy revision echo and actual pgx commit-loss fixtures for prepare/execute/observe written. Unit/compile diagnostics pass; actual SQL execution remains unproved. |
 
+| Remaining acceptance sources | Real two-session prepare/execute replay, saved-human-reservation deferral, retained edition/operation downgrade refusal, pinned migrate49→48→49, local fictional provider50→55 correction hold and pending/zero/precision/overlap cases now authored. Existing fixture permissions and original-unit assertions are independent. Sources compile under compatibility diagnostic; no actual SQL execution claimed. |
+
 ## Current evidence
 
 Source checkpoint compiles under the documented local compatibility diagnostic.
 SQL is unexecuted locally; the migration checksum/history and diff checks pass.
-No canonical CI, financial acceptance or broad334 completion is claimed.
+Required make check/test/build attempted at this checkpoint: all stop before Go execution because tracked1.26.11 is unavailable (connection reset/403 or cache permission). make test completed230 existing Node tooling tests, not financial acceptance. Root reports private Actions cannot begin job steps because account billing/spending limits; repository remains private. No canonical CI, financial acceptance or broad334 completion is claimed.
 
 ## Remaining work
 
-Execute newly written unknown-commit/revocation/foreign-unit/ACL/rollback proofs; add actual provider-change50-to55, pending/zero/overlap/held source, shared saved-work, concurrency and down/up/retained-history refusal proofs; independent final review; canonical pinned core/SQL/browser
+Execute all newly authored unknown-commit/revocation/foreign-unit/ACL/rollback/provider-change/state/shared-saved-work/concurrency/downgrade proofs; resolve any actual failures; independent final review; canonical pinned core/SQL/browser
 checks and root integration. Preserve existing manual wire, immutable history and
 current source authority. Transfer/split/FX execution and corrections remain separate.
 

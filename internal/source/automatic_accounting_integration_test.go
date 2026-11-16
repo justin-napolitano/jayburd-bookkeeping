@@ -5,11 +5,15 @@ package source
 import (
 	"context"
 	"errors"
+	"io/fs"
+	"strings"
+	"sync"
+	"testing"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/justin-napolitano/jayburd-bookkeeping/db/migrations"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/autopost"
-	"strings"
-	"testing"
 )
 
 const automaticRuleOut = "99000000-0000-4000-8000-000000000001"
@@ -19,6 +23,8 @@ const automaticRuleIn = "99000000-0000-4000-8000-000000000002"
 func automaticRule(id, sid, direction, offset, treatment string) map[string]any {
 	return map[string]any{"rule_id": id, "name": "Fictional " + direction + " " + id, "source_account_id": sid, "direction": direction, "description": "Fictional supplies", "offset_account_id": offset, "treatment": treatment}
 }
+
+// automaticPolicy saves explicit fixture authority; nil rules intentionally encodes a closed empty array.
 func automaticPolicy(t testing.TB, db, key, expected, sid string, rules ...map[string]any) map[string]any {
 	t.Helper()
 	if rules == nil {
@@ -26,18 +32,26 @@ func automaticPolicy(t testing.TB, db, key, expected, sid string, rules ...map[s
 	}
 	return importObject(t, call(t, db, "synthetic_runtime", "SELECT banking.set_automatic_accounting($1,$2,$3,$4)::text", reader, entity, book, raw(map[string]any{"key": key, "expected_revision": expected, "enabled": true, "book_policy_id": reviewPolicy, "effective_from": "2026-01-01", "effective_to": "2026-02-01", "rules": rules})))
 }
+
+// automaticPrepare recovers restricted SQL work, never selecting evidence in Go.
 func automaticPrepare(t testing.TB, db string) map[string]any {
 	t.Helper()
 	return importObject(t, call(t, db, "synthetic_runtime", "SELECT banking.prepare_automatic_accounting($1,$2,$3)::text", reader, entity, book))
 }
+
+// automaticExecute submits only the durable identity returned by prepare.
 func automaticExecute(t testing.TB, db, id string) (string, error) {
 	t.Helper()
 	return invoke(t, db, "synthetic_runtime", "SELECT banking.execute_automatic_accounting($1,$2,$3,$4)::text", reader, entity, book, id)
 }
+
+// automaticObserve consumes the exact terminal machine receipt without changing financial state.
 func automaticObserve(t testing.TB, db, id string) string {
 	t.Helper()
 	return call(t, db, "synthetic_runtime", "SELECT banking.observe_automatic_accounting($1,$2,$3,$4)::text", reader, entity, book, id)
 }
+
+// automaticRound mirrors the trusted worker sequence against actual restricted transactions.
 func automaticRound(t testing.TB, db string) {
 	t.Helper()
 	v := automaticPrepare(t, db)
@@ -56,6 +70,8 @@ func automaticRound(t testing.TB, db string) {
 	}
 	automaticObserve(t, db, id)
 }
+
+// automaticStatus reads current authorized counts without preparing work.
 func automaticStatus(t testing.TB, db string) map[string]any {
 	t.Helper()
 	return importObject(t, call(t, db, "synthetic_runtime", "SELECT banking.automatic_accounting_status($1,$2,$3)::text", reader, entity, book))
@@ -484,5 +500,90 @@ func TestAutomaticAccountingUnknownCommit(t *testing.T) {
 				t.Fatal("subsequent independent source did not post exactly once")
 			}
 		})
+	}
+}
+
+// TestAutomaticAccountingSharedReservation preserves saved human work across automatic rounds.
+func TestAutomaticAccountingSharedReservation(t *testing.T) {
+	c, db, sid := reviewSetup(t)
+	automaticPolicy(t, db, "policy", "0", sid, automaticRule(automaticRuleOut, sid, "outflow", reviewExpense, "expense"))
+	d := reviewDraft(t, db, reviewID(t, c, "outflow"), "human-draft", reviewExpense)
+	reviewCommand(t, db, "human-reservation", d)
+	before := value(t, c, "SELECT jsonb_agg(to_jsonb(c) ORDER BY command_id)::text FROM ledger.interactive_command c")
+	reservation := value(t, c, "SELECT jsonb_agg(to_jsonb(r))::text FROM ledger.interactive_command_reservation r")
+	next := automaticPrepare(t, db)
+	if next["state"] != "blocked" || next["blocked_reason"] != "saved_work" {
+		t.Fatal("saved reservation not preserved", next)
+	}
+	if value(t, c, "SELECT jsonb_agg(to_jsonb(c) ORDER BY command_id)::text FROM ledger.interactive_command c") != before || value(t, c, "SELECT jsonb_agg(to_jsonb(r))::text FROM ledger.interactive_command_reservation r") != reservation || value(t, c, "SELECT count(*)::text FROM banking.automatic_accounting_operation") != "0" || value(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != "0" {
+		t.Fatal("automatic work mutated saved human command")
+	}
+}
+
+// TestAutomaticAccountingConcurrentRecovery races real independent serializable sessions on one source.
+func TestAutomaticAccountingConcurrentRecovery(t *testing.T) {
+	c, db, sid := reviewSetup(t)
+	automaticPolicy(t, db, "policy", "0", sid, automaticRule(automaticRuleOut, sid, "outflow", reviewExpense, "expense"), automaticRule(automaticRuleIn, sid, "inflow", reviewRevenue, "income"))
+	var wg sync.WaitGroup
+	replies := make([]string, 2)
+	errs := make([]error, 2)
+	for i := range replies {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			replies[i], errs[i] = invoke(t, db, "synthetic_runtime", "SELECT banking.prepare_automatic_accounting($1,$2,$3)::text", reader, entity, book)
+		}(i)
+	}
+	wg.Wait()
+	for _, e := range errs {
+		if e != nil {
+			t.Fatal(e)
+		}
+	}
+	a := importObject(t, replies[0])["operation"].(map[string]any)["operation_id"].(string)
+	b := importObject(t, replies[1])["operation"].(map[string]any)["operation_id"].(string)
+	if a != b || value(t, c, "SELECT count(*)::text FROM banking.automatic_accounting_operation") != "1" {
+		t.Fatal("concurrent prepare split source identity")
+	}
+	for i := range replies {
+		wg.Add(1)
+		go func(i int) { defer wg.Done(); replies[i], errs[i] = automaticExecute(t, db, a) }(i)
+	}
+	wg.Wait()
+	for _, e := range errs {
+		if e != nil {
+			t.Fatal(e)
+		}
+	}
+	if replies[0] != replies[1] {
+		t.Fatal("concurrent execute receipt mismatch")
+	}
+	for _, table := range []string{"ledger.journal_entry", "banking.review_posting", "integration.outbox_message", "integration.operation_receipt"} {
+		if value(t, c, "SELECT count(*)::text FROM "+table) != "1" {
+			t.Fatal("concurrent execution duplicated", table)
+		}
+	}
+}
+
+// TestAutomaticAccountingRetainedDowngrade refuses to erase even a policy edition without journal activity.
+func TestAutomaticAccountingRetainedDowngrade(t *testing.T) {
+	c, db, sid := reviewSetup(t)
+	automaticPolicy(t, db, "policy", "0", sid, automaticRule(automaticRuleOut, sid, "outflow", reviewExpense, "expense"), automaticRule(automaticRuleIn, sid, "inflow", reviewRevenue, "income"))
+	down, e := fs.ReadFile(migrations.Files, "000049_automatic_accounting.down.sql")
+	if e != nil {
+		t.Fatal(e)
+	}
+	_, e = c.Exec(context.Background(), string(down))
+	requireCode(t, e, "P0001")
+	exec(t, c, "ROLLBACK")
+	if value(t, c, "SELECT count(*)::text FROM banking.automatic_accounting_edition") != "1" || value(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != "0" {
+		t.Fatal("refused down changed retained edition")
+	}
+	automaticRound(t, db)
+	_, e = c.Exec(context.Background(), string(down))
+	requireCode(t, e, "P0001")
+	exec(t, c, "ROLLBACK")
+	if value(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != "1" || value(t, c, "SELECT count(*)::text FROM banking.review_posting") != "1" {
+		t.Fatal("refused down changed retained accounting")
 	}
 }

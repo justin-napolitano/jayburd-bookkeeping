@@ -36,8 +36,16 @@ done
 docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE DATABASE source_template' >/dev/null
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" \
  "$MIGRATE_IMAGE" -path /proof/migrations -database 'postgres://postgres@database:5432/source_template?sslmode=disable' up
+# Empty schema reversal runs the real pinned migration engine, then restores49
+# before any fixture data exists. Retained-history refusal has a separate SQL test.
+docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" \
+ "$MIGRATE_IMAGE" -path /proof/migrations -database 'postgres://postgres@database:5432/source_template?sslmode=disable' down 1
+[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d source_template -c 'SELECT version::text FROM schema_migrations WHERE NOT dirty')" == 48 ]]
+docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" \
+ "$MIGRATE_IMAGE" -path /proof/migrations -database 'postgres://postgres@database:5432/source_template?sslmode=disable' up
+[[ "$(docker exec "$proof_id" psql -X -At -U postgres -d source_template -c 'SELECT version::text FROM schema_migrations WHERE NOT dirty')" == 49 ]]
 # Actual login sessions bind service authority; no SET ROLE impersonation.
-docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE ROLE synthetic_operator LOGIN NOINHERIT IN ROLE bookkeeping_owner; CREATE ROLE synthetic_runtime LOGIN IN ROLE bookkeeping_api; CREATE ROLE synthetic_observer LOGIN IN ROLE bookkeeping_observer; CREATE ROLE synthetic_publisher LOGIN IN ROLE bookkeeping_publisher' >/dev/null
+docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE ROLE synthetic_operator LOGIN NOINHERIT IN ROLE bookkeeping_owner; CREATE ROLE synthetic_runtime LOGIN IN ROLE bookkeeping_api; CREATE ROLE synthetic_observer LOGIN IN ROLE bookkeeping_observer; CREATE ROLE synthetic_publisher LOGIN IN ROLE bookkeeping_publisher; CREATE ROLE synthetic_sync LOGIN IN ROLE bookkeeping_sync' >/dev/null
 mkdir -p .local
 case "$(docker exec "$proof_id" uname -m)" in
  aarch64) proof_arch=arm64 ;;
@@ -47,3 +55,9 @@ esac
 CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/source.test ./internal/source
 docker cp .local/source.test "$proof_id:/proof/source.test"
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/source.test "$POSTGRES_IMAGE" -source-proof -test.run=TestAutomaticAccounting -test.v -test.timeout=150s
+
+# Provider-shaped changes are generated only by the existing local fictional HTTP adapter.
+docker exec "$proof_id" psql -X -v ON_ERROR_STOP=1 -U postgres -c 'CREATE DATABASE acquisition_template TEMPLATE source_template' >/dev/null
+CGO_ENABLED=0 GOOS=linux GOARCH="$proof_arch" go test -c -tags integration -o .local/automatic-acquisition.test ./internal/acquisition
+docker cp .local/automatic-acquisition.test "$proof_id:/proof/automatic-acquisition.test"
+docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/automatic-acquisition.test "$POSTGRES_IMAGE" -acquisition-proof -test.run=TestAutomaticAccounting -test.v -test.timeout=150s

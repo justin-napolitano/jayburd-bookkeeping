@@ -1,6 +1,6 @@
 # Automatic source-backed accounting — 334
 
-## Proposed implementation boundary (review required before SQL)
+## Reviewed bounded implementation boundary
 
 Owner explicitly requests routine eligible imported evidence to post without a
 per-entry confirmation. One-time reviewed versioned accounting mappings authorize
@@ -9,7 +9,7 @@ This extends the artifact policy with a distinct durable automatic operation,
 never a fabricated interactive command or automatic acknowledgement. Existing
 manual source review, immutable journals, held evidence and retained history stay.
 
-Proposed next migration49 is the sole SQL lane;1–48 remain immutable. Source-only,
+Root and independent accounting/security review accepted this bounded design before SQL. Migration49 is the sole SQL lane;1–48 remain immutable. Source-only,
 synthetic verification; runtime opt-in remains disabled and no managed activation,
 provider call, live record, account creation or policy inference is included.
 
@@ -97,19 +97,18 @@ currency/policy, closed period, inactive accounts, permission change and saved w
 Every hold has zero new journal/outbox; retry requires a changed relevant input.
 Errors never expose raw SQL/provider data. Status/read routes do not create work.
 
-## Proposed SQL and transport ownership
+## SQL and transport ownership
 
 Private SQL owns closed body validation, source selection, mapping, draft creation,
 posting and receipt equality. Restricted API functions: get/set automatic source
 policy; list bounded automatic holds/status; trusted work inventory; prepare next
-operation and execute exact operation. API has EXECUTE only, no table/helper grants.
+operation, execute exact operation and observe its terminal receipt. API has EXECUTE only, no table/helper grants.
 Settings require a fresh expected revision/key and are explicit configuration,
-not per-entry approval. Actual closed JSON signatures will be frozen after review.
+not per-entry approval. The closed JSON signatures are recorded below.
 Go transports trusted verified identity and runs the bounded background lifecycle;
 new AutomaticSourcePosting runtime flag defaults false. No new service/database.
 
-Reviewer frontend/API lane may add settings/status surface only after this profile
-is accepted. No automatic postings are enabled by a GET, UI render or migration.
+The independently reviewed frontend/API lane owns the settings/status surface. No automatic postings are enabled by a GET, UI render or migration.
 Root owns shared integration/OpenAPI/runtime flag composition and normal CI merge.
 
 ## Standards, evidence and limits
@@ -141,10 +140,15 @@ Required independently fixed actual restricted SQL evidence:
 - actual API-role table/helper denial, cross-actor/book isolation, saved-work
   deferral, rollback at each link/projection/receipt boundary and unchanged history.
 
-These are planned tests, not completed guarantees.333 correction execution and
+The authored proof runner is scripts/test-automatic-accounting.sh. Named sources
+include TestAutomaticAccountingPostsOnce, UnknownCommit, SourcePrivacy, Privileges,
+ConcurrentRecovery, SharedReservation and RetainedDowngrade in internal/source,
+and ProviderCorrection/ProviderHolds in internal/acquisition (all with the
+TestAutomaticAccounting prefix). These sources are compiled but actual restricted
+SQL execution is still unproved; see the living runbook.333 correction execution and
 real provider/identity/deployment/financial cutover acceptance remain separate.
 
-## Proposed closed configuration/HTTP profile
+## Closed configuration/HTTP profile
 
 Package internal/autopost exposes Request{Actor,Entity,Book,Body string} and
 Operations.GetPolicy/SetPolicy/Status(context.Context,Request)(json.RawMessage,error).
@@ -178,7 +182,7 @@ never presents100 as the complete count. Run metadata is {operation_id,state,
 review_id,journal_id nullable,reason nullable}. Current permissions apply before
 any disclosure; unsupported/denied returns fixed errors, never empty fake success.
 
-Error vocabulary proposed P2A00 invalid_automatic_accounting/400,
+Error vocabulary P2A00 invalid_automatic_accounting/400,
 P2A01 automatic_accounting_denied/404, P2A02 automatic_accounting_conflict/409,
 P2A03 automatic_accounting_snapshot_changed/409,
 P2A04 automatic_accounting_limit/422; unavailable503. Existing posting errors are

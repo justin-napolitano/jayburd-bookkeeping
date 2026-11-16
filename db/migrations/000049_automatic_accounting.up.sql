@@ -4,11 +4,13 @@ BEGIN
 
 SET LOCAL ROLE bookkeeping_owner;
 
+-- One mutable head selects an immutable reviewed book policy edition.
 CREATE TABLE banking.automatic_accounting_policy(
   entity_id uuid NOT NULL,book_id uuid NOT NULL,revision bigint NOT NULL CHECK(revision>0),
   PRIMARY KEY(entity_id,book_id),FOREIGN KEY(entity_id,book_id) REFERENCES ledger.book
   );
 
+-- Reviewed mappings retain their original actor, financial policy and exact source predicates.
 CREATE TABLE banking.automatic_accounting_edition(
   entity_id uuid NOT NULL,book_id uuid NOT NULL,revision bigint NOT NULL CHECK(revision>0),actor_id uuid NOT NULL REFERENCES ledger.principal,
   enabled boolean NOT NULL,configuration jsonb NOT NULL CHECK(octet_length(configuration::text)<=131072),created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
@@ -17,12 +19,14 @@ CREATE TABLE banking.automatic_accounting_edition(
 
 ALTER TABLE banking.automatic_accounting_policy ADD FOREIGN KEY(entity_id,book_id,revision)REFERENCES banking.automatic_accounting_edition DEFERRABLE INITIALLY DEFERRED;
 
+-- Same actor/key settings replay returns its exact durable response without a second edition.
 CREATE TABLE banking.automatic_accounting_setting(
   entity_id uuid NOT NULL,book_id uuid NOT NULL,actor_id uuid NOT NULL REFERENCES ledger.principal,idempotency_key text NOT NULL,
   normalized_request jsonb NOT NULL,result jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   PRIMARY KEY(entity_id,book_id,actor_id,idempotency_key),FOREIGN KEY(entity_id,book_id) REFERENCES ledger.book
   );
 
+-- Separate machine identity pins evidence and policy; source posting uniqueness still spans editions.
 CREATE TABLE banking.automatic_accounting_operation(
   entity_id uuid NOT NULL,book_id uuid NOT NULL,operation_id uuid NOT NULL DEFAULT gen_random_uuid(),actor_id uuid NOT NULL REFERENCES ledger.principal,
   policy_revision bigint NOT NULL,review_id uuid NOT NULL,source_account_id uuid NOT NULL,observation_id uuid NOT NULL,observation_revision bigint NOT NULL,
@@ -65,8 +69,10 @@ CREATE TRIGGER immutable BEFORE UPDATE OR DELETE ON banking.automatic_accounting
 
 CREATE TRIGGER immutable BEFORE UPDATE OR DELETE ON banking.automatic_accounting_setting FOR EACH ROW EXECUTE FUNCTION ledger.immutable_row();
 
+-- Scheduling metadata bounds work and rotates books/reviews without authorizing financial effects.
 CREATE TABLE banking.automatic_accounting_cursor(entity_id uuid NOT NULL,book_id uuid NOT NULL,after_review_id uuid,last_work_at timestamptz NOT NULL DEFAULT '-infinity',PRIMARY KEY(entity_id,book_id),FOREIGN KEY(entity_id,book_id)REFERENCES ledger.book);
 
+-- Expose only closed business codes; internal database details never enter the public result.
 CREATE FUNCTION banking.automatic_accounting_error(code text)
   RETURNS void
   LANGUAGE plpgsql
@@ -154,6 +160,7 @@ END IF;
 
 END $$;
 
+-- Recheck current retained-source read/review grants independently of provider acquisition consent.
 CREATE FUNCTION banking.automatic_accounting_source(actor uuid,e uuid,b uuid,sid uuid)
   RETURNS banking.source_account
   LANGUAGE plpgsql
@@ -177,6 +184,7 @@ END IF;
 
 END $$;
 
+-- Private renderer is called only after book and all configured source authority checks.
 CREATE FUNCTION banking.automatic_accounting_policy_wire(e uuid,b uuid)
   RETURNS jsonb
   LANGUAGE plpgsql
@@ -191,6 +199,7 @@ BEGIN
 
 END $$;
 
+-- Initial policy reader is replaced below after the ordered source-authority helper exists.
 CREATE FUNCTION banking.get_automatic_accounting(actor uuid,e uuid,b uuid)
   RETURNS jsonb
   LANGUAGE plpgsql SECURITY DEFINER
@@ -202,6 +211,7 @@ CREATE FUNCTION banking.get_automatic_accounting(actor uuid,e uuid,b uuid)
 END $$;
 
 -- Configuration is explicit current-authorized owner work; it cannot accept source facts or posting lines.
+-- One-time settings authorization validates exact mappings and current revisions before immutable save.
 CREATE FUNCTION banking.set_automatic_accounting(actor uuid,e uuid,b uuid,raw text)
   RETURNS jsonb
   LANGUAGE plpgsql SECURITY DEFINER
@@ -553,6 +563,7 @@ END,jsonb_strip_nulls(jsonb_build_object('draft_id',d.draft_id,'category_account
 
 END $$;
 
+-- Historical manual entrypoint retains its old wire and always passes interactive origin.
 CREATE OR REPLACE FUNCTION banking.create_review_draft(actor uuid,e uuid,b uuid,id uuid,k text,raw text)
   RETURNS jsonb
   LANGUAGE sql SECURITY DEFINER
@@ -593,6 +604,7 @@ END IF;
 
 END $$;
 
+-- Human command admission rejects machine-owned drafts before reserving interactive work.
 CREATE OR REPLACE FUNCTION banking.source_post_authorize(actor uuid,e uuid,b uuid,body jsonb)
   RETURNS banking.review_draft
   LANGUAGE sql
@@ -688,6 +700,7 @@ END,request,d.posting_body::text);
 
 END $$;
 
+-- Existing durable human command delegates to the same financial core with no machine origin.
 CREATE OR REPLACE FUNCTION banking.execute_source_post(actor uuid,e uuid,b uuid,command uuid,request uuid,body jsonb)
   RETURNS jsonb
   LANGUAGE sql
@@ -736,6 +749,7 @@ CREATE FUNCTION banking.automatic_accounting_inputs(actor uuid,e uuid,b uuid,pol
   WHERE sp.entity_id=e AND sp.book_id=b AND sp.source_account_id=s.source_account_id AND sp.principal_id=actor AND sp.capability='review'AND sp.revoked_at IS NULL)
   $$;
 
+-- This renderer never grants visibility; each caller first authorizes the operation own source/actor.
 CREATE FUNCTION banking.render_automatic_accounting_operation(o banking.automatic_accounting_operation)
   RETURNS jsonb
   LANGUAGE sql STABLE
@@ -746,6 +760,7 @@ CREATE FUNCTION banking.render_automatic_accounting_operation(o banking.automati
 END
   $$;
 
+-- Lock all configured sources in ascending UUID order under the already-held book fence.
 CREATE FUNCTION banking.automatic_accounting_sources(actor uuid,e uuid,b uuid,configuration jsonb)
   RETURNS void
   LANGUAGE plpgsql
@@ -763,6 +778,7 @@ END LOOP
 
 END $$;
 
+-- Read settings only after all configured sources have current explicit local authority.
 CREATE OR REPLACE FUNCTION banking.get_automatic_accounting(actor uuid,e uuid,b uuid)
   RETURNS jsonb
   LANGUAGE plpgsql SECURITY DEFINER
@@ -800,6 +816,7 @@ CREATE FUNCTION banking.automatic_accounting_visible(actor uuid,e uuid,b uuid,op
   WHERE p.entity_id=e AND p.book_id=b AND p.source_account_id=s.source_account_id AND p.principal_id=actor AND p.capability='review'AND p.revoked_at IS NULL)),false)
   $$;
 
+-- Counts and terminal metadata share current actor/source scope; failed projections never become zero.
 CREATE FUNCTION banking.automatic_accounting_status(actor uuid,e uuid,b uuid)
   RETURNS jsonb
   LANGUAGE plpgsql SECURITY DEFINER

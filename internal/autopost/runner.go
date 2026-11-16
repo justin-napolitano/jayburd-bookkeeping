@@ -3,10 +3,12 @@ package autopost
 import (
 	"context"
 	"encoding/json"
-	"github.com/jackc/pgx/v5"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
+// workScope is trusted SQL-selected authority, never a caller-supplied worker identity.
 type workScope struct {
 	Actor  string `json:"actor_id"`
 	Entity string `json:"entity_id"`
@@ -70,6 +72,8 @@ func (s *Service) Round(ctx context.Context) error {
 	}
 	return first
 }
+
+// scope recovers one durable identity and consumes its exact terminal receipt before new work.
 func (s *Service) scope(ctx context.Context, w workScope) error {
 	raw, err := s.transaction(ctx, func(ctx context.Context, tx pgx.Tx) (json.RawMessage, error) {
 		var raw json.RawMessage
