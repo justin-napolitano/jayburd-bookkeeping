@@ -54,6 +54,9 @@ func TestAppIntegrationServer(t *testing.T) {
 	if !*appProof {
 		t.Skip("disposable browser runner only")
 	}
+	if *appProofAccounting && (*appProofAutomatic || *appProofLabels || *appProofDemo || *appProofConnections || *appProofProduction || *appProofOnboarding) {
+		t.Fatal("exclusive accounting proof mode")
+	}
 	if *appProofAutomatic && (*appProofLabels || *appProofDemo || *appProofConnections || *appProofProduction || *appProofOnboarding) {
 		t.Fatal("exclusive automatic proof mode")
 	}
@@ -121,7 +124,7 @@ func TestAppIntegrationServer(t *testing.T) {
 		connectionFixture = bootstrapConnectionBrowser(t, ctx, admin, pool)
 		connectionService = connectionFixture.service
 	}
-	if !*appProofConnections && !*appProofDemo && !*appProofLabels && !*appProofOnboarding && !*appProofAutomatic {
+	if !*appProofConnections && !*appProofDemo && !*appProofLabels && !*appProofOnboarding && !*appProofAutomatic && !*appProofAccounting {
 		connectionService = expiredEnrollmentProof(t, ctx, pool)
 	}
 	config := Config{Mode: "managed", Listen: "0.0.0.0:8080", Origin: "http://localhost:39083", Project: "synthetic-browser-proof", DatabaseURL: "synthetic-injected-test-pool", CollectionEnabled: *appProofLabels}
@@ -175,6 +178,9 @@ func TestAppIntegrationServer(t *testing.T) {
 			}
 			return automaticReady(ctx, pool)
 		}
+	}
+	if *appProofAccounting {
+		composeAccountingBrowser(t, setupCtx, admin, pool, &config, &dependencies)
 	}
 	app, err := New(config, dependencies)
 	if err != nil {

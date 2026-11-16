@@ -32,6 +32,36 @@ Proxy tests preserve exact settings bytes, no execution endpoints, no automatic
 write retry, strict framing and128KiB cap. Backend tests cover default-off routes,
 missing dependencies, truthful runtime signal and draining both background loops.
 
+## Composed accounting browser proof
+
+Added `bash scripts/test-app-integration.sh --accounting`, integration-tagged
+server fixture and `playwright-accounting.config.ts`. The fixture seeds retained
+fictional statement observations, their review evidence links and a protected
+manual draft created under the restricted API login in a serializable transaction.
+It seeds no automatic policy or journal. This proves use of retained evidence;
+it does not claim to exercise statement upload/import acquisition.
+
+The real Bookkeeping component uploads YAML, reviews/enables one policy, recovers
+a lost committed settings response with identical bytes/key, waits for the real
+background runner, follows the unmapped exception action, then opens the posted
+source and reads its immutable journal. API assertions verify original source
+identity/revision/units, protected draft and foreign/origin denials. Remount reads
+saved policy and the same journal. No API response or financial outcome is mocked.
+Independent database assertions require exactly one12.50USD debit/credit entry,
+one automatic source link, receipt/outbox/settings receipt, preserved3.75/4.25/12.50
+source lexemes, protected manual draft, manual/unmapped holds and zero interactive
+posting commands/reservations. The test does not assume the latest operation is
+committed: later held items can be latest while posted source access remains.
+
+Authored checks: shell syntax, TypeScript, Playwright discovery (one real journey)
+and standalone vet of the fixed fixture format arguments passed. Actual composed
+invocation stops at the existing port admission check with `Synthetic proof port
+unavailable` before Go/SQL/browser setup. This is NOT an execution pass and the
+port, auth, toolchain and network boundaries were preserved. `make check`,
+`make test` and `make build` were attempted with `GOTOOLCHAIN=local`: the230
+existing Node release tests pass, then Go gates stop because the tracked1.26.11
+minimum exceeds installed1.26.5. No dependency/toolchain workaround is committed.
+
 ## Remaining work
 
 Root must integrate exact core checkpoint, run canonical Go1.26.11 race/vet/build,

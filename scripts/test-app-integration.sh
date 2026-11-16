@@ -8,7 +8,8 @@ production_test=false
 labels_test=false
 onboarding_test=false
 automatic_test=false
-case "${1:-}" in --automatic) automatic_test=true ;; --onboarding) onboarding_test=true ;; --labels) labels_test=true ;; --production) production_test=true; connections_test=true ;; --connections) connections_test=true ;; --demo) demo=true ;; --demo-test) demo=true; demo_test=true ;; '') ;; *) echo 'Usage: test-app-integration.sh [--demo|--demo-test|--connections|--production|--labels|--onboarding|--automatic]' >&2; exit 1 ;; esac
+accounting_test=false
+case "${1:-}" in --accounting) accounting_test=true ;; --automatic) automatic_test=true ;; --onboarding) onboarding_test=true ;; --labels) labels_test=true ;; --production) production_test=true; connections_test=true ;; --connections) connections_test=true ;; --demo) demo=true ;; --demo-test) demo=true; demo_test=true ;; '') ;; *) echo 'Usage: test-app-integration.sh [--demo|--demo-test|--connections|--production|--labels|--onboarding|--automatic|--accounting]' >&2; exit 1 ;; esac
 proof_timeout=600s
 if [[ "$demo" == true ]]; then proof_timeout=0; fi
 cd "$(dirname "$0")/.."
@@ -64,7 +65,7 @@ docker cp "$proof_dir/app.test" "$proof_id:/proof/app.test"
 docker run --rm --network "$proof_id" --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/app.test "$POSTGRES_IMAGE" -demo-acquisition-proof -test.run='^TestDemoAcquisitionPostgres$' -test.v -test.timeout=180s
 docker run -d --name "$proof_id-api" --network "$proof_id" \
  --mount "type=volume,source=$proof_id,target=/proof,readonly" --entrypoint /proof/app.test \
- "$POSTGRES_IMAGE" -app-proof -app-proof-automatic="$automatic_test" -app-proof-demo="$demo" -app-proof-connections="$connections_test" -app-proof-production="$production_test" -app-proof-labels="$labels_test" -app-proof-onboarding="$onboarding_test" -app-proof-marker="$proof_id" -test.run='^TestAppIntegrationServer$' -test.timeout="$proof_timeout" >/dev/null
+ "$POSTGRES_IMAGE" -app-proof -app-proof-accounting="$accounting_test" -app-proof-automatic="$automatic_test" -app-proof-demo="$demo" -app-proof-connections="$connections_test" -app-proof-production="$production_test" -app-proof-labels="$labels_test" -app-proof-onboarding="$onboarding_test" -app-proof-marker="$proof_id" -test.run='^TestAppIntegrationServer$' -test.timeout="$proof_timeout" >/dev/null
 api_created=1
 # Raw HTTP bridge makes daemon location irrelevant; no database socket is exposed.
 go test -c -tags integration -o "$proof_dir/bridge.test" ./internal/server
@@ -117,6 +118,25 @@ for ((i=0;i<60;i++)); do
  sleep 1
 done
 [[ "$ready" == 1 ]] || { cat "$proof_dir/next.log"; exit 1; }
+if [[ "$accounting_test" == true ]]; then
+ (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-accounting.config.ts)
+ # Fixed independent original-unit oracle: exactly one source-linked entry, 12.50 Dr/Cr USD.
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM ledger.journal_entry')" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT string_agg(side||':'||trim_scale(transaction_amount)::text||':'||trim_scale(functional_amount)::text,',' ORDER BY side) FROM ledger.journal_line")" == 'credit:12.5:12.5,debit:12.5:12.5' ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c 'SELECT count(*) FROM banking.review_posting WHERE command_id IS NULL AND automatic_operation_id IS NOT NULL')" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.automatic_accounting_operation WHERE state='committed' AND receipt_observed_at IS NOT NULL")" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT string_agg(reason,',' ORDER BY reason) FROM banking.automatic_accounting_operation WHERE state='held'")" == 'manual_draft,unmapped_rule' ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM banking.review_draft WHERE review_id='e7100000-0000-4000-8000-000000000202' AND automatic_operation_id IS NULL")" == 1 ]]
+ [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT string_agg(amount_lexeme,',' ORDER BY amount) FROM banking.observation_revision")" == '3.75,4.25,12.50' ]]
+ for table in integration.operation_receipt integration.outbox_message banking.automatic_accounting_setting; do
+  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM $table")" == 1 ]]
+ done
+ for table in ledger.interactive_command ledger.interactive_command_reservation; do
+  [[ "$(docker exec "$proof_id" psql -X -At -U postgres -d app_proof -c "SELECT count(*) FROM $table")" == 0 ]]
+ done
+ echo 'PASS: one-time YAML accounting policy through Next/Go/restricted SQL, exact linked posting, protected/manual/unmapped evidence and no per-entry confirmation'
+ exit 0
+fi
 if [[ "$automatic_test" == true ]]; then
  (cd web && env -i PATH="$PATH" HOME="$HOME" node node_modules/playwright/cli.js test --config playwright-automatic.config.ts)
  # Independent durable-state oracles: analytic effects only, original units/history retained.
