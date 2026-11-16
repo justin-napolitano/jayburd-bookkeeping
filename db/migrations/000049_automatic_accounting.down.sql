@@ -310,7 +310,7 @@ CREATE OR REPLACE FUNCTION banking.render_review_draft(d banking.review_draft)
 END
   $$;
 
-DROP FUNCTION banking.get_automatic_accounting(uuid,uuid,uuid),banking.set_automatic_accounting(uuid,uuid,uuid,text),banking.automatic_accounting_status(uuid,uuid,uuid),banking.automatic_accounting_work(),banking.prepare_automatic_accounting(uuid,uuid,uuid),banking.execute_automatic_accounting(uuid,uuid,uuid,uuid);
+DROP FUNCTION banking.get_automatic_accounting(uuid,uuid,uuid),banking.set_automatic_accounting(uuid,uuid,uuid,text),banking.automatic_accounting_status(uuid,uuid,uuid),banking.automatic_accounting_work(),banking.prepare_automatic_accounting(uuid,uuid,uuid),banking.execute_automatic_accounting(uuid,uuid,uuid,uuid),banking.observe_automatic_accounting(uuid,uuid,uuid,uuid);
 
 DROP FUNCTION banking.automatic_accounting_authorize(uuid,uuid,uuid,boolean),banking.automatic_accounting_source(uuid,uuid,uuid,uuid),banking.automatic_accounting_sources(uuid,uuid,uuid,jsonb),banking.automatic_accounting_policy_wire(uuid,uuid),banking.create_source_draft(uuid,uuid,uuid,uuid,text,text,uuid),banking.commit_source_post(uuid,uuid,uuid,uuid,uuid,uuid,jsonb),banking.authorize_source_post_core(uuid,uuid,uuid,jsonb,uuid),banking.automatic_accounting_inputs(uuid,uuid,uuid,bigint),banking.automatic_accounting_visible(uuid,uuid,uuid,banking.automatic_accounting_operation),banking.render_automatic_accounting_operation(banking.automatic_accounting_operation);
 

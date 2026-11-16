@@ -170,7 +170,7 @@ GET policy and successful POST return profile automatic-accounting-policy-v1,
 entity_id,book_id,revision,enabled,policy(nullable configuration without key/
 expected_revision/enabled), and supported_profile='source-identity-usd-v1'.
 Absent policy is revision0/disabled/policy null. Status profile
- automatic-accounting-status-v1 has entity_id,book_id,enabled,pending_count,
+ automatic-accounting-status-v1 has entity_id,book_id,policy_revision decimal echo,enabled,pending_count,
 attention_count decimal strings,blocked_reason nullable saved_work/permission_changed/source_unavailable,last_operation nullable run metadata and holds
 bounded to100 closed {review_id,source_account_id,reason,operation_id} rows.
 Status counts are complete; response explicitly reports holds_truncated boolean,
@@ -185,3 +185,19 @@ P2A04 automatic_accounting_limit/422; unavailable503. Existing posting errors ar
 held by the trusted operation only when classified and known to have no effect;
 serialization/deadlock/unknown commit remain transaction failures, not persisted
 success or financial holds. No raw SQL diagnostics enter transport.
+
+
+## Machine receipt observation refinement
+
+Root and independent review accepted a seventh restricted worker operation,
+banking.observe_automatic_accounting(actor,e,b,operation_id). It marks only a
+monotonic receipt_observed_at after Go has validated a successful terminal receipt
+response. It cannot change financial provenance, terminal results, journal/body,
+book revision, draft, rule or authority. It is idempotent and terminal-only, checks
+the operation's OWN current actor/source authority, and has no HTTP route or user
+acknowledgement. Prepare recovers the oldest currently authorized unobserved
+terminal operation before selecting new work. Unauthorized historical receipts
+remain undisclosed and cannot block a newly authorized source/policy indefinitely.
+A lost execute reply therefore recovers the same terminal identity; a lost observe
+reply is safe because the worker validated the financial receipt before marking
+it. Default-disabled runtime and all current-policy/source fences remain.

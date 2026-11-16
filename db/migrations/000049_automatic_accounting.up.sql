@@ -28,7 +28,8 @@ CREATE TABLE banking.automatic_accounting_operation(
   policy_revision bigint NOT NULL,review_id uuid NOT NULL,source_account_id uuid NOT NULL,observation_id uuid NOT NULL,observation_revision bigint NOT NULL,
   input_context jsonb NOT NULL CHECK(octet_length(input_context::text)<=16384),input_hash text NOT NULL CHECK(input_hash COLLATE "C" ~ '^[0-9a-f]{64}$'),
   rule_id uuid,state text NOT NULL CHECK(state IN('prepared','committed','held','stale')),reason text,result jsonb,
-  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),terminal_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),terminal_at timestamptz,receipt_observed_at timestamptz,
+  CHECK(receipt_observed_at IS NULL OR state<>'prepared'),
   PRIMARY KEY(entity_id,book_id,operation_id),FOREIGN KEY(entity_id,book_id,policy_revision) REFERENCES banking.automatic_accounting_edition,
   FOREIGN KEY(entity_id,book_id,review_id) REFERENCES banking.review_item,
   FOREIGN KEY(entity_id,book_id,source_account_id) REFERENCES banking.source_account,
@@ -75,18 +76,24 @@ CREATE FUNCTION banking.automatic_accounting_error(code text)
 
 END $$;
 
+-- Financial terminal receipts are immutable; machine observation changes only its own monotonic timestamp.
 CREATE FUNCTION banking.automatic_accounting_guard()
-  RETURNS trigger
-  LANGUAGE plpgsql
-  SET search_path=pg_catalog,pg_temp AS $$BEGIN
-
-  IF TG_OP='DELETE' OR OLD.state<>'prepared' OR NEW.state NOT IN('committed','stale','held') OR (to_jsonb(NEW)-ARRAY['state','reason','result','terminal_at'])IS DISTINCT
-  FROM(to_jsonb(OLD)-ARRAY['state','reason','result','terminal_at']) THEN
-  PERFORM banking.automatic_accounting_error('P2A02');
-
-END IF;
+RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
+BEGIN
+  IF TG_OP='DELETE' THEN
+    PERFORM banking.automatic_accounting_error('P2A02');
+  END IF;
+  IF OLD.state<>'prepared' THEN
+    IF OLD.receipt_observed_at IS NOT NULL OR NEW.receipt_observed_at IS NULL
+      OR (to_jsonb(NEW)-'receipt_observed_at') IS DISTINCT FROM (to_jsonb(OLD)-'receipt_observed_at') THEN
+      PERFORM banking.automatic_accounting_error('P2A02');
+    END IF;
+  ELSIF NEW.state NOT IN('committed','stale','held') OR NEW.receipt_observed_at IS NOT NULL
+    OR (to_jsonb(NEW)-ARRAY['state','reason','result','terminal_at'])
+       IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['state','reason','result','terminal_at']) THEN
+    PERFORM banking.automatic_accounting_error('P2A02');
+  END IF;
   RETURN NEW;
-
 END $$;
 
 CREATE TRIGGER preserve_automatic_operation BEFORE UPDATE OR DELETE ON banking.automatic_accounting_operation FOR EACH ROW EXECUTE FUNCTION banking.automatic_accounting_guard();
@@ -866,7 +873,7 @@ END IF;
 
 END IF;
 
-  RETURN jsonb_build_object('profile','automatic-accounting-status-v1','entity_id',e,'book_id',b,'enabled',coalesce(p.enabled,false),'pending_count',pending_value::text,'attention_count',attention_value::text,'blocked_reason',blocked,'last_operation',banking.render_automatic_accounting_operation(last_op),'holds',holds,'holds_truncated',attention_value>jsonb_array_length(holds));
+  RETURN jsonb_build_object('profile','automatic-accounting-status-v1','entity_id',e,'book_id',b,'policy_revision',coalesce(p.revision,0)::text,'enabled',coalesce(p.enabled,false),'pending_count',pending_value::text,'attention_count',attention_value::text,'blocked_reason',blocked,'last_operation',banking.render_automatic_accounting_operation(last_op),'holds',holds,'holds_truncated',attention_value>jsonb_array_length(holds));
 
 END $$;
 
@@ -958,6 +965,17 @@ END IF;
   RETURN jsonb_build_object('profile','automatic-accounting-next-v1','entity_id',e,'book_id',b,'state','blocked','operation',NULL,'last_operation',banking.render_automatic_accounting_operation(last_op),'blocked_reason','saved_work');
 
 END IF;
+
+  -- An authorized unobserved terminal receipt is recovered before any new source selection.
+  SELECT * INTO op FROM banking.automatic_accounting_operation o
+  WHERE o.entity_id=e AND o.book_id=b AND o.actor_id=actor AND o.state<>'prepared'
+    AND o.receipt_observed_at IS NULL AND banking.automatic_accounting_visible(actor,e,b,o)
+  ORDER BY o.created_at,o.operation_id LIMIT 1;
+  IF FOUND THEN
+    RETURN jsonb_build_object('profile','automatic-accounting-next-v1','entity_id',e,'book_id',b,
+      'state',op.state,'operation',banking.render_automatic_accounting_operation(op),
+      'last_operation',banking.render_automatic_accounting_operation(last_op),'blocked_reason',NULL);
+  END IF;
 
   SELECT * INTO op
   FROM banking.automatic_accounting_operation
@@ -1261,6 +1279,29 @@ END IF;
 
 END $$;
 
+-- This is a trusted worker's receipt-consumption marker, never a human acknowledgement or posting authority.
+CREATE FUNCTION banking.observe_automatic_accounting(actor uuid,e uuid,b uuid,id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE op banking.automatic_accounting_operation;
+BEGIN
+  PERFORM banking.automatic_accounting_authorize(actor,e,b,true);
+  SELECT * INTO op FROM banking.automatic_accounting_operation
+  WHERE entity_id=e AND book_id=b AND operation_id=id AND actor_id=actor FOR UPDATE;
+  IF NOT FOUND THEN
+    PERFORM banking.automatic_accounting_error('P2A01');
+  END IF;
+  PERFORM banking.automatic_accounting_source(actor,e,b,op.source_account_id);
+  IF op.state='prepared' THEN
+    PERFORM banking.automatic_accounting_error('P2A02');
+  END IF;
+  IF op.receipt_observed_at IS NULL THEN
+    UPDATE banking.automatic_accounting_operation SET receipt_observed_at=clock_timestamp()
+    WHERE entity_id=e AND book_id=b AND operation_id=id RETURNING * INTO op;
+  END IF;
+  RETURN jsonb_build_object('profile','automatic-accounting-execution-v1','entity_id',e,'book_id',b,
+    'operation',banking.render_automatic_accounting_operation(op),'blocked_reason',NULL);
+END $$;
+
 -- Runtime roles receive only closed operations; financial internals retain owner-only execution.
 REVOKE ALL ON banking.automatic_accounting_policy,banking.automatic_accounting_edition,banking.automatic_accounting_setting,banking.automatic_accounting_operation,banking.automatic_accounting_cursor
   FROM PUBLIC,bookkeeping_api,bookkeeping_observer,bookkeeping_publisher,bookkeeping_sync;
@@ -1268,7 +1309,7 @@ REVOKE ALL ON banking.automatic_accounting_policy,banking.automatic_accounting_e
 REVOKE ALL ON FUNCTION banking.automatic_accounting_error(text),banking.automatic_accounting_guard(),banking.automatic_accounting_authorize(uuid,uuid,uuid,boolean),banking.automatic_accounting_source(uuid,uuid,uuid,uuid),banking.automatic_accounting_sources(uuid,uuid,uuid,jsonb),banking.automatic_accounting_policy_wire(uuid,uuid),banking.create_source_draft(uuid,uuid,uuid,uuid,text,text,uuid),banking.commit_source_post(uuid,uuid,uuid,uuid,uuid,uuid,jsonb),banking.authorize_source_post_core(uuid,uuid,uuid,jsonb,uuid),banking.automatic_accounting_inputs(uuid,uuid,uuid,bigint),banking.automatic_accounting_visible(uuid,uuid,uuid,banking.automatic_accounting_operation),banking.render_automatic_accounting_operation(banking.automatic_accounting_operation)
   FROM PUBLIC,bookkeeping_api,bookkeeping_observer,bookkeeping_publisher,bookkeeping_sync;
 
-GRANT EXECUTE ON FUNCTION banking.get_automatic_accounting(uuid,uuid,uuid),banking.set_automatic_accounting(uuid,uuid,uuid,text),banking.automatic_accounting_status(uuid,uuid,uuid),banking.automatic_accounting_work(),banking.prepare_automatic_accounting(uuid,uuid,uuid),banking.execute_automatic_accounting(uuid,uuid,uuid,uuid)TO bookkeeping_api;
+GRANT EXECUTE ON FUNCTION banking.get_automatic_accounting(uuid,uuid,uuid),banking.set_automatic_accounting(uuid,uuid,uuid,text),banking.automatic_accounting_status(uuid,uuid,uuid),banking.automatic_accounting_work(),banking.prepare_automatic_accounting(uuid,uuid,uuid),banking.execute_automatic_accounting(uuid,uuid,uuid,uuid),banking.observe_automatic_accounting(uuid,uuid,uuid,uuid)TO bookkeeping_api;
 
 COMMIT;
 

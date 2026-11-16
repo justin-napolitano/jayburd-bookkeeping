@@ -4,6 +4,8 @@ package source
 
 import (
 	"context"
+	"errors"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/autopost"
 	"strings"
@@ -32,14 +34,27 @@ func automaticExecute(t testing.TB, db, id string) (string, error) {
 	t.Helper()
 	return invoke(t, db, "synthetic_runtime", "SELECT banking.execute_automatic_accounting($1,$2,$3,$4)::text", reader, entity, book, id)
 }
+func automaticObserve(t testing.TB, db, id string) string {
+	t.Helper()
+	return call(t, db, "synthetic_runtime", "SELECT banking.observe_automatic_accounting($1,$2,$3,$4)::text", reader, entity, book, id)
+}
 func automaticRound(t testing.TB, db string) {
 	t.Helper()
 	v := automaticPrepare(t, db)
+	if v["state"] == "idle" || v["state"] == "blocked" {
+		return
+	}
+	id := v["operation"].(map[string]any)["operation_id"].(string)
 	if v["state"] == "prepared" {
-		if _, e := automaticExecute(t, db, v["operation"].(map[string]any)["operation_id"].(string)); e != nil {
+		result, e := automaticExecute(t, db, id)
+		if e != nil {
 			t.Fatal(e)
 		}
+		if importObject(t, result)["operation"].(map[string]any)["state"] == "prepared" {
+			return
+		}
 	}
+	automaticObserve(t, db, id)
 }
 func automaticStatus(t testing.TB, db string) map[string]any {
 	t.Helper()
@@ -68,6 +83,11 @@ func TestAutomaticAccountingPostsOnce(t *testing.T) {
 		second, e := automaticExecute(t, db, id)
 		if e != nil || first != second {
 			t.Fatal("same operation replay changed receipt")
+		}
+		beforeObservation := value(t, c, "SELECT revision::text FROM ledger.book")
+		observed := automaticObserve(t, db, id)
+		if automaticObserve(t, db, id) != observed || value(t, c, "SELECT revision::text FROM ledger.book") != beforeObservation {
+			t.Fatal("machine observation changed receipt or financial revision")
 		}
 	}
 	if value(t, c, "SELECT count(*)::text FROM ledger.interactive_command") != commands {
@@ -347,12 +367,122 @@ func TestAutomaticAccountingSourcePrivacy(t *testing.T) {
 // TestAutomaticAccountingPrivileges invokes actual denied operations, not just catalog privilege predicates.
 func TestAutomaticAccountingPrivileges(t *testing.T) {
 	_, db, _ := reviewSetup(t)
-	for _, q := range []string{"SELECT count(*)::text FROM banking.automatic_accounting_policy", "SELECT banking.automatic_accounting_policy_wire(NULL,NULL)::text", "SELECT banking.create_source_draft(NULL,NULL,NULL,NULL,NULL,NULL,NULL)::text", "SELECT banking.commit_source_post(NULL,NULL,NULL,NULL,NULL,NULL,NULL)::text", "SELECT banking.source_post_authorize(NULL,NULL,NULL,NULL)::text", "SELECT banking.execute_source_post(NULL,NULL,NULL,NULL,NULL,NULL)::text"} {
+	for _, q := range []string{
+		"SELECT banking.automatic_accounting_policy_wire(NULL,NULL)::text",
+		"SELECT banking.create_source_draft(NULL,NULL,NULL,NULL,NULL,NULL,NULL)::text",
+		"SELECT banking.commit_source_post(NULL,NULL,NULL,NULL,NULL,NULL,NULL)::text",
+		"SELECT banking.authorize_source_post_core(NULL,NULL,NULL,NULL,NULL)::text",
+		"SELECT banking.source_post_authorize(NULL,NULL,NULL,NULL)::text",
+		"SELECT banking.execute_source_post(NULL,NULL,NULL,NULL,NULL,NULL)::text",
+	} {
 		_, e := invoke(t, db, "synthetic_runtime", q)
 		requireCode(t, e, "42501")
 	}
+	for _, table := range []string{"automatic_accounting_policy", "automatic_accounting_edition", "automatic_accounting_setting", "automatic_accounting_operation", "automatic_accounting_cursor"} {
+		for _, q := range []string{"SELECT count(*)::text FROM banking." + table, "INSERT INTO banking." + table + " DEFAULT VALUES RETURNING entity_id::text", "UPDATE banking." + table + " SET entity_id=entity_id WHERE false RETURNING entity_id::text", "DELETE FROM banking." + table + " WHERE false RETURNING entity_id::text"} {
+			_, e := invoke(t, db, "synthetic_runtime", q)
+			requireCode(t, e, "42501")
+		}
+	}
 	for _, login := range []string{"synthetic_observer", "synthetic_publisher"} {
-		_, e := invoke(t, db, login, "SELECT banking.get_automatic_accounting($1,$2,$3)::text", reader, entity, book)
-		requireCode(t, e, "42501")
+		for _, q := range []string{"SELECT banking.get_automatic_accounting(NULL,NULL,NULL)::text", "SELECT banking.set_automatic_accounting(NULL,NULL,NULL,NULL)::text", "SELECT banking.automatic_accounting_status(NULL,NULL,NULL)::text", "SELECT banking.automatic_accounting_work()::text", "SELECT banking.prepare_automatic_accounting(NULL,NULL,NULL)::text", "SELECT banking.execute_automatic_accounting(NULL,NULL,NULL,NULL)::text", "SELECT banking.observe_automatic_accounting(NULL,NULL,NULL,NULL)::text"} {
+			_, e := invoke(t, db, login, q)
+			requireCode(t, e, "42501")
+		}
+	}
+}
+
+// automaticLostPool commits to the actual restricted database, then loses exactly one selected reply.
+type automaticLostPool struct {
+	pool               *pgxpool.Pool
+	phase              string
+	lost               bool
+	executed, observed []string
+}
+type automaticLostTx struct {
+	pgx.Tx
+	owner *automaticLostPool
+	phase string
+}
+
+func (p *automaticLostPool) BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx, error) {
+	tx, e := p.pool.BeginTx(ctx, opts)
+	if e != nil {
+		return nil, e
+	}
+	return &automaticLostTx{Tx: tx, owner: p}, nil
+}
+func (tx *automaticLostTx) QueryRow(ctx context.Context, q string, args ...any) pgx.Row {
+	for _, phase := range []string{"prepare", "execute", "observe"} {
+		if strings.Contains(q, "banking."+phase+"_automatic_accounting(") {
+			tx.phase = phase
+			if phase == "execute" {
+				tx.owner.executed = append(tx.owner.executed, args[3].(string))
+			}
+			if phase == "observe" {
+				tx.owner.observed = append(tx.owner.observed, args[3].(string))
+			}
+		}
+	}
+	return tx.Tx.QueryRow(ctx, q, args...)
+}
+func (tx *automaticLostTx) Commit(ctx context.Context) error {
+	e := tx.Tx.Commit(ctx)
+	if e == nil && tx.phase == tx.owner.phase && !tx.owner.lost {
+		tx.owner.lost = true
+		return errors.New("fictional_unknown_commit")
+	}
+	return e
+}
+
+// TestAutomaticAccountingUnknownCommit exercises actual COMMIT followed by loss, not a fake SQL success.
+func TestAutomaticAccountingUnknownCommit(t *testing.T) {
+	for _, phase := range []string{"prepare", "execute", "observe"} {
+		t.Run(phase, func(t *testing.T) {
+			c, db, sid := reviewSetup(t)
+			automaticPolicy(t, db, "policy", "0", sid, automaticRule(automaticRuleOut, sid, "outflow", reviewExpense, "expense"), automaticRule(automaticRuleIn, sid, "inflow", reviewRevenue, "income"))
+			pool, e := pgxpool.New(context.Background(), "host=database port=5432 user=synthetic_runtime dbname="+db+" sslmode=disable connect_timeout=5")
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer pool.Close()
+			fault := &automaticLostPool{pool: pool, phase: phase}
+			service := &autopost.Service{DB: fault}
+			if e = service.Round(context.Background()); e == nil || !fault.lost {
+				t.Fatal("real committed reply was not lost", phase)
+			}
+			id := value(t, c, "SELECT operation_id::text FROM banking.automatic_accounting_operation ORDER BY created_at LIMIT 1")
+			draft := value(t, c, "SELECT draft_id::text FROM banking.review_draft WHERE automatic_operation_id=$1", id)
+			expected := "1"
+			if phase == "prepare" {
+				expected = "0"
+			}
+			if value(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != expected {
+				t.Fatal("unexpected financial effect before recovery", phase)
+			}
+			// A new service instance proves recovery identity is durable rather than cached in Go.
+			restarted := &autopost.Service{DB: fault}
+			if e = restarted.Round(context.Background()); e != nil {
+				t.Fatal("same identity recovery failed", e)
+			}
+			if phase != "observe" && value(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != "1" {
+				t.Fatal("recovery advanced new work before consuming old receipt", phase)
+			}
+			if len(fault.observed) == 0 || fault.observed[0] != id {
+				t.Fatal("original committed operation was not observed first")
+			}
+			if value(t, c, "SELECT draft_id::text FROM banking.review_draft WHERE automatic_operation_id=$1", id) != draft {
+				t.Fatal("unknown prepare created replacement draft")
+			}
+			if value(t, c, "SELECT count(*)::text FROM banking.review_posting WHERE automatic_operation_id=$1", id) != "1" {
+				t.Fatal("unknown commit duplicated original source effect")
+			}
+			if e = restarted.Round(context.Background()); e != nil {
+				t.Fatal(e)
+			}
+			if value(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != "2" {
+				t.Fatal("subsequent independent source did not post exactly once")
+			}
+		})
 	}
 }

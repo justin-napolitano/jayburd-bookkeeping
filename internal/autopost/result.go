@@ -134,8 +134,8 @@ func validResult(raw json.RawMessage, operation string, r Request) bool {
 	if operation != "status" {
 		return false
 	}
-	m, ok := object(raw, "profile", "entity_id", "book_id", "enabled", "pending_count", "attention_count", "blocked_reason", "last_operation", "holds", "holds_truncated")
-	if !ok || str(m["profile"]) != "automatic-accounting-status-v1" || str(m["entity_id"]) != r.Entity || str(m["book_id"]) != r.Book || !revision(m["pending_count"]) || !revision(m["attention_count"]) || !blockedReason(m["blocked_reason"]) || !nullable(m["last_operation"], validOperation) {
+	m, ok := object(raw, "profile", "entity_id", "book_id", "policy_revision", "enabled", "pending_count", "attention_count", "blocked_reason", "last_operation", "holds", "holds_truncated")
+	if !ok || str(m["profile"]) != "automatic-accounting-status-v1" || str(m["entity_id"]) != r.Entity || str(m["book_id"]) != r.Book || !revision(m["policy_revision"]) || !revision(m["pending_count"]) || !revision(m["attention_count"]) || !blockedReason(m["blocked_reason"]) || !nullable(m["last_operation"], validOperation) {
 		return false
 	}
 	if _, ok = flag(m["enabled"]); !ok {
