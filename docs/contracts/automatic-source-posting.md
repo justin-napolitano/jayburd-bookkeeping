@@ -67,6 +67,15 @@ new rule ID or replay; uniqueness is not merely per rule revision.
 A current posted original is never regenerated. Changed/removed posted evidence
 stays correction_hold (333); no unbound reversal, delta adjustment or replacement
 is invented. Existing immutable anchor and original journal remain readable.
+The existing provider review pipeline also uses correction_hold for initial,
+unposted pending, zero and excessive-precision observations. This profile
+preserves those review holds and reports source_correction_required without
+asserting any original journal exists. A pending-to-booked provider update may
+still need the existing source-review recovery flow before becoming eligible;
+this bounded profile is not complete automatic bank-feed recovery. It does not
+clear a shared review hold or infer permission to post merely from a later booked
+observation. Posted correction execution remains separately deferred to333.
+
 Existing manual draft_ready work is protected; auto-owned stale drafts may be
 replanned under a new immutable operation, retaining all prior drafts/receipts.
 Manual analytic category choices are neither read as financial authority nor

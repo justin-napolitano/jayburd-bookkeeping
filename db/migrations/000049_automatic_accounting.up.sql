@@ -1060,6 +1060,8 @@ END IF;
   IF s.state<>'active' THEN
   reason_value:='source_unavailable';
 
+  -- Legacy provider review also uses correction_hold for unposted pending/zero/precision evidence.
+  -- Preserve that shared hold; this reason does not assert an original journal or automatic feed recovery.
   ELSIF  r.state IN('posted','correction_hold')OR EXISTS(SELECT
   FROM banking.provider_review_exception ex
   WHERE ex.entity_id=e AND ex.book_id=b AND ex.review_id=r.review_id)THEN

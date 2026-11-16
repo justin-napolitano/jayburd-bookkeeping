@@ -122,6 +122,10 @@ func TestAutomaticAccountingProviderHolds(t *testing.T) {
 			if _, e := runner.Run(context.Background(), Scope{entity, book, stream["stream_id"].(string)}, claimID); e != nil {
 				t.Fatal(e)
 			}
+			// A correction-review hold here precedes ANY journal; it is not proof of changed posted evidence.
+			if value(t, c, "SELECT count(*)::text FROM ledger.journal_entry") != "0" || value(t, c, "SELECT count(*)::text FROM banking.provider_posted_anchor") != "0" {
+				t.Fatal("initial hold unexpectedly has an original journal")
+			}
 			accountingMapping(t, db, "Fictional Held")
 			wantEvidence := map[string]string{"pending": "pending|outflow|9.50|2026-01-06", "zero": "booked|zero|0.00|2026-01-06", "precision": "booked|outflow|1.001|2026-01-06", "overlap": "booked|outflow|9.50|2026-01-06"}
 			if value(t, c, "SELECT source_state||'|'||direction||'|'||provider_amount_lexeme||'|'||booked_date::text FROM banking.observation_revision") != wantEvidence[tc.name] {
@@ -132,13 +136,17 @@ func TestAutomaticAccountingProviderHolds(t *testing.T) {
 				accountingTurn(t, db)
 			}
 			status := object(t, call(t, db, "synthetic_runtime", "SELECT banking.automatic_accounting_status($1,$2,$3)::text", actor, entity, book))
+			last := status["last_operation"].(map[string]any)
+			if last["journal_id"] != nil {
+				t.Fatal("unposted source hold fabricated original journal metadata")
+			}
 			if status["attention_count"] != "1" || status["pending_count"] != "0" {
 				t.Fatal("missing fixed held attention", tc.name, status)
 			}
 			if value(t, c, "SELECT count(*)::text FROM banking.source_observation") != "1" || value(t, c, "SELECT count(*)::text FROM banking.review_item") != "1" || value(t, c, "SELECT count(*)::text FROM banking.automatic_accounting_operation WHERE state='held' AND reason=$1", tc.reason) != "1" {
 				t.Fatal("source silently skipped expected hold", tc.name)
 			}
-			for _, table := range []string{"ledger.journal_entry", "banking.review_posting", "integration.outbox_message"} {
+			for _, table := range []string{"ledger.journal_entry", "banking.review_posting", "banking.provider_posted_anchor", "integration.operation_receipt", "integration.outbox_message"} {
 				if value(t, c, "SELECT count(*)::text FROM "+table) != "0" {
 					t.Fatal("ineligible source posted", tc.name)
 				}

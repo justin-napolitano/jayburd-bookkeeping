@@ -24,6 +24,8 @@ Source green tests and analytic category acceptance do not qualify live bookkeep
 
 | Remaining acceptance sources | Real two-session prepare/execute replay, saved-human-reservation deferral, retained edition/operation downgrade refusal, pinned migrate49→48→49, local fictional provider50→55 correction hold and pending/zero/precision/overlap cases now authored. Existing fixture permissions and original-unit assertions are independent. Sources compile under compatibility diagnostic; no actual SQL execution claimed. |
 
+| Legacy provider hold scope | Existing provider review correction_hold includes unposted pending/zero/precision evidence. Automation preserves it with generic source_correction_required and no original-journal assertion; pending→booked can still require source-review recovery. No complete automatic bank-feed recovery or333 correction execution is claimed. |
+
 ## Current evidence
 
 Source checkpoint compiles under the documented local compatibility diagnostic.
