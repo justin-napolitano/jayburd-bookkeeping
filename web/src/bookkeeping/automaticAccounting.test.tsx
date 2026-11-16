@@ -96,6 +96,46 @@ const status = (enabled = true, runtime = true) => ({
   holds: [],
   holds_truncated: false,
 });
+
+it("routes an unposted provider correction hold to its source without inventing a journal", async () => {
+  const { api, props } = fixture();
+  api.mockImplementation(async (path: string) =>
+    path.endsWith("/sources")
+      ? { profile: "source-list-v1", items: sources }
+      : path.endsWith("/status")
+        ? {
+            ...status(),
+            attention_count: "1",
+            holds: [
+              {
+                review_id: id(7),
+                source_account_id: source,
+                reason: "source_correction_required",
+                operation_id: id(8),
+              },
+            ],
+            last_operation: {
+              operation_id: id(8),
+              state: "held",
+              review_id: id(7),
+              journal_id: null,
+              reason: "source_correction_required",
+            },
+          }
+        : policy(),
+  );
+  render(<AutomaticAccounting {...props} />);
+  await screen.findByText("Source evidence needs correction review");
+  expect(screen.queryByText(/Posted evidence changed/)).toBeNull();
+  fireEvent.click(screen.getByText(/Accounting exceptions/));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Review source transaction" }),
+  );
+  expect(props.onInspectReview).toHaveBeenCalledWith(id(7), source);
+  expect(api.mock.calls.some(([path]) => path.includes("/journals/"))).toBe(
+    false,
+  );
+});
 function fixture(enabled = true, runtime = true) {
   const api = vi.fn<(path: string, body?: string) => Promise<unknown>>(
     async (path: string, body?: string) =>

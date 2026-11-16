@@ -334,7 +334,12 @@ function AccountingPanel({
             {snapshot.status.attention_count} need attention
           </p>
           {!!snapshot.policy.policy?.rules.length && !editing && (
-            <div className={styles.tableScroll}>
+            <div
+              className={styles.tableScroll}
+              role="region"
+              aria-label="Configured accounting mappings"
+              tabIndex={0}
+            >
               <table>
                 <caption>Configured accounting mappings</caption>
                 <thead>
@@ -604,7 +609,12 @@ function AccountingPanel({
                 . {review.rules.length} mappings; {removed} existing mappings
                 removed from future use.
               </p>
-              <div className={styles.tableScroll}>
+              <div
+                className={styles.tableScroll}
+                role="region"
+                aria-label="Accounting configuration mappings"
+                tabIndex={0}
+              >
                 <table>
                   <caption>Mappings to save</caption>
                   <thead>

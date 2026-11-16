@@ -27,6 +27,24 @@ for (const width of [1280, 390])
       () => document.documentElement.scrollWidth > innerWidth,
     );
     expect(overflow).toBe(false);
+    if (width === 390) {
+      const mappings = page.getByRole("region", {
+        name: "Accounting configuration mappings",
+        exact: true,
+      });
+      await expect
+        .poll(() =>
+          mappings.evaluate(
+            (element) => element.scrollWidth > element.clientWidth,
+          ),
+        )
+        .toBe(true);
+      await mappings.focus();
+      await mappings.press("ArrowRight");
+      await expect
+        .poll(() => mappings.evaluate((element) => element.scrollLeft))
+        .toBeGreaterThan(0);
+    }
     await page.screenshot({
       path: info.outputPath(`automatic-accounting-${width}.png`),
       fullPage: true,

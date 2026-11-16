@@ -22,8 +22,7 @@ export const accountingReasons: Record<AccountingReason, string> = {
   zero_amount: "Zero-value transactions cannot create an entry",
   source_held: "Resolve the source transaction hold",
   overlap_review_required: "Review overlapping source evidence",
-  source_correction_required:
-    "Posted evidence changed; a linked correction is needed",
+  source_correction_required: "Source evidence needs correction review",
   paired_transfer_required: "Transfer or card payment needs paired evidence",
   split_treatment_required: "Loan treatment needs a reviewed split",
   fx_required: "A reviewed foreign-exchange valuation is needed",
