@@ -14,6 +14,10 @@ const connectionWrite = new RegExp(`^${bookPath}/(?:connection-attempts|connecti
 const registrationPreparation = new RegExp(`^${bookPath}/connection-attempts/${uuid}/registration$`);
 // Private search values travel only in a bounded no-store POST read body.
 const reviewQuery = new RegExp(`^${bookPath}/(?:review-items|source-activity)/query$`);
+// Configuration carries its own body key; no automatic execution route exists.
+const accountingPolicy = new RegExp(`^${bookPath}/automatic-accounting$`);
+const accountingStatus = new RegExp(`^${bookPath}/automatic-accounting/status$`);
+const accountingRoute = (path: string) => accountingPolicy.test(path) || accountingStatus.test(path);
 // Private collection commands carry their persisted identity in a closed JSON body.
 const collectionPath = `/v[123]/collections/${uuid}`;
 const collectionRead = new RegExp(`^${collectionPath}/(?:taxonomy|label-commands/pending)$`);
@@ -64,6 +68,7 @@ function configuration(env: Record<string, string | undefined>): BridgeConfig {
 /** Permit only currently implemented bookkeeping routes; deferred close/admin paths stay unavailable. */
 function allowed(url: URL, method: string): boolean {
   if (url.pathname.length + url.search.length > 4096) return false;
+  if (accountingRoute(url.pathname)) return !url.href.includes('?') && !url.hash && (method === 'GET' || method === 'POST' && accountingPolicy.test(url.pathname));
   if (collectionRoute(url.pathname)) {
     if (url.href.includes('?') || url.hash) return false;
     return method === 'GET' ? collectionAutomation.test(url.pathname) || onboardingRead.test(url.pathname) || url.pathname === '/v1/collection' || url.pathname === '/v1/collection-recovery' || collectionRead.test(url.pathname) || collectionV3Read.test(url.pathname) : method === 'POST' && (collectionAutomation.test(url.pathname) || onboardingWrite.test(url.pathname) || url.pathname === '/v1/collection-recovery/clear' || url.pathname === collectionActivation || collectionV3Query.test(url.pathname) || collectionQuery.test(url.pathname) || collectionPreview.test(url.pathname) || collectionPrepare.test(url.pathname) || collectionTransition.test(url.pathname));
@@ -237,6 +242,9 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
       if (origin !== null && origin !== config.origin || site !== null && site !== 'same-origin') return failure(403);
       const bearer = request.headers.get('Authorization') ?? '';
       if (bearer.length > 16384 || !bearer.startsWith('Bearer ') || !tokenPattern.test(bearer.slice(7))) return failure(401);
+      const accounting = accountingRoute(url.pathname);
+      if (accounting && (request.headers.has('Idempotency-Key') || request.headers.has('Content-Encoding'))) return failure(400);
+      if (accounting && request.method === 'GET' && request.headers.has('Content-Length') && request.headers.get('Content-Length') !== '0') return failure(400);
       const collection = collectionRoute(url.pathname);
       if (collection && (request.headers.has('Idempotency-Key') || request.headers.has('Content-Encoding'))) return failure(400);
       if (collectionAutomation.test(url.pathname) && request.method === 'GET' && request.headers.has('Content-Length') && request.headers.get('Content-Length') !== '0') return failure(400);
@@ -245,15 +253,16 @@ export function createBridge(transport: Transport = fetch, environment: () => Re
       const headers = new Headers({Authorization: bearer, Origin: config.origin, Accept: csv ? 'text/csv' : 'application/json'});
       let body: Uint8Array | undefined;
       if (request.method === 'POST') {
+        if (accounting && request.headers.get('Content-Type') !== 'application/json') return failure(415);
         if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('Content-Type') ?? '')) return failure(415);
         if (registrationPreparation.test(url.pathname) && ((request.headers.get('Content-Type') ?? '').toLowerCase() !== 'application/json' || request.headers.has('Content-Encoding'))) return failure(400);
         // Durable command and connection transitions carry their own persisted operation identity.
         const key = request.headers.get('Idempotency-Key');
         if ((reviewQuery.test(url.pathname) || collection) && (key !== null || request.headers.has('Content-Encoding') || request.headers.get('Content-Type') !== 'application/json')) return failure(400);
-        if (!collection && !reviewQuery.test(url.pathname) && (key !== null || !(url.pathname === inaccessibleCommandAction || commandAction.test(url.pathname) || connectionAction.test(url.pathname))) && !/^[A-Za-z0-9._:-]{1,128}$/.test(key ?? '')) return failure(400);
+        if (!accounting && !collection && !reviewQuery.test(url.pathname) && (key !== null || !(url.pathname === inaccessibleCommandAction || commandAction.test(url.pathname) || connectionAction.test(url.pathname))) && !/^[A-Za-z0-9._:-]{1,128}$/.test(key ?? '')) return failure(400);
         headers.set('Content-Type', 'application/json');
         if (key !== null) headers.set('Idempotency-Key', key);
-        try { body = await read(request.body, collection ? collectionBodyLimit(url.pathname) : reviewQuery.test(url.pathname) ? 8192 : registrationPreparation.test(url.pathname) ? 16 << 10 : connectionWrite.test(url.pathname) ? 32 << 10 : limit, signal); } catch (error) { return failure(error instanceof RangeError ? 413 : 504); }
+        try { body = await read(request.body, accounting ? 128 << 10 : collection ? collectionBodyLimit(url.pathname) : reviewQuery.test(url.pathname) ? 8192 : registrationPreparation.test(url.pathname) ? 16 << 10 : connectionWrite.test(url.pathname) ? 32 << 10 : limit, signal); } catch (error) { return failure(error instanceof RangeError ? 413 : 504); }
       } else if (request.body !== null) return failure(400);
       if (config.cloud) headers.set('X-Serverless-Authorization', `Bearer ${await serviceToken(config.api, transport, signal)}`);
       const upstream = await transport(config.api + url.pathname + url.search, {

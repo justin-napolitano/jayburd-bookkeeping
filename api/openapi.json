@@ -3661,7 +3661,7 @@
       "post": {
         "operationId": "prepareAccountRegistration",
         "summary": "Prepare selected accounts for recoverable registration",
-        "description": "Verified scoped selection only; strict16KiB JSON,1–25 unique account IDs. SQL persists exact mappings without binding.201 returns a saved register_accounts command. Execute/cancel/acknowledge through the existing command routes. No provider calls, new Item, automatic execution or browser persistence. Requires installed migration36 and finite runtime profile; see docs/contracts/registration-http.md.",
+        "description": "Verified scoped selection only; strict16KiB JSON,1\u201325 unique account IDs. SQL persists exact mappings without binding.201 returns a saved register_accounts command. Execute/cancel/acknowledge through the existing command routes. No provider calls, new Item, automatic execution or browser persistence. Requires installed migration36 and finite runtime profile; see docs/contracts/registration-http.md.",
         "parameters": [
           {
             "name": "entity_id",
@@ -6227,6 +6227,188 @@
           }
         }
       }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/automatic-accounting": {
+      "get": {
+        "operationId": "getAutomaticAccountingPolicy",
+        "summary": "Read the current automatic accounting mapping policy",
+        "description": "Explicit default-off runtime capability. Verified actor and current book/source permissions; no query, Content-Encoding or Idempotency-Key header. GET bodies and HEAD rejected. Closed duplicate-key-free UTF8 JSON; request max128KiB, response max1MiB, no-store. Policy setup authorizes bounded routine source-backed postings without per-entry confirmation. Reads never post and no public run/prepare/execute route exists. Unsupported FX/transfer/split/correction treatments remain explicit zero-effect holds. See docs/contracts/automatic-source-posting.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "x-required-permission": "read,prepare,post",
+        "responses": {
+          "200": {
+            "description": "Current-authorized closed automatic-accounting state",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomaticAccountingPolicy"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure without private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "setAutomaticAccountingPolicy",
+        "summary": "Save a reviewed versioned accounting mapping configuration",
+        "description": "Explicit default-off runtime capability. Verified actor and current book/source permissions; no query, Content-Encoding or Idempotency-Key header. GET bodies and HEAD rejected. Closed duplicate-key-free UTF8 JSON; request max128KiB, response max1MiB, no-store. Policy setup authorizes bounded routine source-backed postings without per-entry confirmation. Reads never post and no public run/prepare/execute route exists. Unsupported FX/transfer/split/correction treatments remain explicit zero-effect holds. See docs/contracts/automatic-source-posting.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "x-required-permission": "read,prepare,post",
+        "responses": {
+          "200": {
+            "description": "Current-authorized closed automatic-accounting state",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomaticAccountingPolicy"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure without private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomaticAccountingSettings"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entities/{entity_id}/books/{book_id}/automatic-accounting/status": {
+      "get": {
+        "operationId": "getAutomaticAccountingStatus",
+        "summary": "Read complete pending/attention counts and bounded actionable holds",
+        "description": "Explicit default-off runtime capability. Verified actor and current book/source permissions; no query, Content-Encoding or Idempotency-Key header. GET bodies and HEAD rejected. Closed duplicate-key-free UTF8 JSON; request max128KiB, response max1MiB, no-store. Policy setup authorizes bounded routine source-backed postings without per-entry confirmation. Reads never post and no public run/prepare/execute route exists. Unsupported FX/transfer/split/correction treatments remain explicit zero-effect holds. See docs/contracts/automatic-source-posting.md.",
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "x-required-permission": "read,prepare,post",
+        "responses": {
+          "200": {
+            "description": "Current-authorized closed automatic-accounting state",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomaticAccountingStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Fixed RFC9457 failure without private diagnostics",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8618,9 +8800,12 @@
             }
           },
           "draft": {
-            "oneOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/ReviewDraft"
+              },
+              {
+                "$ref": "#/components/schemas/AutomaticReviewDraft"
               },
               {
                 "type": "null"
@@ -12574,7 +12759,7 @@
           "selection",
           "action"
         ],
-        "description": "Labels require1–100 exact selections; taxonomy actions require empty selection and retain every existing topic ID. SQL validates these conditional invariants."
+        "description": "Labels require1\u2013100 exact selections; taxonomy actions require empty selection and retain every existing topic ID. SQL validates these conditional invariants."
       },
       "PrivateLabelPreview": {
         "type": "object",
@@ -13743,7 +13928,7 @@
           "selection",
           "action"
         ],
-        "description": "Labels require1–100 exact selections; taxonomy actions require empty selection and retain every existing topic ID. SQL validates these conditional invariants."
+        "description": "Labels require1\u2013100 exact selections; taxonomy actions require empty selection and retain every existing topic ID. SQL validates these conditional invariants."
       },
       "PrivateLabelPreviewV2": {
         "type": "object",
@@ -15994,7 +16179,7 @@
           "selection",
           "action"
         ],
-        "description": "Rule catalog edits require empty selection; rule apply requires1–100 exact current observations. SQL pins and explicit persisted preview/prepare/execute/ack are mandatory; no caller-supplied match results."
+        "description": "Rule catalog edits require empty selection; rule apply requires1\u2013100 exact current observations. SQL pins and explicit persisted preview/prepare/execute/ack are mandatory; no caller-supplied match results."
       },
       "PrivateLabelPreviewV3": {
         "type": "object",
@@ -17174,6 +17359,442 @@
           "decision_id"
         ],
         "description": "Additive current read projection. Automatic state refers to a durable decision, never an inert suggestion. Rule names are retained at the actual winning edition. Effective owner_topic/owner_tags remain the server-filtered values; historical saved preview shapes are unchanged."
+      },
+      "AutomaticAccountingReason": {
+        "type": "string",
+        "enum": [
+          "unmapped_rule",
+          "ambiguous_rule",
+          "outside_policy_interval",
+          "manual_draft",
+          "source_not_booked",
+          "zero_amount",
+          "source_held",
+          "overlap_review_required",
+          "source_correction_required",
+          "paired_transfer_required",
+          "split_treatment_required",
+          "fx_required",
+          "unsupported_currency",
+          "unsupported_policy",
+          "inactive_account",
+          "closed_period",
+          "source_unavailable",
+          "permission_changed",
+          "saved_work",
+          "stale_input"
+        ]
+      },
+      "AutomaticAccountingRule": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rule_id",
+          "name",
+          "source_account_id",
+          "direction",
+          "description",
+          "offset_account_id",
+          "treatment"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "inflow",
+              "outflow"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Exact retained source description; no regex or merchant inference."
+          },
+          "offset_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "treatment": {
+            "type": "string",
+            "enum": [
+              "expense",
+              "income",
+              "transfer",
+              "card_payment",
+              "loan"
+            ]
+          }
+        }
+      },
+      "AutomaticAccountingConfiguration": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "book_policy_id",
+          "effective_from",
+          "effective_to",
+          "rules"
+        ],
+        "properties": {
+          "book_policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rules": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/AutomaticAccountingRule"
+            },
+            "description": "Stable unique rule IDs and names; SQL validates current exact mappings."
+          }
+        }
+      },
+      "AutomaticAccountingSettings": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "expected_revision",
+          "enabled",
+          "book_policy_id",
+          "effective_from",
+          "effective_to",
+          "rules"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "book_policy_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "effective_from": {
+            "type": "string",
+            "format": "date"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rules": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/AutomaticAccountingRule"
+            },
+            "description": "Stable unique rule IDs and names; SQL validates current exact mappings."
+          }
+        }
+      },
+      "AutomaticAccountingPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "entity_id",
+          "book_id",
+          "revision",
+          "enabled",
+          "policy",
+          "supported_profile"
+        ],
+        "properties": {
+          "profile": {
+            "const": "automatic-accounting-policy-v1"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AutomaticAccountingConfiguration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supported_profile": {
+            "const": "source-identity-usd-v1"
+          }
+        }
+      },
+      "AutomaticAccountingOperation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operation_id",
+          "state",
+          "review_id",
+          "journal_id",
+          "reason"
+        ],
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "prepared",
+              "committed",
+              "stale",
+              "held"
+            ]
+          },
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "journal_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AutomaticAccountingReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "AutomaticAccountingHold": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "review_id",
+          "source_account_id",
+          "reason",
+          "operation_id"
+        ],
+        "properties": {
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source_account_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/AutomaticAccountingReason"
+          },
+          "operation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "AutomaticAccountingStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "entity_id",
+          "book_id",
+          "enabled",
+          "pending_count",
+          "attention_count",
+          "last_operation",
+          "holds",
+          "holds_truncated",
+          "blocked_reason",
+          "runtime_enabled",
+          "policy_revision"
+        ],
+        "properties": {
+          "profile": {
+            "const": "automatic-accounting-status-v1"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "book_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "pending_count": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "attention_count": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "last_operation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AutomaticAccountingOperation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "holds": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/AutomaticAccountingHold"
+            }
+          },
+          "holds_truncated": {
+            "type": "boolean"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "saved_work",
+                  "permission_changed",
+                  "source_unavailable"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runtime_enabled": {
+            "type": "boolean",
+            "description": "Server-owned background-execution flag, independent of the saved per-book enabled policy."
+          },
+          "policy_revision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          }
+        }
+      },
+      "AutomaticReviewDraft": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "draft_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "review_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "review_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "source_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "binding_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "book_revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "posting_body": {
+            "$ref": "#/components/schemas/PostJournal"
+          },
+          "profile": {
+            "const": "automatic-source-draft-v1"
+          },
+          "origin": {
+            "const": "automatic"
+          },
+          "automatic_operation_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "draft_id",
+          "review_id",
+          "review_revision",
+          "source_revision",
+          "binding_revision",
+          "book_revision",
+          "posting_body",
+          "profile",
+          "origin",
+          "automatic_operation_id"
+        ]
       }
     },
     "responses": {

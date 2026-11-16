@@ -1,0 +1,34 @@
+import { expect, test } from "@playwright/experimental-ct-react";
+import { AutomaticAccountingHarness } from "./AutomaticAccountingHarness";
+for (const width of [1280, 390])
+  test(`automatic accounting policy is explicit and compact at ${width}px`, async ({
+    mount,
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mount(<AutomaticAccountingHarness />);
+    await expect(
+      page.getByText(
+        "Configuration is saved. Automatic posting is not active in this deployment.",
+      ),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Configure accounting" }).click();
+    await page
+      .getByRole("button", { name: "Review accounting configuration" })
+      .click();
+    await expect(
+      page.getByRole("table", { name: "Mappings to save" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Configuration writes")).toHaveText("0");
+    await expect(
+      page.getByRole("button", { name: "Save accounting configuration" }),
+    ).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    );
+    expect(overflow).toBe(false);
+    await page.screenshot({
+      path: info.outputPath(`automatic-accounting-${width}.png`),
+      fullPage: true,
+    });
+  });

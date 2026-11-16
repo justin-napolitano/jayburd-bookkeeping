@@ -770,3 +770,57 @@ it("locks filters until connection source discovery finishes", async () => {
   );
   expect(screen.getByLabelText("Source account")).toHaveProperty("value", "s");
 });
+
+it("keeps automatically owned drafts inspect-only and skips manual categorization", async () => {
+  const { api, props } = fixture();
+  api.mockImplementation(async (path: string) =>
+    path.endsWith("/sources")
+      ? {
+          items: [
+            {
+              source_account_id: "s",
+              display_name: "Checking",
+              currency: "USD",
+              state: "active",
+            },
+          ],
+        }
+      : path.includes("/review-items?")
+        ? {
+            source_account_id: "s",
+            source_revision: "2",
+            items: [{ ...row, state: "draft_ready" }],
+            next_cursor: null,
+          }
+        : {
+            ...detail,
+            state: "draft_ready",
+            draft_id: "d",
+            draft: {
+              ...draft,
+              profile: "automatic-source-draft-v1",
+              origin: "automatic",
+              automatic_operation_id: "auto",
+            },
+          },
+  );
+  render(<ReviewInbox {...props} />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Review Synthetic supplies" }),
+  );
+  await screen.findByText(/Automatic accounting owns this draft/);
+  expect(
+    screen.queryByRole("button", { name: "Review posting command" }),
+  ).toBeNull();
+  expect(api.mock.calls.some(([path]) => path.endsWith("/categories"))).toBe(
+    false,
+  );
+  expect(props.prepare).not.toHaveBeenCalled();
+});
+it("resolves an exception review only after current source discovery", async () => {
+  const { api, props } = fixture();
+  render(<ReviewInbox {...props} initialReviewID="r" initialSource="s" />);
+  await screen.findByLabelText("Category account");
+  expect(api.mock.calls[0][0]).toBe(base + "/sources");
+  expect(api.mock.calls[1][0]).toBe(base + "/review-items/r");
+});

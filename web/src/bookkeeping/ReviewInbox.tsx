@@ -33,7 +33,11 @@ export type ReviewPage = (
   available_through?: string | null;
   source_count?: string;
 };
-export type ReviewDraft = components["schemas"]["ReviewDraft"];
+export type ReviewDraft =
+  | components["schemas"]["ReviewDraft"]
+  | components["schemas"]["AutomaticReviewDraft"];
+const automaticDraft = (draft: ReviewDraft | null) =>
+  !!draft && "origin" in draft && draft.origin === "automatic";
 export type ReviewDetail = components["schemas"]["ReviewItem"];
 export type ReviewCategories = components["schemas"]["ReviewCategories"];
 export type SourcePostCommand = Extract<
@@ -49,6 +53,7 @@ export type ReviewInboxProps = {
   locked: boolean;
   active?: boolean;
   initialSource?: string;
+  initialReviewID?: string;
   showHeading?: boolean;
   onSourceChoice?: (source: string) => void;
   prepare: (command: SourcePostCommand) => void;
@@ -58,7 +63,7 @@ export type ReviewInboxProps = {
 export function ReviewInbox(props: ReviewInboxProps) {
   return (
     <Inbox
-      key={`${props.entity.entity_id}/${props.book.book_id}/${props.book.book_revision}/${props.locked}/${props.active ?? true}/${props.initialSource ?? ""}`}
+      key={`${props.entity.entity_id}/${props.book.book_id}/${props.book.book_revision}/${props.locked}/${props.active ?? true}/${props.initialSource ?? ""}/${props.initialReviewID ?? ""}`}
       {...props}
     />
   );
@@ -72,6 +77,7 @@ function Inbox({
   locked,
   active = true,
   initialSource = "",
+  initialReviewID = "",
   showHeading = true,
   onSourceChoice,
   prepare,
@@ -162,7 +168,13 @@ function Inbox({
             : value.items.length === 1 && value.items[0].state === "active"
               ? value.items[0]
               : undefined;
-          if (preference) {
+          if (initialReviewID) {
+            void select(
+              initialReviewID,
+              preference?.source_account_id ?? "",
+              value.items,
+            );
+          } else if (preference) {
             setSource(preference.source_account_id);
             void load(preference.source_account_id);
           }
@@ -255,7 +267,11 @@ function Inbox({
     }
   };
   // Detail is independently authorized; optional category failure must not erase readable source evidence.
-  const select = async (id: string) => {
+  const select = async (
+    id: string,
+    selectedSource = source,
+    allowedSources = sources ?? [],
+  ) => {
     const version = ++epoch.current;
     resetDetail();
     setBusy(true);
@@ -265,24 +281,36 @@ function Inbox({
         `${base}/review-items/${encodeURIComponent(id)}`,
       );
       if (!alive.current || version !== epoch.current) return;
-      if (value.source_account_id !== source || value.review_id !== id)
+      if (
+        (selectedSource
+          ? value.source_account_id !== selectedSource
+          : !allowedSources.some(
+              (item) => item.source_account_id === value.source_account_id,
+            )) ||
+        value.review_id !== id
+      )
         throw new Error("Mismatched review");
+      setSource(value.source_account_id);
       setDetail(value);
       setDraft(value.draft);
       setDate(value.booked_date);
       setDescription(value.description);
       if (
-        (value.state === "needs_review" && value.blockers.length === 0) ||
-        (value.state === "draft_ready" &&
-          value.blockers.length > 0 &&
-          value.blockers.every((blocker) => blocker === "draft_stale"))
+        !automaticDraft(value.draft) &&
+        ((value.state === "needs_review" && value.blockers.length === 0) ||
+          (value.state === "draft_ready" &&
+            value.blockers.length > 0 &&
+            value.blockers.every((blocker) => blocker === "draft_stale")))
       ) {
         try {
           const choices = await api<ReviewCategories>(
             `${base}/review-items/${encodeURIComponent(id)}/categories`,
           );
           if (!alive.current || version !== epoch.current) return;
-          if (choices.source_account_id !== source || choices.review_id !== id)
+          if (
+            choices.source_account_id !== value.source_account_id ||
+            choices.review_id !== id
+          )
             throw new Error("Mismatched categories");
           setCategories(choices);
           setDate(choices.accounting_date);
@@ -343,6 +371,7 @@ function Inbox({
     event.preventDefault();
     if (
       !detail ||
+      automaticDraft(detail.draft) ||
       !categories ||
       categories.fx_required ||
       !category ||
@@ -965,7 +994,14 @@ function Inbox({
                   </tbody>
                 </table>
               </div>
-              {detail.state === "draft_ready" &&
+              {automaticDraft(draft) && (
+                <p>
+                  Automatic accounting owns this draft. Inspect its source here;
+                  the automation status shows progress or any exception.
+                </p>
+              )}
+              {!automaticDraft(draft) &&
+                detail.state === "draft_ready" &&
                 detail.blockers.length === 0 && (
                   <>
                     <button

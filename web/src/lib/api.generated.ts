@@ -1652,6 +1652,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entities/{entity_id}/books/{book_id}/automatic-accounting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the current automatic accounting mapping policy
+         * @description Explicit default-off runtime capability. Verified actor and current book/source permissions; no query, Content-Encoding or Idempotency-Key header. GET bodies and HEAD rejected. Closed duplicate-key-free UTF8 JSON; request max128KiB, response max1MiB, no-store. Policy setup authorizes bounded routine source-backed postings without per-entry confirmation. Reads never post and no public run/prepare/execute route exists. Unsupported FX/transfer/split/correction treatments remain explicit zero-effect holds. See docs/contracts/automatic-source-posting.md.
+         */
+        get: operations["getAutomaticAccountingPolicy"];
+        put?: never;
+        /**
+         * Save a reviewed versioned accounting mapping configuration
+         * @description Explicit default-off runtime capability. Verified actor and current book/source permissions; no query, Content-Encoding or Idempotency-Key header. GET bodies and HEAD rejected. Closed duplicate-key-free UTF8 JSON; request max128KiB, response max1MiB, no-store. Policy setup authorizes bounded routine source-backed postings without per-entry confirmation. Reads never post and no public run/prepare/execute route exists. Unsupported FX/transfer/split/correction treatments remain explicit zero-effect holds. See docs/contracts/automatic-source-posting.md.
+         */
+        post: operations["setAutomaticAccountingPolicy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/entities/{entity_id}/books/{book_id}/automatic-accounting/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read complete pending/attention counts and bounded actionable holds
+         * @description Explicit default-off runtime capability. Verified actor and current book/source permissions; no query, Content-Encoding or Idempotency-Key header. GET bodies and HEAD rejected. Closed duplicate-key-free UTF8 JSON; request max128KiB, response max1MiB, no-store. Policy setup authorizes bounded routine source-backed postings without per-entry confirmation. Reads never post and no public run/prepare/execute route exists. Unsupported FX/transfer/split/correction treatments remain explicit zero-effect holds. See docs/contracts/automatic-source-posting.md.
+         */
+        get: operations["getAutomaticAccountingStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2296,7 +2340,7 @@ export interface components {
             /** Format: uuid */
             ledger_account_id: string;
             blockers: string[];
-            draft: components["schemas"]["ReviewDraft"] | null;
+            draft: components["schemas"]["ReviewDraft"] | components["schemas"]["AutomaticReviewDraft"] | null;
             /** Format: date-time */
             created_at: string;
             evidence: components["schemas"]["ReviewEvidence"][];
@@ -4162,6 +4206,110 @@ export interface components {
             rule_names: string[];
             provider: components["schemas"]["PrivateAutomaticProviderAttribution"] | null;
             decision_id: string | null;
+        };
+        /** @enum {string} */
+        AutomaticAccountingReason: "unmapped_rule" | "ambiguous_rule" | "outside_policy_interval" | "manual_draft" | "source_not_booked" | "zero_amount" | "source_held" | "overlap_review_required" | "source_correction_required" | "paired_transfer_required" | "split_treatment_required" | "fx_required" | "unsupported_currency" | "unsupported_policy" | "inactive_account" | "closed_period" | "source_unavailable" | "permission_changed" | "saved_work" | "stale_input";
+        AutomaticAccountingRule: {
+            /** Format: uuid */
+            rule_id: string;
+            name: string;
+            /** Format: uuid */
+            source_account_id: string;
+            /** @enum {string} */
+            direction: "inflow" | "outflow";
+            /** @description Exact retained source description; no regex or merchant inference. */
+            description: string;
+            /** Format: uuid */
+            offset_account_id: string;
+            /** @enum {string} */
+            treatment: "expense" | "income" | "transfer" | "card_payment" | "loan";
+        };
+        AutomaticAccountingConfiguration: {
+            /** Format: uuid */
+            book_policy_id: string;
+            /** Format: date */
+            effective_from: string;
+            effective_to: string | null;
+            /** @description Stable unique rule IDs and names; SQL validates current exact mappings. */
+            rules: components["schemas"]["AutomaticAccountingRule"][];
+        };
+        AutomaticAccountingSettings: {
+            key: string;
+            expected_revision: components["schemas"]["Revision"];
+            enabled: boolean;
+            /** Format: uuid */
+            book_policy_id: string;
+            /** Format: date */
+            effective_from: string;
+            effective_to: string | null;
+            /** @description Stable unique rule IDs and names; SQL validates current exact mappings. */
+            rules: components["schemas"]["AutomaticAccountingRule"][];
+        };
+        AutomaticAccountingPolicy: {
+            /** @constant */
+            profile: "automatic-accounting-policy-v1";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            revision: components["schemas"]["Revision"];
+            enabled: boolean;
+            policy: components["schemas"]["AutomaticAccountingConfiguration"] | null;
+            /** @constant */
+            supported_profile: "source-identity-usd-v1";
+        };
+        AutomaticAccountingOperation: {
+            /** Format: uuid */
+            operation_id: string;
+            /** @enum {string} */
+            state: "prepared" | "committed" | "stale" | "held";
+            /** Format: uuid */
+            review_id: string;
+            journal_id: string | null;
+            reason: components["schemas"]["AutomaticAccountingReason"] | null;
+        };
+        AutomaticAccountingHold: {
+            /** Format: uuid */
+            review_id: string;
+            /** Format: uuid */
+            source_account_id: string;
+            reason: components["schemas"]["AutomaticAccountingReason"];
+            operation_id: string | null;
+        };
+        AutomaticAccountingStatus: {
+            /** @constant */
+            profile: "automatic-accounting-status-v1";
+            /** Format: uuid */
+            entity_id: string;
+            /** Format: uuid */
+            book_id: string;
+            enabled: boolean;
+            pending_count: components["schemas"]["Revision"];
+            attention_count: components["schemas"]["Revision"];
+            last_operation: components["schemas"]["AutomaticAccountingOperation"] | null;
+            holds: components["schemas"]["AutomaticAccountingHold"][];
+            holds_truncated: boolean;
+            blocked_reason: ("saved_work" | "permission_changed" | "source_unavailable") | null;
+            /** @description Server-owned background-execution flag, independent of the saved per-book enabled policy. */
+            runtime_enabled: boolean;
+            policy_revision: string;
+        };
+        AutomaticReviewDraft: {
+            /** Format: uuid */
+            draft_id: string;
+            /** Format: uuid */
+            review_id: string;
+            review_revision: components["schemas"]["Revision"];
+            source_revision: components["schemas"]["Revision"];
+            binding_revision: components["schemas"]["Revision"];
+            book_revision: components["schemas"]["Revision"];
+            posting_body: components["schemas"]["PostJournal"];
+            /** @constant */
+            profile: "automatic-source-draft-v1";
+            /** @constant */
+            origin: "automatic";
+            /** Format: uuid */
+            automatic_operation_id: string;
         };
     };
     responses: {
@@ -7358,6 +7506,109 @@ export interface operations {
                 };
             };
             /** @description Fixed RFC9457 failure; no private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getAutomaticAccountingPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized closed automatic-accounting state */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomaticAccountingPolicy"];
+                };
+            };
+            /** @description Fixed RFC9457 failure without private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    setAutomaticAccountingPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomaticAccountingSettings"];
+            };
+        };
+        responses: {
+            /** @description Current-authorized closed automatic-accounting state */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomaticAccountingPolicy"];
+                };
+            };
+            /** @description Fixed RFC9457 failure without private diagnostics */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getAutomaticAccountingStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entity_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current-authorized closed automatic-accounting state */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomaticAccountingStatus"];
+                };
+            };
+            /** @description Fixed RFC9457 failure without private diagnostics */
             default: {
                 headers: {
                     [name: string]: unknown;
