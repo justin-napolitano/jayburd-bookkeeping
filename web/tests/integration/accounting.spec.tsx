@@ -140,6 +140,13 @@ test("one YAML policy posts eligible retained evidence once without per-entry co
     .click();
   await expect.poll(() => attempts.length).toBe(2);
   expect(attempts[1]).toBe(attempts[0]);
+  // Wait for delivery and UI recovery before removing the in-flight fault handler.
+  await expect(
+    page.getByText(
+      "Accounting configuration saved. Eligible entries use this policy without per-entry confirmation.",
+      { exact: true },
+    ),
+  ).toBeVisible();
   await page.unroute("**/automatic-accounting");
   await expect
     .poll(

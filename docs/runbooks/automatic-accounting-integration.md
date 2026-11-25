@@ -55,6 +55,14 @@ the existing component browser cases; both1280/390 widths pass locally. No
 production behavior or financial oracle changed. The full composed journey still
 requires a fresh canonical pass.
 
+The e7d302a composed run45639384061 advanced through real YAML upload and the
+committed-response loss/retry, then exposed a test teardown race: counting the
+second request did not mean its response had finished before unroute. Await the
+customer's exact saved-configuration notice before removing the fault handler,
+as the existing automatic-category journey already does. Preserve byte-identical
+retry and actual committed-write assertions; do not mock responses or relax the
+financial outcome. Another exact-head run remains required.
+
 Core local secondary Go1.26.5 diagnostic compiles; required tracked Go1.26.11
 download and missing pinned migration-image credential helper block local product
 execution. Root repeated the exact SQL runner: pinned image acquisition fails at
