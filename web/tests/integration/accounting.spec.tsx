@@ -91,7 +91,7 @@ test("one YAML policy posts eligible retained evidence once without per-entry co
     buffer: Buffer.from(yaml),
   });
   await expect(
-    page.getByLabel("Accounting mapping YAML", { exact: true }),
+    page.getByRole("textbox", { name: "Accounting mapping YAML", exact: true }),
   ).toHaveValue(yaml);
   await page
     .getByRole("button", {

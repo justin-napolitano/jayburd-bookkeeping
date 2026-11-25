@@ -45,6 +45,16 @@ The available exact Go1.26.11 toolchain runs the project checker successfully;
 make check then stops because the default module cache cannot write the missing
 golang.org/x/net v0.62.0 lock. The chained test/build targets did not execute.
 
+Fix3e19db92 canonical Seed45634098121 passed validate and frontend, including the
+restricted source/accounting SQL regressions. Infrastructure45634097938 passed.
+Application integration passed the standalone financial SQL proof and reached
+the new composed browser test, then failed to locate the uploaded YAML textarea
+with an exact label-text selector. Use its exact textbox accessible name, keeping
+the complete uploaded-value assertion. Added the actual file-upload assertion to
+the existing component browser cases; both1280/390 widths pass locally. No
+production behavior or financial oracle changed. The full composed journey still
+requires a fresh canonical pass.
+
 Core local secondary Go1.26.5 diagnostic compiles; required tracked Go1.26.11
 download and missing pinned migration-image credential helper block local product
 execution. Root repeated the exact SQL runner: pinned image acquisition fails at

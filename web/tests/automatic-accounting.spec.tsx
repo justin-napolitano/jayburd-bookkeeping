@@ -13,6 +13,20 @@ for (const width of [1280, 390])
       ),
     ).toBeVisible();
     await page.getByRole("button", { name: "Configure accounting" }).click();
+    const mapping = page.getByRole("textbox", {
+      name: "Accounting mapping YAML",
+      exact: true,
+    });
+    const yaml = (await mapping.inputValue()).replace(
+      "Synthetic paper",
+      "Uploaded synthetic paper",
+    );
+    await page.getByLabel("Accounting YAML file", { exact: true }).setInputFiles({
+      name: "synthetic-accounting.yaml",
+      mimeType: "application/yaml",
+      buffer: Buffer.from(yaml),
+    });
+    await expect(mapping).toHaveValue(yaml);
     await page
       .getByRole("button", { name: "Review accounting configuration" })
       .click();
