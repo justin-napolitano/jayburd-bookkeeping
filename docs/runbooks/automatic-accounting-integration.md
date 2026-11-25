@@ -63,6 +63,13 @@ as the existing automatic-category journey already does. Preserve byte-identical
 retry and actual committed-write assertions; do not mock responses or relax the
 financial outcome. Another exact-head run remains required.
 
+Run45643409756 on e8d4092 passed committed-response recovery, exact retry,
+automatic posting, protected/manual and unmapped holds, retained source detail
+and exception navigation. It then timed out at the nested Review status label's
+exact-text selector. Select the combobox by its exact accessible name, matching
+the existing demo journey. Keep the posted-only filter and all subsequent exact
+journal/remount/zero-interactive-command assertions. Full acceptance is pending.
+
 Core local secondary Go1.26.5 diagnostic compiles; required tracked Go1.26.11
 download and missing pinned migration-image credential helper block local product
 execution. Root repeated the exact SQL runner: pinned image acquisition fails at

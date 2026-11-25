@@ -228,7 +228,7 @@ test("one YAML policy posts eligible retained evidence once without per-entry co
     .getByRole("button", { name: "Back to transactions", exact: true })
     .click();
   // Latest operation may be a hold; open the committed source using the actual source list's posted filter.
-  const filter = page.getByLabel("Review status", { exact: true });
+  const filter = page.getByRole("combobox", { name: "Review status", exact: true });
   await filter.selectOption("posted");
   await page
     .getByRole("button", {
