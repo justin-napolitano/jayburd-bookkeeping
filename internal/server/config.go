@@ -20,11 +20,16 @@ type Config struct {
 	Mode, Listen, Origin, Project, DatabaseURL, DatabaseMode, CloudSQLInstance, ProviderEnvironment string
 	CollectionEnabled                                                                               bool
 	AutomaticCategories                                                                             bool
+	AutomaticSourcePosting                                                                          bool
+	AutomaticAccountingEnabled                                                                      bool
 	CollectionActivationPlanFile                                                                    string
 }
 
 // Validate rejects ambiguous listener and origin configuration before dependencies start.
 func (c Config) Validate() error {
+	if c.AutomaticAccountingEnabled && c.Mode != "managed" || c.AutomaticSourcePosting && (!c.AutomaticAccountingEnabled || c.Mode != "managed") {
+		return errConfiguration
+	}
 	if c.AutomaticCategories && (!c.CollectionEnabled || c.Mode != "managed") {
 		return errConfiguration
 	}

@@ -271,8 +271,9 @@ export function AutomaticCategorization({
           </p>
         )}
         <p>
-          Categories organize transactions. Your choices are protected;
-          accounting entries still require confirmation.
+          Categories organize transactions. Your choices are protected.
+          Automatic accounting uses a separately configured policy in Review
+          accounting.
         </p>
         {status?.enabled && canClassify && (
           <button

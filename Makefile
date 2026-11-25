@@ -1,4 +1,4 @@
-.PHONY: check test build backlog packet issue-drafts migration-create migration-seal migration-check migration-test ledger-test web-check web-test web-build web-browser app-integration automatic-categorization-test automatic-categorization-browser
+.PHONY: check test build backlog packet issue-drafts migration-create migration-seal migration-check migration-test ledger-test web-check web-test web-build web-browser app-integration automatic-categorization-test automatic-categorization-browser automatic-accounting-test automatic-accounting-browser
 
 check:
 	go run ./cmd/project check
@@ -10,6 +10,13 @@ check:
 
 automatic-categorization-test:
 	bash scripts/test-automatic-categorization.sh
+
+# Restricted synthetic PostgreSQL proves financial effects separately from analytic categories.
+automatic-accounting-test:
+	bash scripts/test-automatic-accounting.sh
+
+automatic-accounting-browser:
+	bash scripts/test-app-integration.sh --accounting
 
 automatic-categorization-browser:
 	bash scripts/test-app-integration.sh --automatic

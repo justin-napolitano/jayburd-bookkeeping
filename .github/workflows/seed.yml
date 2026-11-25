@@ -160,7 +160,8 @@ jobs:
         run: npm --prefix web audit --audit-level=high
   application-integration:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Accounting adds restricted-SQL and complete application journeys to the existing suite.
+    timeout-minutes: 30
     env:
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
@@ -183,6 +184,10 @@ jobs:
       - name: Install Chromium for real application proof
         working-directory: web
         run: npx --no-install playwright install --with-deps chromium
+      - name: Automatic source-backed accounting and recovery through restricted SQL
+        run: make automatic-accounting-test
+      - name: Automatic accounting configuration through Next and restricted SQL
+        run: make automatic-accounting-browser
       - name: Durable automatic categories and whole-result exceptions proof
         run: make automatic-categorization-test
       - name: Automatic category application journey through Next and restricted SQL

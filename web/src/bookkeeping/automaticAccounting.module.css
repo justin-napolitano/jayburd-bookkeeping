@@ -1,0 +1,166 @@
+.panel {
+  border-block: 1px solid #dce3e7;
+  padding: 0.85rem 0;
+  margin-bottom: 1.2rem;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+.heading,
+.actions,
+.states {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+.heading {
+  justify-content: space-between;
+}
+.heading h3,
+.heading h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+.panel button,
+.panel input:not([type="checkbox"]),
+.panel select {
+  min-height: 36px;
+  font-size: 0.8125rem;
+  padding: 0.4rem 0.6rem;
+  margin: 0;
+  border-radius: 4px;
+}
+.panel label {
+  font-size: 0.8125rem;
+  margin-block: 0.5rem;
+  min-width: 0;
+}
+.panel p {
+  max-width: 78ch;
+  margin-block: 0.6rem;
+}
+.states {
+  margin-block: 0.6rem;
+  color: #425953;
+}
+.tableScroll {
+  max-width: 100%;
+  overflow: auto;
+  border-block: 1px solid #dce3e7;
+}
+.tableScroll table {
+  width: 100%;
+  min-width: 40rem;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.tableScroll th,
+.tableScroll td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid #e5ebed;
+  vertical-align: top;
+  text-align: left;
+  max-width: 22rem;
+  overflow-wrap: anywhere;
+}
+.tableScroll thead {
+  background: #f7f9fa;
+}
+.tableScroll thead th {
+  white-space: nowrap;
+}
+.tableScroll caption {
+  text-align: left;
+  padding: 0.5rem;
+  color: #62716e;
+}
+.editor {
+  border-top: 1px solid #dce3e7;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+}
+.editor fieldset {
+  display: block;
+  border: 0;
+  margin: 0.5rem 0;
+  padding: 0;
+  min-width: 0;
+}
+.editor legend {
+  font-size: 0.8rem;
+  color: #62716e;
+}
+.fields {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 0.75rem;
+}
+.fields input,
+.fields select {
+  width: 100%;
+}
+.editor textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-height: 14rem;
+  font:
+    0.8125rem/1.55 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+  padding: 0.7rem;
+  border: 1px solid #aabbbb;
+  border-radius: 4px;
+  background: #f7f9fa;
+  color: #26343d;
+  resize: vertical;
+}
+.editor .check {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 0.6rem;
+}
+.check input {
+  width: 1rem;
+  min-height: 1rem;
+}
+.review {
+  border-top: 1px solid #dce3e7;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+}
+.holds {
+  list-style: none;
+  padding: 0;
+  margin-block: 0.5rem;
+}
+.holds li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5ebed;
+}
+.panel :focus-visible {
+  outline: 2px solid #286044;
+  outline-offset: 3px;
+}
+@media (max-width: 700px) {
+  .fields {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .actions {
+    align-items: stretch;
+  }
+  .tableScroll {
+    max-height: 22rem;
+  }
+}

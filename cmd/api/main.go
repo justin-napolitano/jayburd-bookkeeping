@@ -46,6 +46,8 @@ func main() {
 	instance := flag.String("cloud-sql-instance", "", "explicit project:region:instance identifier")
 	collectionEnabled := flag.Bool("collection-read-enabled", false, "explicit reviewed private source and label workflows after matching migration and grant provisioning")
 	automaticCategories := flag.Bool("automatic-categories", false, "explicit reviewed private automatic categorization after matching migration and grants")
+	automaticSourcePosting := flag.Bool("automatic-source-posting", false, "explicit reviewed source-backed accounting after matching migration, grants and scoped policy")
+	automaticAccountingEnabled := flag.Bool("automatic-accounting-enabled", false, "explicit reviewed automatic-accounting settings/status API after matching migration and grants")
 	activationPlan := flag.String("collection-activation-plan-file", "", "explicit finite approved Sandbox adoption metadata file; absent disables adoption")
 	flag.Parse()
 	if enrollment.Enabled {
@@ -58,6 +60,8 @@ func main() {
 	c := server.Config{Mode: *mode, Listen: *listen, Origin: *origin, Project: *project, DatabaseMode: *databaseMode, CloudSQLInstance: *instance, ProviderEnvironment: enrollment.Environment}
 	c.CollectionEnabled = *collectionEnabled
 	c.AutomaticCategories = *automaticCategories
+	c.AutomaticSourcePosting = *automaticSourcePosting
+	c.AutomaticAccountingEnabled = *automaticAccountingEnabled
 	c.CollectionActivationPlanFile = *activationPlan
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()

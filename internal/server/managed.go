@@ -8,6 +8,7 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/autopost"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/clouddb"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionactivation"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
@@ -118,6 +119,9 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 	if c.AutomaticCategories && automaticReady(start, pool) != nil {
 		return fail()
 	}
+	if c.AutomaticAccountingEnabled && automaticAccountingReady(start, pool) != nil {
+		return fail()
+	}
 	if onboardingEnabled(c) && onboardingReady(start, pool) != nil {
 		return fail()
 	}
@@ -148,6 +152,11 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 				return err
 			}
 		}
+		if c.AutomaticAccountingEnabled {
+			if err := automaticAccountingReady(ctx, pool); err != nil {
+				return err
+			}
+		}
 		if onboardingEnabled(c) {
 			return onboardingReady(ctx, pool)
 		}
@@ -160,6 +169,13 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 	if c.AutomaticCategories {
 		d.Automation = &collectionlabels.AutomationService{DB: pool}
 		d.Automatic = &collectionlabels.AutomaticService{DB: pool}
+	}
+	if c.AutomaticAccountingEnabled {
+		accounting := &autopost.Service{DB: pool}
+		d.Accounting = accounting
+		if c.AutomaticSourcePosting {
+			d.SourcePosting = accounting
+		}
 	}
 	if onboardingEnabled(c) {
 		d.Onboarding = &collectiononboarding.Service{DB: pool}
@@ -175,6 +191,40 @@ func Managed(ctx context.Context, c Config) (Dependencies, error) {
 		}
 	}
 	return d, nil
+}
+
+// automaticAccountingReady requires the reviewed narrow entrypoints after ordinary role/table safety checks.
+func automaticAccountingReady(ctx context.Context, pool *pgxpool.Pool) error {
+	var safe bool
+	err := pool.QueryRow(ctx, `SELECT NOT EXISTS(SELECT FROM unnest(ARRAY[
+ 'banking.get_automatic_accounting(uuid,uuid,uuid)',
+ 'banking.set_automatic_accounting(uuid,uuid,uuid,text)',
+ 'banking.automatic_accounting_status(uuid,uuid,uuid)',
+ 'banking.automatic_accounting_work()',
+ 'banking.prepare_automatic_accounting(uuid,uuid,uuid)',
+ 'banking.execute_automatic_accounting(uuid,uuid,uuid,uuid)',
+ 'banking.observe_automatic_accounting(uuid,uuid,uuid,uuid)'
+ ]) AS f(signature) WHERE to_regprocedure(f.signature) IS NULL
+ OR NOT has_function_privilege(current_user,to_regprocedure(f.signature),'EXECUTE'))
+ AND NOT EXISTS(SELECT FROM unnest(ARRAY[
+ 'banking.automatic_accounting_error(text)',
+ 'banking.automatic_accounting_guard()',
+ 'banking.automatic_accounting_authorize(uuid,uuid,uuid,boolean)',
+ 'banking.automatic_accounting_source(uuid,uuid,uuid,uuid)',
+ 'banking.automatic_accounting_sources(uuid,uuid,uuid,jsonb)',
+ 'banking.automatic_accounting_policy_wire(uuid,uuid)',
+ 'banking.automatic_accounting_inputs(uuid,uuid,uuid,bigint)',
+ 'banking.automatic_accounting_visible(uuid,uuid,uuid,banking.automatic_accounting_operation)',
+ 'banking.render_automatic_accounting_operation(banking.automatic_accounting_operation)',
+ 'banking.create_source_draft(uuid,uuid,uuid,uuid,text,text,uuid)',
+ 'banking.authorize_source_post_core(uuid,uuid,uuid,jsonb,uuid)',
+ 'banking.commit_source_post(uuid,uuid,uuid,uuid,uuid,uuid,jsonb)'
+ ]) AS f(signature) WHERE to_regprocedure(f.signature) IS NULL
+ OR has_function_privilege(current_user,to_regprocedure(f.signature),'EXECUTE'))`).Scan(&safe)
+	if err != nil || !safe {
+		return errors.New("dependencies unavailable")
+	}
+	return nil
 }
 
 // automaticReady requires only the six reviewed API functions; runtimeSafety still denies tables/owner roles.

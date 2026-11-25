@@ -9,9 +9,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/justin-napolitano/jayburd-bookkeeping/internal/autopost"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionactivation"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectionlabels"
 	"github.com/justin-napolitano/jayburd-bookkeeping/internal/collectiononboarding"
@@ -21,17 +23,19 @@ import (
 
 // Dependencies holds already composed adapters; no request can switch providers.
 type Dependencies struct {
-	Auth        ledger.Authenticator
-	Operations  ledger.Operations
-	Connections ConnectionOperations
-	Collection  collectionread.Reader
-	Labels      collectionlabels.Operations
-	Automation  collectionlabels.AutomationOperations
-	Automatic   AutomaticRunner
-	Onboarding  collectiononboarding.Operations
-	Activation  *collectionactivation.Service
-	Ready       func(context.Context) error
-	Close       func()
+	Auth          ledger.Authenticator
+	Operations    ledger.Operations
+	Connections   ConnectionOperations
+	Collection    collectionread.Reader
+	Labels        collectionlabels.Operations
+	Automation    collectionlabels.AutomationOperations
+	Automatic     AutomaticRunner
+	Accounting    autopost.Operations
+	SourcePosting AutomaticRunner
+	Onboarding    collectiononboarding.Operations
+	Activation    *collectionactivation.Service
+	Ready         func(context.Context) error
+	Close         func()
 }
 
 // AutomaticRunner owns only the bounded classifier loop, not interactive acknowledgement.
@@ -39,10 +43,11 @@ type AutomaticRunner interface{ Run(context.Context) }
 
 // Server owns bounded HTTP lifecycle and distinguishes liveness from dependency readiness.
 type Server struct {
-	HTTP      *http.Server
-	closing   atomic.Bool
-	close     func()
-	automatic AutomaticRunner
+	HTTP          *http.Server
+	closing       atomic.Bool
+	close         func()
+	automatic     AutomaticRunner
+	sourcePosting AutomaticRunner
 }
 
 // New mounts accounting only when managed adapters exist. Health-only is never ready.
@@ -51,6 +56,15 @@ func New(c Config, d Dependencies) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{close: d.Close}
+	if c.AutomaticAccountingEnabled && d.Accounting == nil {
+		return nil, errConfiguration
+	}
+	if c.AutomaticSourcePosting {
+		if d.Accounting == nil || d.SourcePosting == nil {
+			return nil, errConfiguration
+		}
+		s.sourcePosting = d.SourcePosting
+	}
 	if c.AutomaticCategories {
 		if d.Automation == nil || d.Automatic == nil {
 			return nil, errConfiguration
@@ -86,6 +100,11 @@ func New(c Config, d Dependencies) (*Server, error) {
 		}
 		application := http.NewServeMux()
 		application.Handle("/v1/", ledger.Handler(d.Auth, d.Operations))
+		if c.AutomaticAccountingEnabled {
+			accounting := autopost.Handler(d.Auth, d.Accounting, c.AutomaticSourcePosting)
+			application.Handle("/v1/entities/{entity}/books/{book}/automatic-accounting", accounting)
+			application.Handle("/v1/entities/{entity}/books/{book}/automatic-accounting/status", accounting)
+		}
 		if c.CollectionEnabled {
 			if d.Collection == nil || d.Labels == nil {
 				return nil, errConfiguration
@@ -217,15 +236,16 @@ func (s *Server) Run(ctx context.Context) error {
 	return nil
 }
 
-// startAutomatic cancels and drains classification before pool closure, including listener failure.
+// startAutomatic cancels and drains both independently gated engines before pool closure.
 func (s *Server) startAutomatic(parent context.Context) func() {
 	ctx, cancel := context.WithCancel(parent)
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		if s.automatic != nil {
-			s.automatic.Run(ctx)
+	var running sync.WaitGroup
+	for _, runner := range []AutomaticRunner{s.automatic, s.sourcePosting} {
+		if runner == nil {
+			continue
 		}
-	}()
-	return func() { cancel(); <-done }
+		running.Add(1)
+		go func() { defer running.Done(); runner.Run(ctx) }()
+	}
+	return func() { cancel(); running.Wait() }
 }

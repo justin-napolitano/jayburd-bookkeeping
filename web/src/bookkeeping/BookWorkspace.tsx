@@ -7,6 +7,7 @@ import {
   type ConnectionsProps,
 } from "./Connections";
 import { ReviewInbox } from "./ReviewInbox";
+import { AutomaticAccounting } from "./AutomaticAccounting";
 import { ActivityOverview } from "./ActivityOverview";
 import { currencyAt, formatAmount } from "./amount";
 import { Reports, type ReportContext, type ReportSelection } from "./Reports";
@@ -91,12 +92,14 @@ export function BookWorkspace({
   rememberSource?: (source: string) => void;
 }) {
   const [reviewSource, setReviewSource] = useState(rememberedSource);
+  const [reviewTarget, setReviewTarget] = useState<string>();
   const manualReviewSource = useRef(rememberedSource);
   const lastNavigation = useRef(navigationKey);
   // Generic tool navigation resets a prior connection filter; explicit connection handoffs keep it.
   useEffect(() => {
     if (lastNavigation.current !== navigationKey) {
       lastNavigation.current = navigationKey;
+      setReviewTarget(undefined);
       if (activeView === "Review transactions")
         setReviewSource(manualReviewSource.current);
     }
@@ -200,6 +203,7 @@ export function BookWorkspace({
   }, [readBalances, view]);
   // Native buttons plus focused section headings make view changes keyboard-visible.
   const navigate = (next: BookView) => {
+    setReviewTarget(undefined);
     if (next === "Review transactions")
       setReviewSource(manualReviewSource.current);
     setView(next);
@@ -344,12 +348,14 @@ export function BookWorkspace({
           initialSource={reviewSource}
           denied={denied}
           onSourceChoice={(source) => {
+            setReviewTarget(undefined);
             setReviewSource(source);
             manualReviewSource.current = source;
             rememberSource?.(source);
           }}
           onAccounts={() => setView("Connections")}
           onReview={(source) => {
+            setReviewTarget(undefined);
             setReviewSource(source);
             setView("Review transactions");
             requestAnimationFrame(() => heading.current?.focus());
@@ -471,6 +477,7 @@ export function BookWorkspace({
           link={connectionLink}
           prepareRegistration={prepareRegistration}
           onReview={(source) => {
+            setReviewTarget(undefined);
             setReviewSource(source);
             setView("Review transactions");
             requestAnimationFrame(() => heading.current?.focus());
@@ -478,21 +485,39 @@ export function BookWorkspace({
         />
       )}
       {view === "Review transactions" && prepare && (
-        <ReviewInbox
-          showHeading={false}
-          onSourceChoice={(source) => {
-            manualReviewSource.current = source;
-            rememberSource?.(source);
-          }}
-          initialSource={reviewSource}
-          api={api}
-          entity={entity}
-          book={book}
-          currencies={currencies}
-          locked={locked}
-          prepare={prepare}
-          denied={denied}
-        />
+        <>
+          {entity.permissions.includes("prepare") &&
+            entity.permissions.includes("post") && (
+              <AutomaticAccounting
+                api={api}
+                entity={entity}
+                book={book}
+                locked={locked}
+                denied={denied}
+                onInspectReview={(reviewID, sourceID) => {
+                  setReviewSource(sourceID ?? "");
+                  setReviewTarget(reviewID);
+                }}
+              />
+            )}
+          <ReviewInbox
+            showHeading={false}
+            onSourceChoice={(source) => {
+              setReviewTarget(undefined);
+              manualReviewSource.current = source;
+              rememberSource?.(source);
+            }}
+            initialSource={reviewSource}
+            initialReviewID={reviewTarget}
+            api={api}
+            entity={entity}
+            book={book}
+            currencies={currencies}
+            locked={locked}
+            prepare={prepare}
+            denied={denied}
+          />
+        </>
       )}
     </div>
   );
