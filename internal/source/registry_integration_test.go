@@ -402,6 +402,16 @@ func TestSourceRegistryPrivileges(t *testing.T) {
 				"prepare_collection_automatic_run",
 				"execute_collection_automatic_run",
 			)
+			// Migration49 exposes only the reviewed policy/status and trusted worker boundary.
+			allowed = append(allowed,
+				"get_automatic_accounting",
+				"set_automatic_accounting",
+				"automatic_accounting_status",
+				"automatic_accounting_work",
+				"prepare_automatic_accounting",
+				"execute_automatic_accounting",
+				"observe_automatic_accounting",
+			)
 		}
 		if value(t, c, `SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='banking' AND has_function_privilege($1,p.oid,'EXECUTE')<>(p.proname=ANY($2::text[]))`, role, allowed) != "0" {
 			t.Fatal("function privileges")

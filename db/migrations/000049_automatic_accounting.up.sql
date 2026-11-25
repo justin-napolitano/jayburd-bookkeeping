@@ -950,8 +950,8 @@ BEGIN
 
   PERFORM banking.automatic_accounting_authorize(actor,e,b,true);
 
-  SELECT a.* INTO p
-  FROM banking.automatic_accounting_policy h JOIN banking.automatic_accounting_edition a USING(entity_id,book_id,revision)
+  SELECT edition.* INTO p
+  FROM banking.automatic_accounting_policy h JOIN banking.automatic_accounting_edition edition USING(entity_id,book_id,revision)
   WHERE h.entity_id=e AND h.book_id=b;
 
   IF p.revision IS NULL OR NOT p.enabled THEN

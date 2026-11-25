@@ -27,6 +27,24 @@ from green source checks.
 
 ## Current evidence
 
+2026-11-25 qualification resumed under512/65 after owner-authorized public
+visibility enabled actual Actions execution. Seed43898797218 attempt2 on
+ae55c493 passed frontend; Infrastructure43898797366 attempt2 passed foundation.
+The validate and application-integration jobs both reached real PostgreSQL and
+failed on prepare_automatic_accounting's edition alias `a` colliding with its
+PL/pgSQL account variable. Rename the edition alias without changing policy or
+posting semantics. The existing registry privilege oracle also needs the seven
+explicitly reviewed migration49 API/worker functions in its allowlist; helpers,
+tables and non-API roles remain denied. SQL49 is unmerged and resealed;1–48 stay
+unchanged. Existing automatic accounting tests cover the failing preparation path
+and actual privilege denials. The local exact-image retry still stops before SQL
+at Docker credential helper error-50; no local SQL pass is claimed. These fixes
+require a fresh exact-head canonical run. Public visibility is temporary for the
+authorized qualification window; restore private at handoff.
+The available exact Go1.26.11 toolchain runs the project checker successfully;
+make check then stops because the default module cache cannot write the missing
+golang.org/x/net v0.62.0 lock. The chained test/build targets did not execute.
+
 Core local secondary Go1.26.5 diagnostic compiles; required tracked Go1.26.11
 download and missing pinned migration-image credential helper block local product
 execution. Root repeated the exact SQL runner: pinned image acquisition fails at
