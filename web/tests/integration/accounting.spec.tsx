@@ -228,7 +228,10 @@ test("one YAML policy posts eligible retained evidence once without per-entry co
     .getByRole("button", { name: "Back to transactions", exact: true })
     .click();
   // Latest operation may be a hold; open the committed source using the actual source list's posted filter.
-  const filter = page.getByRole("combobox", { name: "Review status", exact: true });
+  const filter = page.getByRole("combobox", {
+    name: "Review status",
+    exact: true,
+  });
   await filter.selectOption("posted");
   await page
     .getByRole("button", {
@@ -243,7 +246,22 @@ test("one YAML policy posts eligible retained evidence once without per-entry co
     name: "Immutable posted journal lines",
   });
   await expect(lines.getByRole("row")).toHaveCount(3);
-  await expect(lines.getByText("12.5 USD", { exact: true })).toHaveCount(2);
+  // Each of the two balanced lines displays both original and functional USD.
+  for (const side of ["debit", "credit"]) {
+    const row = lines.getByRole("row").filter({
+      has: page.getByRole("cell", { name: side, exact: true }),
+    });
+    await expect(row).toHaveCount(1);
+    await expect(
+      row.getByRole("cell", { name: "12.5 USD", exact: true }),
+    ).toHaveCount(2);
+  }
+  await expect(lines.getByRole("columnheader")).toHaveText([
+    "Account",
+    "Side",
+    "Original amount",
+    "Functional amount",
+  ]);
   const journal = await read(base + `/journals/${posted.journal_id}`);
   expect(journal.lines).toEqual(
     expect.arrayContaining([

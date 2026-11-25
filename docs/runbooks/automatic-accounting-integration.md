@@ -70,6 +70,14 @@ exact-text selector. Select the combobox by its exact accessible name, matching
 the existing demo journey. Keep the posted-only filter and all subsequent exact
 journal/remount/zero-interactive-command assertions. Full acceptance is pending.
 
+Run45646193424 on4574a36 reached the immutable journal: exactly two lines were
+present, each displaying12.5USD twice (original and functional columns). The
+authored display assertion incorrectly expected two amounts across the whole
+table. Assert one debit row and one credit row, each with both exact USD amounts,
+plus the four explicit column headers. Keep the independent API account/side/
+transaction/functional amount oracle and final database counts unchanged. This
+corrects the test's expected presentation without changing product code or money.
+
 Core local secondary Go1.26.5 diagnostic compiles; required tracked Go1.26.11
 download and missing pinned migration-image credential helper block local product
 execution. Root repeated the exact SQL runner: pinned image acquisition fails at
